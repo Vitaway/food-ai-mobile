@@ -1,103 +1,122 @@
-import { ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Pressable, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
-import { HealthScoreRing } from '@/components/home/HealthScoreRing';
-import { MealTimeline, type MealTimelineItem } from '@/components/home/MealTimeline';
+import {
+  CollapsibleHomeHeader,
+  HOME_WEEK_DAY_BAR_CLEARANCE,
+  HomeWeekDayBar,
+  useHomeHeaderLayout,
+  useHomeSheetPosition,
+} from '@/components/home/CollapsibleHomeHeader';
+import { MealTimeline } from '@/components/home/MealTimeline';
 import { MacroPills } from '@/components/ui/PillOption';
-import { WeekDaySelector } from '@/components/home/WeekDaySelector';
+import { ContentSheet } from '@/components/ui/GradientHeader';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
-import { ContentSheet, GradientHeader } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
-import type { DailyDashboard } from '@/types';
-
-const placeholderDashboard: DailyDashboard = {
-  date: new Date().toISOString(),
-  caloriesConsumed: 1240,
-  calorieTarget: 2100,
-  macros: {
-    calories: 2100,
-    proteinG: 140,
-    carbsG: 220,
-    fatG: 70,
-    fiberG: 30,
-  },
-  macrosConsumed: {
-    proteinG: 62,
-    carbsG: 148,
-    fatG: 38,
-    fiberG: 12,
-  },
-  waterMl: 750,
-  waterTargetMl: 2450,
-  healthScore: 78,
-  streakDays: 3,
-};
-
-const todayMeals: MealTimelineItem[] = [
-  {
-    id: 'breakfast',
-    label: 'Breakfast',
-    time: '09:01',
-    items: ['Oats', 'Banana', 'Greek yogurt'],
-    logged: true,
-    calories: 420,
-  },
-  {
-    id: 'lunch',
-    label: 'Lunch',
-    logged: false,
-  },
-  {
-    id: 'dinner',
-    label: 'Dinner',
-    logged: false,
-  },
-];
-
-function formatTodayLabel() {
-  return new Date().toLocaleDateString('en-US', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
+import { palette } from '@/design-system/colors';
+import { useMeals } from '@/context/MealsContext';
+import { useDashboard } from '@/hooks/useDashboard';
+import { formatDisplayDate, todayKey } from '@/utils/dates';
 
 export default function HomeScreen() {
-  const data = placeholderDashboard;
-  const calorieProgress = Math.round((data.caloriesConsumed / data.calorieTarget) * 100);
+  const router = useRouter();
+  const { addWater } = useMeals();
+  const [selectedDate, setSelectedDate] = useState(todayKey());
+  const { dashboard, timeline, displayName } = useDashboard(selectedDate);
+  const calorieProgress = Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100);
+  const isToday = selectedDate === todayKey();
+  const { collapsedHeight, expandedHeight } = useHomeHeaderLayout();
+
+  const scrollY = useSharedValue(0);
+  const sheetPositionStyle = useHomeSheetPosition(scrollY, expandedHeight, collapsedHeight);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      scrollY.value = Math.max(0, event.contentOffset.y);
+    },
+  });
+
+  const handleAddMeal = useCallback(() => {
+    router.push('/(tabs)/log');
+  }, [router]);
+
+  const handleMealPress = useCallback(
+    (mealId: string) => {
+      router.push(`/meal/${mealId}`);
+    },
+    [router],
+  );
+
+  const handleAddWater = useCallback(async () => {
+    await addWater(250, selectedDate);
+  }, [addWater, selectedDate]);
 
   return (
-    <View className="flex-1 bg-blue-spruce-500">
-      <GradientHeader>
-        <Text className="font-sans-bold text-3xl text-white">Hello there</Text>
-        <Text className="mt-1 text-base text-white/85">
-          You&apos;re {calorieProgress}% toward today&apos;s calorie goal
-        </Text>
+    <View className="flex-1" style={{ backgroundColor: palette['blue-spruce'][400] }}>
+      <CollapsibleHomeHeader
+        scrollY={scrollY}
+        displayName={displayName}
+        calorieProgress={calorieProgress}
+        isToday={isToday}
+        healthScore={dashboard.healthScore}
+        streakDays={dashboard.streakDays}
+        expandedHeight={expandedHeight}
+        collapsedHeight={collapsedHeight}
+      />
 
-        <HealthScoreRing score={data.healthScore} subtitle={`${data.streakDays}-day streak`} />
-        <WeekDaySelector />
-      </GradientHeader>
+      <HomeWeekDayBar
+        scrollY={scrollY}
+        expandedHeight={expandedHeight}
+        collapsedHeight={collapsedHeight}
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+      />
 
-      <ContentSheet>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE }}>
-          <MacroPills
-            macros={[
-              { label: 'Protein', value: `${data.macrosConsumed.proteinG}g`, colorClass: 'bg-shamrock-500' },
-              { label: 'Carbs', value: `${data.macrosConsumed.carbsG}g`, colorClass: 'bg-blue-spruce-500' },
-              { label: 'Fats', value: `${data.macrosConsumed.fatG}g`, colorClass: 'bg-cinnamon-wood-400' },
-              { label: 'Water', value: `${data.waterMl}ml`, colorClass: 'bg-muted-teal-500' },
-            ]}
-          />
+      <Animated.View
+        className="min-h-0 flex-1"
+        style={[{ zIndex: 2, overflow: 'visible' }, sheetPositionStyle]}>
+        <ContentSheet className="pt-0">
+          <Animated.ScrollView
+            onScroll={scrollHandler}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            bounces
+            contentContainerStyle={{
+              paddingTop: HOME_WEEK_DAY_BAR_CLEARANCE,
+              paddingBottom: FLOATING_TAB_BAR_CLEARANCE,
+            }}>
+            <MacroPills
+              macros={[
+              { label: 'Protein', value: `${dashboard.macrosConsumed.proteinG}g`, colorClass: 'bg-shamrock-500' },
+              { label: 'Carbs', value: `${dashboard.macrosConsumed.carbsG}g`, colorClass: 'bg-blue-spruce-500' },
+              { label: 'Fats', value: `${dashboard.macrosConsumed.fatG}g`, colorClass: 'bg-cinnamon-wood-400' },
+              {
+                label: 'Water',
+                value: `${dashboard.waterMl}ml`,
+                colorClass: 'bg-muted-teal-500',
+                onPress: isToday ? handleAddWater : undefined,
+              },
+              ]}
+            />
 
-          <MealTimeline
-            dateLabel={`Today, ${formatTodayLabel()}`}
-            summary={`${data.caloriesConsumed} / ${data.calorieTarget} kcal · ${todayMeals.filter((m) => m.logged).length}/${todayMeals.length} meals logged`}
-            meals={todayMeals}
-          />
-        </ScrollView>
-      </ContentSheet>
+            {isToday ? (
+              <Pressable onPress={handleAddWater} className="mb-4 mt-1">
+                <Text className="text-center text-sm text-blue-spruce-600">+ Add 250 ml water</Text>
+              </Pressable>
+            ) : null}
+
+            <MealTimeline
+              dateLabel={isToday ? `Today, ${formatDisplayDate()}` : formatDisplayDate(new Date(selectedDate))}
+              summary={`${dashboard.caloriesConsumed} / ${dashboard.calorieTarget} kcal · ${timeline.filter((m) => m.logged).length}/${timeline.length} meals logged`}
+              meals={timeline}
+              onMealPress={handleMealPress}
+              onAddMeal={handleAddMeal}
+            />
+          </Animated.ScrollView>
+        </ContentSheet>
+      </Animated.View>
     </View>
   );
 }
