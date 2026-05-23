@@ -24,16 +24,27 @@ export interface MacroTargets {
   fiberG: number;
 }
 
+export type HealthFlagLevel = 'green' | 'yellow' | 'orange' | 'red';
+
+export type UserSex = 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
+
 export interface UserProfile {
   id: string;
+  displayName?: string;
   age: number;
-  sex: 'male' | 'female';
+  sex: UserSex;
   heightCm: number;
   weightKg: number;
   goal: HealthGoal;
   activityLevel: ActivityLevel;
   dietaryPreferences: string[];
   macroTargets: MacroTargets;
+  bmr: number;
+  tdee: number;
+  waterTargetMl: number;
+  onboardingComplete: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface NutritionFacts {
@@ -51,7 +62,25 @@ export interface DetectedFoodItem {
   label: string;
   confidence: number;
   estimatedWeightG: number;
+  emoji?: string;
   nutrition: NutritionFacts;
+}
+
+export interface MealPetal {
+  label: string;
+  percent: number;
+  color: string;
+}
+
+export interface MealAnalysisPreview {
+  mealName: string;
+  items: DetectedFoodItem[];
+  totalNutrition: NutritionFacts;
+  totalWeightG: number;
+  confidenceAvg: number;
+  petals: MealPetal[];
+  healthFlag: HealthFlagLevel;
+  healthMessage: string;
 }
 
 export interface MealSubmission {
@@ -61,8 +90,19 @@ export interface MealSubmission {
   submittedAt: string;
   imageUrl?: string;
   textInput?: string;
+  note?: string;
+  mealName?: string;
   items?: DetectedFoodItem[];
   totalNutrition?: NutritionFacts;
+  confidenceAvg?: number;
+  healthFlag?: HealthFlagLevel;
+  healthMessage?: string;
+  petals?: MealPetal[];
+}
+
+export interface DailyLog {
+  date: string;
+  waterMl: number;
 }
 
 export interface DailyDashboard {
