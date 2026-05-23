@@ -26,10 +26,33 @@ export function GradientHeader({ children, height, style }: GradientHeaderProps)
 
 type ContentSheetProps = PropsWithChildren<{
   className?: string;
+  style?: ViewStyle;
 }>;
 
-export function ContentSheet({ children, className }: ContentSheetProps) {
+/** Overlap between the gradient header and the white content sheet (matches `-mt-10`). */
+export const CONTENT_SHEET_OVERLAP = 40;
+
+export function ContentSheet({ children, className, style }: ContentSheetProps) {
   return (
-    <View className={`flex-1 -mt-10 rounded-t-[32px] bg-white px-5 pt-6 ${className ?? ''}`}>{children}</View>
+    <View
+      className={`min-h-0 flex-1 px-5 pt-6 ${className ?? ''}`}
+      style={{
+        flex: 1,
+        marginTop: -CONTENT_SHEET_OVERLAP,
+        borderTopLeftRadius: 32,
+        borderTopRightRadius: 32,
+        borderCurve: 'continuous',
+        backgroundColor: '#ffffff',
+        overflow: 'hidden',
+        zIndex: 2,
+        shadowColor: '#051f1c',
+        shadowOffset: { width: 0, height: -10 },
+        shadowOpacity: 0.14,
+        shadowRadius: 20,
+        elevation: 12,
+        ...style,
+      }}>
+      {children}
+    </View>
   );
 }
