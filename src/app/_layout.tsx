@@ -1,12 +1,12 @@
 import '../../global.css';
 
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
+  NataSans_400Regular,
+  NataSans_500Medium,
+  NataSans_600SemiBold,
+  NataSans_700Bold,
   useFonts,
-} from '@expo-google-fonts/inter';
+} from '@expo-google-fonts/nata-sans';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -14,6 +14,7 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
+import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { AppProviders } from '@/context/AppProviders';
 import { semanticColors } from '@/design-system/colors';
 
@@ -22,15 +23,15 @@ export { ErrorBoundary } from 'expo-router';
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  initialRouteName: '(tabs)',
+  initialRouteName: 'index',
 };
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    NataSans_400Regular,
+    NataSans_500Medium,
+    NataSans_600SemiBold,
+    NataSans_700Bold,
   });
 
   useEffect(() => {
@@ -44,7 +45,7 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
-    return null;
+    return <AppSplashScreen />;
   }
 
   return (
@@ -55,6 +56,8 @@ export default function RootLayout() {
           headerShown: false,
           contentStyle: { backgroundColor: semanticColors.background },
         }}>
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="meal" options={{ presentation: 'card' }} />
       </Stack>
