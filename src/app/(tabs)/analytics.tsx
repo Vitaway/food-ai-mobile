@@ -24,7 +24,7 @@ const insightSections = [
 
 export default function AnalyticsScreen() {
   return (
-    <View className="flex-1 bg-blue-spruce-500">
+    <View className="flex-1 bg-white">
       <GradientHeader>
         <Text className="font-sans-bold text-3xl text-white">Insights</Text>
         <Text className="mt-1 text-base text-white/85">Weekly and monthly nutrition trends</Text>

@@ -1,20 +1,37 @@
+import { useRouter, type Href } from 'expo-router';
 import { ScrollView, View } from 'react-native';
 
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { Button } from '@/components/ui/Button';
 import { ContentSheet, GradientHeader } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
-
-const profileFields = [
-  { label: 'Goal', value: 'Lose weight' },
-  { label: 'Activity', value: 'Moderately active' },
-  { label: 'Calorie target', value: '2,100 kcal / day' },
-  { label: 'Dietary preferences', value: 'None set' },
-];
+import { formatActivityLevel, formatHealthGoal } from '@/constants/profileOptions';
+import { formatUserSex } from '@/components/onboarding/SexSelector';
+import { useProfile } from '@/context/ProfileContext';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const { profile } = useProfile();
+
+  const profileFields = profile
+    ? [
+        { label: 'Name', value: profile.displayName ?? 'Not set' },
+        { label: 'Sex', value: formatUserSex(profile.sex) },
+        { label: 'Goal', value: formatHealthGoal(profile.goal) },
+        { label: 'Activity', value: formatActivityLevel(profile.activityLevel) },
+        { label: 'Calorie target', value: `${profile.macroTargets.calories.toLocaleString()} kcal / day` },
+        { label: 'Protein target', value: `${profile.macroTargets.proteinG} g / day` },
+        { label: 'Water target', value: `${profile.waterTargetMl.toLocaleString()} ml / day` },
+        {
+          label: 'Dietary preferences',
+          value: profile.dietaryPreferences.length ? profile.dietaryPreferences.join(', ') : 'None set',
+        },
+        { label: 'BMR / TDEE', value: `${profile.bmr} / ${profile.tdee} kcal` },
+      ]
+    : [];
+
   return (
-    <View className="flex-1 bg-blue-spruce-500">
+    <View className="flex-1 bg-white">
       <GradientHeader>
         <Text className="font-sans-bold text-3xl text-white">Profile</Text>
         <Text className="mt-1 text-base text-white/85">Health profile and preferences</Text>
@@ -37,7 +54,7 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          <Button label="Edit health profile" variant="outline" />
+          <Button label="Edit health profile" variant="outline" onPress={() => router.push('/onboarding' as Href)} />
           <Button label="Notification preferences" variant="ghost" />
         </ScrollView>
       </ContentSheet>
