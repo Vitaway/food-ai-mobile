@@ -30,12 +30,13 @@ export const FLOATING_TAB_BAR_CLEARANCE = 120;
 
 export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
+  const bottomOffset = Math.max(insets.bottom - 4, 10);
 
   return (
     <View
       pointerEvents="box-none"
       className="absolute left-0 right-0 items-center"
-      style={{ bottom: insets.bottom + 12 }}>
+      style={{ bottom: bottomOffset }}>
       <View
         className="mx-6 flex-row items-end justify-around rounded-full bg-blue-spruce-950 px-3 py-3"
         style={[
