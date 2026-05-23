@@ -10,15 +10,18 @@ export type MealTimelineItem = {
   items?: string[];
   logged: boolean;
   calories?: number;
+  status?: string;
 };
 
 type MealTimelineProps = {
   dateLabel: string;
   summary?: string;
   meals: MealTimelineItem[];
+  onMealPress?: (mealId: string) => void;
+  onAddMeal?: () => void;
 };
 
-export function MealTimeline({ dateLabel, summary, meals }: MealTimelineProps) {
+export function MealTimeline({ dateLabel, summary, meals, onMealPress, onAddMeal }: MealTimelineProps) {
   return (
     <View className="pb-4">
       <View className="mb-5 flex-row items-start justify-between">
@@ -41,7 +44,10 @@ export function MealTimeline({ dateLabel, summary, meals }: MealTimelineProps) {
             </View>
 
             <View className="min-h-[72px] flex-1 flex-row items-start justify-between rounded-2xl bg-ash-grey-50 px-4 py-3">
-              <View className="flex-1 pr-3">
+              <Pressable
+                className="flex-1 pr-3"
+                disabled={!meal.logged}
+                onPress={() => meal.logged && onMealPress?.(meal.id)}>
                 <Text className="font-sans-semibold text-base text-neutral-900">{meal.label}</Text>
                 {meal.items?.length ? (
                   <Text className="mt-1 text-sm leading-5 text-neutral-500">{meal.items.join(', ')}</Text>
@@ -49,7 +55,7 @@ export function MealTimeline({ dateLabel, summary, meals }: MealTimelineProps) {
                 {meal.calories ? (
                   <Text className="mt-1 text-xs font-sans-medium text-blue-spruce-700">{meal.calories} kcal</Text>
                 ) : null}
-              </View>
+              </Pressable>
 
               <View className="items-end gap-2">
                 {meal.time ? <Text className="text-xs text-neutral-400">{meal.time}</Text> : null}
@@ -58,7 +64,9 @@ export function MealTimeline({ dateLabel, summary, meals }: MealTimelineProps) {
                     <Ionicons name="checkmark" size={16} color="#ffffff" />
                   </View>
                 ) : (
-                  <Pressable className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-ash-grey-400 bg-white">
+                  <Pressable
+                    onPress={onAddMeal}
+                    className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-ash-grey-400 bg-white">
                     <Ionicons name="add" size={18} color="#848a75" />
                   </Pressable>
                 )}
