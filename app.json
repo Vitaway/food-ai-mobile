@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Vitaway Food AI",
-    "slug": "vitaway-food-ai",
+    "name": "MiraFood",
+    "slug": "food-ai",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "vitaway",
+    "scheme": "mirafood",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -31,11 +31,12 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
+      "expo-local-authentication",
       [
         "expo-image-picker",
         {
-          "photosPermission": "Vitaway needs photo access to log meals from your gallery.",
-          "cameraPermission": "Vitaway needs camera access to scan and log your meals."
+          "photosPermission": "MiraFood needs photo access to log meals from your gallery.",
+          "cameraPermission": "MiraFood needs camera access to scan and log your meals."
         }
       ],
       [
