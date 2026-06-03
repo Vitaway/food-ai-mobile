@@ -1,31 +1,61 @@
 /** Shared palette tokens — imported by tailwind.config.js and colors.ts */
+function hexToRgb(hex) {
+  const normalized = hex.replace('#', '');
+  const full = normalized.length === 3 ? normalized.split('').map((c) => c + c).join('') : normalized;
+  const num = parseInt(full, 16);
+  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
+}
+
+function rgbToHex({ r, g, b }) {
+  const toHex = (n) => n.toString(16).padStart(2, '0');
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+}
+
+function mix(aHex, bHex, t) {
+  const a = hexToRgb(aHex);
+  const b = hexToRgb(bHex);
+  const mixChannel = (x, y) => Math.round(x + (y - x) * t);
+  return rgbToHex({ r: mixChannel(a.r, b.r), g: mixChannel(a.g, b.g), b: mixChannel(a.b, b.b) });
+}
+
+function buildScale({ base, baseShade, whiteT, blackT }) {
+  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
+  return shades.reduce((acc, shade) => {
+    if (shade === baseShade) {
+      acc[shade] = base;
+      return acc;
+    }
+
+    const isLighter = shade < baseShade;
+    const t = isLighter ? whiteT[shade] : blackT[shade];
+    acc[shade] = t == null ? base : mix(base, isLighter ? '#ffffff' : '#000000', t);
+    return acc;
+  }, {});
+}
+
+const NAVY = '#023459';
+const ORANGE = '#FF6F32';
+const GREEN = '#1D9E75';
+
 module.exports = {
-  'blue-spruce': {
-    50: '#e9fbf9',
-    100: '#d3f8f3',
-    200: '#a8f0e8',
-    300: '#7ce9dc',
-    400: '#51e1d1',
-    500: '#25dac5',
-    600: '#1eae9e',
-    700: '#168376',
-    800: '#0f574f',
-    900: '#072c27',
-    950: '#051f1c',
-  },
-  shamrock: {
-    50: '#eef7f1',
-    100: '#dcefe3',
-    200: '#b9dfc7',
-    300: '#96cfab',
-    400: '#73bf8f',
-    500: '#50af73',
-    600: '#408c5c',
-    700: '#306945',
-    800: '#20462e',
-    900: '#102317',
-    950: '#0b1810',
-  },
+  'blue-spruce': buildScale({
+    base: NAVY,
+    baseShade: 600,
+    whiteT: { 50: 0.92, 100: 0.85, 200: 0.7, 300: 0.52, 400: 0.34, 500: 0.15 },
+    blackT: { 700: 0.18, 800: 0.32, 900: 0.52, 950: 0.66 },
+  }),
+  shamrock: buildScale({
+    base: GREEN,
+    baseShade: 500,
+    whiteT: { 50: 0.9, 100: 0.8, 200: 0.65, 300: 0.48, 400: 0.25 },
+    blackT: { 600: 0.18, 700: 0.3, 800: 0.45, 900: 0.62, 950: 0.74 },
+  }),
+  'cinnamon-wood': buildScale({
+    base: ORANGE,
+    baseShade: 400,
+    whiteT: { 50: 0.9, 100: 0.8, 200: 0.65, 300: 0.45 },
+    blackT: { 500: 0.12, 600: 0.25, 700: 0.42, 800: 0.6, 900: 0.78, 950: 0.88 },
+  }),
   'muted-teal': {
     50: '#eff6f1',
     100: '#deede3',
@@ -51,18 +81,5 @@ module.exports = {
     800: '#35372f',
     900: '#1a1c17',
     950: '#121310',
-  },
-  'cinnamon-wood': {
-    50: '#f8f0ed',
-    100: '#f0e0db',
-    200: '#e1c1b7',
-    300: '#d3a292',
-    400: '#c4846e',
-    500: '#b5654a',
-    600: '#91513b',
-    700: '#6d3c2c',
-    800: '#48281e',
-    900: '#24140f',
-    950: '#190e0a',
   },
 };

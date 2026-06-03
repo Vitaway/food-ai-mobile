@@ -1,7 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  BRAND_GRADIENT_COLORS,
+  BRAND_GRADIENT_END,
+  BRAND_GRADIENT_START,
+} from '@/components/ui/GradientHeader';
+import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 
 export type FloatingTabBarProps = {
@@ -19,14 +26,17 @@ export type FloatingTabBarProps = {
   };
 };
 
-const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
-  index: 'calendar-outline',
-  log: 'add',
-  analytics: 'bar-chart-outline',
-  profile: 'person-outline',
+const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
+  index: { icon: 'home-outline', label: 'Home' },
+  log: { icon: 'add', label: 'Log' },
+  analytics: { icon: 'bar-chart-outline', label: 'Insights' },
+  profile: { icon: 'person-outline', label: 'Profile' },
 };
 
-export const FLOATING_TAB_BAR_CLEARANCE = 120;
+const ACTIVE_ICON = palette['blue-spruce'][800];
+const INACTIVE_ICON = 'rgba(255, 255, 255, 0.65)';
+
+export const FLOATING_TAB_BAR_CLEARANCE = 112;
 
 export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
@@ -37,23 +47,35 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
       pointerEvents="box-none"
       className="absolute left-0 right-0 items-center"
       style={{ bottom: bottomOffset }}>
-      <View
-        className="mx-6 flex-row items-end justify-around rounded-full bg-blue-spruce-950 px-3 py-3"
+      <LinearGradient
+        colors={[...BRAND_GRADIENT_COLORS]}
+        start={BRAND_GRADIENT_START}
+        end={BRAND_GRADIENT_END}
         style={[
-          { width: '88%', maxWidth: 360, minHeight: 64 },
+          {
+            width: '92%',
+            maxWidth: 380,
+            minHeight: 60,
+            borderRadius: 9999,
+            paddingHorizontal: 8,
+            paddingVertical: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          },
           Platform.select({
             ios: {
-              shadowColor: palette['blue-spruce'][950],
-              shadowOffset: { width: 0, height: 12 },
-              shadowOpacity: 0.45,
-              shadowRadius: 24,
+              shadowColor: palette['blue-spruce'][900],
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.32,
+              shadowRadius: 22,
             },
-            android: { elevation: 16 },
+            android: { elevation: 14 },
           }),
         ]}>
         {state.routes.map((route, index) => {
           const isFocused = state.index === index;
-          const isLogTab = route.name === 'log';
+          const config = TAB_CONFIG[route.name] ?? { icon: 'ellipse-outline' as const, label: route.name };
 
           const onPress = () => {
             const event = navigation.emit({
@@ -67,45 +89,46 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
             }
           };
 
-          const iconName = TAB_ICONS[route.name] ?? 'ellipse-outline';
-          const activeColor = '#ffffff';
-          const inactiveColor = palette['blue-spruce'][300];
-
-          if (isLogTab) {
-            return (
-              <Pressable
-                key={route.key}
-                onPress={onPress}
-                accessibilityRole="button"
-                accessibilityLabel="Log meal"
-                className="-mt-8 h-14 w-14 items-center justify-center rounded-full bg-white"
-                style={Platform.select({
-                  ios: {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 6 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 10,
-                  },
-                  android: { elevation: 10 },
-                })}>
-                <Ionicons name="add" size={28} color={palette['blue-spruce'][800]} />
-              </Pressable>
-            );
-          }
-
           return (
             <Pressable
               key={route.key}
               onPress={onPress}
               accessibilityRole="button"
+              accessibilityLabel={config.label}
               accessibilityState={isFocused ? { selected: true } : {}}
-              className="min-w-[52px] items-center justify-center py-1">
-              <Ionicons name={iconName} size={24} color={isFocused ? activeColor : inactiveColor} />
-              {isFocused ? <View className="mt-1.5 h-1 w-1 rounded-full bg-white" /> : <View className="mt-1.5 h-1 w-1" />}
+              style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+              {isFocused ? (
+                <View
+                  className="flex-row items-center gap-2 rounded-full bg-white px-4 py-2.5"
+                  style={Platform.select({
+                    ios: {
+                      shadowColor: '#1a1c17',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.12,
+                      shadowRadius: 8,
+                    },
+                    android: { elevation: 4 },
+                  })}>
+                  <Ionicons
+                    name={config.icon}
+                    size={config.icon === 'add' ? 22 : 20}
+                    color={ACTIVE_ICON}
+                  />
+                  <Text className="font-sans-semibold text-sm text-neutral-900">{config.label}</Text>
+                </View>
+              ) : (
+                <View className="h-11 w-11 items-center justify-center rounded-full bg-white/15">
+                  <Ionicons
+                    name={config.icon}
+                    size={config.icon === 'add' ? 24 : 22}
+                    color={INACTIVE_ICON}
+                  />
+                </View>
+              )}
             </Pressable>
           );
         })}
-      </View>
+      </LinearGradient>
     </View>
   );
 }

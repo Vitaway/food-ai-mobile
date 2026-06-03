@@ -1,9 +1,38 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { type PropsWithChildren } from 'react';
+import { type PropsWithChildren, type ReactNode } from 'react';
 import { View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
+import { cn } from '@/utils/cn';
+
+/** Navy gradient used on top headers and the floating tab bar. */
+export const BRAND_GRADIENT_COLORS = [
+  palette['blue-spruce'][700],
+  palette['blue-spruce'][500],
+  palette['blue-spruce'][400],
+] as const;
+
+export const BRAND_GRADIENT_START = { x: 0, y: 0 } as const;
+export const BRAND_GRADIENT_END = { x: 1, y: 1 } as const;
+
+/** Shared title style for tab gradient headers (Home, Log, Insights) and stack screens. */
+export const GRADIENT_HEADER_TITLE_CLASS = 'font-sans-bold text-3xl leading-tight text-white';
+
+type GradientHeaderTitleProps = {
+  children: ReactNode;
+  className?: string;
+  numberOfLines?: number;
+};
+
+export function GradientHeaderTitle({ children, className, numberOfLines = 2 }: GradientHeaderTitleProps) {
+  return (
+    <Text className={cn(GRADIENT_HEADER_TITLE_CLASS, className)} numberOfLines={numberOfLines}>
+      {children}
+    </Text>
+  );
+}
 
 type GradientHeaderProps = PropsWithChildren<{
   height?: number;
@@ -15,9 +44,9 @@ export function GradientHeader({ children, height, style }: GradientHeaderProps)
 
   return (
     <LinearGradient
-      colors={[palette['blue-spruce'][700], palette['blue-spruce'][500], palette['blue-spruce'][400]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+      colors={[...BRAND_GRADIENT_COLORS]}
+      start={BRAND_GRADIENT_START}
+      end={BRAND_GRADIENT_END}
       style={[{ paddingTop: insets.top + 12, paddingBottom: 48, paddingHorizontal: 20 }, height ? { minHeight: height } : null, style]}>
       {children}
     </LinearGradient>

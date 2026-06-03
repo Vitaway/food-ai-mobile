@@ -2,7 +2,6 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 
 import { FloatingTabBar, type FloatingTabBarProps } from '@/components/navigation/FloatingTabBar';
-import { palette } from '@/design-system/colors';
 
 export default function TabLayout() {
   return (
@@ -24,7 +23,7 @@ export default function TabLayout() {
           name="log"
           options={{
             title: 'Log',
-            sceneStyle: { backgroundColor: palette['ash-grey'][50] },
+            sceneStyle: { backgroundColor: '#ffffff' },
           }}
         />
         <Tabs.Screen name="analytics" options={{ title: 'Insights' }} />

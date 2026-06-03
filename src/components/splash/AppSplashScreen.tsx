@@ -14,6 +14,7 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
+import { APP_NAME } from '@/constants/site';
 import { palette } from '@/design-system/colors';
 
 export function AppSplashScreen() {
@@ -80,8 +81,7 @@ export function AppSplashScreen() {
           </View>
 
           <Animated.View style={textStyle} className="mt-10 items-center">
-            <Text className="font-sans-bold text-4xl tracking-tight text-white">Vitaway</Text>
-            <Text className="mt-1 font-sans-medium text-lg text-white/85">Food AI</Text>
+            <Text className="font-sans-bold text-4xl tracking-tight text-white">{APP_NAME}</Text>
             <Text className="mt-4 text-center text-sm leading-5 text-white/70">
               Smart nutrition tracking, powered by AI
             </Text>

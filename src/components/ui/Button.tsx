@@ -12,7 +12,8 @@ type ButtonProps = PressableProps & {
 };
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-blue-spruce-600 active:bg-blue-spruce-700',
+  // Owner palette: primary buttons use orange (#FF6F32)
+  primary: 'bg-cinnamon-wood-400 active:bg-cinnamon-wood-500',
   secondary: 'bg-shamrock-600 active:bg-shamrock-700',
   outline: 'border border-blue-spruce-600 bg-transparent active:bg-blue-spruce-50',
   ghost: 'bg-transparent active:bg-ash-grey-100',
