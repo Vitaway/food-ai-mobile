@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { MEAL_TYPES } from '@/constants/mealTypes';
+import { getDailyMealSlots, MEAL_TYPES } from '@/constants/mealTypes';
+import { isMealReadable } from '@/constants/mealStatus';
 import type { MealTimelineItem } from '@/components/home/MealTimeline';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
-import { getDailyLog } from '@/services/local/storage';
+import { services } from '@/services';
 import type { DailyDashboard, MealSubmission } from '@/types';
-import { formatTime, todayKey } from '@/utils/dates';
+import { formatTime, todayKey, toLocalDateKey } from '@/utils/dates';
 import { calculateHealthScore } from '@/utils/nutrition';
 
 function isSameDay(iso: string, dateKey: string) {
@@ -20,8 +21,9 @@ function computeStreak(meals: MealSubmission[]) {
 
   let streak = 0;
   const cursor = new Date();
+  cursor.setHours(12, 0, 0, 0);
 
-  while (daysWithMeals.has(cursor.toISOString().slice(0, 10))) {
+  while (daysWithMeals.has(toLocalDateKey(cursor))) {
     streak += 1;
     cursor.setDate(cursor.getDate() - 1);
   }
@@ -35,7 +37,7 @@ export function useDashboard(selectedDate = todayKey()) {
   const [waterMl, setWaterMl] = useState(0);
 
   useEffect(() => {
-    getDailyLog(selectedDate).then((log) => setWaterMl(log.waterMl));
+    services.mealsRepository.getDailyLog(selectedDate).then((log) => setWaterMl(log.waterMl));
   }, [selectedDate, meals]);
 
   return useMemo(() => {
@@ -47,9 +49,8 @@ export function useDashboard(selectedDate = todayKey()) {
       fiberG: 30,
     };
 
-    const dayMeals = meals.filter(
-      (meal) => meal.status === 'approved' && isSameDay(meal.submittedAt, selectedDate),
-    );
+    const dayMealsAll = meals.filter((meal) => isSameDay(meal.submittedAt, selectedDate));
+    const dayMeals = dayMealsAll.filter((meal) => meal.status === 'approved');
 
     const macrosConsumed = dayMeals.reduce(
       (acc, meal) => ({
@@ -84,26 +85,38 @@ export function useDashboard(selectedDate = todayKey()) {
         targets,
       ),
       streakDays: computeStreak(meals),
-      lastMeal: dayMeals[0],
+      lastMeal: [...dayMealsAll].sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))[0],
     };
 
-    const timeline: MealTimelineItem[] = MEAL_TYPES.slice(0, 6).map((mealType) => {
-      const logged = dayMeals.find((meal) => meal.mealType === mealType.id);
+    const dailySlots = getDailyMealSlots(profile?.mealsPerDay);
+
+    const timeline: MealTimelineItem[] = dailySlots.map((slotId) => {
+      const mealType = MEAL_TYPES.find((type) => type.id === slotId)!;
+      const logged = dayMealsAll.find((meal) => meal.mealType === slotId);
       if (!logged) {
-        return { id: mealType.id, label: mealType.label, logged: false };
+        return { id: slotId, mealTypeId: slotId, label: mealType.label, logged: false };
       }
+
+      const readable = isMealReadable(logged.status);
 
       return {
         id: logged.id,
+        mealTypeId: slotId,
         label: logged.mealName ?? mealType.label,
         time: formatTime(logged.submittedAt),
-        items: logged.items?.map((item) => item.label),
+        items: readable ? logged.items?.map((item) => item.label) : undefined,
         logged: true,
-        calories: logged.totalNutrition?.caloriesKcal,
+        calories: readable ? logged.totalNutrition?.caloriesKcal : undefined,
         status: logged.status,
+        pending: !readable,
       };
     });
 
-    return { dashboard, timeline, displayName: profile?.displayName ?? 'there' };
+    return {
+      dashboard,
+      timeline,
+      mealsPerDay: dailySlots.length,
+      displayName: profile?.displayName ?? 'there',
+    };
   }, [meals, profile, selectedDate, waterMl]);
 }

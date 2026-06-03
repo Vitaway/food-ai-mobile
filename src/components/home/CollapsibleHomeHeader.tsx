@@ -1,10 +1,12 @@
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   Extrapolation,
   interpolate,
   useAnimatedStyle,
   type SharedValue,
 } from 'react-native-reanimated';
+import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HealthScoreRing } from '@/components/home/HealthScoreRing';
@@ -43,8 +45,8 @@ export function useHomeSheetPosition(
 
 export function useHomeHeaderLayout() {
   const insets = useSafeAreaInsets();
-  const collapsedHeight = insets.top + 128;
-  const expandedHeight = insets.top + 356;
+  const collapsedHeight = insets.top + 136;
+  const expandedHeight = insets.top + 372;
 
   return { collapsedHeight, expandedHeight, insets };
 }
@@ -118,6 +120,7 @@ export function CollapsibleHomeHeader({
 }: CollapsibleHomeHeaderProps) {
   const insets = useSafeAreaInsets();
   const collapseRange = getCollapseRange(expandedHeight, collapsedHeight);
+  const streakSubtitle = `${streakDays}-day streak`;
 
   const containerStyle = useAnimatedStyle(() => ({
     height: interpolate(
@@ -131,14 +134,14 @@ export function CollapsibleHomeHeader({
 
   const subtitleStyle = useAnimatedStyle(() => ({
     opacity: interpolate(scrollY.value, [0, collapseRange * 0.25], [1, 0], Extrapolation.CLAMP),
-    maxHeight: interpolate(scrollY.value, [0, collapseRange * 0.3], [28, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(scrollY.value, [0, collapseRange * 0.3], [72, 0], Extrapolation.CLAMP),
     marginTop: interpolate(scrollY.value, [0, collapseRange * 0.3], [4, 0], Extrapolation.CLAMP),
   }));
 
   const ringSectionStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(scrollY.value, [0, collapseRange * 0.55], [1, 0], Extrapolation.CLAMP),
-    maxHeight: interpolate(scrollY.value, [0, collapseRange], [252, 0], Extrapolation.CLAMP),
-    marginTop: interpolate(scrollY.value, [0, collapseRange], [24, 0], Extrapolation.CLAMP),
+    opacity: interpolate(scrollY.value, [0, collapseRange * 0.58], [1, 0], Extrapolation.CLAMP),
+    maxHeight: interpolate(scrollY.value, [0, collapseRange], [220, 0], Extrapolation.CLAMP),
+    marginTop: interpolate(scrollY.value, [0, collapseRange], [20, 0], Extrapolation.CLAMP),
     overflow: 'hidden' as const,
   }));
 
@@ -156,20 +159,43 @@ export function CollapsibleHomeHeader({
         containerStyle,
       ]}>
       <LinearGradient
-        colors={[palette['blue-spruce'][700], palette['blue-spruce'][500], palette['blue-spruce'][400]]}
+        colors={[palette['blue-spruce'][800], palette['blue-spruce'][600], palette['blue-spruce'][400]]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{ flex: 1, paddingTop: insets.top + 12, paddingHorizontal: 20 }}>
-        <Text className="font-sans-bold text-3xl text-white">Hello {displayName}</Text>
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="font-sans-bold text-3xl text-white">Hello, {displayName}</Text>
+            <Text className="mt-1 text-sm text-white/80">How do you feel today?</Text>
+          </View>
+          <View className="flex-row items-center gap-2">
+            <Pressable className="h-9 w-9 items-center justify-center rounded-full bg-white/20">
+              <Ionicons name="notifications-outline" size={18} color="#ffffff" />
+            </Pressable>
+            <View className="h-9 w-9 items-center justify-center rounded-full bg-shamrock-500">
+              <Ionicons name="person-outline" size={16} color="#ffffff" />
+            </View>
+          </View>
+        </View>
 
         <Animated.View style={subtitleStyle}>
           <Text className="text-base text-white/85">
             You&apos;re {calorieProgress}% toward {isToday ? "today's" : 'your'} calorie goal
           </Text>
+          <View className="mt-3 flex-row gap-2">
+            <View className="rounded-2xl bg-white/15 px-3 py-2">
+              <Text className="text-xs text-white/75">Streak</Text>
+              <Text className="font-sans-semibold text-sm text-white">{streakSubtitle}</Text>
+            </View>
+            <View className="rounded-2xl bg-white/15 px-3 py-2">
+              <Text className="text-xs text-white/75">Status</Text>
+              <Text className="font-sans-semibold text-sm text-white">{isToday ? 'Today plan' : 'History view'}</Text>
+            </View>
+          </View>
         </Animated.View>
 
         <Animated.View style={ringSectionStyle}>
-          <HealthScoreRing score={healthScore} subtitle={`${streakDays}-day streak`} />
+          <HealthScoreRing score={healthScore} subtitle={isToday ? 'Balanced day' : 'Past day snapshot'} />
         </Animated.View>
       </LinearGradient>
     </Animated.View>

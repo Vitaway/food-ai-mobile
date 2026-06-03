@@ -10,12 +10,15 @@ type MacroBar = {
 
 type MacroProgressBarsProps = {
   macros: MacroBar[];
+  /** Omit outer card when nested inside DailyCommandCenter */
+  embedded?: boolean;
 };
 
-export function MacroProgressBars({ macros }: MacroProgressBarsProps) {
+export function MacroProgressBars({ macros, embedded = false }: MacroProgressBarsProps) {
   return (
-    <View className="gap-4 rounded-3xl bg-white p-5 shadow-sm">
-      <Text className="font-sans-semibold text-lg text-neutral-900">Macros</Text>
+    <View className={`gap-3 ${embedded ? '' : 'gap-4 rounded-3xl bg-white p-5 shadow-sm'}`}>
+      {!embedded ? <Text className="font-sans-semibold text-lg text-neutral-900">Macros</Text> : null}
+      {embedded ? <Text className="font-sans-semibold text-base text-neutral-900">Macros</Text> : null}
       {macros.map((macro) => {
         const progress = macro.target > 0 ? Math.min(macro.consumed / macro.target, 1) : 0;
 

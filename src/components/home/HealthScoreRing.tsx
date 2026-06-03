@@ -27,8 +27,8 @@ export function HealthScoreRing({
           className="absolute h-[180px] w-[180px] rounded-full border-[3px] border-white/30"
           style={{ opacity: 0.5 + progress * 0.5 }}
         />
-        <View className="h-[160px] w-[160px] items-center justify-center rounded-full bg-white/15">
-          <View className="h-14 w-14 items-center justify-center rounded-full bg-white/20">
+        <View className="h-[160px] w-[160px] items-center justify-center rounded-full bg-shamrock-500/20">
+          <View className="h-14 w-14 items-center justify-center rounded-full bg-shamrock-500/30">
             <Ionicons name="leaf-outline" size={28} color="#ffffff" />
           </View>
           <Text className="mt-3 px-6 text-center text-sm text-white/90">{title}</Text>
@@ -39,7 +39,7 @@ export function HealthScoreRing({
 
       <View className="mt-4 flex-row gap-2">
         {[0, 1, 2].map((dot) => (
-          <View key={dot} className={`h-1.5 rounded-full ${dot === 0 ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`} />
+          <View key={dot} className={`h-1.5 rounded-full ${dot === 0 ? 'w-4 bg-shamrock-400' : 'w-1.5 bg-white/40'}`} />
         ))}
       </View>
     </View>
