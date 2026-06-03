@@ -9,6 +9,18 @@ export type MealSubmissionStatus =
 
 export type HealthGoal = 'lose_weight' | 'maintain_weight' | 'gain_muscle' | 'improve_quality';
 
+export type GoalPace = 'slow' | 'moderate' | 'aggressive';
+
+export type FraudCheckResult = 'pass' | 'flag' | 'reject';
+
+export type MealClassification = 'meal' | 'snack' | 'beverage' | 'unknown';
+
+export interface CoachReview {
+  coachId?: string;
+  note?: string;
+  reviewedAt?: string;
+}
+
 export type ActivityLevel =
   | 'sedentary'
   | 'lightly_active'
@@ -31,6 +43,8 @@ export type UserSex = 'male' | 'female' | 'other' | 'prefer_not_to_say' | null;
 export interface UserProfile {
   id: string;
   displayName?: string;
+  email?: string;
+  avatarUrl?: string;
   age: number;
   sex: UserSex;
   heightCm: number;
@@ -38,6 +52,10 @@ export interface UserProfile {
   goal: HealthGoal;
   activityLevel: ActivityLevel;
   dietaryPreferences: string[];
+  targetWeightKg?: number | null;
+  goalPace?: GoalPace | null;
+  mealsPerDay?: number | null;
+  allergies?: string[];
   macroTargets: MacroTargets;
   bmr: number;
   tdee: number;
@@ -98,6 +116,11 @@ export interface MealSubmission {
   healthFlag?: HealthFlagLevel;
   healthMessage?: string;
   petals?: MealPetal[];
+  fraudCheckResult?: FraudCheckResult | null;
+  mealClassification?: MealClassification | null;
+  modelVersion?: string | null;
+  autoApproved?: boolean | null;
+  coachReview?: CoachReview | null;
 }
 
 export interface DailyLog {

@@ -136,6 +136,15 @@ export function mockAnalyzeText(text: string): MealAnalysisPreview {
   return buildAnalysis(cleaned, items.length ? items : [{ label: 'Custom meal', weightG: 200, emoji: '🍽️' }], 0.82);
 }
 
+type MealSubmissionExtras = Pick<
+  MealSubmission,
+  | 'fraudCheckResult'
+  | 'mealClassification'
+  | 'modelVersion'
+  | 'autoApproved'
+  | 'coachReview'
+>;
+
 export function toMealSubmission(
   analysis: MealAnalysisPreview,
   input: {
@@ -144,7 +153,7 @@ export function toMealSubmission(
     textInput?: string;
     note?: string;
     status?: MealSubmissionStatus;
-  },
+  } & Partial<MealSubmissionExtras>,
 ): MealSubmission {
   return {
     id: createId('meal'),
@@ -161,5 +170,27 @@ export function toMealSubmission(
     healthFlag: analysis.healthFlag,
     healthMessage: analysis.healthMessage,
     petals: analysis.petals,
+    fraudCheckResult: input.fraudCheckResult ?? null,
+    mealClassification: input.mealClassification ?? null,
+    modelVersion: input.modelVersion ?? null,
+    autoApproved: input.autoApproved ?? null,
+    coachReview: input.coachReview ?? null,
+  };
+}
+
+export function mealSubmissionToAnalysisPreview(meal: MealSubmission): MealAnalysisPreview {
+  if (!meal.mealName || !meal.items || !meal.totalNutrition) {
+    throw new Error('Meal is missing analysis fields');
+  }
+
+  return {
+    mealName: meal.mealName,
+    items: meal.items,
+    totalNutrition: meal.totalNutrition,
+    totalWeightG: meal.items.reduce((sum, item) => sum + item.estimatedWeightG, 0),
+    confidenceAvg: meal.confidenceAvg ?? 0.85,
+    petals: meal.petals ?? [],
+    healthFlag: meal.healthFlag ?? 'yellow',
+    healthMessage: meal.healthMessage ?? 'Analysis complete.',
   };
 }

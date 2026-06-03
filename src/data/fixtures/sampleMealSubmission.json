@@ -1,0 +1,41 @@
+{
+  "id": "meal_sample_001",
+  "mealType": "lunch",
+  "status": "approved",
+  "submittedAt": "2026-06-02T12:30:00.000Z",
+  "mealName": "Grilled Chicken Bowl",
+  "imageUrl": "file://local/photo.jpg",
+  "fraudCheckResult": "pass",
+  "mealClassification": "meal",
+  "modelVersion": "mock-api-v1",
+  "autoApproved": true,
+  "coachReview": null,
+  "confidenceAvg": 0.91,
+  "healthFlag": "green",
+  "healthMessage": "Well-balanced meal — great choice!",
+  "totalNutrition": {
+    "caloriesKcal": 520,
+    "proteinG": 42,
+    "carbsG": 48,
+    "fatG": 16,
+    "fiberG": 6,
+    "sugarG": 4,
+    "sodiumMg": 380
+  },
+  "items": [
+    {
+      "id": "item_1",
+      "label": "Chicken breast",
+      "confidence": 0.94,
+      "estimatedWeightG": 150,
+      "emoji": "🍗",
+      "nutrition": {
+        "caloriesKcal": 248,
+        "proteinG": 46.5,
+        "carbsG": 0,
+        "fatG": 5.4,
+        "fiberG": 0
+      }
+    }
+  ]
+}
