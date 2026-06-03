@@ -1,8 +1,13 @@
-import { ArrowRight, NavArrowLeft } from 'iconoir-react-native';
+import { ArrowRight } from 'iconoir-react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { type ReactNode, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { type ReactNode } from 'react';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import { runOnJS } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { IconoirIcon } from '@/components/ui/IconoirIcon';
+import { GradientButton } from '@/components/ui/GradientButton';
+import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 
@@ -23,7 +28,7 @@ export function OnboardingStepDots({ total, current }: OnboardingStepDotsProps) 
             style={{
               width: active ? 28 : 8,
               height: 8,
-              backgroundColor: active ? palette['blue-spruce'][600] : palette['blue-spruce'][200],
+              backgroundColor: active ? palette.shamrock[500] : palette['ash-grey'][200],
             }}
           />
         );
@@ -47,26 +52,21 @@ export function OnboardingNavButton({
   loading,
   variant = 'next',
 }: OnboardingNavButtonProps) {
-  const isFinish = variant === 'finish';
-
   return (
-    <Pressable
+    <GradientButton
+      label={label}
       onPress={onPress}
-      disabled={disabled || loading}
-      className={`flex-row items-center justify-center gap-2.5 rounded-full py-4 ${
-        isFinish ? 'w-full px-8' : 'min-w-[120px] px-6'
-      }`}
-      style={{
-        backgroundColor: palette['blue-spruce'][600],
-        opacity: disabled || loading ? 0.55 : 1,
-      }}>
-      <Text className="font-sans-semibold text-base text-white">{loading ? 'Saving…' : label}</Text>
-      {!loading ? <IconoirIcon icon={ArrowRight} size={18} color="#ffffff" /> : null}
-    </Pressable>
+      disabled={disabled}
+      loading={loading}
+      loadingLabel="Saving…"
+      trailingIcon={loading ? undefined : ArrowRight}
+      className={variant === 'finish' ? 'w-full' : 'min-w-[132px]'}
+    />
   );
 }
 
 type OnboardingShellProps = {
+  headerTitle: string;
   stepIndex: number;
   totalSteps: number;
   showBack?: boolean;
@@ -75,12 +75,13 @@ type OnboardingShellProps = {
   onSkip?: () => void;
   footer: ReactNode;
   footerLayout?: 'inline' | 'stacked';
-  showHeader?: boolean;
+  intro?: boolean;
   hero?: ReactNode;
   children: ReactNode;
 };
 
 export function OnboardingShell({
+  headerTitle,
   stepIndex,
   totalSteps,
   showBack,
@@ -89,60 +90,80 @@ export function OnboardingShell({
   onSkip,
   footer,
   footerLayout = 'inline',
-  showHeader = true,
+  intro = false,
   hero,
   children,
 }: OnboardingShellProps) {
+  const insets = useSafeAreaInsets();
+
+  const swipeBackGesture = useMemo(() => {
+    if (!showBack || !onBack) return Gesture.Pan().enabled(false);
+
+    return Gesture.Pan()
+      .activeOffsetX(24)
+      .failOffsetY([-20, 20])
+      .onEnd((event) => {
+        if (event.translationX > 72 || event.velocityX > 450) {
+          runOnJS(onBack)();
+        }
+      });
+  }, [onBack, showBack]);
+
   return (
-    <View className="flex-1 bg-white">
-      {showHeader ? (
-        <View
-          className="z-10 flex-row items-center justify-between border-b border-ash-grey-100 bg-white px-6 py-3"
-          style={{ minHeight: 52 }}>
-          {showBack ? (
-          <Pressable onPress={onBack} hitSlop={12} className="flex-row items-center gap-1 py-1">
-            <IconoirIcon icon={NavArrowLeft} size={20} color="#4f5346" />
-            <Text className="font-sans-medium text-base text-neutral-600">Back</Text>
-          </Pressable>
-          ) : (
-            <View style={{ width: 64 }} />
-          )}
+    <GestureDetector gesture={swipeBackGesture}>
+      <View className="flex-1 bg-blue-spruce-700">
+        <GradientHeader style={{ paddingBottom: intro ? 52 : 44 }}>
+          <View className="flex-row items-center justify-between gap-3">
+            {showBack && onBack ? (
+              <Pressable
+                onPress={onBack}
+                hitSlop={12}
+                accessibilityRole="button"
+                accessibilityLabel="Go back"
+                className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 active:opacity-90">
+                <Ionicons name="chevron-back" size={24} color="#ffffff" />
+              </Pressable>
+            ) : (
+              <View className="h-11 w-11 shrink-0" />
+            )}
 
-          {showSkip ? (
-            <Pressable onPress={onSkip} hitSlop={12} className="py-1">
-              <Text className="font-sans-medium text-sm text-neutral-500">Skip</Text>
-            </Pressable>
-          ) : (
-            <View style={{ width: 40 }} />
-          )}
-        </View>
-      ) : null}
+            <GradientHeaderTitle className="flex-1 text-center" numberOfLines={2}>
+              {headerTitle}
+            </GradientHeaderTitle>
 
-      {hero ? <View className="px-6 pt-2">{hero}</View> : null}
-
-      <View className="min-h-0 flex-1 px-6">{children}</View>
-
-      <View
-        className="border-t border-ash-grey-100 bg-white"
-        style={{
-          shadowColor: '#1a1c17',
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.04,
-          shadowRadius: 12,
-          elevation: 8,
-        }}>
-        {footerLayout === 'stacked' ? (
-          <View className="gap-4 px-6 pb-2 pt-4">
-            <OnboardingStepDots total={totalSteps} current={stepIndex} />
-            {footer}
+            {showSkip && onSkip ? (
+              <Pressable onPress={onSkip} hitSlop={12} className="shrink-0 px-1 py-2">
+                <Text className="font-sans-semibold text-sm text-white/90">Skip</Text>
+              </Pressable>
+            ) : (
+              <View className="h-11 w-11 shrink-0" />
+            )}
           </View>
-        ) : (
-          <View className="flex-row items-center justify-between px-6 pb-2 pt-4">
-            <OnboardingStepDots total={totalSteps} current={stepIndex} />
-            {footer}
+        </GradientHeader>
+
+        <ContentSheet className="flex-1 px-5">
+          <View className="min-h-0 flex-1">
+            {hero ? <View className="mb-4">{hero}</View> : null}
+            <View className="min-h-0 flex-1">{children}</View>
           </View>
-        )}
+
+          <View
+            className="border-t border-ash-grey-100 pt-4"
+            style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
+            {footerLayout === 'stacked' ? (
+              <View className="gap-4">
+                <OnboardingStepDots total={totalSteps} current={stepIndex} />
+                {footer}
+              </View>
+            ) : (
+              <View className="flex-row items-center justify-between gap-4">
+                <OnboardingStepDots total={totalSteps} current={stepIndex} />
+                {footer}
+              </View>
+            )}
+          </View>
+        </ContentSheet>
       </View>
-    </View>
+    </GestureDetector>
   );
 }

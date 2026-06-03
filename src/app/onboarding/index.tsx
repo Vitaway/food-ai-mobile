@@ -1,85 +1,53 @@
 import { useRouter, type Href } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, TextInput, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Keyboard, Pressable, ScrollView, View } from 'react-native';
 
-import { AgeStepper } from '@/components/onboarding/AgeStepper';
+import { AppTextInput } from '@/components/ui/AppTextInput';
+
+import { OnboardingCard } from '@/components/onboarding/OnboardingCard';
+import { AgeStepper, MetricStepper } from '@/components/onboarding/MetricStepper';
 import { OnboardingIllustration } from '@/components/onboarding/OnboardingIllustration';
 import { OnboardingNavButton, OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { SexSelector } from '@/components/onboarding/SexSelector';
 import { Text } from '@/components/ui/Text';
+import { APP_NAME } from '@/constants/site';
+import {
+  onboardingOptionCard,
+  onboardingOptionChip,
+  onboardingOptionChipText,
+  onboardingOptionSubtitle,
+  onboardingOptionTitle,
+} from '@/constants/onboardingStyles';
 import {
   ACTIVITY_LEVELS,
+  COMMON_ALLERGIES,
   DIETARY_PREFERENCES,
+  GOAL_PACE_OPTIONS,
   HEALTH_GOALS,
+  MEALS_PER_DAY_OPTIONS,
 } from '@/constants/profileOptions';
 import { useProfile } from '@/context/ProfileContext';
-import type { ActivityLevel, HealthGoal, UserSex } from '@/types';
+import type { ActivityLevel, GoalPace, HealthGoal, UserSex } from '@/types';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
 
-const STEPS = ['intro', 'profile', 'sex', 'body', 'goals', 'activity', 'preferences', 'summary'] as const;
+const STEPS = [
+  'intro',
+  'profile',
+  'sex',
+  'body',
+  'goals',
+  'target',
+  'activity',
+  'habits',
+  'preferences',
+  'allergies',
+  'summary',
+] as const;
 type Step = (typeof STEPS)[number];
-
-function MetricStepper({
-  label,
-  value,
-  unit,
-  step,
-  min,
-  max,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  unit: string;
-  step: number;
-  min: number;
-  max: number;
-  onChange: (value: number) => void;
-}) {
-  return (
-    <View className="flex-row items-center justify-between rounded-3xl bg-ash-grey-50 px-5 py-4">
-      <View className="flex-1">
-        <Text className="text-sm text-neutral-500">{label}</Text>
-        <View className="mt-1 flex-row items-baseline gap-1">
-          <Text className="font-sans-bold text-3xl text-neutral-900">{value}</Text>
-          <Text className="font-sans-medium text-base text-neutral-500">{unit}</Text>
-        </View>
-      </View>
-
-      <View className="flex-row items-center gap-2">
-        <Pressable
-          onPress={() => onChange(Math.max(min, Math.round((value - step) * 10) / 10))}
-          className="h-12 w-12 items-center justify-center rounded-2xl bg-white"
-          style={{
-            shadowColor: '#1a1c17',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}>
-          <Text className="font-sans-bold text-xl text-blue-spruce-700">−</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => onChange(Math.min(max, Math.round((value + step) * 10) / 10))}
-          className="h-12 w-12 items-center justify-center rounded-2xl bg-white"
-          style={{
-            shadowColor: '#1a1c17',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.06,
-            shadowRadius: 8,
-            elevation: 2,
-          }}>
-          <Text className="font-sans-bold text-xl text-blue-spruce-700">+</Text>
-        </Pressable>
-      </View>
-    </View>
-  );
-}
 
 export default function OnboardingScreen() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const { saveProfile, profile } = useProfile();
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -90,7 +58,11 @@ export default function OnboardingScreen() {
   const [weightKg, setWeightKg] = useState(65);
   const [goal, setGoal] = useState<HealthGoal>('lose_weight');
   const [activityLevel, setActivityLevel] = useState<ActivityLevel>('moderately_active');
+  const [targetWeightKg, setTargetWeightKg] = useState(65);
+  const [goalPace, setGoalPace] = useState<GoalPace>('moderate');
+  const [mealsPerDay, setMealsPerDay] = useState(3);
   const [dietaryPreferences, setDietaryPreferences] = useState<string[]>([]);
+  const [allergies, setAllergies] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -100,9 +72,13 @@ export default function OnboardingScreen() {
     setSex(profile.sex);
     setHeightCm(profile.heightCm);
     setWeightKg(profile.weightKg);
+    setTargetWeightKg(profile.targetWeightKg ?? profile.weightKg);
     setGoal(profile.goal);
+    setGoalPace(profile.goalPace ?? 'moderate');
     setActivityLevel(profile.activityLevel);
+    setMealsPerDay(profile.mealsPerDay ?? 3);
     setDietaryPreferences(profile.dietaryPreferences);
+    setAllergies(profile.allergies ?? []);
   }, [profile]);
 
   const step = STEPS[stepIndex];
@@ -126,20 +102,32 @@ export default function OnboardingScreen() {
     );
   };
 
+  const toggleAllergy = (allergy: string) => {
+    setAllergies((current) =>
+      current.includes(allergy) ? current.filter((item) => item !== allergy) : [...current, allergy],
+    );
+  };
+
   const goNext = () => {
+    Keyboard.dismiss();
     if (stepIndex < STEPS.length - 1) setStepIndex((value) => value + 1);
   };
 
   const goBack = () => {
-    if (stepIndex > 0) setStepIndex((value) => value - 1);
+    if (stepIndex <= 0) return;
+    Keyboard.dismiss();
+    setStepIndex((value) => value - 1);
   };
 
   const handleSkipSex = () => {
+    Keyboard.dismiss();
     setSex(null);
     goNext();
   };
 
   const handleFinish = async () => {
+    Keyboard.dismiss();
+    if (saving) return;
     setSaving(true);
     try {
       await saveProfile({
@@ -149,8 +137,12 @@ export default function OnboardingScreen() {
         heightCm,
         weightKg,
         goal,
+        targetWeightKg,
+        goalPace,
         activityLevel,
+        mealsPerDay,
         dietaryPreferences,
+        allergies,
       });
       router.replace('/(tabs)' as Href);
     } finally {
@@ -160,8 +152,8 @@ export default function OnboardingScreen() {
 
   const stepMeta: Record<Step, { title: string; description: string }> = {
     intro: {
-      title: 'Smart nutrition, simplified',
-      description: 'Snap a meal, get instant insights, and track your health goals — all powered by AI.',
+      title: 'Eat smarter, Live better',
+      description: 'Snap a meal, get instant insights, and track your health goals, all powered by AI.',
     },
     profile: {
       title: 'Tell us about you',
@@ -169,7 +161,7 @@ export default function OnboardingScreen() {
     },
     sex: {
       title: 'How do you identify?',
-      description: 'Optional — used only to refine your metabolic estimates. You can skip this step.',
+      description: '(Optional) Used only to refine your metabolic estimates. You can skip this step.',
     },
     body: {
       title: 'Your body metrics',
@@ -179,13 +171,25 @@ export default function OnboardingScreen() {
       title: 'What is your goal?',
       description: 'Choose the outcome that best matches what you want to achieve.',
     },
+    target: {
+      title: 'Target weight & pace',
+      description: 'Optional targets help us tune recommendations (calories still use your current weight).',
+    },
     activity: {
       title: 'How active are you?',
       description: 'Your activity level adjusts your daily calorie target.',
     },
+    habits: {
+      title: 'Eating rhythm',
+      description: 'How many meals do you usually eat per day?',
+    },
     preferences: {
       title: 'Dietary preferences',
-      description: 'Optional — select any that apply to your lifestyle.',
+      description: '(Optional) Select any that apply to your lifestyle.',
+    },
+    allergies: {
+      title: 'Allergies',
+      description: '(Optional) We use these to filter meal suggestions.',
     },
     summary: {
       title: 'Your plan is ready',
@@ -196,17 +200,16 @@ export default function OnboardingScreen() {
   const renderFormContent = () => {
     if (step === 'profile') {
       return (
-        <View className="gap-5">
-          <View>
-            <Text className="mb-2 font-sans-medium text-sm text-neutral-600">What should we call you?</Text>
-            <TextInput
+        <View className="gap-4">
+          <OnboardingCard className="border-blue-spruce-100">
+            <Text className="mb-2 font-sans-medium text-sm text-blue-spruce-700">What should we call you?</Text>
+            <AppTextInput
               value={displayName}
               onChangeText={setDisplayName}
               placeholder="Your name"
-              placeholderTextColor="#848a75"
-              className="rounded-3xl bg-ash-grey-50 px-5 py-4 text-base text-neutral-900"
+              className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4"
             />
-          </View>
+          </OnboardingCard>
           <AgeStepper value={age} onChange={setAge} />
         </View>
       );
@@ -217,8 +220,28 @@ export default function OnboardingScreen() {
     if (step === 'body') {
       return (
         <View className="gap-4">
-          <MetricStepper label="Height" value={heightCm} unit="cm" step={1} min={120} max={230} onChange={setHeightCm} />
-          <MetricStepper label="Weight" value={weightKg} unit="kg" step={0.5} min={35} max={250} onChange={setWeightKg} />
+          <MetricStepper
+            label="Height"
+            value={heightCm}
+            unit="cm"
+            step={1}
+            min={120}
+            max={230}
+            decimals={0}
+            maxLength={3}
+            onChange={setHeightCm}
+          />
+          <MetricStepper
+            label="Weight"
+            value={weightKg}
+            unit="kg"
+            step={0.5}
+            min={35}
+            max={250}
+            decimals={1}
+            maxLength={5}
+            onChange={setWeightKg}
+          />
         </View>
       );
     }
@@ -232,18 +255,53 @@ export default function OnboardingScreen() {
               <Pressable
                 key={item.id}
                 onPress={() => setGoal(item.id)}
-                className={`rounded-3xl border px-5 py-4 ${
-                  selected ? 'border-blue-spruce-500 bg-blue-spruce-50' : 'border-ash-grey-200 bg-ash-grey-50'
-                }`}>
-                <Text className={`font-sans-semibold text-base ${selected ? 'text-blue-spruce-800' : 'text-neutral-900'}`}>
+                className={onboardingOptionCard(selected, 'green')}>
+                <Text className={`font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>
                   {item.label}
                 </Text>
-                <Text className={`mt-1 text-sm ${selected ? 'text-blue-spruce-600' : 'text-neutral-500'}`}>
+                <Text className={`mt-1 text-sm ${onboardingOptionSubtitle(selected, 'green')}`}>
                   {item.description}
                 </Text>
               </Pressable>
             );
           })}
+        </View>
+      );
+    }
+
+    if (step === 'target') {
+      return (
+        <View className="gap-4">
+          <MetricStepper
+            label="Target weight"
+            value={targetWeightKg}
+            unit="kg"
+            step={0.5}
+            min={35}
+            max={250}
+            decimals={1}
+            maxLength={5}
+            onChange={setTargetWeightKg}
+          />
+          <View className="gap-3">
+            <Text className="font-sans-medium text-sm text-neutral-600">Goal pace</Text>
+            {GOAL_PACE_OPTIONS.map((item) => {
+              const selected = goalPace === item.id;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => setGoalPace(item.id)}
+                  className={onboardingOptionCard(selected, 'green')}>
+                  <Text className={`font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>
+                    {item.label}
+                  </Text>
+                  <Text className={`mt-1 text-sm ${onboardingOptionSubtitle(selected, 'green')}`}>
+                    {item.description}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
         </View>
       );
     }
@@ -257,15 +315,34 @@ export default function OnboardingScreen() {
               <Pressable
                 key={item.id}
                 onPress={() => setActivityLevel(item.id)}
-                className={`rounded-3xl border px-5 py-4 ${
-                  selected ? 'border-blue-spruce-500 bg-blue-spruce-50' : 'border-ash-grey-200 bg-ash-grey-50'
-                }`}>
-                <Text className={`font-sans-semibold text-base ${selected ? 'text-blue-spruce-800' : 'text-neutral-900'}`}>
+                className={onboardingOptionCard(selected, 'green')}>
+                <Text className={`font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>
                   {item.label}
                 </Text>
-                <Text className={`mt-1 text-sm ${selected ? 'text-blue-spruce-600' : 'text-neutral-500'}`}>
+                <Text className={`mt-1 text-sm ${onboardingOptionSubtitle(selected, 'green')}`}>
                   {item.description}
                 </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      );
+    }
+
+    if (step === 'habits') {
+      return (
+        <View className="flex-row flex-wrap gap-2">
+          {MEALS_PER_DAY_OPTIONS.map((count) => {
+            const selected = mealsPerDay === count;
+            return (
+              <Pressable
+                key={count}
+                onPress={() => setMealsPerDay(count)}
+                className={`min-w-[72px] ${onboardingOptionChip(selected, 'orange')} px-5 py-3`}>
+                <Text className={`text-center font-sans-semibold ${onboardingOptionTitle(selected, 'orange')}`}>
+                  {count}
+                </Text>
+                <Text className={`text-center text-xs ${onboardingOptionSubtitle(selected, 'orange')}`}>meals</Text>
               </Pressable>
             );
           })}
@@ -283,10 +360,30 @@ export default function OnboardingScreen() {
                 key={pref}
                 onPress={() => togglePreference(pref)}
                 className={`rounded-full border px-4 py-2.5 ${
-                  selected ? 'border-blue-spruce-500 bg-blue-spruce-50' : 'border-ash-grey-200 bg-ash-grey-50'
+                  selected ? 'border-shamrock-500 bg-shamrock-50' : 'border-ash-grey-200 bg-ash-grey-50'
                 }`}>
-                <Text className={`text-sm font-sans-medium ${selected ? 'text-blue-spruce-800' : 'text-neutral-700'}`}>
+                <Text className={`text-sm font-sans-medium ${selected ? 'text-shamrock-800' : 'text-neutral-700'}`}>
                   {pref}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      );
+    }
+
+    if (step === 'allergies') {
+      return (
+        <View className="flex-row flex-wrap gap-2">
+          {COMMON_ALLERGIES.map((allergy) => {
+            const selected = allergies.includes(allergy);
+            return (
+              <Pressable
+                key={allergy}
+                onPress={() => toggleAllergy(allergy)}
+                className={onboardingOptionChip(selected, 'orange')}>
+                <Text className={`text-sm font-sans-medium ${onboardingOptionChipText(selected, 'orange')}`}>
+                  {allergy}
                 </Text>
               </Pressable>
             );
@@ -298,13 +395,20 @@ export default function OnboardingScreen() {
     if (step === 'summary') {
       return (
         <View>
-          <View className="rounded-3xl bg-blue-spruce-50 p-5">
-            <Text className="font-sans-medium text-sm text-blue-spruce-700">Daily calories</Text>
-            <Text className="mt-1 font-sans-bold text-4xl text-blue-spruce-900">{preview.macroTargets.calories} kcal</Text>
-            <Text className="mt-3 text-sm text-blue-spruce-700">
+          <OnboardingCard className="border-shamrock-200 bg-shamrock-50">
+            <Text className="font-sans-medium text-sm text-shamrock-700">Daily calories</Text>
+            <Text className="mt-1 font-sans-bold text-4xl text-cinnamon-wood-500">
+              {preview.macroTargets.calories} kcal
+            </Text>
+            <Text className="mt-3 text-sm text-shamrock-800">
               BMR {preview.bmr} · TDEE {preview.tdee} · Water {preview.waterTargetMl} ml
             </Text>
-          </View>
+            {targetWeightKg !== weightKg ? (
+              <Text className="mt-2 text-sm text-shamrock-700">
+                Target {targetWeightKg} kg · {goalPace} pace · {mealsPerDay} meals/day
+              </Text>
+            ) : null}
+          </OnboardingCard>
 
           <View className="mt-4 flex-row flex-wrap gap-2">
             {[
@@ -312,10 +416,15 @@ export default function OnboardingScreen() {
               { label: 'Carbs', value: `${preview.macroTargets.carbsG}g` },
               { label: 'Fat', value: `${preview.macroTargets.fatG}g` },
               { label: 'Fiber', value: `${preview.macroTargets.fiberG}g` },
-            ].map((macro) => (
-              <View key={macro.label} className="rounded-2xl bg-ash-grey-50 px-4 py-3">
+            ].map((macro, index) => (
+              <View
+                key={macro.label}
+                className={`rounded-2xl px-4 py-3 ${index === 0 ? 'bg-shamrock-50' : index === 2 ? 'bg-cinnamon-wood-50' : 'bg-ash-grey-50'}`}>
                 <Text className="text-xs text-neutral-500">{macro.label}</Text>
-                <Text className="font-sans-semibold text-neutral-900">{macro.value}</Text>
+                <Text
+                  className={`font-sans-semibold ${index === 0 ? 'text-shamrock-800' : index === 2 ? 'text-cinnamon-wood-800' : 'text-neutral-900'}`}>
+                  {macro.value}
+                </Text>
               </View>
             ))}
           </View>
@@ -326,29 +435,18 @@ export default function OnboardingScreen() {
     return null;
   };
 
-  const renderHero = () => {
-    if (step === 'intro') {
-      return (
-        <>
-          <OnboardingIllustration variant="intro" />
-          <Text className="text-center font-sans-bold text-2xl leading-8 text-neutral-900">{stepMeta.intro.title}</Text>
-          <Text className="mt-3 text-center text-base leading-6 text-neutral-500">{stepMeta.intro.description}</Text>
-        </>
-      );
-    }
+  const headerTitle = step === 'intro' ? APP_NAME : stepMeta[step].title;
 
-    return (
-      <>
-        <OnboardingIllustration variant={step} />
-        <Text className="text-center font-sans-bold text-2xl leading-8 text-neutral-900">{stepMeta[step].title}</Text>
-        <Text className="mt-2 text-center text-base leading-6 text-neutral-500">{stepMeta[step].description}</Text>
-      </>
-    );
-  };
+  const renderHero = () => (
+  <>
+    <OnboardingIllustration variant={step} />
+    <Text className="mt-3 text-center text-base leading-6 text-neutral-600">{stepMeta[step].description}</Text>
+  </>
+  );
 
   const renderStepContent = () => {
     if (step === 'intro') {
-      return <View className="flex-1 justify-center">{renderHero()}</View>;
+      return <View className="flex-1" />;
     }
 
     return (
@@ -362,26 +460,28 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top, paddingBottom: insets.bottom }}>
+    <>
+      <StatusBar style="light" />
       <OnboardingShell
+        headerTitle={headerTitle}
+        intro={step === 'intro'}
         stepIndex={stepIndex}
         totalSteps={STEPS.length}
-        showHeader={step !== 'intro'}
         showBack={stepIndex > 0}
-        showSkip={step === 'sex' || step === 'preferences'}
+        showSkip={step === 'sex' || step === 'preferences' || step === 'allergies'}
         onBack={goBack}
         onSkip={step === 'sex' ? handleSkipSex : goNext}
         footerLayout={isLastStep ? 'stacked' : 'inline'}
-        hero={step !== 'intro' ? renderHero() : undefined}
+        hero={renderHero()}
         footer={
           isLastStep ? (
             <OnboardingNavButton label="Get started" variant="finish" onPress={handleFinish} loading={saving} />
           ) : (
-            <OnboardingNavButton label="Next" onPress={goNext} />
+            <OnboardingNavButton label={step === 'intro' ? 'Get started' : 'Next'} onPress={goNext} />
           )
         }>
         {renderStepContent()}
       </OnboardingShell>
-    </View>
+    </>
   );
 }

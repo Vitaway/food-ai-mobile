@@ -8,17 +8,31 @@ import { palette } from '@/design-system/colors';
 const FOOD_AI_HERO = require('../../../assets/images/splash-icon.png');
 
 type OnboardingIllustrationProps = {
-  variant: 'intro' | 'profile' | 'sex' | 'body' | 'goals' | 'activity' | 'preferences' | 'summary';
+  variant:
+    | 'intro'
+    | 'profile'
+    | 'sex'
+    | 'body'
+    | 'goals'
+    | 'target'
+    | 'activity'
+    | 'habits'
+    | 'preferences'
+    | 'allergies'
+    | 'summary';
 };
 
 const VARIANTS = {
   intro: { accent: palette.shamrock[200], ring: palette['blue-spruce'][100] },
-  profile: { accent: palette['muted-teal'][200], ring: palette.shamrock[100] },
-  sex: { accent: palette['blue-spruce'][100], ring: palette['muted-teal'][200] },
+  profile: { accent: palette['blue-spruce'][100], ring: palette.shamrock[100] },
+  sex: { accent: palette['blue-spruce'][100], ring: palette.shamrock[200] },
   body: { accent: palette.shamrock[200], ring: palette['blue-spruce'][100] },
   goals: { accent: palette['cinnamon-wood'][100], ring: palette.shamrock[100] },
-  activity: { accent: palette['muted-teal'][200], ring: palette['blue-spruce'][100] },
-  preferences: { accent: palette.shamrock[200], ring: palette['muted-teal'][200] },
+  target: { accent: palette['blue-spruce'][100], ring: palette.shamrock[200] },
+  activity: { accent: palette['cinnamon-wood'][100], ring: palette['blue-spruce'][100] },
+  habits: { accent: palette.shamrock[200], ring: palette['cinnamon-wood'][100] },
+  preferences: { accent: palette.shamrock[200], ring: palette['blue-spruce'][100] },
+  allergies: { accent: palette['cinnamon-wood'][100], ring: palette.shamrock[100] },
   summary: { accent: palette['blue-spruce'][100], ring: palette.shamrock[200] },
 } as const;
 
@@ -28,16 +42,13 @@ export function OnboardingIllustration({ variant }: OnboardingIllustrationProps)
   if (variant === 'intro') {
     return (
       <View className="mb-4 items-center">
-        <View className="mb-4 rounded-full bg-blue-spruce-100 px-4 py-1.5">
-          <Text className="font-sans-semibold text-xs uppercase tracking-widest text-blue-spruce-700">AI Powered</Text>
-        </View>
 
         <View
           className="overflow-hidden rounded-[40px]"
           style={{
             width: 280,
             height: 280,
-            shadowColor: '#168376',
+            shadowColor: palette['cinnamon-wood'][400],
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: 0.2,
             shadowRadius: 24,

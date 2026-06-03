@@ -1,4 +1,4 @@
-import type { ActivityLevel, HealthGoal } from '@/types';
+import type { ActivityLevel, GoalPace, HealthGoal } from '@/types';
 
 export const HEALTH_GOALS: { id: HealthGoal; label: string; description: string }[] = [
   { id: 'lose_weight', label: 'Lose weight', description: 'Calorie deficit with balanced macros' },
@@ -14,6 +14,26 @@ export const ACTIVITY_LEVELS: { id: ActivityLevel; label: string; description: s
   { id: 'very_active', label: 'Very active', description: '6–7 days per week' },
   { id: 'extremely_active', label: 'Extremely active', description: 'Athlete or physical job' },
 ];
+
+export const GOAL_PACE_OPTIONS: { id: GoalPace; label: string; description: string }[] = [
+  { id: 'slow', label: 'Slow & steady', description: '~0.25 kg per week' },
+  { id: 'moderate', label: 'Moderate', description: '~0.5 kg per week' },
+  { id: 'aggressive', label: 'Aggressive', description: '~0.75 kg per week' },
+];
+
+export const MEALS_PER_DAY_OPTIONS = [3, 4, 5, 6] as const;
+
+export const COMMON_ALLERGIES = [
+  'Peanuts',
+  'Tree nuts',
+  'Dairy',
+  'Eggs',
+  'Gluten',
+  'Soy',
+  'Shellfish',
+  'Fish',
+  'Sesame',
+] as const;
 
 export const DIETARY_PREFERENCES = [
   'Vegetarian',

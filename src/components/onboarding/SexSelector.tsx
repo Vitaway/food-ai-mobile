@@ -3,6 +3,10 @@ import { Pressable, View } from 'react-native';
 
 import { IconoirIcon } from '@/components/ui/IconoirIcon';
 import { Text } from '@/components/ui/Text';
+import {
+  onboardingOptionCard,
+  onboardingOptionTitle,
+} from '@/constants/onboardingStyles';
 import { ICONOIR_DEFAULTS, SEX_OPTION_ICONS } from '@/constants/onboardingIcons';
 import type { UserSex } from '@/types';
 
@@ -11,7 +15,6 @@ export const SEX_OPTIONS: {
   label: string;
   iconKey: keyof typeof SEX_OPTION_ICONS;
 }[] = [
-  { id: null, label: 'Optional', iconKey: 'optional' },
   { id: 'male', label: 'Male', iconKey: 'male' },
   { id: 'female', label: 'Female', iconKey: 'female' },
   { id: 'other', label: 'Other', iconKey: 'other' },
@@ -33,23 +36,23 @@ export function SexSelector({ value, onChange }: SexSelectorProps) {
           <Pressable
             key={option.label}
             onPress={() => onChange(option.id)}
-            className={`flex-row items-center gap-4 rounded-3xl border px-5 py-4 ${
-              selected ? 'border-blue-spruce-500 bg-blue-spruce-50' : 'border-ash-grey-200 bg-ash-grey-50'
-            }`}>
-            <View
-              className={`h-11 w-11 items-center justify-center rounded-2xl ${
-                selected ? 'bg-blue-spruce-600' : 'bg-white'
-              }`}>
-              <IconoirIcon
-                icon={SEX_OPTION_ICONS[option.iconKey]}
-                size={22}
-                color={selected ? ICONOIR_DEFAULTS.colorOnDark : ICONOIR_DEFAULTS.color}
-              />
+            className={onboardingOptionCard(selected, 'green')}>
+            <View className="flex-row items-center gap-4">
+              <View
+                className={`h-11 w-11 items-center justify-center rounded-2xl ${
+                  selected ? 'bg-shamrock-600' : 'bg-shamrock-50'
+                }`}>
+                <IconoirIcon
+                  icon={SEX_OPTION_ICONS[option.iconKey]}
+                  size={22}
+                  color={selected ? ICONOIR_DEFAULTS.colorOnDark : ICONOIR_DEFAULTS.color}
+                />
+              </View>
+              <Text className={`flex-1 font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>
+                {option.label}
+              </Text>
+              {selected ? <IconoirIcon icon={CheckCircle} size={22} color={ICONOIR_DEFAULTS.color} /> : null}
             </View>
-            <Text className={`flex-1 font-sans-semibold text-base ${selected ? 'text-blue-spruce-800' : 'text-neutral-800'}`}>
-              {option.label}
-            </Text>
-            {selected ? <IconoirIcon icon={CheckCircle} size={22} color={ICONOIR_DEFAULTS.color} /> : null}
           </Pressable>
         );
       })}

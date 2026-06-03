@@ -8,7 +8,8 @@ import {
   type PropsWithChildren,
 } from 'react';
 
-import { getStoredProfile, saveProfile as persistProfile } from '@/services/local/storage';
+import { services } from '@/services';
+import { clearAllLocalData, clearNutritionData } from '@/services/local/storage';
 import type { UserProfile } from '@/types';
 import { createId } from '@/utils/dates';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
@@ -18,11 +19,16 @@ type ProfileDraft = Omit<
   'id' | 'macroTargets' | 'bmr' | 'tdee' | 'waterTargetMl' | 'onboardingComplete' | 'createdAt' | 'updatedAt'
 >;
 
+type AccountFields = Pick<UserProfile, 'displayName' | 'email' | 'avatarUrl'>;
+
 type ProfileContextValue = {
   profile: UserProfile | null;
   isLoading: boolean;
   hasCompletedOnboarding: boolean;
   saveProfile: (draft: ProfileDraft) => Promise<UserProfile>;
+  updateAccount: (fields: Partial<AccountFields>) => Promise<UserProfile | null>;
+  resetNutritionData: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -57,7 +63,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   const [isLoading, setIsLoading] = useState(true);
 
   const refreshProfile = useCallback(async () => {
-    const stored = await getStoredProfile();
+    const stored = await services.profileRepository.getProfile();
     setProfile(stored);
   }, []);
 
@@ -68,12 +74,36 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   const saveProfile = useCallback(
     async (draft: ProfileDraft) => {
       const next = buildProfile(draft, profile);
-      await persistProfile(next);
+      await services.profileRepository.saveProfile(next);
       setProfile(next);
       return next;
     },
     [profile],
   );
+
+  const updateAccount = useCallback(
+    async (fields: Partial<AccountFields>) => {
+      if (!profile) return null;
+      const next: UserProfile = {
+        ...profile,
+        ...fields,
+        updatedAt: new Date().toISOString(),
+      };
+      await services.profileRepository.saveProfile(next);
+      setProfile(next);
+      return next;
+    },
+    [profile],
+  );
+
+  const resetNutritionData = useCallback(async () => {
+    await clearNutritionData();
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await clearAllLocalData();
+    setProfile(null);
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -81,9 +111,12 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       isLoading,
       hasCompletedOnboarding: Boolean(profile?.onboardingComplete),
       saveProfile,
+      updateAccount,
+      resetNutritionData,
+      deleteAccount,
       refreshProfile,
     }),
-    [profile, isLoading, saveProfile, refreshProfile],
+    [profile, isLoading, saveProfile, updateAccount, resetNutritionData, deleteAccount, refreshProfile],
   );
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>;

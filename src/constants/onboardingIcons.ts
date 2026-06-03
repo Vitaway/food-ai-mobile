@@ -8,7 +8,6 @@ import {
   Group,
   Leaf,
   Male,
-  MinusCircle,
   Ruler,
   Running,
   Sparks,
@@ -18,20 +17,31 @@ import {
 export type IconoirIcon = ComponentType<SvgProps>;
 
 export const ONBOARDING_STEP_ICONS: Record<
-  'profile' | 'sex' | 'body' | 'goals' | 'activity' | 'preferences' | 'summary',
+  | 'profile'
+  | 'sex'
+  | 'body'
+  | 'goals'
+  | 'target'
+  | 'activity'
+  | 'habits'
+  | 'preferences'
+  | 'allergies'
+  | 'summary',
   IconoirIcon
 > = {
   profile: UserCircle,
   sex: Community,
   body: Ruler,
   goals: GraphUp,
+  target: Ruler,
   activity: Running,
+  habits: GraphUp,
   preferences: Leaf,
+  allergies: Leaf,
   summary: Sparks,
 };
 
-export const SEX_OPTION_ICONS: Record<'optional' | 'male' | 'female' | 'other' | 'prefer_not_to_say', IconoirIcon> = {
-  optional: MinusCircle,
+export const SEX_OPTION_ICONS: Record<'male' | 'female' | 'other' | 'prefer_not_to_say', IconoirIcon> = {
   male: Male,
   female: Female,
   other: Group,
