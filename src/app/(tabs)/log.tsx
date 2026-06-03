@@ -1,87 +1,133 @@
 import * as ImagePicker from 'expo-image-picker';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useIsFocused, useRouter } from 'expo-router';
+import { useFocusEffect, useIsFocused, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useMemo, useState } from 'react';
+import { Alert } from 'react-native';
 
 import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
 import { LogMethodStep } from '@/components/log/LogMethodStep';
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
+import { LogScreenShell } from '@/components/log/LogScreenShell';
 import { LogTextStep } from '@/components/log/LogTextStep';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
-import { MEAL_TYPES, type MealTypeId } from '@/constants/mealTypes';
+import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constants/mealTypes';
 import type { LogStep } from '@/constants/logMock';
 import { useMeals } from '@/context/MealsContext';
-import { palette } from '@/design-system/colors';
 import type { MealAnalysisPreview } from '@/types';
+import { useNavigateOnce } from '@/hooks/useNavigateOnce';
+import { consumeLogMealTypeIntent } from '@/utils/logIntent';
 
-const LOG_GRADIENT = [
-  palette['blue-spruce'][700],
-  palette['blue-spruce'][500],
-  palette['muted-teal'][400],
-] as const;
+type FlowStep = LogStep | 'text';
+
+const STEP_TITLES: Record<FlowStep, string> = {
+  method: 'Log meal',
+  text: 'Describe',
+  scan: 'Photo',
+  analyzing: 'Analyzing',
+  results: 'Results',
+};
 
 export default function LogMealScreen() {
-  const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const { push } = useNavigateOnce();
   const isFocused = useIsFocused();
+  const { mealType: mealTypeParam } = useLocalSearchParams<{ mealType?: string }>();
   const { analyzeMeal, saveMealToDiary, meals } = useMeals();
 
-  const [step, setStep] = useState<LogStep | 'text'>('method');
+  const [step, setStep] = useState<FlowStep>('method');
   const [selectedMethod, setSelectedMethod] = useState('camera');
-  const [selectedMealType, setSelectedMealType] = useState<MealTypeId>(MEAL_TYPES[2].id);
+  const [selectedMealType, setSelectedMealType] = useState<MealTypeId | null>(() => suggestMealTypeForNow());
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
   const [analysis, setAnalysis] = useState<MealAnalysisPreview | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const bottomPadding = FLOATING_TAB_BAR_CLEARANCE + insets.bottom;
-  const statusBarStyle = step === 'method' ? 'light' : 'dark';
+  const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
+  const stepTitle = STEP_TITLES[step];
+
+  const resolveInitialMealType = useCallback((): MealTypeId | null => {
+    if (mealTypeParam && isMealTypeId(mealTypeParam)) return mealTypeParam;
+    return suggestMealTypeForNow();
+  }, [mealTypeParam]);
 
   const resetFlow = useCallback(() => {
     setStep('method');
+    setSelectedMealType(resolveInitialMealType());
     setImageUri(null);
     setTextInput('');
     setAnalysis(null);
+    setAnalyzing(false);
     setSaving(false);
-  }, []);
+  }, [resolveInitialMealType]);
+
+  const applyMealTypeFromNavigation = useCallback(() => {
+    const fromIntent = consumeLogMealTypeIntent();
+    const nextType =
+      fromIntent ?? (mealTypeParam && isMealTypeId(mealTypeParam) ? mealTypeParam : null);
+    if (!nextType) return;
+    setSelectedMealType(nextType);
+    setStep('method');
+  }, [mealTypeParam]);
+
+  useFocusEffect(
+    useCallback(() => {
+      applyMealTypeFromNavigation();
+    }, [applyMealTypeFromNavigation]),
+  );
 
   const runAnalysis = useCallback(async () => {
+    if (analyzing) return;
+    setAnalyzing(true);
     setStep('analyzing');
     try {
       const result = await analyzeMeal({ imageUri: imageUri ?? undefined, text: textInput || undefined });
       setAnalysis(result);
       setStep('results');
     } catch {
-      Alert.alert('Analysis failed', 'Please try again.');
+      Alert.alert('Analysis failed', 'Try again.');
       setStep(imageUri ? 'scan' : 'text');
+    } finally {
+      setAnalyzing(false);
     }
-  }, [analyzeMeal, imageUri, textInput]);
+  }, [analyzing, analyzeMeal, imageUri, textInput]);
 
-  const pickImage = useCallback(async (source: 'camera' | 'gallery') => {
-    const permission =
-      source === 'camera'
-        ? await ImagePicker.requestCameraPermissionsAsync()
-        : await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permission.granted) {
-      Alert.alert('Permission needed', `Allow ${source} access to log meals with photos.`);
-      return null;
-    }
-
-    const result =
-      source === 'camera'
-        ? await ImagePicker.launchCameraAsync({ quality: 0.8, allowsEditing: true, aspect: [4, 3] })
-        : await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: true, aspect: [4, 3] });
-
-    if (result.canceled || !result.assets[0]?.uri) return null;
-    return result.assets[0].uri;
+  const handlePermissionDenied = useCallback((source: 'camera' | 'gallery', canAskAgain: boolean) => {
+    const label = source === 'camera' ? 'camera' : 'photos';
+    Alert.alert('Permission needed', canAskAgain ? `Allow ${label} access.` : `Enable ${label} in Settings.`);
   }, []);
 
+  const pickImage = useCallback(
+    async (source: 'camera' | 'gallery') => {
+      const permission =
+        source === 'camera'
+          ? await ImagePicker.requestCameraPermissionsAsync()
+          : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (!permission.granted) {
+        handlePermissionDenied(source, permission.canAskAgain);
+        return null;
+      }
+
+      const result =
+        source === 'camera'
+          ? await ImagePicker.launchCameraAsync({ quality: 0.8, allowsEditing: true, aspect: [4, 3] })
+          : await ImagePicker.launchImageLibraryAsync({ quality: 0.8, allowsEditing: true, aspect: [4, 3] });
+
+      if (result.canceled || !result.assets[0]?.uri) return null;
+      return result.assets[0].uri;
+    },
+    [handlePermissionDenied],
+  );
+
   const handleContinue = useCallback(async () => {
+    if (analyzing || saving) return;
+
+    if (!selectedMealType) {
+      Alert.alert('Select a meal type', 'Choose what meal this is, or tap Continue after selecting.');
+      return;
+    }
+
     if (selectedMethod === 'text') {
       setStep('text');
       return;
@@ -90,7 +136,7 @@ export default function LogMealScreen() {
     if (selectedMethod === 'past') {
       const past = meals.find((meal) => meal.status === 'approved');
       if (!past) {
-        Alert.alert('No past meals', 'Log your first meal to reuse it later.');
+        Alert.alert('No past meals', 'Log a meal first.');
         return;
       }
       setSelectedMealType(past.mealType);
@@ -104,10 +150,10 @@ export default function LogMealScreen() {
     if (!uri) return;
     setImageUri(uri);
     setStep('scan');
-  }, [meals, pickImage, selectedMethod]);
+  }, [analyzing, meals, pickImage, saving, selectedMealType, selectedMethod]);
 
   const handleSave = useCallback(async () => {
-    if (!analysis) return;
+    if (!analysis || saving || !selectedMealType) return;
     setSaving(true);
     try {
       const meal = await saveMealToDiary({
@@ -117,93 +163,96 @@ export default function LogMealScreen() {
         analysis,
       });
       resetFlow();
-      router.push(`/meal/${meal.id}`);
+      push(`/meal/${meal.id}`);
     } catch {
-      Alert.alert('Could not save', 'Please try again.');
+      Alert.alert('Could not save', 'Try again.');
     } finally {
       setSaving(false);
     }
-  }, [analysis, imageUri, resetFlow, router, saveMealToDiary, selectedMealType, textInput]);
+  }, [analysis, imageUri, push, resetFlow, saveMealToDiary, selectedMealType, textInput]);
 
-  const renderStep = () => {
+  const handleBack = useCallback(() => {
+    if (step === 'text' || step === 'scan') setStep('method');
+    else if (step === 'results') setStep(imageUri ? 'scan' : 'text');
+  }, [imageUri, step]);
+
+  const showBack = step !== 'method' && step !== 'analyzing';
+  const useScroll = step === 'method' || step === 'results' || step === 'analyzing';
+
+  const content = useMemo(() => {
+    if (step === 'method') {
+      return (
+        <LogMethodStep
+          selectedMethod={selectedMethod}
+          selectedMealType={selectedMealType}
+          loading={analyzing || saving}
+          onSelectMethod={setSelectedMethod}
+          onSelectMealType={setSelectedMealType}
+          onContinue={handleContinue}
+        />
+      );
+    }
     if (step === 'text') {
       return (
-        <View className="flex-1 bg-ash-grey-50" style={{ paddingTop: insets.top }}>
-          <LogTextStep
-            value={textInput}
-            onChangeText={setTextInput}
-            onBack={() => setStep('method')}
-            onContinue={runAnalysis}
-          />
-        </View>
+        <LogTextStep
+          value={textInput}
+          loading={analyzing}
+          bottomPadding={bottomPadding}
+          onChangeText={setTextInput}
+          onContinue={runAnalysis}
+        />
       );
     }
-
     if (step === 'scan' && imageUri) {
       return (
-        <View className="flex-1 bg-ash-grey-50" style={{ paddingTop: insets.top }}>
-          <LogScanStep
-            bottomPadding={bottomPadding}
-            imageUri={imageUri}
-            preview={analysis}
-            onBack={() => setStep('method')}
-            onCapture={runAnalysis}
-          />
-        </View>
+        <LogScanStep
+          imageUri={imageUri}
+          preview={analysis}
+          loading={analyzing}
+          bottomPadding={bottomPadding}
+          onCapture={runAnalysis}
+        />
       );
     }
-
     if (step === 'analyzing') {
-      return (
-        <View className="flex-1 bg-ash-grey-50" style={{ paddingTop: insets.top }}>
-          <LogAnalyzingStep bottomPadding={bottomPadding} />
-        </View>
-      );
+      return <LogAnalyzingStep />;
     }
-
     if (step === 'results' && analysis) {
       return (
-        <View className="flex-1 bg-white" style={{ paddingTop: insets.top }}>
-          <LogResultsStep
-            bottomPadding={bottomPadding}
-            analysis={analysis}
-            imageUri={imageUri ?? undefined}
-            saving={saving}
-            onBack={() => setStep(imageUri ? 'scan' : 'text')}
-            onSave={handleSave}
-          />
-        </View>
+        <LogResultsStep
+          analysis={analysis}
+          imageUri={imageUri ?? undefined}
+          saving={saving}
+          onSave={handleSave}
+        />
       );
     }
-
-    return (
-      <View className="flex-1" style={{ backgroundColor: palette['muted-teal'][400] }}>
-        <LinearGradient colors={[...LOG_GRADIENT]} start={{ x: 0, y: 0 }} end={{ x: 0.5, y: 1 }} style={{ flex: 1 }}>
-          <ScrollView
-            style={{ flex: 1 }}
-            contentContainerStyle={{
-              paddingTop: insets.top + 24,
-              paddingBottom: bottomPadding + 16,
-              paddingHorizontal: 24,
-              flexGrow: 1,
-            }}>
-            <LogMethodStep
-              selectedMethod={selectedMethod}
-              selectedMealType={selectedMealType}
-              onSelectMethod={setSelectedMethod}
-              onSelectMealType={setSelectedMealType}
-              onContinue={handleContinue}
-            />
-          </ScrollView>
-        </LinearGradient>
-      </View>
-    );
-  };
+    return null;
+  }, [
+    analysis,
+    analyzing,
+    handleContinue,
+    handleSave,
+    imageUri,
+    runAnalysis,
+    saving,
+    selectedMealType,
+    selectedMethod,
+    bottomPadding,
+    step,
+    textInput,
+  ]);
 
   return (
     <>
-      {isFocused ? <StatusBar style={statusBarStyle} /> : null}
-      {renderStep()}
+      {isFocused ? <StatusBar style="light" /> : null}
+      <LogScreenShell
+        title={stepTitle}
+        onBack={showBack ? handleBack : undefined}
+        scroll={useScroll}
+        bottomPadding={bottomPadding}>
+        {content}
+      </LogScreenShell>
     </>
   );
 }

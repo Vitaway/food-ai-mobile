@@ -1,55 +1,50 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Pressable, TextInput, View } from 'react-native';
+import { View } from 'react-native';
 
+import { LogCard } from '@/components/log/LogScreenShell';
+import { AppTextInput } from '@/components/ui/AppTextInput';
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 
 type LogTextStepProps = {
   value: string;
+  loading?: boolean;
+  bottomPadding: number;
   onChangeText: (text: string) => void;
-  onBack: () => void;
   onContinue: () => void;
 };
 
-export function LogTextStep({ value, onChangeText, onBack, onContinue }: LogTextStepProps) {
+export function LogTextStep({
+  value,
+  loading = false,
+  bottomPadding,
+  onChangeText,
+  onContinue,
+}: LogTextStepProps) {
   const canContinue = value.trim().length >= 3;
 
   return (
-    <View className="flex-1 bg-ash-grey-50">
-      <View className="flex-row items-center justify-between px-5 pb-2 pt-2">
-        <Pressable
-          onPress={onBack}
-          className="h-10 w-10 items-center justify-center rounded-full bg-white">
-          <Ionicons name="arrow-back" size={20} color="#4f5346" />
-        </Pressable>
-        <Text className="font-sans-semibold text-base text-neutral-800">Describe your meal</Text>
-        <View className="h-10 w-10" />
-      </View>
-
-      <View className="flex-1 px-5 pt-4">
-        <Text className="text-sm leading-5 text-neutral-500">
-          List what you ate — separate items with commas for a better breakdown.
-        </Text>
-        <TextInput
+    <View className="flex-1">
+      <LogCard className="flex-1">
+        <Text className="font-sans-semibold text-lg text-neutral-900">What did you eat?</Text>
+        <Text className="mt-1 text-sm text-neutral-500">Separate items with commas for better results</Text>
+        <AppTextInput
           value={value}
           onChangeText={onChangeText}
-          placeholder="e.g. grilled chicken, brown rice, mixed salad"
-          placeholderTextColor="#848a75"
+          placeholder="Chicken, rice, salad…"
+          placeholderTextColor="#9ca3af"
           multiline
-          textAlignVertical="top"
-          className="mt-4 min-h-[160px] rounded-3xl bg-white px-4 py-4 text-base text-neutral-900"
+          autoFocus
+          className="mt-4 min-h-[180px] flex-1 rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4"
         />
-      </View>
+      </LogCard>
 
-      <View className="px-5 pb-6">
-        <Pressable
+      <View className="mt-4" style={{ paddingBottom: bottomPadding }}>
+        <Button
+          label={loading ? 'Analyzing…' : 'Analyze meal'}
+          variant="secondary"
           onPress={onContinue}
-          disabled={!canContinue}
-          className={`flex-row items-center justify-center gap-2 rounded-full py-4 ${
-            canContinue ? 'bg-blue-spruce-950' : 'bg-ash-grey-300'
-          }`}>
-          <Text className="font-sans-semibold text-base text-white">Analyze meal</Text>
-          <Ionicons name="sparkles-outline" size={18} color="#ffffff" />
-        </Pressable>
+          disabled={!canContinue || loading}
+        />
       </View>
     </View>
   );
