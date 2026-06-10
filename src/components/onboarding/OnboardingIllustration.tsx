@@ -1,11 +1,9 @@
-import { Image, View } from 'react-native';
+import { View } from 'react-native';
 
+import { AppLogo } from '@/components/ui/AppLogo';
 import { IconoirIcon } from '@/components/ui/IconoirIcon';
-import { Text } from '@/components/ui/Text';
 import { ICONOIR_DEFAULTS, ONBOARDING_STEP_ICONS } from '@/constants/onboardingIcons';
 import { palette } from '@/design-system/colors';
-
-const FOOD_AI_HERO = require('../../../assets/images/splash-icon.png');
 
 type OnboardingIllustrationProps = {
   variant:
@@ -42,9 +40,8 @@ export function OnboardingIllustration({ variant }: OnboardingIllustrationProps)
   if (variant === 'intro') {
     return (
       <View className="mb-4 items-center">
-
         <View
-          className="overflow-hidden rounded-[40px]"
+          className="items-center justify-center overflow-hidden rounded-[40px]"
           style={{
             width: 280,
             height: 280,
@@ -54,7 +51,7 @@ export function OnboardingIllustration({ variant }: OnboardingIllustrationProps)
             shadowRadius: 24,
             elevation: 12,
           }}>
-          <Image source={FOOD_AI_HERO} className="h-full w-full" resizeMode="cover" />
+          <AppLogo size={280} />
         </View>
       </View>
     );

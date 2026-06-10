@@ -5,7 +5,9 @@ import { Modal, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PasscodePad } from '@/components/security/PasscodePad';
+import { AppLogo } from '@/components/ui/AppLogo';
 import { Text } from '@/components/ui/Text';
+import { BRAND_NAVY } from '@/constants/brand';
 import { APP_NAME } from '@/constants/site';
 import { useAppLock } from '@/context/AppLockContext';
 import { palette } from '@/design-system/colors';
@@ -66,9 +68,10 @@ export function AppLockOverlay() {
   return (
     <Modal visible animationType="fade" presentationStyle="fullScreen">
       <LinearGradient
-        colors={[palette['blue-spruce'][800], palette['blue-spruce'][600], palette['blue-spruce'][500]]}
+        colors={[BRAND_NAVY, '#1A3A5C', '#21466B']}
         style={{ flex: 1, paddingTop: insets.top + 48, paddingBottom: insets.bottom + 24, paddingHorizontal: 24 }}>
         <View className="flex-1">
+          <AppLogo size={72} className="mb-6" />
           <Text className="font-sans-bold text-3xl text-white">{APP_NAME} is locked</Text>
           <Text className="mt-2 text-base text-white/80">
             {biometricsEnabled ? `Use ${biometricLabel} or your passcode` : 'Enter your passcode'}

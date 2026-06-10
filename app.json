@@ -9,17 +9,27 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.vitaway.foodai"
+      "bundleIdentifier": "com.vitaway.foodai",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "MiraFood needs photo access for AR measurement.",
+        "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
+        "NSCameraUsageDescription": "MiraFood uses your camera to measure plate size in AR.",
+        "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement."
+      }
     },
     "android": {
       "package": "com.vitaway.foodai",
       "adaptiveIcon": {
-        "backgroundColor": "#168376",
+        "backgroundColor": "#16304D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -43,13 +53,37 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/splash-icon.png",
-          "resizeMode": "cover",
-          "backgroundColor": "#168376"
+          "resizeMode": "contain",
+          "backgroundColor": "#16304D"
+        }
+      ],
+      "expo-web-browser",
+      [
+        "@viro-community/react-viro",
+        {
+          "android": {
+            "xRMode": [
+              "AR"
+            ]
+          },
+          "ios": {
+            "cameraUsagePermission": "MiraFood uses your camera to measure plate size in AR.",
+            "microphoneUsagePermission": "MiraFood uses your microphone during AR measurement.",
+            "photosPermission": "MiraFood needs photo access for AR measurement.",
+            "savePhotosPermission": "MiraFood may save AR captures to your photo library."
+          }
         }
       ]
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "73a2ba4e-86c6-468e-a06e-427a0d715a6a"
+      }
+    },
+    "owner": "iamnsengiii"
   }
 }

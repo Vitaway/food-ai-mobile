@@ -1,4 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -13,9 +12,10 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppLogo } from '@/components/ui/AppLogo';
 import { Text } from '@/components/ui/Text';
 import { APP_NAME } from '@/constants/site';
-import { palette } from '@/design-system/colors';
+import { BRAND_NAVY, BRAND_ORANGE } from '@/constants/brand';
 
 export function AppSplashScreen() {
   const insets = useSafeAreaInsets();
@@ -61,22 +61,27 @@ export function AppSplashScreen() {
   return (
     <View className="flex-1">
       <LinearGradient
-        colors={[palette['blue-spruce'][800], palette['blue-spruce'][600], palette['blue-spruce'][400]]}
+        colors={[BRAND_NAVY, '#1A3A5C', '#21466B']}
         start={{ x: 0.1, y: 0 }}
         end={{ x: 0.9, y: 1 }}
         style={{ flex: 1, paddingTop: insets.top, paddingBottom: insets.bottom }}>
         <View className="flex-1 items-center justify-center px-8">
           <View className="items-center justify-center">
             <Animated.View
-              style={ringStyle}
-              className="absolute h-44 w-44 rounded-full border-2 border-white/30 bg-white/5"
+              style={[
+                ringStyle,
+                {
+                  position: 'absolute',
+                  width: 176,
+                  height: 176,
+                  borderRadius: 88,
+                  borderWidth: 2,
+                  borderColor: `${BRAND_ORANGE}66`,
+                },
+              ]}
             />
-            <Animated.View
-              style={logoStyle}
-              className="h-32 w-32 items-center justify-center rounded-[36px] bg-white/15">
-              <View className="h-24 w-24 items-center justify-center rounded-[28px] bg-white">
-                <Ionicons name="leaf" size={42} color={palette['blue-spruce'][700]} />
-              </View>
+            <Animated.View style={logoStyle}>
+              <AppLogo size={128} />
             </Animated.View>
           </View>
 

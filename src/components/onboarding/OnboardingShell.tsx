@@ -6,6 +6,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { AppLogo } from '@/components/ui/AppLogo';
 import { GradientButton } from '@/components/ui/GradientButton';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
@@ -127,9 +128,16 @@ export function OnboardingShell({
               <View className="h-11 w-11 shrink-0" />
             )}
 
-            <GradientHeaderTitle className="flex-1 text-center" numberOfLines={2}>
-              {headerTitle}
-            </GradientHeaderTitle>
+            {intro ? (
+              <View className="flex-1 flex-row items-center justify-center gap-3">
+                <AppLogo size={36} />
+                <GradientHeaderTitle numberOfLines={1}>{headerTitle}</GradientHeaderTitle>
+              </View>
+            ) : (
+              <GradientHeaderTitle className="flex-1 text-center" numberOfLines={2}>
+                {headerTitle}
+              </GradientHeaderTitle>
+            )}
 
             {showSkip && onSkip ? (
               <Pressable onPress={onSkip} hitSlop={12} className="shrink-0 px-1 py-2">
