@@ -9,10 +9,31 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal"
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space"
+      }
+    },
+    "apk": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space"
+      }
     },
     "production": {
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space"
+      }
     }
   },
   "submit": {

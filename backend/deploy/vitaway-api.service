@@ -1,0 +1,24 @@
+[Unit]
+Description=Vitaway Food AI plate detection API
+After=network.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/vitaway-api
+EnvironmentFile=/opt/vitaway-api/.env
+ExecStart=/opt/vitaway-api/.venv/bin/gunicorn \
+  --bind 127.0.0.1:5050 \
+  --workers 2 \
+  --threads 4 \
+  --timeout 180 \
+  --graceful-timeout 30 \
+  --access-logfile - \
+  --error-logfile - \
+  server:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
