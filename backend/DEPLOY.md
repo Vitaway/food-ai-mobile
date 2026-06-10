@@ -97,6 +97,26 @@ Expected:
 
 If you see `"apiKeyStatus": "missing"` or `"placeholder"`, the key is not set correctly on the VPS.
 
+### App shows "request failed" but health works over HTTP
+
+Test both:
+
+```bash
+curl http://vitaway.nsengi.space/health
+curl -k https://vitaway.nsengi.space/health
+```
+
+If **HTTP returns JSON** but **HTTPS returns** `Cannot GET /health` with `X-Powered-By: Express`, nginx is sending HTTPS to the wrong app (often a Node site on the same VPS). The mobile app uses `https://`, so plate detection fails.
+
+Fix on the VPS:
+
+```bash
+cd ~/food-ai-mobile/backend
+sudo bash deploy/fix-https.sh
+```
+
+Or manually ensure only one nginx site owns `vitaway.nsengi.space` on port 443 and it `proxy_pass`es to `http://127.0.0.1:5050`.
+
 ### OpenRouter 401 "User not found" in the app
 
 This means the **server** API key is wrong, not the phone app. Common causes:
