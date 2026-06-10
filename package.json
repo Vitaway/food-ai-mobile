@@ -8,7 +8,9 @@
     "ios": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo run:ios",
     "ios:device": "REACT_NATIVE_PACKAGER_HOSTNAME=127.0.0.1 expo run:ios --device",
     "android": "expo run:android",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "build:ios:testflight": "eas build --platform ios --profile production",
+    "submit:ios:testflight": "eas submit --platform ios --latest"
   },
   "dependencies": {
     "@expo-google-fonts/nata-sans": "^0.4.0",

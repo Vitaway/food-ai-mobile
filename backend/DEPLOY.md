@@ -75,8 +75,29 @@ curl https://vitaway.nsengi.space/health
 Expected:
 
 ```json
-{"ok": true, "provider": "openrouter", "model": "openai/gpt-4o-mini", ...}
+{"ok": true, "apiKeyStatus": "configured", "provider": "openrouter", "model": "openai/gpt-4o-mini", ...}
 ```
+
+If you see `"apiKeyStatus": "missing"` or `"placeholder"`, the key is not set correctly on the VPS.
+
+### OpenRouter 401 "User not found" in the app
+
+This means the **server** API key is wrong, not the phone app. Common causes:
+
+1. **Placeholder key** still in `/opt/vitaway-api/.env`
+2. **Provisioning/management key** instead of a regular inference key — create a normal key at [openrouter.ai/keys](https://openrouter.ai/keys)
+3. **Expired or revoked key** — generate a new one
+4. **Quotes in `.env`** — use `OPENROUTER_API_KEY=sk-or-v1-...` with no quotes
+
+Fix on the VPS:
+
+```bash
+sudo nano /opt/vitaway-api/.env
+sudo systemctl restart vitaway-api
+curl https://vitaway.nsengi.space/health
+```
+
+`apiKeyStatus` must be `"configured"` and `ok` must be `true`.
 
 ## 7. Mobile app
 

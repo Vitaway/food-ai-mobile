@@ -32,7 +32,23 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+
+def _sanitize_env(value: str) -> str:
+    """Strip whitespace and quotes — systemd EnvironmentFile can leave quotes in values."""
+    return value.strip().strip('"').strip("'")
+
+
+def _api_key_status(key: str) -> str:
+    if not key:
+        return "missing"
+    if "your-key" in key.lower() or key.endswith("..."):
+        return "placeholder"
+    if not key.startswith("sk-or-"):
+        return "invalid_format"
+    return "configured"
+
+
+OPENROUTER_API_KEY = _sanitize_env(os.getenv("OPENROUTER_API_KEY", ""))
 OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-4o-mini")
 OPENROUTER_APP_NAME = os.getenv("OPENROUTER_APP_NAME", "MiraFood")
@@ -47,6 +63,17 @@ def openrouter_client() -> OpenAI:
     return OpenAI(
         base_url=OPENROUTER_BASE_URL,
         api_key=OPENROUTER_API_KEY,
+    )
+
+
+def openrouter_auth_error_message(exc: Exception) -> str | None:
+    text = str(exc)
+    if "401" not in text and "User not found" not in text:
+        return None
+    return (
+        "OpenRouter rejected the server API key. On the VPS, set a regular inference key "
+        "(not a provisioning/management key) in /opt/vitaway-api/.env as OPENROUTER_API_KEY, "
+        "then run: sudo systemctl restart vitaway-api"
     )
 
 
@@ -120,19 +147,29 @@ def normalize_result(raw: dict[str, Any], analysis_context: dict[str, Any]) -> d
 
 @app.get("/health")
 def health():
+    key_status = _api_key_status(OPENROUTER_API_KEY)
     return jsonify({
-        "ok": True,
+        "ok": key_status == "configured",
         "provider": "openrouter",
         "model": OPENROUTER_MODEL,
         "imageDetail": OPENROUTER_IMAGE_DETAIL,
         "temperature": OPENROUTER_TEMPERATURE,
+        "apiKeyStatus": key_status,
     })
 
 
 @app.post("/plates/detect")
 def detect_plate():
-    if not OPENROUTER_API_KEY:
+    key_status = _api_key_status(OPENROUTER_API_KEY)
+    if key_status == "missing":
         return jsonify({"error": "OPENROUTER_API_KEY is not set on the server"}), 500
+    if key_status != "configured":
+        return jsonify({
+            "error": (
+                "OPENROUTER_API_KEY on the server is missing or invalid. "
+                "Create a regular API key at https://openrouter.ai/keys and update /opt/vitaway-api/.env"
+            ),
+        }), 500
 
     image = request.files.get("image")
     if image is None:
@@ -190,6 +227,9 @@ def detect_plate():
             ],
         )
     except Exception as exc:  # noqa: BLE001 — return API error to client
+        auth_error = openrouter_auth_error_message(exc)
+        if auth_error:
+            return jsonify({"error": auth_error}), 502
         return jsonify({"error": f"OpenRouter request failed: {exc}"}), 502
 
     content = response.choices[0].message.content or "{}"
