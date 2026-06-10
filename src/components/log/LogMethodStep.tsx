@@ -90,6 +90,15 @@ export function LogMethodStep({
         </View>
       </LogCard>
 
+      {selectedMethod === 'camera' ? (
+        <LogCard className="mb-3 border border-blue-spruce-100 bg-blue-spruce-50/60">
+          <Text className="font-sans-semibold text-sm text-blue-spruce-700">Camera + AR portions</Text>
+          <Text className="mt-1 text-sm leading-5 text-neutral-600">
+            After you snap your meal, you will measure the plate in AR before we analyze the photo.
+          </Text>
+        </LogCard>
+      ) : null}
+
       <Button
         label={loading ? 'Opening…' : 'Continue'}
         variant="secondary"

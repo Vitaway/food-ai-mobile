@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { IngredientFlowerChart } from '@/components/log/IngredientFlowerChart';
 import { IngredientList } from '@/components/log/IngredientList';
+import { PlateSizeCard } from '@/components/log/PlateSizeCard';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { RecommendationList } from '@/components/recommendations/RecommendationList';
 import { Button } from '@/components/ui/Button';
@@ -16,6 +17,7 @@ import {
 } from '@/services/local/recommendations';
 import type { MealAnalysisPreview } from '@/types';
 import { todayKey } from '@/utils/dates';
+import { formatDiameterCm } from '@/utils/formatDiameter';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
@@ -81,11 +83,16 @@ export function LogResultsStep({ analysis, imageUri, saving, onSave }: LogResult
         <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
 
+      {analysis.plateDiameterCm != null ? (
+        <PlateSizeCard detected plateDiameterCm={analysis.plateDiameterCm} />
+      ) : null}
+
       <LogCard className="items-center">
         <IngredientFlowerChart imageUri={imageUri} petals={analysis.petals} />
         <Text className="mt-4 font-sans-bold text-2xl text-neutral-900">{analysis.mealName}</Text>
         <Text className="mt-1 text-sm text-neutral-500">
           {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal
+          {analysis.plateDiameterCm ? ` · Plate ${formatDiameterCm(analysis.plateDiameterCm)}` : ''}
         </Text>
         <View className="mt-3 flex-row gap-4">
           <Text className="text-sm text-neutral-600">P {analysis.totalNutrition.proteinG}g</Text>

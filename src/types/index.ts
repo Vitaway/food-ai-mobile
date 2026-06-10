@@ -99,6 +99,9 @@ export interface MealAnalysisPreview {
   petals: MealPetal[];
   healthFlag: HealthFlagLevel;
   healthMessage: string;
+  plateDiameterCm?: number | null;
+  portionScaleFactor?: number | null;
+  portionNote?: string;
 }
 
 export interface MealSubmission {
@@ -109,6 +112,7 @@ export interface MealSubmission {
   imageUrl?: string;
   textInput?: string;
   note?: string;
+  plateDiameterCm?: number | null;
   mealName?: string;
   items?: DetectedFoodItem[];
   totalNutrition?: NutritionFacts;

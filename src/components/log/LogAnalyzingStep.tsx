@@ -1,10 +1,29 @@
 import { Ionicons } from '@expo/vector-icons';
 import { ActivityIndicator, View } from 'react-native';
 
+import { PlateSizeCard } from '@/components/log/PlateSizeCard';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { Text } from '@/components/ui/Text';
+import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
+import { formatDiameterCm } from '@/utils/formatDiameter';
 
-export function LogAnalyzingStep() {
+type LogAnalyzingStepProps = {
+  detectingPlate?: boolean;
+  plateDetected?: boolean;
+  containerType?: PlateContainerType | null;
+  plateDiameterCm?: number | null;
+  plateConfidence?: number | null;
+};
+
+export function LogAnalyzingStep({
+  detectingPlate = false,
+  plateDetected = false,
+  containerType = null,
+  plateDiameterCm = null,
+  plateConfidence = null,
+}: LogAnalyzingStepProps) {
+  const dishLabel = containerType === 'bowl' ? 'bowl' : 'plate';
+
   return (
     <View className="flex-1 justify-center py-8">
       <LogCard className="items-center py-10">
@@ -13,10 +32,21 @@ export function LogAnalyzingStep() {
         </View>
         <Text className="mt-6 font-sans-bold text-xl text-neutral-900">Analyzing your meal</Text>
         <Text className="mt-2 text-center text-sm leading-5 text-neutral-500">
-          Estimating ingredients, portions, and nutrition…
+          {plateDetected && plateDiameterCm != null
+            ? `Using your ${formatDiameterCm(plateDiameterCm)} ${dishLabel} to estimate portions…`
+            : 'Estimating ingredients, portions, and nutrition…'}
         </Text>
         <ActivityIndicator color="#1D9E75" style={{ marginTop: 28 }} />
       </LogCard>
+
+      <PlateSizeCard
+        compact
+        detecting={detectingPlate}
+        detected={plateDetected}
+        containerType={containerType}
+        plateDiameterCm={plateDiameterCm}
+        confidence={plateConfidence}
+      />
     </View>
   );
 }

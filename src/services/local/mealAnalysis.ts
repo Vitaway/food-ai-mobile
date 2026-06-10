@@ -8,6 +8,7 @@ import type {
   NutritionFacts,
 } from '@/types';
 import { createId } from '@/utils/dates';
+import { applyPlatePortionScale } from '@/utils/platePortion';
 
 const PHOTO_MEALS = [
   {
@@ -118,11 +119,15 @@ function buildAnalysis(name: string, rawItems: Array<{ label: string; weightG: n
   };
 }
 
-export function mockAnalyzePhoto(imageUri?: string): MealAnalysisPreview {
+export function mockAnalyzePhoto(
+  imageUri?: string,
+  plateDiameterCm?: number | null,
+): MealAnalysisPreview {
   const index = imageUri ? imageUri.length % PHOTO_MEALS.length : 0;
   const meal = PHOTO_MEALS[index];
   const confidence = 0.88 + (index === 0 ? 0.05 : 0);
-  return buildAnalysis(meal.name, meal.items, confidence);
+  const base = buildAnalysis(meal.name, meal.items, confidence);
+  return applyPlatePortionScale(base, plateDiameterCm);
 }
 
 export function mockAnalyzeText(text: string): MealAnalysisPreview {
@@ -152,6 +157,7 @@ export function toMealSubmission(
     imageUrl?: string;
     textInput?: string;
     note?: string;
+    plateDiameterCm?: number | null;
     status?: MealSubmissionStatus;
   } & Partial<MealSubmissionExtras>,
 ): MealSubmission {
@@ -163,6 +169,7 @@ export function toMealSubmission(
     imageUrl: input.imageUrl,
     textInput: input.textInput,
     note: input.note,
+    plateDiameterCm: input.plateDiameterCm ?? analysis.plateDiameterCm ?? null,
     mealName: analysis.mealName,
     items: analysis.items,
     totalNutrition: analysis.totalNutrition,
@@ -192,5 +199,6 @@ export function mealSubmissionToAnalysisPreview(meal: MealSubmission): MealAnaly
     petals: meal.petals ?? [],
     healthFlag: meal.healthFlag ?? 'yellow',
     healthMessage: meal.healthMessage ?? 'Analysis complete.',
+    plateDiameterCm: meal.plateDiameterCm ?? null,
   };
 }

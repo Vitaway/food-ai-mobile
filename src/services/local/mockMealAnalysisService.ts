@@ -3,9 +3,9 @@ import { mockAnalyzePhoto, mockAnalyzeText } from '@/services/local/mealAnalysis
 import { delay } from '@/utils/dates';
 
 export const mockMealAnalysisService: MealAnalysisService = {
-  async analyzeMeal({ imageUri, text }) {
+  async analyzeMeal({ imageUri, text, plateDiameterCm }) {
     await delay(1200);
     if (text?.trim()) return mockAnalyzeText(text);
-    return mockAnalyzePhoto(imageUri);
+    return mockAnalyzePhoto(imageUri, plateDiameterCm);
   },
 };

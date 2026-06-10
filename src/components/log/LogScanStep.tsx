@@ -2,25 +2,47 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image, Platform, Pressable, View } from 'react-native';
 
 import { MacroSummaryCards } from '@/components/log/MacroSummaryCards';
+import { PlateSizeCard } from '@/components/log/PlateSizeCard';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { ScanFrameOverlay } from '@/components/log/ScanFrameOverlay';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
 import type { MealAnalysisPreview } from '@/types';
+import { formatDiameterCm } from '@/utils/formatDiameter';
 
 type LogScanStepProps = {
   imageUri: string;
   preview?: MealAnalysisPreview | null;
+  detectingPlate?: boolean;
+  plateDetected?: boolean;
+  containerType?: PlateContainerType | null;
+  plateDiameterCm?: number | null;
+  plateConfidence?: number | null;
+  plateDetectionError?: string | null;
   loading?: boolean;
   bottomPadding: number;
+  onRetake: () => void;
   onCapture: () => void;
 };
+
+function badgeLabel(containerType: PlateContainerType | null | undefined, diameterCm: number): string {
+  const prefix = containerType === 'bowl' ? 'Bowl' : containerType === 'plate' ? 'Plate' : 'Dish';
+  return `${prefix} ${formatDiameterCm(diameterCm)}`;
+}
 
 export function LogScanStep({
   imageUri,
   preview,
+  detectingPlate = false,
+  plateDetected = false,
+  containerType = null,
+  plateDiameterCm = null,
+  plateConfidence = null,
+  plateDetectionError = null,
   loading = false,
   bottomPadding,
+  onRetake,
   onCapture,
 }: LogScanStepProps) {
   const macros = preview
@@ -49,26 +71,48 @@ export function LogScanStep({
       ]
     : [];
 
+  const showPlateBadge = plateDetected && plateDiameterCm != null && !detectingPlate;
+
   return (
     <View className="flex-1">
       <LogCard className="overflow-hidden p-0">
         <View className="relative h-[240px]">
           <Image source={{ uri: imageUri }} className="h-full w-full" resizeMode="cover" />
           <ScanFrameOverlay />
+          {showPlateBadge ? (
+            <View className="absolute bottom-3 left-3 rounded-full bg-black/65 px-3 py-1.5">
+              <Text className="font-sans-semibold text-xs text-white">
+                {badgeLabel(containerType, plateDiameterCm!)}
+              </Text>
+            </View>
+          ) : null}
         </View>
         <View className="px-5 pb-5 pt-4">
           <Text className="text-center font-sans-semibold text-lg text-neutral-900">
-            {preview?.mealName ?? 'Ready to analyze'}
+            {preview?.mealName ?? 'Photo captured'}
           </Text>
           {preview ? (
             <Text className="mt-1 text-center text-sm text-neutral-500">
               {preview.totalWeightG} g · {preview.totalNutrition.caloriesKcal} kcal
+              {preview.plateDiameterCm ? ` · Plate ${formatDiameterCm(preview.plateDiameterCm)}` : ''}
             </Text>
           ) : (
-            <Text className="mt-1 text-center text-sm text-neutral-500">Tap analyze when your plate is in frame</Text>
+            <Text className="mt-1 text-center text-sm text-neutral-500">
+              Hold your phone at arm&apos;s length (30–40 cm) for the most accurate plate size.
+            </Text>
           )}
         </View>
       </LogCard>
+
+      <PlateSizeCard
+        compact
+        detecting={detectingPlate}
+        detected={plateDetected}
+        containerType={containerType}
+        plateDiameterCm={plateDiameterCm}
+        confidence={plateConfidence}
+        errorMessage={plateDetectionError}
+      />
 
       {preview ? (
         <View className="mt-4">
@@ -92,20 +136,20 @@ export function LogScanStep({
           })}>
           <Ionicons name="scan-outline" size={30} color="#ffffff" />
         </Pressable>
-        {!preview ? (
-          <View className="mt-5 w-full">
-            <Button
-              label={loading ? 'Analyzing…' : 'Analyze photo'}
-              variant="secondary"
-              onPress={onCapture}
-              disabled={loading}
-            />
-          </View>
-        ) : (
-          <View className="mt-5 w-full">
-            <Button label={loading ? 'Analyzing…' : 'Re-analyze'} variant="outline" onPress={onCapture} disabled={loading} />
-          </View>
-        )}
+        <View className="mt-5 w-full gap-3">
+          <Button
+            label={loading ? 'Analyzing…' : preview ? 'Re-analyze' : 'Analyze photo'}
+            variant="secondary"
+            onPress={onCapture}
+            disabled={loading}
+          />
+          <Button
+            label="Retake photo"
+            variant="outline"
+            onPress={onRetake}
+            disabled={loading}
+          />
+        </View>
       </View>
     </View>
   );

@@ -23,6 +23,7 @@ type SubmitMealInput = {
   imageUrl?: string;
   textInput?: string;
   note?: string;
+  plateDiameterCm?: number | null;
   analysis?: MealAnalysisPreview;
 };
 
@@ -32,7 +33,11 @@ type MealsContextValue = {
   isLoading: boolean;
   refreshMeals: () => Promise<void>;
   clearAllMeals: () => Promise<void>;
-  analyzeMeal: (input: { imageUri?: string; text?: string }) => Promise<MealAnalysisPreview>;
+  analyzeMeal: (input: {
+    imageUri?: string;
+    text?: string;
+    plateDiameterCm?: number | null;
+  }) => Promise<MealAnalysisPreview>;
   saveMealToDiary: (input: SubmitMealInput) => Promise<MealSubmission>;
   simulatePipeline: (mealId: string, fromStatus?: MealSubmissionStatus) => Promise<void>;
   addWater: (amountMl: number, date?: string) => Promise<void>;
@@ -139,15 +144,28 @@ export function MealsProvider({ children }: PropsWithChildren) {
     };
   }, [resumeActivePipelines]);
 
-  const analyzeMeal = useCallback(async ({ imageUri, text }: { imageUri?: string; text?: string }) => {
-    return services.mealAnalysis.analyzeMeal({ imageUri, text });
-  }, []);
+  const analyzeMeal = useCallback(
+    async ({
+      imageUri,
+      text,
+      plateDiameterCm,
+    }: {
+      imageUri?: string;
+      text?: string;
+      plateDiameterCm?: number | null;
+    }) => {
+      return services.mealAnalysis.analyzeMeal({ imageUri, text, plateDiameterCm });
+    },
+    [],
+  );
 
   const saveMealToDiary = useCallback(
     async (input: SubmitMealInput) => {
       const analysis =
         input.analysis ??
-        (input.textInput ? mockAnalyzeText(input.textInput) : mockAnalyzePhoto(input.imageUrl));
+        (input.textInput
+          ? mockAnalyzeText(input.textInput)
+          : mockAnalyzePhoto(input.imageUrl, input.plateDiameterCm));
 
       if (USE_MOCK_API && services.mealSubmission) {
         const { mealId } = await services.mealSubmission.submitMeal({
@@ -169,6 +187,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
         imageUrl: input.imageUrl,
         textInput: input.textInput,
         note: input.note,
+        plateDiameterCm: input.plateDiameterCm ?? analysis.plateDiameterCm,
         status: 'pending',
       });
 

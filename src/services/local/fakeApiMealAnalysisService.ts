@@ -27,7 +27,7 @@ async function runAnalysisJob(jobId: string) {
   try {
     const result = job.input.text?.trim()
       ? mockAnalyzeText(job.input.text)
-      : mockAnalyzePhoto(job.input.imageUri);
+      : mockAnalyzePhoto(job.input.imageUri, job.input.plateDiameterCm);
     job.result = result;
     job.status = 'completed';
   } catch {
