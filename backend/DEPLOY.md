@@ -20,25 +20,42 @@ dig +short vitaway.nsengi.space
 
 ## 2. Copy backend to the VPS
 
-From your Mac (project root):
+**Option A — `/opt/vitaway-api` (deploy script default)**
 
 ```bash
 rsync -av --exclude '.venv' --exclude '__pycache__' backend/ root@YOUR_VPS_IP:/opt/vitaway-api/
 ```
 
-Or clone the repo on the VPS and use only the `backend/` folder.
+**Option B — home directory (e.g. `~/food-ai-mobile/backend`)**
 
-## 3. Run the deploy script on the VPS
+Clone or rsync into that path. The `.env` you edit must match the path in the systemd service (see step 3).
+
+## 3. Run deploy on the VPS
+
+From your backend folder (in-place — uses that directory and its `.env`):
 
 ```bash
-ssh root@YOUR_VPS_IP
-cd /opt/vitaway-api
+cd ~/food-ai-mobile/backend
 sudo bash deploy/deploy.sh
 ```
 
-## 4. Configure secrets
+Or deploy to `/opt/vitaway-api` instead:
 
 ```bash
+sudo APP_DIR=/opt/vitaway-api bash deploy/deploy.sh
+```
+
+The script installs dependencies, writes a systemd unit for the chosen `APP_DIR`, and configures nginx.
+
+## 4. Configure secrets
+
+Edit the `.env` in the **same directory** as `WorkingDirectory` in the service file:
+
+```bash
+# If using ~/food-ai-mobile/backend:
+nano ~/food-ai-mobile/backend/.env
+
+# If using /opt/vitaway-api:
 sudo nano /opt/vitaway-api/.env
 ```
 

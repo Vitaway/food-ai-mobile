@@ -51,4 +51,9 @@ Restart Expo after changing env vars (`npx expo start -c`).
 
 ## Production deploy (Contabo VPS)
 
-See **[DEPLOY.md](./DEPLOY.md)** for nginx, gunicorn, systemd, and HTTPS setup.
+```bash
+cd ~/food-ai-mobile/backend   # or your backend path on the VPS
+sudo bash deploy/deploy.sh
+```
+
+Deploys in-place from the current folder and uses that folder’s `.env`. See **[DEPLOY.md](./DEPLOY.md)** for DNS, HTTPS, and troubleshooting.
