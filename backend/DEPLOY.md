@@ -1,163 +1,225 @@
-# Deploy Vitaway API to Contabo VPS
+# Deploy Vitaway API (Contabo VPS + HTTPS)
 
-Production URL: **https://vitaway.nsengi.space**
+**Goal:** `https://vitaway.nsengi.space` serves your Flask plate-detection API.
 
-The Flask app runs behind **nginx** (HTTPS) and **gunicorn** (port 5050 on localhost).
+**Stack:**
 
-## 1. DNS
+```
+Phone (HTTPS) → nginx :443 → gunicorn :5050 → Flask server.py → OpenRouter
+```
 
-Add an **A record** at your DNS provider:
+**Your VPS path:** `~/food-ai-mobile/backend`  
+**One deploy script does everything.** No `/opt`, no second fix script.
 
-| Name | Type | Value |
+---
+
+## Before you start
+
+You need:
+
+- Contabo VPS with root SSH access
+- Domain `vitaway.nsengi.space` pointing to the VPS IP
+- OpenRouter API key from [openrouter.ai/keys](https://openrouter.ai/keys) (regular key, not management/provisioning)
+
+---
+
+## Step 1 — DNS
+
+At your DNS provider, add:
+
+| Type | Name | Value |
 |------|------|-------|
-| `vitaway` | A | Your Contabo VPS public IP |
+| A | `vitaway` | `84.247.176.58` (your VPS IP) |
 
-Wait for propagation, then verify:
+Wait 5–30 minutes, then check from your Mac:
 
 ```bash
 dig +short vitaway.nsengi.space
+# must print your VPS IP
 ```
 
-## 2. Copy backend to the VPS
+---
 
-**Option A — `/opt/vitaway-api` (deploy script default)**
+## Step 2 — Put code on the VPS
+
+**Option A — already cloned (your setup):**
 
 ```bash
-rsync -av --exclude '.venv' --exclude '__pycache__' backend/ root@YOUR_VPS_IP:/opt/vitaway-api/
+ssh root@84.247.176.58
+cd ~/food-ai-mobile/backend
+git pull
 ```
 
-**Option B — home directory (e.g. `~/food-ai-mobile/backend`)**
+**Option B — fresh copy from your Mac:**
 
-Clone or rsync into that path. The `.env` you edit must match the path in the systemd service (see step 3).
+```bash
+rsync -av --exclude '.venv' --exclude '__pycache__' --exclude '.env' \
+  backend/ root@84.247.176.58:~/food-ai-mobile/backend/
+```
 
-## 3. Run deploy on the VPS
+---
 
-From your backend folder (in-place — uses that directory and its `.env`):
+## Step 3 — Create `.env` on the VPS
+
+```bash
+ssh root@84.247.176.58
+cd ~/food-ai-mobile/backend
+cp .env.example .env
+nano .env
+```
+
+Paste this (use your real key, **no quotes**):
+
+```env
+OPENROUTER_API_KEY=sk-or-v1-xxxxxxxx
+OPENROUTER_MODEL=openai/gpt-4o-mini
+OPENROUTER_IMAGE_DETAIL=high
+OPENROUTER_TEMPERATURE=0.05
+OPENROUTER_APP_NAME=MiraFood
+OPENROUTER_SITE_URL=https://vitaway.nsengi.space
+PORT=5050
+FLASK_DEBUG=false
+```
+
+Save and exit (`Ctrl+O`, `Enter`, `Ctrl+X`).
+
+---
+
+## Step 4 — Run the deploy script (one command)
+
+Still on the VPS:
+
+```bash
+cd ~/food-ai-mobile/backend
+sudo CERTBOT_EMAIL=your@email.com bash deploy/deploy.sh
+```
+
+Replace `your@email.com` with your email (for Let's Encrypt expiry notices).
+
+The script automatically:
+
+1. Installs Python, nginx, certbot
+2. Creates venv + installs requirements
+3. Starts gunicorn on `127.0.0.1:5050` via systemd
+4. Configures nginx HTTP (for certbot)
+5. Gets SSL certificate from Let's Encrypt
+6. Writes nginx HTTPS block → proxies to Flask
+7. Verifies `https://vitaway.nsengi.space/health`
+
+**Success output ends with `DEPLOY SUCCESS`.**
+
+---
+
+## Step 5 — Verify from your Mac
+
+```bash
+curl https://vitaway.nsengi.space/health
+```
+
+Must return JSON like:
+
+```json
+{
+  "ok": true,
+  "apiKeyStatus": "configured",
+  "provider": "openrouter",
+  "model": "openai/gpt-4o-mini"
+}
+```
+
+**Not** `Cannot GET /health` (that means HTTPS still hits the wrong app).
+
+Also test detect (optional):
+
+```bash
+curl -X POST https://vitaway.nsengi.space/plates/detect
+# expect 400 "Missing image" — that's fine, API is reachable
+```
+
+---
+
+## Step 6 — Point the mobile app
+
+In your project root `.env`:
+
+```env
+EXPO_PUBLIC_PLATE_API_URL=https://vitaway.nsengi.space
+```
+
+Restart Expo: `npx expo start -c`  
+TestFlight builds already use this URL via `eas.json`.
+
+---
+
+## Architecture (what went wrong before)
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| `apiKeyStatus: placeholder` | Key in wrong `.env` or not set | Edit `~/food-ai-mobile/backend/.env` on VPS |
+| HTTP works, HTTPS fails | No `listen 443` for vitaway — another Node app caught SSL | Deploy script now writes explicit HTTPS block |
+| App "request failed" | TestFlight uses `https://` | HTTPS must return Flask JSON |
+
+---
+
+## Redeploy after code changes
+
+```bash
+cd ~/food-ai-mobile/backend
+git pull
+sudo systemctl restart vitaway-api
+```
+
+Only re-run full deploy if nginx/systemd changed:
+
+```bash
+sudo bash deploy/deploy.sh
+```
+
+---
+
+## Useful commands
+
+| What | Command |
+|------|---------|
+| API status | `sudo systemctl status vitaway-api` |
+| API logs | `sudo journalctl -u vitaway-api -f` |
+| Restart API | `sudo systemctl restart vitaway-api` |
+| Test locally on VPS | `curl http://127.0.0.1:5050/health` |
+| Test HTTPS | `curl https://vitaway.nsengi.space/health` |
+| nginx test | `sudo nginx -t` |
+| Renew SSL (auto via cron) | `sudo certbot renew --dry-run` |
+
+---
+
+## Troubleshooting
+
+### HTTPS still returns `Cannot GET /health`
+
+Another nginx site is stealing port 443. On the VPS:
+
+```bash
+grep -rn 'listen.*443' /etc/nginx/sites-enabled/
+```
+
+Then re-run deploy:
 
 ```bash
 cd ~/food-ai-mobile/backend
 sudo bash deploy/deploy.sh
 ```
 
-Or deploy to `/opt/vitaway-api` instead:
+### `apiKeyStatus: placeholder`
 
 ```bash
-sudo APP_DIR=/opt/vitaway-api bash deploy/deploy.sh
-```
-
-The script installs dependencies, writes a systemd unit for the chosen `APP_DIR`, and configures nginx.
-
-## 4. Configure secrets
-
-Edit the `.env` in the **same directory** as `WorkingDirectory` in the service file:
-
-```bash
-# If using ~/food-ai-mobile/backend:
 nano ~/food-ai-mobile/backend/.env
-
-# If using /opt/vitaway-api:
-sudo nano /opt/vitaway-api/.env
-```
-
-Required:
-
-```env
-OPENROUTER_API_KEY=sk-or-v1-...
-OPENROUTER_SITE_URL=https://vitaway.nsengi.space
-PORT=5050
-```
-
-Then restart:
-
-```bash
 sudo systemctl restart vitaway-api
 ```
 
-## 5. HTTPS (Let's Encrypt)
+### OpenRouter 401 in the app
 
-After DNS resolves to the VPS:
+Wrong or expired key. Create a new regular key at openrouter.ai/keys, update `.env`, restart.
 
-```bash
-sudo certbot --nginx -d vitaway.nsengi.space
-```
-
-Certbot updates nginx for HTTPS automatically.
-
-## 6. Verify
-
-```bash
-curl https://vitaway.nsengi.space/health
-```
-
-Expected:
-
-```json
-{"ok": true, "apiKeyStatus": "configured", "provider": "openrouter", "model": "openai/gpt-4o-mini", ...}
-```
-
-If you see `"apiKeyStatus": "missing"` or `"placeholder"`, the key is not set correctly on the VPS.
-
-### App shows "request failed" but health works over HTTP
-
-Test both:
-
-```bash
-curl http://vitaway.nsengi.space/health
-curl -k https://vitaway.nsengi.space/health
-```
-
-If **HTTP returns JSON** but **HTTPS returns** `Cannot GET /health` with `X-Powered-By: Express`, nginx is sending HTTPS to the wrong app (often a Node site on the same VPS). The mobile app uses `https://`, so plate detection fails.
-
-Fix on the VPS:
-
-```bash
-cd ~/food-ai-mobile/backend
-sudo bash deploy/fix-https.sh
-```
-
-Or manually ensure only one nginx site owns `vitaway.nsengi.space` on port 443 and it `proxy_pass`es to `http://127.0.0.1:5050`.
-
-### OpenRouter 401 "User not found" in the app
-
-This means the **server** API key is wrong, not the phone app. Common causes:
-
-1. **Placeholder key** still in `/opt/vitaway-api/.env`
-2. **Provisioning/management key** instead of a regular inference key — create a normal key at [openrouter.ai/keys](https://openrouter.ai/keys)
-3. **Expired or revoked key** — generate a new one
-4. **Quotes in `.env`** — use `OPENROUTER_API_KEY=sk-or-v1-...` with no quotes
-
-Fix on the VPS:
-
-```bash
-sudo nano /opt/vitaway-api/.env
-sudo systemctl restart vitaway-api
-curl https://vitaway.nsengi.space/health
-```
-
-`apiKeyStatus` must be `"configured"` and `ok` must be `true`.
-
-## 7. Mobile app
-
-In the project root `.env`:
-
-```env
-EXPO_PUBLIC_PLATE_API_URL=https://vitaway.nsengi.space
-```
-
-Restart Expo (`npx expo start -c`). For EAS builds, the production profile in `eas.json` already includes this URL.
-
-## Operations
-
-| Task | Command |
-|------|---------|
-| Logs | `sudo journalctl -u vitaway-api -f` |
-| Restart API | `sudo systemctl restart vitaway-api` |
-| Status | `sudo systemctl status vitaway-api` |
-| Redeploy code | `rsync` backend again, then `sudo systemctl restart vitaway-api` |
-
-## Firewall
-
-Allow HTTP/HTTPS on the VPS:
+### Firewall
 
 ```bash
 sudo ufw allow OpenSSH
@@ -165,9 +227,11 @@ sudo ufw allow 'Nginx Full'
 sudo ufw enable
 ```
 
-## Endpoints
+---
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| POST | `/plates/detect` | Multipart: `image` + `metadata` (JSON string) |
+## API endpoints
+
+| Method | Path | Body |
+|--------|------|------|
+| GET | `/health` | — |
+| POST | `/plates/detect` | multipart: `image` (file) + `metadata` (JSON string) |

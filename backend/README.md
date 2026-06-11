@@ -1,59 +1,36 @@
 # MiraFood plate detection API
 
-Minimal Flask server that sends your meal photo + camera metadata to **OpenRouter** (vision model) and returns plate/bowl detection + estimated diameter.
+Flask server that sends meal photos + camera metadata to **OpenRouter** and returns plate/bowl detection + diameter.
 
-## Setup
+## Local dev
 
 ```bash
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
-```
-
-Edit `.env` and set `OPENROUTER_API_KEY` from [openrouter.ai/keys](https://openrouter.ai/keys).
-
-> Use a **vision-capable** model. Default: `openai/gpt-4o-mini`.  
-> For tighter diameter estimates (~±1 cm), try `openai/gpt-4o` with `OPENROUTER_IMAGE_DETAIL=high`.  
-> OpenRouter model IDs use a provider prefix, e.g. `openai/gpt-4o-mini`, `google/gemini-flash-1.5`.
-
-The app sends rich camera metadata (EXIF, focal length, device, reference plate sizes).  
-The prompt uses a 5-step estimation procedure with angle correction. Diameters are not rounded.
-
-## Run
-
-```bash
+cp .env.example .env   # add OPENROUTER_API_KEY
 python server.py
 ```
 
-Server listens on `http://0.0.0.0:5050`.
+- Health: `GET http://127.0.0.1:5050/health`
+- Detect: `POST http://127.0.0.1:5050/plates/detect`
 
-- Health: `GET /health`
-- Detect: `POST /plates/detect` (multipart: `image` file + `metadata` JSON string)
+## Production deploy (Contabo VPS + HTTPS)
+
+**Read [DEPLOY.md](./DEPLOY.md)** — step-by-step guide.
+
+Quick version:
+
+```bash
+ssh root@YOUR_VPS_IP
+cd ~/food-ai-mobile/backend
+nano .env                              # set OPENROUTER_API_KEY
+sudo CERTBOT_EMAIL=you@email.com bash deploy/deploy.sh
+curl https://vitaway.nsengi.space/health
+```
 
 ## Mobile app
 
-Production API: **https://vitaway.nsengi.space**
-
-In the project root `.env`:
-
-```
+```env
 EXPO_PUBLIC_PLATE_API_URL=https://vitaway.nsengi.space
 ```
-
-Local dev:
-
-- **Simulator:** `http://127.0.0.1:5050`
-- **Physical device:** `http://YOUR_COMPUTER_LAN_IP:5050`
-
-Restart Expo after changing env vars (`npx expo start -c`).
-
-## Production deploy (Contabo VPS)
-
-```bash
-cd ~/food-ai-mobile/backend   # or your backend path on the VPS
-sudo bash deploy/deploy.sh
-```
-
-Deploys in-place from the current folder and uses that folder’s `.env`. See **[DEPLOY.md](./DEPLOY.md)** for DNS, HTTPS, and troubleshooting.
