@@ -1,0 +1,245 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Sniglet', ui-rounded, system-ui, sans-serif;
+  --font-display: 'Cabin Sketch', cursive;
+
+  --color-blue-spruce-50: #eef4f8;
+  --color-blue-spruce-100: #d9e6ef;
+  --color-blue-spruce-200: #b3ccdf;
+  --color-blue-spruce-300: #8db2cf;
+  --color-blue-spruce-400: #6798bf;
+  --color-blue-spruce-500: #417eaf;
+  --color-blue-spruce-600: #023459;
+  --color-blue-spruce-700: #022a47;
+  --color-blue-spruce-800: #012035;
+  --color-blue-spruce-900: #011623;
+  --color-blue-spruce-950: #000f18;
+
+  --color-shamrock-50: #edf8f3;
+  --color-shamrock-100: #daf1e7;
+  --color-shamrock-200: #b5e3cf;
+  --color-shamrock-300: #90d5b7;
+  --color-shamrock-400: #6bc79f;
+  --color-shamrock-500: #1d9e75;
+  --color-shamrock-600: #177e5e;
+  --color-shamrock-700: #115f46;
+  --color-shamrock-800: #0c3f2f;
+  --color-shamrock-900: #062017;
+  --color-shamrock-950: #041610;
+
+  --color-cinnamon-wood-50: #fff3ed;
+  --color-cinnamon-wood-100: #ffe7db;
+  --color-cinnamon-wood-200: #ffcfb7;
+  --color-cinnamon-wood-300: #ffb793;
+  --color-cinnamon-wood-400: #ff6f32;
+  --color-cinnamon-wood-500: #e2622d;
+  --color-cinnamon-wood-600: #b54e24;
+  --color-cinnamon-wood-700: #883b1b;
+  --color-cinnamon-wood-800: #5a2712;
+  --color-cinnamon-wood-900: #2d1409;
+  --color-cinnamon-wood-950: #1f0e06;
+
+  --color-ash-grey-50: #f3f3f1;
+  --color-ash-grey-100: #e6e8e3;
+  --color-ash-grey-200: #ced0c8;
+  --color-ash-grey-300: #b5b9ac;
+  --color-ash-grey-400: #9ca191;
+  --color-ash-grey-500: #848a75;
+  --color-ash-grey-600: #696e5e;
+  --color-ash-grey-700: #4f5346;
+  --color-ash-grey-800: #35372f;
+  --color-ash-grey-900: #1a1c17;
+  --color-ash-grey-950: #121310;
+
+  --color-muted-teal-500: #5ca375;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  font-family: inherit;
+  font-weight: inherit;
+  background: var(--color-ash-grey-50);
+  color: var(--color-ash-grey-900);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: var(--font-sans);
+  font-weight: 400;
+}
+
+/* Sniglet only has 400 & 800 — keep everything at regular weight site-wide */
+:where(.font-medium, .font-semibold, .font-bold, .font-extrabold) {
+  font-weight: 400;
+}
+
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Neo-brutalist buttons — thick border + hard offset shadow (MiraFood theme) */
+.brutal-btn {
+  @apply relative inline-flex;
+}
+
+.brutal-btn--block {
+  @apply block w-full;
+}
+
+.brutal-btn__face {
+  @apply relative inline-flex items-center justify-center gap-2 border-2 border-blue-spruce-900 font-sans font-normal;
+  box-shadow: 4px 4px 0 0 var(--color-blue-spruce-900);
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.28, 0.64, 1),
+    box-shadow 0.22s cubic-bezier(0.34, 1.28, 0.64, 1),
+    filter 0.15s ease,
+    background-color 0.15s ease;
+}
+
+.brutal-btn-host {
+  @apply inline-block rounded-sm outline-none;
+}
+
+.brutal-btn-host:focus-visible .brutal-btn__face {
+  outline: 2px solid var(--color-shamrock-400);
+  outline-offset: 3px;
+}
+
+.brutal-btn-host--block {
+  @apply block w-full;
+}
+
+.brutal-btn__face--sm {
+  @apply px-4 py-2 text-sm;
+}
+
+.brutal-btn__face--md {
+  @apply px-6 py-3 text-base;
+}
+
+.brutal-btn__face--lg {
+  @apply px-8 py-3.5 text-lg;
+}
+
+.brutal-btn__face--full {
+  @apply w-full;
+}
+
+.brutal-btn--primary .brutal-btn__face {
+  @apply bg-cinnamon-wood-400 text-white;
+}
+
+.brutal-btn--secondary .brutal-btn__face {
+  @apply bg-shamrock-500 text-white;
+}
+
+.brutal-btn--outline .brutal-btn__face {
+  @apply bg-white text-blue-spruce-700;
+}
+
+.brutal-btn--outline-light .brutal-btn__face {
+  @apply border-white bg-transparent text-white;
+  box-shadow: 4px 4px 0 0 rgba(255, 255, 255, 0.35);
+}
+
+.brutal-btn--outline-light:hover .brutal-btn__face,
+.brutal-btn-host:hover .brutal-btn--outline-light .brutal-btn__face {
+  @apply bg-white/10;
+}
+
+.brutal-btn--ghost .brutal-btn__face {
+  @apply bg-ash-grey-100 text-blue-spruce-700;
+}
+
+.brutal-btn--danger .brutal-btn__face {
+  @apply bg-red-600 text-white;
+}
+
+/* Hover — lift up & shadow grows */
+.brutal-btn-host:hover .brutal-btn__face,
+button:not(:disabled):hover .brutal-btn__face,
+a:hover .brutal-btn__face {
+  transform: translate(-3px, -3px);
+  box-shadow: 7px 7px 0 0 var(--color-blue-spruce-900);
+  filter: brightness(1.05);
+}
+
+.brutal-btn-host:hover .brutal-btn--outline-light .brutal-btn__face,
+button:not(:disabled):hover .brutal-btn--outline-light .brutal-btn__face,
+a:hover .brutal-btn--outline-light .brutal-btn__face {
+  box-shadow: 7px 7px 0 0 rgba(255, 255, 255, 0.45);
+}
+
+/* Active / click — press flush into surface */
+.brutal-btn-host:active .brutal-btn__face,
+button:not(:disabled):active .brutal-btn__face,
+a:active .brutal-btn__face {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 0 var(--color-blue-spruce-900);
+  filter: brightness(0.97);
+  transition-duration: 0.07s;
+}
+
+.brutal-btn-host:active .brutal-btn--outline-light .brutal-btn__face,
+button:not(:disabled):active .brutal-btn--outline-light .brutal-btn__face,
+a:active .brutal-btn--outline-light .brutal-btn__face {
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.2);
+  @apply bg-white/15;
+}
+
+button:disabled .brutal-btn__face {
+  @apply cursor-not-allowed opacity-50;
+  transform: none;
+  filter: none;
+  box-shadow: 4px 4px 0 0 var(--color-blue-spruce-900);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brutal-btn__face {
+    transition: none;
+  }
+
+  .brutal-btn-host:hover .brutal-btn__face,
+  button:not(:disabled):hover .brutal-btn__face,
+  a:hover .brutal-btn__face,
+  .brutal-btn-host:active .brutal-btn__face,
+  button:not(:disabled):active .brutal-btn__face,
+  a:active .brutal-btn__face {
+    transform: none;
+    transition: none;
+  }
+}
