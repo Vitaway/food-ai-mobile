@@ -1,0 +1,12 @@
+export type { AuthSession, AuthUser, CoachRole, ForgotPasswordPayload, LoginCredentials } from './types';
+export { AUTH_STORAGE_KEY, COACH_ROUTES, DEMO_COACH_EMAIL, DEMO_COACH_PASSWORD } from './constants';
+export { AuthError, loginCoach, logoutCoach, requestPasswordReset } from './api/authApi';
+export { useAuth } from './hooks/useAuth';
+export { useLogin, getLoginErrorMessage } from './hooks/useLogin';
+export { useForgotPassword, getForgotPasswordErrorMessage } from './hooks/useForgotPassword';
+export { useAuthStore, selectAuthUser, selectIsAuthenticated } from './stores/authStore';
+export { AuthLayout } from './components/AuthLayout';
+export { LoginForm } from './components/LoginForm';
+export { ForgotPasswordForm } from './components/ForgotPasswordForm';
+export { ProtectedRoute } from './components/ProtectedRoute';
+export { GuestRoute } from './components/GuestRoute';
