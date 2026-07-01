@@ -6,7 +6,7 @@ export function LoginPage() {
   return (
     <AuthLayout
       title="Sign in"
-      subtitle="Access the coach dashboard to review meals and manage your queue."
+      subtitle="Coaches and platform admins use one sign-in. You’ll land on the right dashboard for your account."
       footer={
         <p className="text-center text-sm text-ash-grey-500">
           Not a coach yet?{' '}

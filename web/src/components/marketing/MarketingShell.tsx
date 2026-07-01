@@ -102,7 +102,7 @@ export function MarketingShell() {
           </div>
           <div className="flex items-center gap-4">
             <Link
-              to="/coach/login"
+              to="/login"
               className={cn(
                 'font-normal transition-colors',
                 navBlue ? 'hover:text-white' : 'hover:text-blue-spruce-600',

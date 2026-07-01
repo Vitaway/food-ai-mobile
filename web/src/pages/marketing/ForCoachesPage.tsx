@@ -24,7 +24,7 @@ export function ForCoachesPage() {
                 Review client meals, verify AI-generated nutrition, and keep your queue moving — all
                 from a clean web dashboard built for 2026.
               </p>
-              <Button to="/coach/login" variant="primary" size="lg" className="mt-8">
+              <Button to="/login" variant="primary" size="lg" className="mt-8">
                 Open coach dashboard
               </Button>
             </div>

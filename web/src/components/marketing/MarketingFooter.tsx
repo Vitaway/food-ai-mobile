@@ -6,7 +6,7 @@ const footerProducts = [
   { to: '/download', label: 'Download app' },
   { to: '/features', label: 'Features' },
   { to: '/for-coaches', label: 'For coaches' },
-  { to: '/coach/login', label: 'Coach dashboard' },
+  { to: '/login', label: 'Sign in' },
 ];
 
 const footerLegal = [

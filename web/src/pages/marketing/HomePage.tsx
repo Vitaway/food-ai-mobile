@@ -40,7 +40,7 @@ const solutions = [
     title: 'For coaches',
     desc: 'Review client meals, approve nutrition data, and manage your queue from a dedicated dashboard.',
     cta: 'Coach dashboard',
-    href: '/coach/login',
+    href: '/login',
   },
   {
     title: 'For clinics & teams',

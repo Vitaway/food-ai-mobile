@@ -6,7 +6,15 @@ import { AppShell } from '@/components/layout/AppShell';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { GuestRoute, ProtectedRoute } from '@/features/auth';
+import { AdminRoute } from '@/features/admin/components/AdminRoute';
+import { AdminShell } from '@/features/admin/components/AdminShell';
 import { OverviewPage, QueuePage, MealReviewPage, ProfilePage } from '@/pages/coach';
+import {
+  AdminOverviewPage,
+  AdminCoachesPage,
+  AdminUsersPage,
+  AdminSystemPage,
+} from '@/pages/admin';
 import { LoginPage, ForgotPasswordPage } from '@/pages/auth';
 import { HomePage } from '@/pages/marketing/HomePage';
 import { FeaturesPage } from '@/pages/marketing/FeaturesPage';
@@ -50,9 +58,9 @@ function App() {
           <Route path="delete-account" element={<DeleteAccountPage />} />
         </Route>
 
-        {/* Coach auth (guest only) */}
+        {/* Unified sign-in */}
         <Route
-          path="coach/login"
+          path="login"
           element={
             <GuestRoute>
               <LoginPage />
@@ -60,15 +68,18 @@ function App() {
           }
         />
         <Route
-          path="coach/forgot-password"
+          path="forgot-password"
           element={
             <GuestRoute>
               <ForgotPasswordPage />
             </GuestRoute>
           }
         />
+        <Route path="coach/login" element={<Navigate to="/login" replace />} />
+        <Route path="admin/login" element={<Navigate to="/login" replace />} />
+        <Route path="coach/forgot-password" element={<Navigate to="/forgot-password" replace />} />
 
-        {/* Coach dashboard (protected) */}
+        {/* Coach dashboard */}
         <Route
           path="coach"
           element={
@@ -81,6 +92,21 @@ function App() {
           <Route path="queue/:id" element={<MealReviewPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/coach" replace />} />
+        </Route>
+
+        {/* Platform admin */}
+        <Route
+          path="admin"
+          element={
+            <AdminRoute>
+              <AdminShell />
+            </AdminRoute>
+          }>
+          <Route index element={<AdminOverviewPage />} />
+          <Route path="coaches" element={<AdminCoachesPage />} />
+          <Route path="users" element={<AdminUsersPage />} />
+          <Route path="system" element={<AdminSystemPage />} />
+          <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />

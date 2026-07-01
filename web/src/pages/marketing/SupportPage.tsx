@@ -75,7 +75,7 @@ export function SupportPage() {
               <div>
                 <dt className="font-normal text-ash-grey-700">Coach dashboard</dt>
                 <dd>
-                  <Link to="/coach/login" className="text-blue-spruce-600">
+                  <Link to="/login" className="text-blue-spruce-600">
                     Open coach login
                   </Link>
                 </dd>
