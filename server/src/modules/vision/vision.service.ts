@@ -1,0 +1,180 @@
+import { BadRequestError, HttpError } from "routing-controllers";
+import { env } from "../../config/env";
+import { openRouterService } from "../ai/openrouter.service";
+import { SYSTEM_PROMPT, USER_PROMPT } from "../ai/prompts";
+import { buildAnalysisContext } from "./metadata-context";
+import { resolveDiameterCm, resolveEffectiveDistanceCm } from "./diameter-math";
+
+export interface PlateDetectResult {
+  detected: boolean;
+  containerType: "plate" | "bowl" | null;
+  diameterCm: number | null;
+  confidence: number | null;
+  message: string;
+  diameterSource: "computed" | null;
+  effectiveDistanceCm?: number;
+  shotAngle?: unknown;
+  plateDiameterFractionOfImageWidth?: unknown;
+  estimatedCameraDistanceCm?: unknown;
+  matchedReference?: unknown;
+  estimationNotes?: unknown;
+}
+
+function parseJsonResponse(text: string): Record<string, unknown> {
+  let cleaned = text.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+  }
+  return JSON.parse(cleaned) as Record<string, unknown>;
+}
+
+function normalizeResult(
+  raw: Record<string, unknown>,
+  analysisContext: Record<string, unknown>,
+): PlateDetectResult {
+  let detected = Boolean(raw.detected);
+  let container = raw.containerType;
+  if (container !== "plate" && container !== "bowl") {
+    container = null;
+  }
+
+  const fraction = raw.plateDiameterFractionOfImageWidth;
+  const cameraExif =
+    analysisContext.cameraExif && typeof analysisContext.cameraExif === "object"
+      ? (analysisContext.cameraExif as Record<string, unknown>)
+      : {};
+  const focal35 = cameraExif.focalLength35mmEquivalent;
+  const modelDistance = raw.estimatedCameraDistanceCm;
+
+  let diameterCm = detected ? resolveDiameterCm(raw, analysisContext) : null;
+  if (!detected || diameterCm == null || diameterCm <= 0) {
+    detected = false;
+    container = null;
+    diameterCm = null;
+  }
+
+  let confidenceVal: number | null = null;
+  if (typeof raw.confidence === "number") {
+    confidenceVal = Math.max(0, Math.min(1, raw.confidence));
+  }
+
+  let message: string;
+  if (typeof raw.message === "string") {
+    message = raw.message;
+  } else if (detected && container && diameterCm != null) {
+    const label = container === "bowl" ? "Bowl" : "Plate";
+    message = `${label} detected — ${diameterCm} cm`;
+  } else {
+    message = "No plate or bowl detected";
+  }
+
+  const result: PlateDetectResult = {
+    detected,
+    containerType: container as "plate" | "bowl" | null,
+    diameterCm,
+    confidence: confidenceVal,
+    message,
+    diameterSource: detected ? "computed" : null,
+  };
+
+  if (
+    detected &&
+    typeof fraction === "number" &&
+    Number.isFinite(fraction)
+  ) {
+    result.effectiveDistanceCm = resolveEffectiveDistanceCm(
+      fraction,
+      typeof focal35 === "number" ? focal35 : null,
+      typeof modelDistance === "number" ? modelDistance : null,
+    );
+  }
+
+  for (const key of [
+    "shotAngle",
+    "plateDiameterFractionOfImageWidth",
+    "estimatedCameraDistanceCm",
+    "matchedReference",
+    "estimationNotes",
+  ] as const) {
+    if (raw[key] != null) {
+      Object.assign(result, { [key]: raw[key] });
+    }
+  }
+
+  return result;
+}
+
+export const visionService = {
+  async detectPlate(imageBuffer: Buffer, mimeType: string, metadataRaw: string): Promise<PlateDetectResult> {
+    const keyStatus = openRouterService.getApiKeyStatus();
+    if (keyStatus === "missing") {
+      throw new HttpError(500, "OPENROUTER_API_KEY is not set on the server");
+    }
+    if (keyStatus !== "configured") {
+      throw new HttpError(
+        500,
+        "OPENROUTER_API_KEY on the server is missing or invalid. Create a regular API key at https://openrouter.ai/keys",
+      );
+    }
+
+    if (!imageBuffer.length) {
+      throw new BadRequestError("Empty image file");
+    }
+
+    let metadata: Record<string, unknown> = {};
+    try {
+      metadata = JSON.parse(metadataRaw || "{}") as Record<string, unknown>;
+    } catch {
+      throw new BadRequestError("metadata must be valid JSON");
+    }
+
+    const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
+    const b64 = imageBuffer.toString("base64");
+    const dataUrl = `data:${mime};base64,${b64}`;
+    const analysisContext = buildAnalysisContext(metadata);
+    const client = openRouterService.createClient();
+
+    let content: string;
+    try {
+      const response = await client.chat.completions.create({
+        model: env.OPENROUTER_MODEL,
+        temperature: env.OPENROUTER_TEMPERATURE,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              {
+                type: "text",
+                text: USER_PROMPT.replace(
+                  "{context}",
+                  JSON.stringify(analysisContext, null, 2),
+                ),
+              },
+              {
+                type: "image_url",
+                image_url: {
+                  url: dataUrl,
+                  detail: env.OPENROUTER_IMAGE_DETAIL,
+                },
+              },
+            ],
+          },
+        ],
+      });
+      content = response.choices[0]?.message?.content ?? "{}";
+    } catch (exc) {
+      const authError = openRouterService.authErrorMessage(exc);
+      if (authError) throw new HttpError(502, authError);
+      throw new HttpError(502, `OpenRouter request failed: ${String(exc)}`);
+    }
+
+    try {
+      const raw = parseJsonResponse(content);
+      return normalizeResult(raw, analysisContext);
+    } catch (exc) {
+      throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
+    }
+  },
+};
