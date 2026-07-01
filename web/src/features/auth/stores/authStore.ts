@@ -36,6 +36,14 @@ export function selectIsAuthenticated(state: AuthState): boolean {
   return isSessionValid(state.session);
 }
 
+export function selectIsCoach(state: AuthState): boolean {
+  return isSessionValid(state.session) && state.session!.user.role === 'coach';
+}
+
+export function selectIsAdmin(state: AuthState): boolean {
+  return isSessionValid(state.session) && state.session!.user.role === 'admin';
+}
+
 export function selectAuthUser(state: AuthState) {
   return isSessionValid(state.session) ? state.session.user : null;
 }

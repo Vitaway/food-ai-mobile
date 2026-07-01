@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
-import { COACH_ROUTES, DEMO_COACH_EMAIL } from '@/features/auth/constants';
+import { AUTH_ROUTES } from '@/features/auth/constants';
 import {
   getForgotPasswordErrorMessage,
   useForgotPassword,
@@ -10,7 +10,7 @@ import {
 
 export function ForgotPasswordForm() {
   const forgotPassword = useForgotPassword();
-  const [email, setEmail] = useState(DEMO_COACH_EMAIL);
+  const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -34,7 +34,7 @@ export function ForgotPasswordForm() {
           If an account exists for <strong>{email}</strong>, we sent password reset instructions.
         </p>
         <Link
-          to={COACH_ROUTES.login}
+          to={AUTH_ROUTES.login}
           className="mt-5 inline-block text-sm text-blue-spruce-600 hover:underline">
           ← Back to sign in
         </Link>
@@ -60,7 +60,7 @@ export function ForgotPasswordForm() {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="coach@vitaway.com"
+        placeholder="you@vitaway.com"
         hint="We'll send a reset link if this email is registered."
       />
 
@@ -69,7 +69,7 @@ export function ForgotPasswordForm() {
       </Button>
 
       <p className="text-center text-sm text-ash-grey-500">
-        <Link to={COACH_ROUTES.login} className="text-blue-spruce-600 hover:underline">
+        <Link to={AUTH_ROUTES.login} className="text-blue-spruce-600 hover:underline">
           Back to sign in
         </Link>
       </p>

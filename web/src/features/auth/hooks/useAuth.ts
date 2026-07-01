@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { logoutCoach } from '@/features/auth/api/authApi';
-import { COACH_ROUTES } from '@/features/auth/constants';
+import { AUTH_ROUTES } from '@/features/auth/constants';
 import {
   selectAuthUser,
   selectIsAuthenticated,
@@ -20,7 +20,7 @@ export function useAuth() {
       await logoutCoach();
     } finally {
       clearSession();
-      navigate(COACH_ROUTES.login, { replace: true });
+      navigate(AUTH_ROUTES.login, { replace: true });
     }
   }, [clearSession, navigate]);
 

@@ -1,8 +1,8 @@
 import { useMutation } from '@tanstack/react-query';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AuthError, loginCoach } from '@/features/auth/api/authApi';
-import { COACH_ROUTES } from '@/features/auth/constants';
+import { AuthError, login } from '@/features/auth/api/authApi';
 import { useAuthStore } from '@/features/auth/stores/authStore';
+import { resolvePostLoginPath } from '@/features/auth/utils/routing';
 import type { LoginCredentials } from '@/features/auth/types';
 
 type LoginLocationState = {
@@ -14,14 +14,13 @@ export function useLogin() {
   const location = useLocation();
   const setSession = useAuthStore((s) => s.setSession);
 
-  const redirectTo =
-    (location.state as LoginLocationState | null)?.from?.pathname ?? COACH_ROUTES.dashboard;
+  const from = (location.state as LoginLocationState | null)?.from?.pathname;
 
   return useMutation({
-    mutationFn: (credentials: LoginCredentials) => loginCoach(credentials),
+    mutationFn: (credentials: LoginCredentials) => login(credentials),
     onSuccess: (session) => {
       setSession(session);
-      navigate(redirectTo, { replace: true });
+      navigate(resolvePostLoginPath(session.user.role, from), { replace: true });
     },
   });
 }

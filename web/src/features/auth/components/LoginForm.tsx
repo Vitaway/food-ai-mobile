@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
-import { COACH_ROUTES, DEMO_COACH_EMAIL } from '@/features/auth/constants';
+import { AUTH_ROUTES } from '@/features/auth/constants';
 import { getLoginErrorMessage, useLogin } from '@/features/auth/hooks/useLogin';
 
 export function LoginForm() {
   const login = useLogin();
-  const [email, setEmail] = useState(DEMO_COACH_EMAIL);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
@@ -36,7 +36,7 @@ export function LoginForm() {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="coach@vitaway.com"
+        placeholder="you@vitaway.com"
       />
 
       <TextField
@@ -61,7 +61,7 @@ export function LoginForm() {
           Remember me
         </label>
         <Link
-          to={COACH_ROUTES.forgotPassword}
+          to={AUTH_ROUTES.forgotPassword}
           className="text-sm text-blue-spruce-600 hover:text-blue-spruce-700 hover:underline">
           Forgot password?
         </Link>
@@ -70,11 +70,6 @@ export function LoginForm() {
       <Button type="submit" variant="primary" size="lg" fullWidth disabled={login.isPending}>
         {login.isPending ? 'Signing in…' : 'Sign in'}
       </Button>
-
-      <p className="text-center text-xs text-ash-grey-400">
-        Demo: <span className="text-ash-grey-500">{DEMO_COACH_EMAIL}</span> /{' '}
-        <span className="text-ash-grey-500">coach1234</span>
-      </p>
     </form>
   );
 }
