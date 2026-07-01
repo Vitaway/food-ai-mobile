@@ -3,7 +3,8 @@ import {
   fetchCoachProfile,
   updateCoachPassword,
   updateCoachProfile,
-} from '@/api/mockCoachProfileApi';
+} from '@/api/coachApi';
+import { selectIsAuthenticated, useAuthStore } from '@/features/auth/stores/authStore';
 import type { UpdateCoachPasswordPayload, UpdateCoachProfilePayload } from '@/types';
 
 export const profileKeys = {
@@ -12,9 +13,11 @@ export const profileKeys = {
 };
 
 export function useCoachProfile() {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
   return useQuery({
     queryKey: profileKeys.detail(),
     queryFn: fetchCoachProfile,
+    enabled: isAuthenticated,
   });
 }
 
