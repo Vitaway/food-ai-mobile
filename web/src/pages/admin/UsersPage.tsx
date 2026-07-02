@@ -27,7 +27,10 @@ export function AdminUsersPage() {
                   </div>
                   <div className="min-w-0">
                     <h3 className="truncate font-bold text-ash-grey-900">{consumer.displayName}</h3>
-                    <p className="truncate text-sm text-ash-grey-500">{consumer.email ?? consumer.id}</p>
+                    <p className="truncate text-sm text-ash-grey-500">
+                      {consumer.patientId ?? consumer.id}
+                      {consumer.email ? ` · ${consumer.email}` : ''}
+                    </p>
                   </div>
                 </div>
                 <dl className="mt-4 space-y-2 text-sm">

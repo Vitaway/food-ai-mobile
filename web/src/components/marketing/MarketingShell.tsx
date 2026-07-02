@@ -5,6 +5,7 @@ import { MiraFoodLogo } from '@/components/marketing/MiraFoodLogo';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
 import { Button } from '@/components/ui/Button';
+import { SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
 
 const mainNav = [
   { to: '/features', label: 'Features' },
@@ -100,16 +101,14 @@ export function MarketingShell() {
               Terms
             </Link>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              to="/login"
-              className={cn(
-                'font-normal transition-colors',
-                navBlue ? 'hover:text-white' : 'hover:text-blue-spruce-600',
-              )}>
-              Coach login
-            </Link>
-          </div>
+          <a
+            href={`tel:${SUPPORT_PHONE_TEL}`}
+            className={cn(
+              'font-normal transition-colors',
+              navBlue ? 'hover:text-white' : 'hover:text-blue-spruce-600',
+            )}>
+            {SUPPORT_PHONE_DISPLAY}
+          </a>
         </div>
       </div>
 
@@ -155,8 +154,8 @@ export function MarketingShell() {
           </nav>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button to="/download" variant="primary" size="sm">
-              Get the app
+            <Button to="/login" variant="primary" size="sm">
+              My account
             </Button>
           </div>
         </div>

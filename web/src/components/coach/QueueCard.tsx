@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
 import { Card, CardBody } from '@/components/ui/Card';
-import { formatMealType, formatRelativeTime, cn } from '@/lib/utils';
+import { formatMealType, formatRelativeTime, formatCoachPatientLabel, cn } from '@/lib/utils';
 import type { CoachQueueItem } from '@/types';
 import { HEALTH_FLAG_STYLES } from '@/constants/mealStatus';
 
@@ -34,7 +34,9 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
           <CardBody className="flex flex-1 flex-col gap-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
-                <p className="text-sm text-ash-grey-500">{client.profile.displayName}</p>
+                <p className="text-sm text-ash-grey-500">
+                  {formatCoachPatientLabel(client.patientId ?? meal.clientId, client.profile.displayName)}
+                </p>
                 <h3 className="text-lg font-bold text-ash-grey-900">{meal.mealName ?? 'Untitled meal'}</h3>
               </div>
               <div className="flex flex-wrap gap-2">

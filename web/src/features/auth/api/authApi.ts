@@ -1,6 +1,12 @@
 import { apiRequest, ApiError } from '@/lib/apiClient';
 import { SESSION_TTL_MS } from '@/features/auth/constants';
-import type { AuthSession, ForgotPasswordPayload, LoginCredentials } from '@/features/auth/types';
+import type {
+  AuthSession,
+  ForgotPasswordPayload,
+  LoginCredentials,
+  RegisterCredentials,
+  UserRole,
+} from '@/features/auth/types';
 
 export class AuthError extends Error {
   constructor(message: string) {
@@ -9,7 +15,7 @@ export class AuthError extends Error {
   }
 }
 
-type LoginResponse = {
+type AuthResponse = {
   token: string;
   user: {
     id: string;
@@ -17,11 +23,16 @@ type LoginResponse = {
     role: string;
     displayName: string;
     avatarUrl: string | null;
+    patientId?: string;
   };
   coachProfile?: {
     id: string;
     title: string | null;
     organization: string | null;
+  };
+  consumerProfile?: {
+    patientId: string;
+    onboardingComplete: boolean;
   };
 };
 
@@ -37,7 +48,13 @@ function jwtExpiresAt(token: string, fallbackMs: number): number {
   return Date.now() + fallbackMs;
 }
 
-function mapLoginResponse(data: LoginResponse, rememberMe?: boolean): AuthSession {
+function mapRole(role: string): UserRole {
+  if (role === 'admin') return 'admin';
+  if (role === 'consumer') return 'consumer';
+  return 'coach';
+}
+
+function mapAuthResponse(data: AuthResponse, rememberMe?: boolean): AuthSession {
   const ttl = rememberMe ? SESSION_TTL_MS : 24 * 60 * 60 * 1000;
   return {
     token: data.token,
@@ -45,10 +62,12 @@ function mapLoginResponse(data: LoginResponse, rememberMe?: boolean): AuthSessio
       id: data.user.id,
       email: data.user.email,
       displayName: data.user.displayName,
-      role: (data.user.role === 'admin' ? 'admin' : 'coach') as AuthSession['user']['role'],
+      role: mapRole(data.user.role),
       avatarUrl: data.user.avatarUrl ?? undefined,
+      patientId: data.user.patientId ?? data.consumerProfile?.patientId,
     },
     expiresAt: jwtExpiresAt(data.token, ttl),
+    onboardingComplete: data.consumerProfile?.onboardingComplete,
   };
 }
 
@@ -64,14 +83,30 @@ function toAuthError(error: unknown): never {
 
 export async function login(credentials: LoginCredentials): Promise<AuthSession> {
   try {
-    const data = await apiRequest<LoginResponse>('/auth/login', {
+    const data = await apiRequest<AuthResponse>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: credentials.email.trim(),
         password: credentials.password,
       }),
     });
-    return mapLoginResponse(data, credentials.rememberMe);
+    return mapAuthResponse(data, credentials.rememberMe);
+  } catch (error) {
+    toAuthError(error);
+  }
+}
+
+export async function register(credentials: RegisterCredentials): Promise<AuthSession> {
+  try {
+    const data = await apiRequest<AuthResponse>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify({
+        email: credentials.email.trim(),
+        password: credentials.password,
+        displayName: credentials.displayName.trim(),
+      }),
+    });
+    return mapAuthResponse(data, credentials.rememberMe);
   } catch (error) {
     toAuthError(error);
   }
@@ -87,7 +122,9 @@ export async function requestPasswordReset(payload: ForgotPasswordPayload): Prom
   if (!payload.email.includes('@')) {
     throw new AuthError('Please enter a valid email address.');
   }
-  throw new AuthError('Password reset is not available yet. Contact support@vitaway.com.');
+  throw new AuthError(
+    'Password reset is not set up yet. Email support@vitaway.com and we will help you regain access.',
+  );
 }
 
 export async function logoutCoach(): Promise<void> {

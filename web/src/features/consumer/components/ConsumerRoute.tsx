@@ -9,31 +9,31 @@ import {
 } from '@/features/auth/stores/authStore';
 import { getDashboardPath } from '@/features/auth/utils/routing';
 
-type ProtectedRouteProps = {
+type ConsumerRouteProps = {
   children: React.ReactNode;
 };
 
-/** Coach dashboard — coaches only. */
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+/** Consumer app — consumers only. */
+export function ConsumerRoute({ children }: ConsumerRouteProps) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isConsumer = useAuthStore(selectIsConsumer);
   const isCoach = useAuthStore(selectIsCoach);
   const isAdmin = useAuthStore(selectIsAdmin);
-  const isConsumer = useAuthStore(selectIsConsumer);
   const location = useLocation();
 
   if (!isAuthenticated) {
     return <Navigate to={AUTH_ROUTES.login} state={{ from: location }} replace />;
   }
 
+  if (isCoach) {
+    return <Navigate to={getDashboardPath('coach')} replace />;
+  }
+
   if (isAdmin) {
     return <Navigate to={getDashboardPath('admin')} replace />;
   }
 
-  if (isConsumer) {
-    return <Navigate to={getDashboardPath('consumer')} replace />;
-  }
-
-  if (!isCoach) {
+  if (!isConsumer) {
     return <Navigate to={AUTH_ROUTES.login} replace />;
   }
 

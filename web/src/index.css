@@ -242,4 +242,66 @@ button:disabled .brutal-btn__face {
     transform: none;
     transition: none;
   }
+
+  .toast-enter {
+    animation: none;
+  }
+}
+
+/* Brutalist toasts — matches mobile ToastCard */
+.toast-host {
+  position: fixed;
+  top: 1rem;
+  right: 0.75rem;
+  z-index: 10000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.625rem;
+  pointer-events: none;
+}
+
+.toast-host > * {
+  pointer-events: auto;
+}
+
+.toast-hard-shadow {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  right: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--color-blue-spruce-900);
+}
+
+.toast-card {
+  position: relative;
+  display: flex;
+  overflow: hidden;
+  min-width: 280px;
+  max-width: 340px;
+  border: 2px solid var(--color-blue-spruce-900);
+  border-radius: 2px;
+  background: #ffffff;
+}
+
+.toast-accent {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+@keyframes toast-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(1.25rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-slide-in 0.28s cubic-bezier(0.34, 1.28, 0.64, 1);
 }

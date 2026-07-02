@@ -1,33 +1,36 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
 import { AUTH_ROUTES } from '@/features/auth/constants';
-import { getLoginErrorMessage, useLogin } from '@/features/auth/hooks/useLogin';
+import type { useLogin } from '@/features/auth/hooks/useLogin';
+import { getApiErrorMessage } from '@/lib/apiErrors';
+import type { useToast } from '@/context/ToastContext';
 
-export function LoginForm() {
-  const login = useLogin();
+const FORM_ID = 'login-form';
+
+type LoginFormProps = {
+  login: ReturnType<typeof useLogin>;
+  toast: ReturnType<typeof useToast>;
+};
+
+export function LoginForm({ login, toast }: LoginFormProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
 
-  async function handleSubmit(e: React.FormEvent) {
+  function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    login.mutate({ email, password, rememberMe });
+    login.mutate(
+      { email, password, rememberMe },
+      {
+        onSuccess: () => toast.success('Welcome back!', 'Signed in'),
+        onError: (error) => toast.error(getApiErrorMessage(error, 'Sign in failed'), 'Sign in failed'),
+      },
+    );
   }
 
-  const error = login.isError ? getLoginErrorMessage(login.error) : null;
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error ? (
-        <div
-          className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
-          role="alert">
-          {error}
-        </div>
-      ) : null}
-
+    <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-5">
       <TextField
         label="Email"
         type="email"
@@ -66,10 +69,12 @@ export function LoginForm() {
           Forgot password?
         </Link>
       </div>
-
-      <Button type="submit" variant="primary" size="lg" fullWidth disabled={login.isPending}>
-        {login.isPending ? 'Signing in…' : 'Sign in'}
-      </Button>
     </form>
   );
+}
+
+export const LOGIN_FORM_ID = FORM_ID;
+
+export function loginSubmitLabel(pending: boolean) {
+  return pending ? 'Signing in…' : 'Sign in';
 }

@@ -28,7 +28,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
   }
 
   if (!isAdmin) {
-    return <Navigate to={AUTH_ROUTES.login} replace />;
+    return <Navigate to={getDashboardPath('consumer')} replace />;
   }
 
   return children;

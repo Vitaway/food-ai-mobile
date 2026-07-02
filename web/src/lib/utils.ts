@@ -25,3 +25,8 @@ export function formatMealType(type: string) {
 export function formatGoal(goal: string) {
   return goal.replace(/_/g, ' ');
 }
+
+export function formatCoachPatientLabel(patientId: string, displayName?: string) {
+  const firstName = displayName?.trim().split(/\s+/)[0] || 'Patient';
+  return `${patientId} · ${firstName}`;
+}

@@ -120,6 +120,7 @@ export interface MealSubmission {
 }
 
 export interface CoachClient {
+  patientId: string;
   profile: UserProfile;
   dashboard: DailyDashboard;
 }

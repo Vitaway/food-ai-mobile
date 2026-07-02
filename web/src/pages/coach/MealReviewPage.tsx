@@ -4,6 +4,8 @@ import { ClientPanel } from '@/components/coach/ClientPanel';
 import { MealReviewPanel } from '@/components/coach/MealReviewPanel';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
 import { useCoachMeal, useReviewMeal } from '@/hooks/useCoachQueries';
+import { useToast } from '@/context/ToastContext';
+import { getApiErrorMessage } from '@/lib/apiErrors';
 import { useCoachStore } from '@/stores/coachStore';
 import { formatMealType, formatRelativeTime } from '@/lib/utils';
 
@@ -12,6 +14,7 @@ export function MealReviewPage() {
   const navigate = useNavigate();
   const { data: item, isLoading, isError } = useCoachMeal(id ?? null);
   const reviewMutation = useReviewMeal();
+  const toast = useToast();
   const startReviewDraft = useCoachStore((s) => s.startReviewDraft);
   const clearReviewDraft = useCoachStore((s) => s.clearReviewDraft);
   const reviewDraft = useCoachStore((s) => s.reviewDraft);
@@ -24,14 +27,22 @@ export function MealReviewPage() {
 
   async function handleAction(action: 'approve' | 'reject') {
     if (!item || !reviewDraft) return;
-    await reviewMutation.mutateAsync({
-      mealId: item.meal.id,
-      action,
-      note: reviewDraft.note || undefined,
-      mealName: reviewDraft.mealName,
-      items: reviewDraft.items,
-    });
-    navigate('/coach/queue');
+    try {
+      await reviewMutation.mutateAsync({
+        mealId: item.meal.id,
+        action,
+        note: reviewDraft.note || undefined,
+        mealName: reviewDraft.mealName,
+        items: reviewDraft.items,
+      });
+      toast.success(
+        action === 'approve' ? 'Meal approved and sent to the client diary.' : 'Meal returned to the client.',
+        action === 'approve' ? 'Approved' : 'Rejected',
+      );
+      navigate('/coach/queue');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not submit review'), 'Review failed');
+    }
   }
 
   if (isLoading) {

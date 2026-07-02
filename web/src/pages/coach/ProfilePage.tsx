@@ -7,6 +7,8 @@ import { Tabs } from '@/components/ui/Tabs';
 import { DashboardCharts } from '@/components/coach/DashboardCharts';
 import { useCoachAnalytics } from '@/hooks/useCoachAnalytics';
 import { useCoachProfile, useUpdateCoachPassword, useUpdateCoachProfile } from '@/hooks/useCoachProfile';
+import { useToast } from '@/context/ToastContext';
+import { getApiErrorMessage } from '@/lib/apiErrors';
 import { cn } from '@/lib/utils';
 import type { UpdateCoachProfilePayload } from '@/types';
 
@@ -30,18 +32,16 @@ export function ProfilePage() {
   const { data: analytics } = useCoachAnalytics();
   const updateProfile = useUpdateCoachProfile();
   const updatePassword = useUpdateCoachPassword();
+  const toast = useToast();
   const avatarRef = useRef<AvatarUploadHandle>(null);
 
   const [activeTab, setActiveTab] = useState('profile');
   const [profileForm, setProfileForm] = useState<UpdateCoachProfilePayload | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
-  const [profileSaved, setProfileSaved] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [passwordSaved, setPasswordSaved] = useState(false);
-  const [passwordError, setPasswordError] = useState<string | null>(null);
 
   useEffect(() => {
     if (profile && !profileForm) {
@@ -61,22 +61,22 @@ export function ProfilePage() {
   async function handleProfileSave(e: React.FormEvent) {
     e.preventDefault();
     if (!profileForm) return;
-    setProfileSaved(false);
-    await updateProfile.mutateAsync({ ...profileForm, avatarUrl });
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 3000);
+    try {
+      await updateProfile.mutateAsync({ ...profileForm, avatarUrl });
+      toast.success('Your profile changes were saved.', 'Profile updated');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not save profile'), 'Save failed');
+    }
   }
 
   async function handlePasswordSave(e: React.FormEvent) {
     e.preventDefault();
-    setPasswordError(null);
-    setPasswordSaved(false);
     if (newPassword !== confirmPassword) {
-      setPasswordError('New passwords do not match');
+      toast.error('New passwords do not match.');
       return;
     }
     if (newPassword.length < 8) {
-      setPasswordError('Password must be at least 8 characters');
+      toast.error('Password must be at least 8 characters.');
       return;
     }
     try {
@@ -84,10 +84,9 @@ export function ProfilePage() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setPasswordSaved(true);
-      setTimeout(() => setPasswordSaved(false), 3000);
+      toast.success('Your password was updated.', 'Password updated');
     } catch (err) {
-      setPasswordError(err instanceof Error ? err.message : 'Could not update password');
+      toast.error(getApiErrorMessage(err, 'Could not update password'), 'Update failed');
     }
   }
 
@@ -249,9 +248,6 @@ export function ProfilePage() {
                 <Button type="submit" disabled={updateProfile.isPending}>
                   {updateProfile.isPending ? 'Saving…' : 'Save changes'}
                 </Button>
-                {profileSaved ? (
-                  <span className="text-sm font-medium text-shamrock-600">Saved ✓</span>
-                ) : null}
               </div>
             </CardBody>
           </Card>
@@ -288,7 +284,6 @@ export function ProfilePage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  error={passwordError ?? undefined}
                   required
                 />
               </div>
@@ -296,9 +291,6 @@ export function ProfilePage() {
                 <Button type="submit" variant="secondary" disabled={updatePassword.isPending}>
                   {updatePassword.isPending ? 'Updating…' : 'Update password'}
                 </Button>
-                {passwordSaved ? (
-                  <span className="text-sm font-medium text-shamrock-600">Updated ✓</span>
-                ) : null}
               </div>
             </CardBody>
           </Card>

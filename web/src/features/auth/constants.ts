@@ -2,6 +2,7 @@ export const AUTH_STORAGE_KEY = 'mirafood-coach-auth';
 
 export const AUTH_ROUTES = {
   login: '/login',
+  register: '/register',
   forgotPassword: '/forgot-password',
 } as const;
 
@@ -16,6 +17,12 @@ export const ADMIN_ROUTES = {
   coaches: '/admin/coaches',
   users: '/admin/users',
   system: '/admin/system',
+} as const;
+
+export const CONSUMER_ROUTES = {
+  dashboard: '/app',
+  meals: '/app/meals',
+  profile: '/app/profile',
 } as const;
 
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;

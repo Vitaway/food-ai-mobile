@@ -44,6 +44,10 @@ export function selectIsAdmin(state: AuthState): boolean {
   return isSessionValid(state.session) && state.session!.user.role === 'admin';
 }
 
+export function selectIsConsumer(state: AuthState): boolean {
+  return isSessionValid(state.session) && state.session!.user.role === 'consumer';
+}
+
 export function selectAuthUser(state: AuthState) {
   return isSessionValid(state.session) ? state.session.user : null;
 }

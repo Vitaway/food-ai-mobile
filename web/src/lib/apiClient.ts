@@ -46,7 +46,7 @@ export async function apiRequest<T>(
     const message =
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
-      `Request failed (${response.status})`;
+      (response.status === 404 ? 'Route not found' : `Request failed (${response.status})`);
     throw new ApiError(message, response.status);
   }
 

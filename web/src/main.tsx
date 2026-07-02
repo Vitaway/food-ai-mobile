@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { ToastProvider } from '@/context/ToastContext';
 import { AppShell } from '@/components/layout/AppShell';
 import { ScrollToTop } from '@/components/layout/ScrollToTop';
 import { MarketingShell } from '@/components/marketing/MarketingShell';
@@ -15,7 +16,15 @@ import {
   AdminUsersPage,
   AdminSystemPage,
 } from '@/pages/admin';
-import { LoginPage, ForgotPasswordPage } from '@/pages/auth';
+import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/pages/auth';
+import {
+  ConsumerOverviewPage,
+  ConsumerMealsPage,
+  ConsumerMealDetailPage,
+  ConsumerProfilePage,
+} from '@/pages/consumer';
+import { ConsumerRoute } from '@/features/consumer/components/ConsumerRoute';
+import { ConsumerShell } from '@/features/consumer/components/ConsumerShell';
 import { HomePage } from '@/pages/marketing/HomePage';
 import { FeaturesPage } from '@/pages/marketing/FeaturesPage';
 import { ForCoachesPage } from '@/pages/marketing/ForCoachesPage';
@@ -68,6 +77,14 @@ function App() {
           }
         />
         <Route
+          path="register"
+          element={
+            <GuestRoute>
+              <RegisterPage />
+            </GuestRoute>
+          }
+        />
+        <Route
           path="forgot-password"
           element={
             <GuestRoute>
@@ -109,6 +126,21 @@ function App() {
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>
 
+        {/* Consumer app */}
+        <Route
+          path="app"
+          element={
+            <ConsumerRoute>
+              <ConsumerShell />
+            </ConsumerRoute>
+          }>
+          <Route index element={<ConsumerOverviewPage />} />
+          <Route path="meals" element={<ConsumerMealsPage />} />
+          <Route path="meals/:id" element={<ConsumerMealDetailPage />} />
+          <Route path="profile" element={<ConsumerProfilePage />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
+        </Route>
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
@@ -118,7 +150,9 @@ function App() {
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 );

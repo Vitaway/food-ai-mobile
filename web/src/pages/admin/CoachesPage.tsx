@@ -3,12 +3,15 @@ import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { TextAreaField, TextField } from '@/components/ui/Field';
 import { useAdminCoaches, useCreateCoach, useSetUserActive } from '@/features/admin/hooks/useAdminQueries';
+import { useToast } from '@/context/ToastContext';
+import { getApiErrorMessage } from '@/lib/apiErrors';
 import { cn } from '@/lib/utils';
 
 export function AdminCoachesPage() {
   const { data: coaches, isLoading } = useAdminCoaches();
   const createCoach = useCreateCoach();
   const setActive = useSetUserActive();
+  const toast = useToast();
   const [showForm, setShowForm] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -16,13 +19,9 @@ export function AdminCoachesPage() {
   const [title, setTitle] = useState('Nutrition Coach');
   const [organization, setOrganization] = useState('Vitaway');
   const [bio, setBio] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [formSuccess, setFormSuccess] = useState(false);
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    setFormError(null);
-    setFormSuccess(false);
     try {
       await createCoach.mutateAsync({
         email,
@@ -32,15 +31,14 @@ export function AdminCoachesPage() {
         organization,
         bio: bio || undefined,
       });
-      setFormSuccess(true);
+      toast.success('Coach account created successfully.', 'Coach added');
       setEmail('');
       setPassword('');
       setDisplayName('');
       setBio('');
       setShowForm(false);
-      setTimeout(() => setFormSuccess(false), 4000);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Failed to create coach');
+      toast.error(getApiErrorMessage(err, 'Failed to create coach'), 'Could not create coach');
     }
   }
 
@@ -62,12 +60,6 @@ export function AdminCoachesPage() {
         </Button>
       </div>
 
-      {formSuccess ? (
-        <div className="rounded-2xl border border-shamrock-200 bg-shamrock-50 px-4 py-3 text-sm text-shamrock-800">
-          Coach account created successfully.
-        </div>
-      ) : null}
-
       {showForm ? (
         <Card>
           <CardHeader>
@@ -75,11 +67,6 @@ export function AdminCoachesPage() {
           </CardHeader>
           <CardBody>
             <form onSubmit={handleCreate} className="grid gap-4 sm:grid-cols-2">
-              {formError ? (
-                <div className="sm:col-span-2 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {formError}
-                </div>
-              ) : null}
               <TextField
                 label="Full name"
                 required

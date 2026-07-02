@@ -1,10 +1,10 @@
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
 import { MacroBar } from '@/components/ui/MacroBar';
-import { formatGoal, cn } from '@/lib/utils';
+import { formatGoal, formatCoachPatientLabel, cn } from '@/lib/utils';
 import type { CoachClient } from '@/types';
 
 export function ClientPanel({ client }: { client: CoachClient }) {
-  const { profile, dashboard } = client;
+  const { profile, dashboard, patientId } = client;
   const caloriePct = Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100);
 
   return (
@@ -15,7 +15,9 @@ export function ClientPanel({ client }: { client: CoachClient }) {
             {profile.displayName?.charAt(0) ?? '?'}
           </div>
           <div>
-            <h3 className="font-bold text-ash-grey-900">{profile.displayName}</h3>
+            <h3 className="font-bold text-ash-grey-900">
+              {formatCoachPatientLabel(patientId, profile.displayName)}
+            </h3>
             <p className="text-sm capitalize text-ash-grey-500">{formatGoal(profile.goal)}</p>
           </div>
         </div>

@@ -35,6 +35,7 @@ export type AdminCoach = {
 
 export type AdminConsumer = {
   id: string;
+  patientId: string;
   displayName: string;
   email: string | null;
   goal: string | null;
