@@ -8,7 +8,7 @@ import {
 } from "routing-controllers";
 import type { Request } from "express";
 import { authService } from "./auth.service";
-import { LoginDto, RegisterDto } from "./auth.dto";
+import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from "./auth.dto";
 import type { User } from "../users/user.entity";
 
 @Controller("/auth")
@@ -21,6 +21,16 @@ export class AuthController {
   @Post("/login")
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return authService.login(dto, req);
+  }
+
+  @Post("/forgot-password")
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return authService.forgotPassword(dto);
+  }
+
+  @Post("/reset-password")
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return authService.resetPassword(dto);
   }
 
   @Authorized()

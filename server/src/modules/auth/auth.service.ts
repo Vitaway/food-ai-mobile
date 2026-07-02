@@ -5,10 +5,15 @@ import {
   BadRequestError,
   NotFoundError,
 } from "routing-controllers";
-import { signAuthToken } from "../../middlewares/auth.middleware";
+import {
+  signAuthToken,
+  signPasswordResetToken,
+  verifyPasswordResetToken,
+} from "../../middlewares/auth.middleware";
 import { usersRepository } from "../users/users.repository";
 import { authRepository } from "./auth.repository";
-import type { LoginDto, RegisterDto } from "./auth.dto";
+import type { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from "./auth.dto";
+import { env } from "../../config/env";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
 import { generatePatientId } from "../../utils/patient-id";
@@ -223,6 +228,47 @@ export const authService = {
     };
 
     return attachRoleContext(user, result);
+  },
+
+  async forgotPassword(dto: ForgotPasswordDto): Promise<{ ok: true }> {
+    const email = dto.email.toLowerCase().trim();
+    const user = await usersRepository.findByEmail(email);
+    if (!user?.passwordHash || !user.isActive) {
+      return { ok: true };
+    }
+
+    const token = signPasswordResetToken(user.id);
+    const resetUrl = `${env.APP_URL.replace(/\/$/, "")}/forgot-password?token=${encodeURIComponent(token)}`;
+    const mobileResetUrl = `${env.MOBILE_APP_SCHEME}://auth/reset-password?token=${encodeURIComponent(token)}`;
+
+    try {
+      await emailService.sendPasswordResetEmail(user.email, resetUrl, mobileResetUrl);
+    } catch (err) {
+      logger.error({ err, email: user.email }, "Failed to send password reset email");
+      if (env.NODE_ENV === "production") {
+        throw new BadRequestError("Could not send reset email. Try again later.");
+      }
+    }
+
+    return { ok: true };
+  },
+
+  async resetPassword(dto: ResetPasswordDto): Promise<{ ok: true }> {
+    let userId: string;
+    try {
+      userId = verifyPasswordResetToken(dto.token);
+    } catch {
+      throw new BadRequestError("Invalid or expired reset link. Request a new one.");
+    }
+
+    const user = await usersRepository.findById(userId);
+    if (!user?.passwordHash || !user.isActive) {
+      throw new BadRequestError("Invalid or expired reset link. Request a new one.");
+    }
+
+    user.passwordHash = await bcrypt.hash(dto.password, 10);
+    await usersRepository.save(user);
+    return { ok: true };
   },
 
   async logout(sessionId: string): Promise<void> {

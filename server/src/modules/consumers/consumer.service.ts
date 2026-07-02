@@ -5,10 +5,7 @@ import { usersRepository } from "../users/users.repository";
 import { ensureUserReferralCode } from "../users/referral.util";
 import { notificationsService } from "../notifications/notifications.service";
 import type { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto } from "./consumer.dto";
-
-function todayKey(): string {
-  return new Date().toISOString().slice(0, 10);
-}
+import { computeDashboard, todayKey } from "./dashboard.util";
 
 function mealToDto(row: {
   id: string;
@@ -25,65 +22,6 @@ function mealToDto(row: {
     status: row.status,
     submittedAt: row.submittedAt.toISOString(),
     ...row.data,
-  };
-}
-
-function computeDashboard(
-  profile: Record<string, unknown>,
-  dashboardCache: Record<string, unknown>,
-  meals: Awaited<ReturnType<typeof mealsRepository.findMealsByClientId>>,
-) {
-  const date = todayKey();
-  const macroTargets = (profile.macroTargets as Record<string, number>) ?? {
-    calories: 2000,
-    proteinG: 120,
-    carbsG: 200,
-    fatG: 65,
-    fiberG: 25,
-  };
-  const approvedToday = meals.filter(
-    (m) =>
-      m.status === "approved" && m.submittedAt.toISOString().slice(0, 10) === date,
-  );
-
-  let caloriesConsumed = 0;
-  let proteinG = 0;
-  let carbsG = 0;
-  let fatG = 0;
-  let fiberG = 0;
-
-  for (const meal of approvedToday) {
-    const nutrition = meal.data.totalNutrition as Record<string, number> | undefined;
-    if (!nutrition) continue;
-    caloriesConsumed += nutrition.caloriesKcal ?? 0;
-    proteinG += nutrition.proteinG ?? 0;
-    carbsG += nutrition.carbsG ?? 0;
-    fatG += nutrition.fatG ?? 0;
-    fiberG += nutrition.fiberG ?? 0;
-  }
-
-  const waterMl = Number(dashboardCache.waterMl ?? 0);
-  const waterTargetMl = Number(profile.waterTargetMl ?? 2000);
-  const calorieTarget = Number(macroTargets.calories ?? 2000);
-  const healthScore =
-    calorieTarget > 0
-      ? Math.min(100, Math.round((caloriesConsumed / calorieTarget) * 100))
-      : 0;
-
-  return {
-    date,
-    caloriesConsumed: Math.round(caloriesConsumed),
-    calorieTarget,
-    macrosConsumed: {
-      proteinG: Math.round(proteinG),
-      carbsG: Math.round(carbsG),
-      fatG: Math.round(fatG),
-      fiberG: Math.round(fiberG),
-    },
-    waterMl,
-    waterTargetMl,
-    healthScore,
-    streakDays: Number(dashboardCache.streakDays ?? 0),
   };
 }
 

@@ -7,6 +7,8 @@ import { mealsRepository } from "../meals/meals.repository";
 import { healthService } from "../health/health.service";
 import { openRouterService } from "../ai/openrouter.service";
 import { adminAuditService } from "./admin-audit.service";
+import { emailService } from "../../services/email.service";
+import { logger } from "../../config/logger";
 import type { CreateCoachDto, SetUserActiveDto } from "./admin.dto";
 
 export const adminService = {
@@ -113,6 +115,16 @@ export const adminService = {
       meta: { email, displayName: user.displayName },
       req,
     });
+
+    try {
+      await emailService.sendCoachInviteEmail(user.email, {
+        displayName: user.displayName,
+        temporaryPassword: dto.password,
+        organization: profile.organization,
+      });
+    } catch (err) {
+      logger.error({ err, email: user.email }, "Failed to send coach invite email");
+    }
 
     return {
       id: user.id,

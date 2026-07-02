@@ -25,6 +25,20 @@ export function verifyAuthToken(token: string): AuthJwtPayload {
   return jwt.verify(token, env.JWT_SECRET) as AuthJwtPayload;
 }
 
+export function signPasswordResetToken(userId: string): string {
+  return jwt.sign({ sub: userId, purpose: "password_reset" }, env.JWT_SECRET, {
+    expiresIn: "1h",
+  });
+}
+
+export function verifyPasswordResetToken(token: string): string {
+  const payload = jwt.verify(token, env.JWT_SECRET) as { sub?: string; purpose?: string };
+  if (!payload.sub || payload.purpose !== "password_reset") {
+    throw new UnauthorizedError("Invalid or expired reset link");
+  }
+  return payload.sub;
+}
+
 export async function resolveAuthUser(payload: AuthJwtPayload) {
   const sessionRepo = AppDataSource.getRepository(UserSession);
   const session = await sessionRepo.findOne({ where: { id: payload.sid } });
