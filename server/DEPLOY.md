@@ -121,9 +121,17 @@ bash deploy/security-check.sh
 
 ## 4. Run deploy (one command)
 
+**Do not run `docker compose up` on the VPS** — that is the local dev file (exposes DB ports, no build step).
+
 ```bash
 cd /opt/mirafood-api/server
 sudo CERTBOT_EMAIL=you@email.com bash deploy/deploy.sh
+```
+
+Or manually:
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
 ```
 
 This will:

@@ -1,5 +1,5 @@
-# Postgres + Redis + API. Run: docker compose up
-# API listens on http://localhost:3011 (override secrets via server/.env)
+# LOCAL DEVELOPMENT ONLY — do not use on the VPS.
+# Production: docker compose -f docker-compose.prod.yml up -d --build
 services:
   postgres:
     image: postgres:16-alpine
