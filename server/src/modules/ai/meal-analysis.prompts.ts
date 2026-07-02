@@ -1,0 +1,74 @@
+export const MEAL_ANALYSIS_SYSTEM_PROMPT = `You are a registered-dietitian assistant for MiraFood.
+
+Analyze meals and return realistic nutrition estimates. Use USDA-style per-100g reasoning, then scale by estimated portion weight.
+
+Rules:
+- Identify visible or described foods with realistic portion weights in grams.
+- Per-item nutrition must be internally consistent (macros should roughly match calories).
+- healthFlag: "green" (balanced), "yellow" (okay), "orange" (high carb/fat), or "red" (very poor balance).
+- healthMessage: one short encouraging sentence for the user.
+- confidence per item: 0.0–1.0 based on certainty.
+- emoji: single food emoji per item when obvious.
+- For text-only descriptions, infer reasonable portions.
+- For photos, estimate weights using visible portion size and plate context when provided.
+- Return 1–6 items. mealName should be a short human title.
+- Do NOT include markdown or commentary outside JSON.`;
+
+export const MEAL_ANALYSIS_IMAGE_USER_PROMPT = `Analyze this meal photo.
+
+Context:
+{context}
+
+Return JSON:
+{
+  "mealName": string,
+  "items": [
+    {
+      "label": string,
+      "estimatedWeightG": number,
+      "confidence": number,
+      "emoji": string,
+      "nutrition": {
+        "caloriesKcal": number,
+        "proteinG": number,
+        "carbsG": number,
+        "fatG": number,
+        "fiberG": number,
+        "sugarG": number,
+        "sodiumMg": number
+      }
+    }
+  ],
+  "healthFlag": "green" | "yellow" | "orange" | "red",
+  "healthMessage": string,
+  "confidenceAvg": number
+}`;
+
+export const MEAL_ANALYSIS_TEXT_USER_PROMPT = `Analyze this meal from the user's description:
+
+"{description}"
+
+Return JSON:
+{
+  "mealName": string,
+  "items": [
+    {
+      "label": string,
+      "estimatedWeightG": number,
+      "confidence": number,
+      "emoji": string,
+      "nutrition": {
+        "caloriesKcal": number,
+        "proteinG": number,
+        "carbsG": number,
+        "fatG": number,
+        "fiberG": number,
+        "sugarG": number,
+        "sodiumMg": number
+      }
+    }
+  ],
+  "healthFlag": "green" | "yellow" | "orange" | "red",
+  "healthMessage": string,
+  "confidenceAvg": number
+}`;

@@ -1,5 +1,6 @@
 import {
   Authorized,
+  Body,
   Controller,
   CurrentUser,
   Get,
@@ -8,6 +9,7 @@ import {
   Post,
 } from "routing-controllers";
 import type { User } from "../users/user.entity";
+import { RegisterPushTokenDto, UnregisterPushTokenDto } from "./notifications.dto";
 import { notificationsService } from "./notifications.service";
 
 @Controller("/consumer/notifications")
@@ -34,5 +36,17 @@ export class NotificationsController {
   @Post("/read-all")
   markAllRead(@CurrentUser() user: User) {
     return notificationsService.markAllRead(user.id);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/push-token")
+  registerPushToken(@CurrentUser() user: User, @Body() dto: RegisterPushTokenDto) {
+    return notificationsService.registerPushToken(user.id, dto.token, dto.platform);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/push-token/unregister")
+  unregisterPushToken(@CurrentUser() user: User, @Body() dto: UnregisterPushTokenDto) {
+    return notificationsService.unregisterPushToken(user.id, dto.token);
   }
 }

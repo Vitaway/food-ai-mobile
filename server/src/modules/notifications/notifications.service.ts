@@ -1,6 +1,8 @@
 import { NotFoundError } from "routing-controllers";
 import { broadcastToUser } from "../../services/notification-realtime.service";
+import { pushNotificationService } from "../../services/push-notification.service";
 import { notificationsRepository } from "./notifications.repository";
+import { pushTokensRepository } from "./push-tokens.repository";
 
 export type CreateNotificationInput = {
   userId: string;
@@ -68,7 +70,30 @@ export const notificationsService = {
     broadcastToUser(input.userId, { type: "notification", notification: dto });
     await pushUnreadCount(input.userId);
 
+    void pushNotificationService
+      .sendToUser(input.userId, {
+        title: dto.title,
+        body: dto.message,
+        data: {
+          notificationId: dto.id,
+          kind: dto.kind,
+          mealId: dto.mealId,
+          status: dto.status,
+        },
+      })
+      .catch(() => undefined);
+
     return dto;
+  },
+
+  async registerPushToken(userId: string, token: string, platform: string) {
+    await pushTokensRepository.upsert(userId, token, platform);
+    return { ok: true };
+  },
+
+  async unregisterPushToken(userId: string, token: string) {
+    await pushTokensRepository.remove(userId, token);
+    return { ok: true };
   },
 
   async markRead(userId: string, notificationId: string) {

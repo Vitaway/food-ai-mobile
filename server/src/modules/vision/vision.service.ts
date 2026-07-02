@@ -2,8 +2,18 @@ import { BadRequestError, HttpError } from "routing-controllers";
 import { env } from "../../config/env";
 import { openRouterService } from "../ai/openrouter.service";
 import { SYSTEM_PROMPT, USER_PROMPT } from "../ai/prompts";
+import {
+  MEAL_ANALYSIS_IMAGE_USER_PROMPT,
+  MEAL_ANALYSIS_SYSTEM_PROMPT,
+  MEAL_ANALYSIS_TEXT_USER_PROMPT,
+} from "../ai/meal-analysis.prompts";
 import { buildAnalysisContext } from "./metadata-context";
 import { resolveDiameterCm, resolveEffectiveDistanceCm } from "./diameter-math";
+import {
+  applyPlatePortionScale,
+  normalizeMealAnalysisRaw,
+  type MealAnalysisResult,
+} from "./meal-analysis";
 
 export interface PlateDetectResult {
   detected: boolean;
@@ -175,6 +185,113 @@ export const visionService = {
       return normalizeResult(raw, analysisContext);
     } catch (exc) {
       throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
+    }
+  },
+
+  async analyzeMealFromImage(
+    imageBuffer: Buffer,
+    mimeType: string,
+    opts: { plateDiameterCm?: number | null; note?: string | null; metadataRaw?: string },
+  ): Promise<MealAnalysisResult> {
+    const keyStatus = openRouterService.getApiKeyStatus();
+    if (keyStatus !== "configured") {
+      throw new HttpError(
+        500,
+        "OPENROUTER_API_KEY is not configured. Add a valid sk-or- key to server/.env",
+      );
+    }
+    if (!imageBuffer.length) {
+      throw new BadRequestError("Empty image file");
+    }
+
+    let metadata: Record<string, unknown> = {};
+    try {
+      metadata = JSON.parse(opts.metadataRaw || "{}") as Record<string, unknown>;
+    } catch {
+      throw new BadRequestError("metadata must be valid JSON");
+    }
+
+    const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
+    const dataUrl = `data:${mime};base64,${imageBuffer.toString("base64")}`;
+    const analysisContext = {
+      ...buildAnalysisContext(metadata),
+      plateDiameterCm: opts.plateDiameterCm ?? null,
+      coachNote: opts.note ?? null,
+    };
+
+    const raw = await this.callMealAnalysisModel([
+      { role: "system", content: MEAL_ANALYSIS_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: MEAL_ANALYSIS_IMAGE_USER_PROMPT.replace(
+              "{context}",
+              JSON.stringify(analysisContext, null, 2),
+            ),
+          },
+          {
+            type: "image_url",
+            image_url: { url: dataUrl, detail: env.OPENROUTER_IMAGE_DETAIL },
+          },
+        ],
+      },
+    ]);
+
+    const normalized = normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL);
+    return applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
+  },
+
+  async analyzeMealFromText(
+    text: string,
+    plateDiameterCm?: number | null,
+  ): Promise<MealAnalysisResult> {
+    const cleaned = text.trim();
+    if (!cleaned) {
+      throw new BadRequestError("text is required");
+    }
+
+    const keyStatus = openRouterService.getApiKeyStatus();
+    if (keyStatus !== "configured") {
+      throw new HttpError(
+        500,
+        "OPENROUTER_API_KEY is not configured. Add a valid sk-or- key to server/.env",
+      );
+    }
+
+    const raw = await this.callMealAnalysisModel([
+      { role: "system", content: MEAL_ANALYSIS_SYSTEM_PROMPT },
+      {
+        role: "user",
+        content: MEAL_ANALYSIS_TEXT_USER_PROMPT.replace("{description}", cleaned.replace(/"/g, "'")),
+      },
+    ]);
+
+    const normalized = normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL);
+    return applyPlatePortionScale(normalized, plateDiameterCm ?? null);
+  },
+
+  async callMealAnalysisModel(
+    messages: Array<{
+      role: "system" | "user";
+      content: string | Array<Record<string, unknown>>;
+    }>,
+  ): Promise<Record<string, unknown>> {
+    const client = openRouterService.createClient();
+    try {
+      const response = await client.chat.completions.create({
+        model: env.OPENROUTER_MODEL,
+        temperature: Math.min(0.2, env.OPENROUTER_TEMPERATURE + 0.1),
+        response_format: { type: "json_object" },
+        messages: messages as never,
+      });
+      const content = response.choices[0]?.message?.content ?? "{}";
+      return parseJsonResponse(content);
+    } catch (exc) {
+      const authError = openRouterService.authErrorMessage(exc);
+      if (authError) throw new HttpError(502, authError);
+      throw new HttpError(502, `OpenRouter meal analysis failed: ${String(exc)}`);
     }
   },
 };
