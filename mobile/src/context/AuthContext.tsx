@@ -18,6 +18,7 @@ import {
   registerRequest,
   type AuthUser,
 } from '@/services/remote/authApi';
+import { WrongAppRoleError } from '@/utils/authErrors';
 
 const AUTH_STORAGE_KEY = 'mirafood-auth-session';
 
@@ -25,6 +26,7 @@ export type AuthSession = {
   token: string;
   user: AuthUser & { patientId?: string };
   expiresAt: number;
+  onboardingComplete?: boolean;
 };
 
 type AuthContextValue = {
@@ -54,6 +56,7 @@ function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession
     token: data.token,
     user: { ...data.user, patientId },
     expiresAt: jwtExpiresAt(data.token),
+    onboardingComplete: data.consumerProfile?.onboardingComplete,
   };
 }
 
@@ -126,7 +129,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async (email: string, password: string) => {
       const data = await loginRequest(email, password);
       if (data.user.role !== 'consumer') {
-        throw new Error('This account is not a consumer app account. Use the web dashboard.');
+        throw new WrongAppRoleError(data.user.role);
       }
       await applySession(mapSession(data));
     },

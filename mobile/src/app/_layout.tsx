@@ -16,11 +16,13 @@ import 'react-native-reanimated';
 import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AppProviders } from '@/context/AppProviders';
+import { configureNotificationHandler } from '@/services/push/expoNotifications';
 import { semanticColors } from '@/design-system/colors';
 
 export { ErrorBoundary } from 'expo-router';
 
 SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
 
 export const unstable_settings = {
   initialRouteName: 'index',
@@ -60,9 +62,9 @@ export default function RootLayout() {
           <Stack.Screen name="index" />
           <Stack.Screen name="auth" />
           <Stack.Screen name="onboarding" />
-          <Stack.Screen name="notifications" />
-          <Stack.Screen name="water" options={{ presentation: 'card' }} />
-          <Stack.Screen name="referral" options={{ presentation: 'card' }} />
+          <Stack.Screen name="notifications/index" />
+          <Stack.Screen name="water/index" options={{ presentation: 'card' }} />
+          <Stack.Screen name="referral/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="profile" options={{ presentation: 'card' }} />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="meal" options={{ presentation: 'card' }} />

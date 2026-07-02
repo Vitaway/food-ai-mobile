@@ -17,7 +17,7 @@ import { cn } from '@/utils/cn';
 
 type AuthScreenShellProps = {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children: ReactNode;
   /** Primary CTA rendered below the white card (on the brand background). */
   actions?: ReactNode;
@@ -44,7 +44,9 @@ export function AuthScreenShell({
       <View className="items-center px-6">
         <AppLogo size={72} />
         <Text className={cn('mt-6 text-center text-3xl text-white', DISPLAY_TITLE_CLASS)}>{title}</Text>
-        <Text className="mt-2 text-center text-base leading-6 text-white/75">{subtitle}</Text>
+        {subtitle ? (
+          <Text className="mt-2 text-center text-base leading-6 text-white/75">{subtitle}</Text>
+        ) : null}
       </View>
 
       <View className={`mx-6 mt-10 rounded-3xl bg-white shadow-lg ${cardClassName}`}>{children}</View>

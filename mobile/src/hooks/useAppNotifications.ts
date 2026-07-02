@@ -1,4 +1,3 @@
-import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { isApiConfigured } from '@/constants/api';
@@ -61,6 +60,56 @@ function mealNotifications(meals: MealSubmission[], readKeys: Set<string>): AppN
     });
 }
 
+/** Lightweight badge count for home — no API calls. */
+export function useNotificationUnreadCount() {
+  const { isAuthenticated } = useAuth();
+  const useServer = isApiConfigured() && isAuthenticated;
+  const { serverUnreadCount } = useNotificationSocket();
+  const { meals } = useMeals();
+  const { profile } = useProfile();
+  const [readKeys, setReadKeys] = useState<Set<string>>(new Set());
+  const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
+  const [waterMl, setWaterMl] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const [reads, notificationSettings, log] = await Promise.all([
+        services.notificationsRepository.getReadKeys(),
+        services.notificationsRepository.getSettings(),
+        services.mealsRepository.getDailyLog(todayKey()),
+      ]);
+      if (cancelled) return;
+      setReadKeys(reads);
+      setSettings(notificationSettings);
+      setWaterMl(log.waterMl);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return useMemo(() => {
+    if (!profile) {
+      return useServer ? serverUnreadCount : 0;
+    }
+
+    const nudgeUnread = buildLocalNudges({
+      meals,
+      waterMl,
+      waterTargetMl: profile.waterTargetMl ?? 2450,
+      settings,
+    }).filter((nudge) => !readKeys.has(nudge.readKey)).length;
+
+    if (useServer) {
+      return serverUnreadCount + nudgeUnread;
+    }
+
+    const mealUnread = mealNotifications(meals, readKeys).filter((item) => !item.read).length;
+    return mealUnread + nudgeUnread;
+  }, [meals, profile, readKeys, serverUnreadCount, settings, useServer, waterMl]);
+}
+
 export function useAppNotifications() {
   const { isAuthenticated } = useAuth();
   const useServer = isApiConfigured() && isAuthenticated;
@@ -81,30 +130,27 @@ export function useAppNotifications() {
     setReadKeys(await services.notificationsRepository.getReadKeys());
   }, []);
 
-  const refreshContext = useCallback(async () => {
-    const [reads, notificationSettings, log] = await Promise.all([
-      services.notificationsRepository.getReadKeys(),
-      services.notificationsRepository.getSettings(),
-      services.mealsRepository.getDailyLog(todayKey()),
-    ]);
-    setReadKeys(reads);
-    setSettings(notificationSettings);
-    setWaterMl(log.waterMl);
+  const refreshContext = useCallback(
+    async (options?: { includeServer?: boolean }) => {
+      const [reads, notificationSettings, log] = await Promise.all([
+        services.notificationsRepository.getReadKeys(),
+        services.notificationsRepository.getSettings(),
+        services.mealsRepository.getDailyLog(todayKey()),
+      ]);
+      setReadKeys(reads);
+      setSettings(notificationSettings);
+      setWaterMl(log.waterMl);
 
-    if (useServer) {
-      await refreshServerNotifications();
-    }
-  }, [refreshServerNotifications, useServer]);
+      if (useServer && options?.includeServer) {
+        await refreshServerNotifications(true);
+      }
+    },
+    [refreshServerNotifications, useServer],
+  );
 
   useEffect(() => {
-    refreshContext();
-  }, [meals, refreshContext]);
-
-  useFocusEffect(
-    useCallback(() => {
-      refreshContext();
-    }, [refreshContext]),
-  );
+    void refreshContext();
+  }, [refreshContext]);
 
   const items = useMemo(() => {
     const waterTarget = profile?.waterTargetMl ?? 2450;
@@ -181,10 +227,7 @@ export function useAppNotifications() {
     }
 
     await refreshReads();
-    if (useServer) {
-      await refreshServerNotifications();
-    }
-  }, [items, markAllServerRead, refreshReads, refreshServerNotifications, useServer]);
+  }, [items, markAllServerRead, refreshReads, useServer]);
 
   const dismiss = markRead;
 

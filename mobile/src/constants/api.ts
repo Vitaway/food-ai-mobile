@@ -1,17 +1,69 @@
-/** Production host — Node auth API not deployed here yet (legacy Flask). */
+import Constants from 'expo-constants';
+import { Platform } from 'react-native';
+
+/** Production MiraFood API + web host */
+const PROD_HOST = 'mirafood.vitaway.org';
+/** Legacy staging host */
 const LEGACY_PROD_HOST = 'vitaway.nsengi.space';
-const DEV_API_URL = 'http://127.0.0.1:3011';
+const DEFAULT_DEV_PORT = 3011;
+
+function getMetroDevHost(): string | null {
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostUri.split(':')[0];
+    if (host) return host;
+  }
+
+  const debuggerHost =
+    Constants.expoGoConfig?.debuggerHost ??
+    (Constants as { manifest?: { debuggerHost?: string } }).manifest?.debuggerHost;
+
+  if (typeof debuggerHost === 'string') {
+    return debuggerHost.split(':')[0];
+  }
+
+  return null;
+}
+
+function getDevApiPort(fromEnv: string): number {
+  const match = fromEnv.match(/:(\d+)$/);
+  return match ? Number(match[1]) : DEFAULT_DEV_PORT;
+}
+
+function buildDevApiUrl(host: string, port: number): string {
+  return `http://${host}:${port}`;
+}
 
 function resolveApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
 
   if (__DEV__) {
-    if (!fromEnv || fromEnv.includes(LEGACY_PROD_HOST)) {
-      return DEV_API_URL;
+    const port = getDevApiPort(fromEnv || `http://127.0.0.1:${DEFAULT_DEV_PORT}`);
+
+    if (!fromEnv || fromEnv.includes(LEGACY_PROD_HOST) || fromEnv.includes(PROD_HOST)) {
+      const host = getMetroDevHost() ?? '127.0.0.1';
+      return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
+
     // Another local API (e.g. daily-focus) may already occupy :3010.
     if (fromEnv.endsWith(':3010')) {
-      return DEV_API_URL;
+      const host = getMetroDevHost() ?? '127.0.0.1';
+      return buildDevApiUrl(host, DEFAULT_DEV_PORT);
+    }
+
+    const isLocalhost = fromEnv.includes('127.0.0.1') || fromEnv.includes('localhost');
+
+    // Physical devices cannot reach the dev machine via 127.0.0.1 — use Metro's LAN host.
+    if (isLocalhost && Constants.isDevice) {
+      const host = getMetroDevHost();
+      if (host && host !== '127.0.0.1' && host !== 'localhost') {
+        return buildDevApiUrl(host, port);
+      }
+    }
+
+    // Android emulator maps host loopback to 10.0.2.2
+    if (Platform.OS === 'android' && isLocalhost && !Constants.isDevice) {
+      return buildDevApiUrl('10.0.2.2', port);
     }
   }
 

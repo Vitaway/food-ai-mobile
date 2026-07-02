@@ -88,6 +88,20 @@ export async function markAllNotificationsRead(): Promise<{ ok: boolean }> {
   });
 }
 
+export async function registerPushToken(token: string, platform: 'ios' | 'android' | 'web') {
+  return apiRequest<{ ok: boolean }>('/consumer/notifications/push-token', {
+    method: 'POST',
+    body: JSON.stringify({ token, platform }),
+  });
+}
+
+export async function unregisterPushToken(token: string) {
+  return apiRequest<{ ok: boolean }>('/consumer/notifications/push-token/unregister', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
+  });
+}
+
 export type ReferralInfo = {
   referralCode: string;
   referralCount: number;

@@ -9,6 +9,7 @@ import { Text } from '@/components/ui/Text';
 import { APP_NAME } from '@/constants/site';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import { WrongAppRoleError } from '@/utils/authErrors';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 
 export default function LoginScreen() {
@@ -24,8 +25,11 @@ export default function LoginScreen() {
     try {
       await login(email, password);
       toast.success('Welcome back!', 'Signed in');
-      router.replace('/' as Href);
     } catch (err) {
+      if (err instanceof WrongAppRoleError) {
+        router.push(`/auth/wrong-app?role=${encodeURIComponent(err.role)}` as Href);
+        return;
+      }
       toast.error(getApiErrorMessage(err, 'Sign in failed'), 'Sign in failed');
     } finally {
       setLoading(false);
@@ -35,7 +39,6 @@ export default function LoginScreen() {
   return (
     <AuthScreenShell
       title={`Sign in to ${APP_NAME}`}
-      subtitle="Enter your email and password to open your Vitaway file"
       actions={
         <Button
           label={loading ? 'Signing in…' : 'Sign in'}
@@ -61,7 +64,7 @@ export default function LoginScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="you@vitaway.com"
+          placeholder="you@vitaway.org"
         />
         <FieldInput
           label="Password"
@@ -71,6 +74,11 @@ export default function LoginScreen() {
           autoCapitalize="none"
           placeholder="Your password"
         />
+        <Pressable
+          onPress={() => router.push('/auth/forgot-password' as Href)}
+          className="-mt-1 self-end">
+          <Text className="text-sm text-blue-spruce-600">Forgot password?</Text>
+        </Pressable>
       </View>
     </AuthScreenShell>
   );

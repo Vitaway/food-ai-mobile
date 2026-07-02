@@ -2,8 +2,11 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 
 import { FloatingTabBar, type FloatingTabBarProps } from '@/components/navigation/FloatingTabBar';
+import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 
 export default function TabLayout() {
+  const notificationUnread = useNotificationUnreadCount();
+
   return (
     <View className="flex-1">
       <Tabs
@@ -11,6 +14,7 @@ export default function TabLayout() {
           <FloatingTabBar
             state={props.state}
             navigation={props.navigation as FloatingTabBarProps['navigation']}
+            notificationUnreadCount={notificationUnread}
           />
         )}
         screenOptions={{

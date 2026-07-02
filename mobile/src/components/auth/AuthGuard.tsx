@@ -1,57 +1,148 @@
-import { Redirect, useSegments, type Href } from 'expo-router';
-import type { PropsWithChildren } from 'react';
+import { useRouter, useSegments, type Href } from 'expo-router';
+import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { StyleSheet, View } from 'react-native';
 
 import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
 
-export function AuthGuard({ children }: PropsWithChildren) {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { hasCompletedOnboarding, isLoading: profileLoading } = useProfile();
-  const segments = useSegments();
-
-  const rootSegment = segments[0];
-  const inAuthGroup = rootSegment === 'auth';
-  const inOnboardingGroup = rootSegment === 'onboarding';
-  const requiresAuth = isApiConfigured();
-  const isBootstrapping = authLoading || profileLoading;
+function resolveAuthTarget(opts: {
+  requiresAuth: boolean;
+  isAuthenticated: boolean;
+  hasCompletedOnboarding: boolean;
+  root: string;
+  authScreen?: string;
+}): string | null {
+  const { requiresAuth, isAuthenticated, hasCompletedOnboarding, root, authScreen } = opts;
+  const inAuth = root === 'auth';
+  const inOnboarding = root === 'onboarding';
+  const inTabs = root === '(tabs)';
+  const onResetPassword = authScreen === 'reset-password';
 
   if (!requiresAuth) {
-    if (isBootstrapping) {
-      return <AppSplashScreen />;
-    }
-
-    if (!hasCompletedOnboarding && !inOnboardingGroup) {
-      return <Redirect href={'/onboarding' as Href} />;
-    }
-
-    if (hasCompletedOnboarding && inOnboardingGroup) {
-      return <Redirect href={'/(tabs)' as Href} />;
-    }
-
-    return children;
+    if (!hasCompletedOnboarding && !inOnboarding) return '/onboarding';
+    if (hasCompletedOnboarding && inOnboarding) return '/(tabs)';
+    return null;
   }
 
-  if (isBootstrapping) {
-    return <AppSplashScreen />;
+  if (!isAuthenticated) {
+    return inAuth ? null : '/auth/login';
   }
 
-  if (!isAuthenticated && !inAuthGroup) {
-    return <Redirect href={'/auth/login' as Href} />;
+  if (inAuth && !onResetPassword) {
+    return hasCompletedOnboarding ? '/(tabs)' : '/onboarding';
   }
 
-  if (isAuthenticated && inAuthGroup) {
-    return <Redirect href={'/' as Href} />;
+  if (!hasCompletedOnboarding && !inOnboarding && !inAuth) {
+    return '/onboarding';
   }
 
-  if (isAuthenticated && !hasCompletedOnboarding && !inOnboardingGroup) {
-    return <Redirect href={'/onboarding' as Href} />;
+  if (hasCompletedOnboarding && inOnboarding) {
+    return '/(tabs)';
   }
 
-  if (isAuthenticated && hasCompletedOnboarding && inOnboardingGroup) {
-    return <Redirect href={'/(tabs)' as Href} />;
+  if (hasCompletedOnboarding && inTabs) {
+    return null;
   }
 
-  return children;
+  if (hasCompletedOnboarding && root === 'index') {
+    return '/(tabs)';
+  }
+
+  if (!isAuthenticated && root === 'index') {
+    return requiresAuth ? '/auth/login' : '/onboarding';
+  }
+
+  return null;
 }
+
+function isAtTarget(target: string, root: string): boolean {
+  if (target === '/onboarding') return root === 'onboarding';
+  if (target === '/auth/login') return root === 'auth';
+  if (target === '/(tabs)') return root === '(tabs)';
+  return false;
+}
+
+export function AuthGuard({ children }: PropsWithChildren) {
+  const router = useRouter();
+  const segments = useSegments();
+  const root = segments[0] ?? '';
+  const authScreen = segments[1];
+  const { isAuthenticated, isLoading: authLoading, session } = useAuth();
+  const { isLoading: profileLoading, profile } = useProfile();
+  const requiresAuth = isApiConfigured();
+  const pendingTarget = useRef<string | null>(null);
+  const [hasBootstrapped, setHasBootstrapped] = useState(false);
+
+  const sessionOnboarding = session?.onboardingComplete;
+  const knowsOnboardingState =
+    profile !== null || typeof sessionOnboarding === 'boolean';
+  const effectiveOnboardingComplete =
+    profile?.onboardingComplete ?? sessionOnboarding ?? false;
+
+  const waitingForProfile =
+    requiresAuth && isAuthenticated && profileLoading && !knowsOnboardingState;
+  const isBootstrapping = authLoading || waitingForProfile;
+
+  useEffect(() => {
+    if (isBootstrapping) return;
+
+    const target = resolveAuthTarget({
+      requiresAuth,
+      isAuthenticated,
+      hasCompletedOnboarding: effectiveOnboardingComplete,
+      root,
+      authScreen,
+    });
+
+    if (!target || isAtTarget(target, root)) {
+      pendingTarget.current = null;
+      return;
+    }
+
+    if (pendingTarget.current === target) return;
+
+    pendingTarget.current = target;
+    router.replace(target as Href);
+  }, [
+    isBootstrapping,
+    requiresAuth,
+    isAuthenticated,
+    effectiveOnboardingComplete,
+    root,
+    authScreen,
+    router,
+  ]);
+
+  useEffect(() => {
+    if (pendingTarget.current && isAtTarget(pendingTarget.current, root)) {
+      pendingTarget.current = null;
+    }
+  }, [root]);
+
+  useEffect(() => {
+    if (!isBootstrapping) {
+      setHasBootstrapped(true);
+    }
+  }, [isBootstrapping]);
+
+  return (
+    <View style={styles.root}>
+      {hasBootstrapped ? children : null}
+      {isBootstrapping ? (
+        <View style={styles.splashOverlay}>
+          <AppSplashScreen />
+        </View>
+      ) : null}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  splashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    zIndex: 100,
+  },
+});

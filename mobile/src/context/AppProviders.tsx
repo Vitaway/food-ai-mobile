@@ -1,3 +1,5 @@
+import { NotificationMealSync } from '@/components/notifications/NotificationEffects';
+import { PushNotificationSetup } from '@/components/notifications/PushNotificationSetup';
 import { AuthProvider } from '@/context/AuthContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ProfileProvider } from '@/context/ProfileContext';
@@ -20,6 +22,8 @@ export function AppProviders({ children }: PropsWithChildren) {
               <NotificationProvider>
                 <ProfileProvider>
                   <MealsProvider>
+                    <NotificationMealSync />
+                    <PushNotificationSetup />
                     <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
                   </MealsProvider>
                 </ProfileProvider>

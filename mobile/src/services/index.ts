@@ -1,4 +1,4 @@
-import { isPlateApiConfigured } from '@/constants/api';
+import { isApiConfigured } from '@/constants/api';
 import { USE_MOCK_API } from '@/constants/features';
 import type { MealAnalysisService } from '@/services/contracts/mealAnalysisService';
 import type { MealSubmissionApi } from '@/services/contracts/mealSubmissionApi';
@@ -10,15 +10,18 @@ import { localNotificationsRepository } from '@/services/local/localNotification
 import { localProfileRepository } from '@/services/local/localProfileRepository';
 import { mockMealAnalysisService } from '@/services/local/mockMealAnalysisService';
 import { mockPlateDetectionService } from '@/services/local/mockPlateDetectionService';
+import { apiMealAnalysisService } from '@/services/remote/apiMealAnalysisService';
 import { apiPlateDetectionService } from '@/services/remote/apiPlateDetectionService';
 
 const mealAnalysis: MealAnalysisService = USE_MOCK_API
   ? fakeApiMealAnalysisService
-  : mockMealAnalysisService;
+  : isApiConfigured()
+    ? apiMealAnalysisService
+    : mockMealAnalysisService;
 
 const mealSubmission: MealSubmissionApi | null = USE_MOCK_API ? fakeApiMealSubmissionService : null;
 
-const plateDetection: PlateDetectionService = isPlateApiConfigured()
+const plateDetection: PlateDetectionService = isApiConfigured()
   ? apiPlateDetectionService
   : mockPlateDetectionService;
 

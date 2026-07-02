@@ -40,10 +40,22 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.set('Authorization', `Bearer ${authToken}`);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+      ...options,
+      headers,
+    });
+  } catch (err) {
+    const isNetworkFailure =
+      err instanceof TypeError && /network request failed/i.test(err.message);
+    const message = isNetworkFailure
+      ? `Cannot reach the API at ${API_BASE_URL}. Start the server (cd server && npm run dev) or run docker compose up in server/.`
+      : err instanceof Error
+        ? err.message
+        : 'Network request failed';
+    throw new ApiError(message, 0);
+  }
 
   const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T> & Record<string, unknown>;
 

@@ -68,6 +68,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
   const [dailyLog, setDailyLog] = useState<DailyLog>({ date: todayKey(), waterMl: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const mealsRef = useRef(meals);
+  const mealsInflightRef = useRef<Promise<void> | null>(null);
   mealsRef.current = meals;
 
   const updateMealInState = useCallback((meal: MealSubmission) => {
@@ -115,21 +116,33 @@ export function MealsProvider({ children }: PropsWithChildren) {
   }, [isAuthenticated]);
 
   const refreshMeals = useCallback(async () => {
-    if (isApiConfigured() && isAuthenticated) {
-      const remoteMeals = await fetchConsumerMeals();
-      setMeals(remoteMeals);
-      for (const meal of remoteMeals) {
-        await services.mealsRepository.upsertMeal(meal);
-      }
-      await syncRemoteWater();
-      return;
+    if (mealsInflightRef.current) {
+      return mealsInflightRef.current;
     }
-    const [storedMeals, log] = await Promise.all([
-      services.mealsRepository.getMeals(),
-      services.mealsRepository.getDailyLog(),
-    ]);
-    setMeals(storedMeals);
-    setDailyLog(log);
+
+    mealsInflightRef.current = (async () => {
+      try {
+        if (isApiConfigured() && isAuthenticated) {
+          const remoteMeals = await fetchConsumerMeals();
+          setMeals(remoteMeals);
+          for (const meal of remoteMeals) {
+            await services.mealsRepository.upsertMeal(meal);
+          }
+          await syncRemoteWater();
+          return;
+        }
+        const [storedMeals, log] = await Promise.all([
+          services.mealsRepository.getMeals(),
+          services.mealsRepository.getDailyLog(),
+        ]);
+        setMeals(storedMeals);
+        setDailyLog(log);
+      } finally {
+        mealsInflightRef.current = null;
+      }
+    })();
+
+    return mealsInflightRef.current;
   }, [isAuthenticated, syncRemoteWater]);
 
   const simulatePipeline = useCallback(
@@ -154,13 +167,10 @@ export function MealsProvider({ children }: PropsWithChildren) {
 
     (async () => {
       if (isApiConfigured() && isAuthenticated) {
-        const remoteMeals = await fetchConsumerMeals();
-        if (!cancelled) {
-          setMeals(remoteMeals);
-          setIsLoading(false);
-        }
-        if (!cancelled) {
-          await syncRemoteWater();
+        try {
+          await refreshMeals();
+        } finally {
+          if (!cancelled) setIsLoading(false);
         }
         return;
       }
@@ -181,7 +191,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [resumeActivePipelines, isAuthenticated, syncRemoteWater]);
+  }, [isAuthenticated, refreshMeals, resumeActivePipelines]);
 
   const analyzeMeal = useCallback(
     async ({

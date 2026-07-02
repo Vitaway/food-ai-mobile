@@ -1,18 +1,28 @@
+import { requireOptionalNativeModule } from 'expo-modules-core';
 import { Share } from 'react-native';
+
+type ClipboardNative = {
+  setStringAsync: (text: string) => Promise<void>;
+};
+
+const clipboardNative = requireOptionalNativeModule<ClipboardNative>('ExpoClipboard');
 
 /** Copy text when the native clipboard module is available; otherwise open the share sheet. */
 export async function copyToClipboard(text: string): Promise<'copied' | 'shared' | 'cancelled'> {
-  try {
-    const Clipboard = await import('expo-clipboard');
-    await Clipboard.setStringAsync(text);
-    return 'copied';
-  } catch {
+  if (clipboardNative?.setStringAsync) {
     try {
-      const result = await Share.share({ message: text });
-      if (result.action === Share.dismissedAction) return 'cancelled';
-      return 'shared';
+      await clipboardNative.setStringAsync(text);
+      return 'copied';
     } catch {
-      return 'cancelled';
+      /* fall through to share */
     }
+  }
+
+  try {
+    const result = await Share.share({ message: text });
+    if (result.action === Share.dismissedAction) return 'cancelled';
+    return 'shared';
+  } catch {
+    return 'cancelled';
   }
 }

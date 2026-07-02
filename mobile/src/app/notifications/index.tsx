@@ -1,3 +1,4 @@
+import { useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -10,7 +11,13 @@ import { useSinglePress } from '@/hooks/useSinglePress';
 
 export default function NotificationsScreen() {
   const { push, back } = useNavigateOnce();
-  const { items, markRead, markAllRead } = useAppNotifications();
+  const { items, markRead, markAllRead, refreshContext } = useAppNotifications();
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshContext({ includeServer: true });
+    }, [refreshContext]),
+  );
 
   const unread = items.filter((item) => !item.read);
   const markAllReadOnce = useSinglePress(markAllRead);

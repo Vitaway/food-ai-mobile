@@ -147,9 +147,6 @@ vite.config.ts.timestamp-*
 .vite/
 
 # Python backend
-backend/.venv/
-backend/__pycache__/
-
 # Expo
 .expo/
 dist/

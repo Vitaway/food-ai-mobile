@@ -11,7 +11,7 @@ import { HomeQuickLogBar } from '@/components/home/HomeQuickLogBar';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
 import { isPipelineActive } from '@/constants/mealStatus';
-import { useAppNotifications } from '@/hooks/useAppNotifications';
+import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
@@ -32,7 +32,7 @@ export default function HomeScreen() {
   const { profile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const { dashboard, timeline, mealCount, displayName } = useDashboard(selectedDate);
-  const { unreadCount: notificationUnread } = useAppNotifications();
+  const notificationUnread = useNotificationUnreadCount();
   const firstName = useMemo(() => displayName.trim().split(/\s+/)[0] || 'there', [displayName]);
 
   const isToday = selectedDate === todayKey();

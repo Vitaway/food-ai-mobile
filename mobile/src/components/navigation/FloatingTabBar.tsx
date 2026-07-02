@@ -19,6 +19,7 @@ export type FloatingTabBarProps = {
     }) => { defaultPrevented?: boolean };
     navigate: (name: string, params?: object) => void;
   };
+  notificationUnreadCount?: number;
 };
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
@@ -33,7 +34,7 @@ const INACTIVE_ICON = 'rgba(255, 255, 255, 0.65)';
 
 export const FLOATING_TAB_BAR_CLEARANCE = 112;
 
-export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
+export function FloatingTabBar({ state, navigation, notificationUnreadCount = 0 }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom - 4, 10);
 
@@ -92,7 +93,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
               style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {isFocused ? (
                 <View
-                  className="flex-row items-center gap-2 rounded-full bg-white px-4 py-2.5"
+                  className="relative flex-row items-center gap-2 rounded-full bg-white px-4 py-2.5"
                   style={Platform.select({
                     ios: {
                       shadowColor: '#1a1c17',
@@ -108,6 +109,13 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
                     color={ACTIVE_ICON}
                   />
                   <Text className="font-sans-semibold text-sm text-neutral-900">{config.label}</Text>
+                  {route.name === 'index' && notificationUnreadCount > 0 ? (
+                    <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">
+                        {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View className="h-11 w-11 items-center justify-center rounded-full bg-white/15">
@@ -116,6 +124,13 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
                     size={config.icon === 'add' ? 24 : 22}
                     color={INACTIVE_ICON}
                   />
+                  {route.name === 'index' && notificationUnreadCount > 0 ? (
+                    <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">
+                        {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               )}
             </Pressable>

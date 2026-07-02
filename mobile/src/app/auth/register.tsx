@@ -1,4 +1,4 @@
-import { useRouter, type Href } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
@@ -45,7 +45,6 @@ export default function RegisterScreen() {
     try {
       await register(email, password, displayName.trim(), referralCode.trim() || undefined);
       toast.success('Account created — finish your health profile next.', 'Welcome');
-      router.replace('/onboarding' as Href);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Registration failed'), 'Registration failed');
     } finally {
@@ -56,7 +55,6 @@ export default function RegisterScreen() {
   return (
     <AuthScreenShell
       title="Create your account"
-      subtitle="Get your unique patient file ID and sync across mobile and web"
       actions={
         <Button
           label={loading ? 'Creating…' : 'Create account'}
@@ -82,7 +80,7 @@ export default function RegisterScreen() {
           onChangeText={setEmail}
           keyboardType="email-address"
           autoCapitalize="none"
-          placeholder="you@vitaway.com"
+          placeholder="you@vitaway.org"
         />
         <View>
           <PasswordField

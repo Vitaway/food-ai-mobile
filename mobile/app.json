@@ -14,7 +14,8 @@
         "NSPhotoLibraryUsageDescription": "MiraFood needs photo access for AR measurement.",
         "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
         "NSCameraUsageDescription": "MiraFood uses your camera to measure plate size in AR.",
-        "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement."
+        "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement.",
+        "UIBackgroundModes": ["remote-notification"]
       }
     },
     "android": {
@@ -26,7 +27,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO"
+        "android.permission.RECORD_AUDIO",
+        "android.permission.POST_NOTIFICATIONS"
       ]
     },
     "web": {
@@ -39,6 +41,14 @@
       "expo-router",
       "expo-font",
       "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#16304D",
+          "defaultChannel": "default"
+        }
+      ],
       [
         "expo-image-picker",
         {

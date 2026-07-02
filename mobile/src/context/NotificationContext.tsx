@@ -11,6 +11,8 @@ import {
 
 import { API_BASE_URL, isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { emitUnauthorized } from '@/lib/authEvents';
 import {
   fetchNotifications,
   markAllNotificationsRead,
@@ -18,11 +20,14 @@ import {
   type ServerNotification,
 } from '@/services/remote/consumerApi';
 
+const MIN_REFRESH_MS = 5000;
+
 type NotificationContextValue = {
   serverNotifications: ServerNotification[];
   serverUnreadCount: number;
+  hasLoadedNotifications: boolean;
   isConnected: boolean;
-  refreshServerNotifications: () => Promise<void>;
+  refreshServerNotifications: (force?: boolean) => Promise<void>;
   markServerRead: (id: string) => Promise<void>;
   markAllServerRead: () => Promise<void>;
 };
@@ -36,21 +41,46 @@ function notificationsWsUrl(token: string) {
 
 export function NotificationProvider({ children }: PropsWithChildren) {
   const { session, isAuthenticated } = useAuth();
+  const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
   const [serverNotifications, setServerNotifications] = useState<ServerNotification[]>([]);
   const [serverUnreadCount, setServerUnreadCount] = useState(0);
+  const [hasLoadedNotifications, setHasLoadedNotifications] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const refreshInflightRef = useRef<Promise<void> | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
-  const refreshServerNotifications = useCallback(async () => {
+  const refreshServerNotifications = useCallback(async (force = false) => {
     if (!isApiConfigured() || !isAuthenticated) {
       setServerNotifications([]);
       setServerUnreadCount(0);
+      setHasLoadedNotifications(false);
       return;
     }
 
-    const items = await fetchNotifications();
-    setServerNotifications(items);
-    setServerUnreadCount(items.filter((item) => !item.read).length);
+    const now = Date.now();
+    if (!force && now - lastRefreshAtRef.current < MIN_REFRESH_MS) {
+      return;
+    }
+    if (refreshInflightRef.current) {
+      return refreshInflightRef.current;
+    }
+
+    refreshInflightRef.current = (async () => {
+      try {
+        const items = await fetchNotifications();
+        lastRefreshAtRef.current = Date.now();
+        setServerNotifications(items);
+        setServerUnreadCount(items.filter((item) => !item.read).length);
+        setHasLoadedNotifications(true);
+      } finally {
+        refreshInflightRef.current = null;
+      }
+    })();
+
+    return refreshInflightRef.current;
   }, [isAuthenticated]);
 
   const markServerRead = useCallback(
@@ -72,23 +102,34 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     setServerUnreadCount(0);
   }, [isAuthenticated]);
 
+  const refreshRef = useRef(refreshServerNotifications);
+  refreshRef.current = refreshServerNotifications;
+
+  const token = session?.token;
+
   useEffect(() => {
-    if (!isApiConfigured() || !isAuthenticated || !session?.token) {
+    if (!isApiConfigured() || !isAuthenticated || !token) {
       setServerNotifications([]);
       setServerUnreadCount(0);
+      setHasLoadedNotifications(false);
       setIsConnected(false);
       socketRef.current?.close();
       socketRef.current = null;
       return;
     }
 
-    void refreshServerNotifications();
+    void refreshRef.current(true);
 
-    const socket = new WebSocket(notificationsWsUrl(session.token));
+    const socket = new WebSocket(notificationsWsUrl(token));
     socketRef.current = socket;
 
     socket.onopen = () => setIsConnected(true);
-    socket.onclose = () => setIsConnected(false);
+    socket.onclose = (event) => {
+      setIsConnected(false);
+      if (event.code === 4401 || event.code === 4403) {
+        emitUnauthorized();
+      }
+    };
     socket.onerror = () => setIsConnected(false);
     socket.onmessage = (event) => {
       try {
@@ -102,13 +143,16 @@ export function NotificationProvider({ children }: PropsWithChildren) {
         }
 
         if (payload.type === 'notification') {
+          const notification = payload.notification;
+          let isNew = false;
           setServerNotifications((current) => {
-            const exists = current.some((item) => item.id === payload.notification.id);
+            const exists = current.some((item) => item.id === notification.id);
             if (exists) return current;
-            return [payload.notification, ...current];
+            isNew = true;
+            return [notification, ...current];
           });
-          if (!payload.notification.read) {
-            setServerUnreadCount((count) => count + 1);
+          if (isNew && !notification.read) {
+            toastRef.current.info(notification.message, notification.title);
           }
         }
       } catch {
@@ -120,12 +164,13 @@ export function NotificationProvider({ children }: PropsWithChildren) {
       socket.close();
       socketRef.current = null;
     };
-  }, [isAuthenticated, refreshServerNotifications, session?.token]);
+  }, [isAuthenticated, token]);
 
   const value = useMemo(
     () => ({
       serverNotifications,
       serverUnreadCount,
+      hasLoadedNotifications,
       isConnected,
       refreshServerNotifications,
       markServerRead,
@@ -134,6 +179,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
     [
       serverNotifications,
       serverUnreadCount,
+      hasLoadedNotifications,
       isConnected,
       refreshServerNotifications,
       markServerRead,

@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
@@ -127,27 +128,73 @@ export function ProfileProvider({ children }: PropsWithChildren) {
 
   const patientId = session?.user.patientId ?? profile?.id ?? null;
 
+  const loadedForUserIdRef = useRef<string | null>(null);
+  const profileInflightRef = useRef<Promise<void> | null>(null);
+  const userId = session?.user.id ?? null;
+
   const refreshProfile = useCallback(async () => {
     if (isApiConfigured() && !isAuthenticated) {
       setProfile(null);
       return;
     }
-    if (isApiConfigured() && isAuthenticated) {
-      const remote = await fetchConsumerProfile();
-      const stored = await services.profileRepository.getProfile();
-      const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, stored);
-      await services.profileRepository.saveProfile(normalized);
-      setProfile(normalized);
-      return;
+
+    if (profileInflightRef.current) {
+      return profileInflightRef.current;
     }
-    const stored = await services.profileRepository.getProfile();
-    setProfile(stored);
+
+    profileInflightRef.current = (async () => {
+      try {
+        if (isApiConfigured() && isAuthenticated) {
+          const remote = await fetchConsumerProfile();
+          const stored = await services.profileRepository.getProfile();
+          const existing = stored?.id === remote.patientId ? stored : null;
+          const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, existing);
+          await services.profileRepository.saveProfile(normalized);
+          setProfile(normalized);
+          return;
+        }
+        const stored = await services.profileRepository.getProfile();
+        setProfile(stored);
+      } finally {
+        profileInflightRef.current = null;
+      }
+    })();
+
+    return profileInflightRef.current;
   }, [isAuthenticated]);
 
   useEffect(() => {
-    setIsLoading(true);
-    refreshProfile().finally(() => setIsLoading(false));
-  }, [isAuthenticated, session?.user.id, refreshProfile]);
+    let cancelled = false;
+
+    async function loadProfile() {
+      if (isApiConfigured() && !isAuthenticated) {
+        loadedForUserIdRef.current = null;
+        setProfile(null);
+        setIsLoading(false);
+        return;
+      }
+
+      const isNewUser = Boolean(userId && loadedForUserIdRef.current !== userId);
+      if (isNewUser || loadedForUserIdRef.current === null) {
+        if (isNewUser) setProfile(null);
+        setIsLoading(true);
+      }
+
+      try {
+        await refreshProfile();
+      } finally {
+        if (!cancelled) {
+          loadedForUserIdRef.current = userId;
+          setIsLoading(false);
+        }
+      }
+    }
+
+    void loadProfile();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, userId, refreshProfile]);
 
   const saveProfile = useCallback(
     async (draft: ProfileDraft) => {
@@ -205,7 +252,9 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     () => ({
       profile,
       isLoading,
-      hasCompletedOnboarding: Boolean(profile?.onboardingComplete),
+      hasCompletedOnboarding: Boolean(
+        profile?.onboardingComplete ?? session?.onboardingComplete,
+      ),
       patientId,
       saveProfile,
       updateAccount,
@@ -216,6 +265,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     [
       profile,
       isLoading,
+      session?.onboardingComplete,
       patientId,
       saveProfile,
       updateAccount,

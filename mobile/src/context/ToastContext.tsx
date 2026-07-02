@@ -41,7 +41,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const show = useCallback(
-    ({ type, title, message, durationMs = 4200 }: ToastInput) => {
+    ({ type, title, message, durationMs = 6200 }: ToastInput) => {
       const id = nextToastId();
       setToasts((current) => [...current, { id, type, title, message }].slice(-4));
 
@@ -56,7 +56,7 @@ export function ToastProvider({ children }: PropsWithChildren) {
     () => ({
       show,
       success: (message, title) => show({ type: 'success', message, title }),
-      error: (message, title) => show({ type: 'error', message, title, durationMs: 5200 }),
+      error: (message, title) => show({ type: 'error', message, title, durationMs: 7200 }),
       info: (message, title) => show({ type: 'info', message, title }),
       dismiss,
     }),

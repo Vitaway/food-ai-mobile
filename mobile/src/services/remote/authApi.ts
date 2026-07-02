@@ -49,3 +49,17 @@ export async function logoutRequest(): Promise<void> {
     /* ignore */
   }
 }
+
+export async function requestPasswordReset(email: string): Promise<void> {
+  await apiRequest<{ ok: boolean }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email: email.trim() }),
+  });
+}
+
+export async function resetPasswordWithToken(token: string, password: string): Promise<void> {
+  await apiRequest<{ ok: boolean }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
+}
