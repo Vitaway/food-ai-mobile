@@ -18,6 +18,7 @@ export const semanticColors = {
   primaryLight: palette['blue-spruce'][100],
   secondary: palette.shamrock[500],
   accent: palette['cinnamon-wood'][400],
+  accentOrange: palette['cinnamon-wood'][400],
   background: palette['ash-grey'][50],
   surface: '#ffffff',
   text: palette['ash-grey'][900],

@@ -14,7 +14,6 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space"
       }
     },
@@ -25,7 +24,6 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_USE_MOCK_API": "false"
       }
@@ -33,7 +31,6 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_PLATE_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_USE_MOCK_API": "false"
       }

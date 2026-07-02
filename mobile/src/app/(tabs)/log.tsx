@@ -2,24 +2,29 @@ import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused } from '@react-navigation/native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
-import { LogMethodStep } from '@/components/log/LogMethodStep';
+import { LogMethodStep, type LogMethodId } from '@/components/log/LogMethodStep';
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
 import { LogScreenShell } from '@/components/log/LogScreenShell';
 import { LogTextStep } from '@/components/log/LogTextStep';
+import { Button } from '@/components/ui/Button';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constants/mealTypes';
 import type { LogStep } from '@/constants/logMock';
 import { useMeals } from '@/context/MealsContext';
+import { useToast } from '@/context/ToastContext';
 import { services } from '@/services';
 import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
 import type { MealAnalysisPreview } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
-import { consumeLogMealTypeIntent } from '@/utils/logIntent';
+import { getApiErrorMessage } from '@/utils/apiErrors';
+import {
+  consumeLogMealTypeIntent,
+  consumeLogMethodIntent,
+} from '@/utils/logIntent';
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
@@ -38,15 +43,18 @@ const STEP_TITLES: Record<FlowStep, string> = {
 
 export default function LogMealScreen() {
   const { push } = useNavigateOnce();
+  const toast = useToast();
   const isFocused = useIsFocused();
   const { mealType: mealTypeParam } = useLocalSearchParams<{ mealType?: string }>();
   const { analyzeMeal, saveMealToDiary, meals } = useMeals();
+  const handledIntentRef = useRef(false);
 
   const [step, setStep] = useState<FlowStep>('method');
-  const [selectedMethod, setSelectedMethod] = useState('camera');
+  const [selectedMethod, setSelectedMethod] = useState<LogMethodId>('camera');
   const [selectedMealType, setSelectedMealType] = useState<MealTypeId | null>(() => suggestMealTypeForNow());
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
+  const [galleryNote, setGalleryNote] = useState('');
   const [analysis, setAnalysis] = useState<MealAnalysisPreview | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -81,26 +89,13 @@ export default function LogMealScreen() {
     setSelectedMealType(resolveInitialMealType());
     setImageUri(null);
     setTextInput('');
+    setGalleryNote('');
     setAnalysis(null);
     setAnalyzing(false);
     setSaving(false);
     resetPlateDetection();
+    handledIntentRef.current = false;
   }, [resolveInitialMealType, resetPlateDetection]);
-
-  const applyMealTypeFromNavigation = useCallback(() => {
-    const fromIntent = consumeLogMealTypeIntent();
-    const nextType =
-      fromIntent ?? (mealTypeParam && isMealTypeId(mealTypeParam) ? mealTypeParam : null);
-    if (!nextType) return;
-    setSelectedMealType(nextType);
-    setStep('method');
-  }, [mealTypeParam]);
-
-  useFocusEffect(
-    useCallback(() => {
-      applyMealTypeFromNavigation();
-    }, [applyMealTypeFromNavigation]),
-  );
 
   const detectPlateFromPhoto = useCallback(async (uri: string, metadata: ImageCaptureMetadata) => {
     setDetectingPlate(true);
@@ -134,6 +129,11 @@ export default function LogMealScreen() {
     detectPlateFromPhoto(imageUri, captureMetadata);
   }, [captureMetadata, detectPlateFromPhoto, imageUri, step]);
 
+  const combinedTextInput = useMemo(() => {
+    const parts = [textInput.trim(), galleryNote.trim()].filter(Boolean);
+    return parts.join('. ');
+  }, [galleryNote, textInput]);
+
   const runAnalysis = useCallback(async () => {
     if (analyzing) return;
     setAnalyzing(true);
@@ -141,23 +141,26 @@ export default function LogMealScreen() {
     try {
       const result = await analyzeMeal({
         imageUri: imageUri ?? undefined,
-        text: textInput || undefined,
+        text: combinedTextInput || undefined,
         plateDiameterCm: plateDiameterCm ?? undefined,
       });
       setAnalysis(result);
       setStep('results');
     } catch {
-      Alert.alert('Analysis failed', 'Try again.');
+      toast.error('Could not analyze this meal. Try again.');
       setStep(imageUri ? 'scan' : 'text');
     } finally {
       setAnalyzing(false);
     }
-  }, [analyzing, analyzeMeal, imageUri, plateDiameterCm, textInput]);
+  }, [analyzing, analyzeMeal, combinedTextInput, imageUri, plateDiameterCm, toast]);
 
-  const handlePermissionDenied = useCallback((source: 'camera' | 'gallery', canAskAgain: boolean) => {
-    const label = source === 'camera' ? 'camera' : 'photos';
-    Alert.alert('Permission needed', canAskAgain ? `Allow ${label} access.` : `Enable ${label} in Settings.`);
-  }, []);
+  const handlePermissionDenied = useCallback(
+    (source: 'camera' | 'gallery', canAskAgain: boolean) => {
+      const label = source === 'camera' ? 'camera' : 'photos';
+      toast.error(canAskAgain ? `Allow ${label} access to continue.` : `Enable ${label} in Settings.`);
+    },
+    [toast],
+  );
 
   const pickImage = useCallback(
     async (source: 'camera' | 'gallery'): Promise<CapturedImage | null> => {
@@ -173,7 +176,6 @@ export default function LogMealScreen() {
 
       const pickerOptions: ImagePicker.ImagePickerOptions = {
         quality: 0.92,
-        // Keep full frame for diameter measurement — cropping skews rim detection.
         allowsEditing: false,
         exif: true,
       };
@@ -194,73 +196,136 @@ export default function LogMealScreen() {
     [handlePermissionDenied],
   );
 
-  const handleContinue = useCallback(async () => {
-    if (analyzing || saving) return;
+  const openPhotoFlow = useCallback(
+    async (source: 'camera' | 'gallery') => {
+      if (analyzing || saving) return;
+      setSelectedMethod(source);
+      setGalleryNote('');
+      const captured = await pickImage(source);
+      if (!captured) {
+        setStep('method');
+        return;
+      }
+      resetPlateDetection();
+      setAnalysis(null);
+      setImageUri(captured.uri);
+      setCaptureMetadata(captured.metadata);
+      setStep('scan');
+    },
+    [analyzing, pickImage, resetPlateDetection, saving],
+  );
 
-    if (!selectedMealType) {
-      Alert.alert('Select a meal type', 'Choose what meal this is, or tap Continue after selecting.');
-      return;
-    }
+  const handleMethodSelect = useCallback(
+    async (method: LogMethodId) => {
+      if (analyzing || saving) return;
+      setSelectedMethod(method);
 
-    if (selectedMethod === 'text') {
-      setStep('text');
-      return;
-    }
+      if (method === 'camera') {
+        await openPhotoFlow('camera');
+        return;
+      }
 
-    if (selectedMethod === 'past') {
+      if (method === 'gallery') {
+        await openPhotoFlow('gallery');
+        return;
+      }
+
+      if (method === 'text') {
+        setStep('text');
+        return;
+      }
+
       const past = meals.find((meal) => meal.status === 'approved');
       if (!past) {
-        Alert.alert('No past meals', 'Log a meal first.');
+        toast.info('Log a meal first, then you can repeat it here.');
         return;
       }
       setSelectedMealType(past.mealType);
       setImageUri(past.imageUrl ?? null);
       setTextInput(past.textInput ?? past.mealName ?? '');
+      setGalleryNote('');
       setStep('text');
-      return;
+    },
+    [analyzing, meals, openPhotoFlow, saving, toast],
+  );
+
+  const applyNavigationIntents = useCallback(() => {
+    const fromMealType = consumeLogMealTypeIntent();
+    const fromMethod = consumeLogMethodIntent();
+
+    if (fromMealType) {
+      setSelectedMealType(fromMealType);
+    } else if (mealTypeParam && isMealTypeId(mealTypeParam)) {
+      setSelectedMealType(mealTypeParam);
     }
 
-    const captured = await pickImage(selectedMethod === 'camera' ? 'camera' : 'gallery');
-    if (!captured) return;
-    resetPlateDetection();
-    setImageUri(captured.uri);
-    setCaptureMetadata(captured.metadata);
-    setStep('scan');
-  }, [analyzing, meals, pickImage, resetPlateDetection, saving, selectedMealType, selectedMethod]);
+    if (!fromMethod || handledIntentRef.current) return;
+    handledIntentRef.current = true;
+
+    if (fromMethod === 'camera') {
+      void openPhotoFlow('camera');
+      return;
+    }
+    if (fromMethod === 'gallery') {
+      void openPhotoFlow('gallery');
+      return;
+    }
+    if (fromMethod === 'describe') {
+      setStep('text');
+    }
+  }, [mealTypeParam, openPhotoFlow]);
+
+  useFocusEffect(
+    useCallback(() => {
+      applyNavigationIntents();
+    }, [applyNavigationIntents]),
+  );
 
   const handleRetakePhoto = useCallback(async () => {
     if (analyzing || saving) return;
-
     const source = selectedMethod === 'gallery' ? 'gallery' : 'camera';
-    const captured = await pickImage(source);
-    if (!captured) return;
-
-    resetPlateDetection();
-    setAnalysis(null);
-    setImageUri(captured.uri);
-    setCaptureMetadata(captured.metadata);
-    setStep('scan');
-  }, [analyzing, pickImage, resetPlateDetection, saving, selectedMethod]);
+    await openPhotoFlow(source);
+  }, [analyzing, openPhotoFlow, saving, selectedMethod]);
 
   const handleSave = useCallback(async () => {
-    if (!analysis || saving || !selectedMealType) return;
+    if (!analysis || saving || !selectedMealType) {
+      if (!selectedMealType) {
+        toast.error('Pick a meal type before submitting.');
+      }
+      return;
+    }
+
     setSaving(true);
     try {
       const meal = await saveMealToDiary({
         mealType: selectedMealType,
         imageUrl: imageUri ?? undefined,
-        textInput: textInput || undefined,
+        textInput: combinedTextInput || undefined,
+        note: galleryNote.trim() || undefined,
         plateDiameterCm: analysis.plateDiameterCm ?? plateDiameterCm,
         analysis,
       });
       resetFlow();
+      toast.success('Meal sent for coach review.', 'Submitted');
       push(`/meal/${meal.id}`);
-    } catch {
-      Alert.alert('Could not save', 'Try again.');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
     } finally {
       setSaving(false);
     }
-  }, [analysis, imageUri, plateDiameterCm, push, resetFlow, saveMealToDiary, selectedMealType, textInput]);
+  }, [
+    analysis,
+    combinedTextInput,
+    galleryNote,
+    imageUri,
+    plateDiameterCm,
+    push,
+    resetFlow,
+    saveMealToDiary,
+    selectedMealType,
+    saving,
+    toast,
+  ]);
 
   const handleBack = useCallback(() => {
     if (step === 'text' || step === 'scan') setStep('method');
@@ -270,18 +335,24 @@ export default function LogMealScreen() {
   const showBack = step !== 'method' && step !== 'analyzing';
   const useScroll = step === 'method' || step === 'results' || step === 'analyzing' || step === 'scan';
 
-  const content = useMemo(() => {
-    if (step === 'method') {
+  const footer = useMemo(() => {
+    if (step === 'results' && analysis) {
       return (
-        <LogMethodStep
-          selectedMethod={selectedMethod}
-          selectedMealType={selectedMealType}
-          loading={analyzing || saving}
-          onSelectMethod={setSelectedMethod}
-          onSelectMealType={setSelectedMealType}
-          onContinue={handleContinue}
+        <Button
+          label={saving ? 'Submitting…' : 'Submit for review'}
+          variant="secondary"
+          onPress={handleSave}
+          disabled={saving || !selectedMealType}
+          fullWidth
         />
       );
+    }
+    return null;
+  }, [analysis, handleSave, saving, selectedMealType, step]);
+
+  const content = useMemo(() => {
+    if (step === 'method') {
+      return <LogMethodStep loading={analyzing || saving} onSelectMethod={handleMethodSelect} />;
     }
     if (step === 'text') {
       return (
@@ -305,6 +376,9 @@ export default function LogMealScreen() {
           plateDiameterCm={plateDiameterCm}
           plateConfidence={plateConfidence}
           plateDetectionError={plateDetectionError}
+          showGalleryNote={selectedMethod === 'gallery'}
+          galleryNote={galleryNote}
+          onGalleryNoteChange={setGalleryNote}
           loading={analyzing}
           bottomPadding={bottomPadding}
           onRetake={handleRetakePhoto}
@@ -328,8 +402,8 @@ export default function LogMealScreen() {
         <LogResultsStep
           analysis={analysis}
           imageUri={imageUri ?? undefined}
-          saving={saving}
-          onSave={handleSave}
+          selectedMealType={selectedMealType}
+          onSelectMealType={setSelectedMealType}
         />
       );
     }
@@ -340,9 +414,9 @@ export default function LogMealScreen() {
     bottomPadding,
     containerType,
     detectingPlate,
-    handleContinue,
+    galleryNote,
+    handleMethodSelect,
     handleRetakePhoto,
-    handleSave,
     imageUri,
     plateConfidence,
     plateDetected,
@@ -363,7 +437,8 @@ export default function LogMealScreen() {
         title={stepTitle}
         onBack={showBack ? handleBack : undefined}
         scroll={useScroll}
-        bottomPadding={bottomPadding}>
+        bottomPadding={bottomPadding}
+        footer={footer}>
         {content}
       </LogScreenShell>
     </>

@@ -6,7 +6,11 @@ export default function ProfileStackLayout() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: '#ffffff' },
-      }}
-    />
+      }}>
+      <Stack.Screen name="account" />
+      <Stack.Screen name="health" />
+      <Stack.Screen name="notifications" />
+      <Stack.Screen name="data" />
+    </Stack>
   );
 }

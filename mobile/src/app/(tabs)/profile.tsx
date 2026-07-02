@@ -1,36 +1,21 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, View } from 'react-native';
 
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { ProfileHeroCard } from '@/components/profile/ProfileHeroCard';
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ProfileSection } from '@/components/profile/ProfileSection';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
-import { useAppLock } from '@/context/AppLockContext';
+import { isApiConfigured } from '@/constants/api';
+import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-import { useSinglePress } from '@/hooks/useSinglePress';
+import { useToast } from '@/context/ToastContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { profile } = useProfile();
-  const { isEnabled: passcodeEnabled, biometricsEnabled, biometricLabel, lock } = useAppLock();
-
-  const handleLockApp = useSinglePress(() => {
-    if (passcodeEnabled) {
-      lock();
-      return;
-    }
-
-    Alert.alert(
-      'Passcode required',
-      'Set up a passcode in Security to lock the app.',
-      [
-        { text: 'Not now', style: 'cancel' },
-        { text: 'Open Security', onPress: () => router.push('/profile/security') },
-      ],
-    );
-  });
+  const toast = useToast();
+  const { logout, isAuthenticated } = useAuth();
+  const { profile, patientId } = useProfile();
 
   const displayName = profile?.displayName?.trim() || 'Your profile';
   const initial = displayName.slice(0, 1).toUpperCase() || '?';
@@ -38,20 +23,24 @@ export default function ProfileScreen() {
     ? new Date(profile.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : null;
 
+  const handleSignOut = () => {
+    Alert.alert('Sign out?', 'You will need to sign in again to access your meals and profile.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => {
+          void logout()
+            .then(() => toast.success('Signed out successfully', 'See you soon'))
+            .catch(() => toast.error('Could not sign out. Try again.'));
+        },
+      },
+    ]);
+  };
+
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar
-        title="Profile"
-        rightAction={
-          <Pressable
-            onPress={handleLockApp}
-            accessibilityRole="button"
-            accessibilityLabel={passcodeEnabled ? 'Lock app' : 'Set up passcode to lock app'}
-            className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 active:opacity-90">
-            <Ionicons name="power" size={22} color="#ffffff" />
-          </Pressable>
-        }
-      />
+      <ScreenTopBar title="Profile" />
 
       <StackScreenBody>
         <ScrollView
@@ -60,7 +49,7 @@ export default function ProfileScreen() {
           contentContainerClassName="gap-0 pt-4">
           <ProfileHeroCard
             displayName={displayName}
-            subtitle={updatedAt ?? ''}
+            subtitle={patientId ? `Patient file · ${patientId}` : updatedAt ?? ''}
             avatarUrl={profile?.avatarUrl}
             initial={initial}
           />
@@ -71,24 +60,16 @@ export default function ProfileScreen() {
               title="Account"
               onPress={() => router.push('/profile/account')}
             />
+            <View className="mx-4 h-px bg-ash-grey-100" />
+            <ProfileMenuRow
+              icon="gift-outline"
+              title="Invite friends"
+              onPress={() => router.push('/referral')}
+            />
           </ProfileSection>
 
           <ProfileSection title="Health">
             <ProfileMenuRow icon="fitness-outline" title="Health profile" onPress={() => router.push('/profile/health')} />
-          </ProfileSection>
-
-          <ProfileSection title="Security">
-            <ProfileMenuRow
-              icon="lock-closed-outline"
-              title={
-                passcodeEnabled
-                  ? biometricsEnabled
-                    ? `Passcode · ${biometricLabel}`
-                    : 'Passcode · On'
-                  : 'Passcode'
-              }
-              onPress={() => router.push('/profile/security')}
-            />
           </ProfileSection>
 
           <ProfileSection title="Preferences">
@@ -110,6 +91,18 @@ export default function ProfileScreen() {
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow icon="shield-checkmark-outline" title="Data & privacy" onPress={() => router.push('/profile/data')} />
           </ProfileSection>
+
+          {isApiConfigured() && isAuthenticated ? (
+            <ProfileSection title="Session">
+              <ProfileMenuRow
+                icon="log-out-outline"
+                title="Sign out"
+                subtitle="Switch account or sign in again"
+                destructive
+                onPress={handleSignOut}
+              />
+            </ProfileSection>
+          ) : null}
         </ScrollView>
       </StackScreenBody>
     </View>

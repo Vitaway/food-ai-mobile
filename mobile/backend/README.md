@@ -1,6 +1,8 @@
-# MiraFood plate detection API
+# MiraFood plate detection API (deprecated)
 
-Flask server that sends meal photos + camera metadata to **OpenRouter** and returns plate/bowl detection + diameter.
+> **Deprecated.** Plate detection and all API routes now live in the Node server at [`../../server/`](../../server/). Deploy that instead of this Flask app. Mobile clients call `POST /api/v1/vision/plates/detect` on the Express API.
+
+Flask server that sends meal photos + camera metadata to **OpenRouter** and returns plate/bowl diameter detection.
 
 ## Local dev
 

@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image, Pressable, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { CalorieRing } from '@/components/home/CalorieRing';
 import { WeekDaySelector } from '@/components/home/WeekDaySelector';
@@ -42,11 +41,13 @@ export function HomeHeroCard({
         shadowRadius: 24,
         elevation: 8,
       }}>
-      <LinearGradient
-        colors={[palette['blue-spruce'][600], palette['blue-spruce'][500], palette['blue-spruce'][400]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ paddingHorizontal: 20, paddingTop: 20, paddingBottom: 16 }}>
+      <View
+        style={{
+          backgroundColor: palette['blue-spruce'][600],
+          paddingHorizontal: 20,
+          paddingTop: 20,
+          paddingBottom: 16,
+        }}>
         <View className="flex-row items-start justify-between">
           <View className="flex-row flex-wrap items-center gap-2">
             <View className="flex-row items-center gap-1 rounded-full bg-cinnamon-wood-300 px-2.5 py-1">
@@ -110,7 +111,7 @@ export function HomeHeroCard({
             className="mt-0"
           />
         </View>
-      </LinearGradient>
+      </View>
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from 'react';
+import type { PropsWithChildren, ReactNode } from 'react';
 import { ScrollView, View, type ViewStyle } from 'react-native';
 
 import { LogFlowHeader } from '@/components/log/LogFlowHeader';
@@ -31,6 +31,7 @@ type LogScreenShellProps = PropsWithChildren<{
   onBack?: () => void;
   scroll?: boolean;
   bottomPadding?: number;
+  footer?: ReactNode;
 }>;
 
 export function LogScreenShell({
@@ -38,17 +39,18 @@ export function LogScreenShell({
   onBack,
   scroll = true,
   bottomPadding = FLOATING_TAB_BAR_CLEARANCE,
+  footer,
   children,
 }: LogScreenShellProps) {
   const body = scroll ? (
     <ScrollView
       showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingBottom: bottomPadding }}
+      contentContainerStyle={{ paddingBottom: footer ? 16 : bottomPadding }}
       contentContainerClassName="gap-4">
       {children}
     </ScrollView>
   ) : (
-    <View className="flex-1" style={{ paddingBottom: bottomPadding }}>
+    <View className="flex-1" style={{ paddingBottom: footer ? 0 : bottomPadding }}>
       {children}
     </View>
   );
@@ -57,7 +59,16 @@ export function LogScreenShell({
     <View className="flex-1 bg-white">
       <LogFlowHeader title={title} onBack={onBack} />
       <ContentSheet className="flex-1 pt-5" style={{ backgroundColor: palette['ash-grey'][50] }}>
-        {body}
+        <View className="flex-1">
+          {body}
+          {footer ? (
+            <View
+              className="border-t border-ash-grey-100 bg-white px-5 pt-3"
+              style={{ paddingBottom: bottomPadding }}>
+              {footer}
+            </View>
+          ) : null}
+        </View>
       </ContentSheet>
     </View>
   );

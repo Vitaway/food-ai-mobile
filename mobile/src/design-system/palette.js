@@ -1,61 +1,52 @@
-/** Shared palette tokens — imported by tailwind.config.js and colors.ts */
-function hexToRgb(hex) {
-  const normalized = hex.replace('#', '');
-  const full = normalized.length === 3 ? normalized.split('').map((c) => c + c).join('') : normalized;
-  const num = parseInt(full, 16);
-  return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255 };
-}
+/** Shared palette tokens — aligned with web/src/index.css @theme */
 
-function rgbToHex({ r, g, b }) {
-  const toHex = (n) => n.toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
+/** Fixed scales aligned with web/src/index.css @theme tokens */
+const WEB_BLUE_SPRUCE = {
+  50: '#eef4f8',
+  100: '#d9e6ef',
+  200: '#b3ccdf',
+  300: '#8db2cf',
+  400: '#6798bf',
+  500: '#417eaf',
+  600: '#023459',
+  700: '#022a47',
+  800: '#012035',
+  900: '#011623',
+  950: '#000f18',
+};
 
-function mix(aHex, bHex, t) {
-  const a = hexToRgb(aHex);
-  const b = hexToRgb(bHex);
-  const mixChannel = (x, y) => Math.round(x + (y - x) * t);
-  return rgbToHex({ r: mixChannel(a.r, b.r), g: mixChannel(a.g, b.g), b: mixChannel(a.b, b.b) });
-}
+const WEB_SHAMROCK = {
+  50: '#edf8f3',
+  100: '#daf1e7',
+  200: '#b5e3cf',
+  300: '#90d5b7',
+  400: '#6bc79f',
+  500: '#1d9e75',
+  600: '#177e5e',
+  700: '#115f46',
+  800: '#0c3f2f',
+  900: '#062017',
+  950: '#041610',
+};
 
-function buildScale({ base, baseShade, whiteT, blackT }) {
-  const shades = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900, 950];
-  return shades.reduce((acc, shade) => {
-    if (shade === baseShade) {
-      acc[shade] = base;
-      return acc;
-    }
-
-    const isLighter = shade < baseShade;
-    const t = isLighter ? whiteT[shade] : blackT[shade];
-    acc[shade] = t == null ? base : mix(base, isLighter ? '#ffffff' : '#000000', t);
-    return acc;
-  }, {});
-}
-
-const NAVY = '#023459';
-const ORANGE = '#FF6F32';
-const GREEN = '#1D9E75';
+const WEB_CINNAMON_WOOD = {
+  50: '#fff3ed',
+  100: '#ffe7db',
+  200: '#ffcfb7',
+  300: '#ffb793',
+  400: '#ff6f32',
+  500: '#e2622d',
+  600: '#b54e24',
+  700: '#883b1b',
+  800: '#5a2712',
+  900: '#2d1409',
+  950: '#1f0e06',
+};
 
 module.exports = {
-  'blue-spruce': buildScale({
-    base: NAVY,
-    baseShade: 600,
-    whiteT: { 50: 0.92, 100: 0.85, 200: 0.7, 300: 0.52, 400: 0.34, 500: 0.15 },
-    blackT: { 700: 0.18, 800: 0.32, 900: 0.52, 950: 0.66 },
-  }),
-  shamrock: buildScale({
-    base: GREEN,
-    baseShade: 500,
-    whiteT: { 50: 0.9, 100: 0.8, 200: 0.65, 300: 0.48, 400: 0.25 },
-    blackT: { 600: 0.18, 700: 0.3, 800: 0.45, 900: 0.62, 950: 0.74 },
-  }),
-  'cinnamon-wood': buildScale({
-    base: ORANGE,
-    baseShade: 400,
-    whiteT: { 50: 0.9, 100: 0.8, 200: 0.65, 300: 0.45 },
-    blackT: { 500: 0.12, 600: 0.25, 700: 0.42, 800: 0.6, 900: 0.78, 950: 0.88 },
-  }),
+  'blue-spruce': WEB_BLUE_SPRUCE,
+  shamrock: WEB_SHAMROCK,
+  'cinnamon-wood': WEB_CINNAMON_WOOD,
   'muted-teal': {
     50: '#eff6f1',
     100: '#deede3',

@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { semanticColors } from '@/design-system/colors';
 
 type Category = {
   id: string;
@@ -24,8 +25,8 @@ export function HomeQuickCategories({ onScan, onDescribe, onWater, onInsights }:
   const categories: Category[] = [
     { id: 'scan', label: 'Scan', icon: 'camera-outline', color: '#1D9E75', bgClass: 'bg-shamrock-50', onPress: onScan },
     { id: 'text', label: 'Describe', icon: 'create-outline', color: '#023459', bgClass: 'bg-blue-spruce-50', onPress: onDescribe },
-    { id: 'water', label: 'Water', icon: 'water-outline', color: '#023459', bgClass: 'bg-blue-spruce-50', onPress: onWater },
-    { id: 'insights', label: 'Insights', icon: 'stats-chart-outline', color: '#FF6F32', bgClass: 'bg-cinnamon-wood-50', onPress: onInsights },
+    { id: 'water', label: 'Water', icon: 'water-outline', color: semanticColors.accentOrange, bgClass: 'bg-cinnamon-wood-50', onPress: onWater },
+    { id: 'insights', label: 'Insights', icon: 'stats-chart-outline', color: semanticColors.accentOrange, bgClass: 'bg-cinnamon-wood-50', onPress: onInsights },
   ];
 
   return (

@@ -5,6 +5,7 @@ import { MacroSummaryCards } from '@/components/log/MacroSummaryCards';
 import { PlateSizeCard } from '@/components/log/PlateSizeCard';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { ScanFrameOverlay } from '@/components/log/ScanFrameOverlay';
+import { AppTextInput } from '@/components/ui/AppTextInput';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
@@ -20,6 +21,9 @@ type LogScanStepProps = {
   plateDiameterCm?: number | null;
   plateConfidence?: number | null;
   plateDetectionError?: string | null;
+  showGalleryNote?: boolean;
+  galleryNote?: string;
+  onGalleryNoteChange?: (text: string) => void;
   loading?: boolean;
   bottomPadding: number;
   onRetake: () => void;
@@ -40,6 +44,9 @@ export function LogScanStep({
   plateDiameterCm = null,
   plateConfidence = null,
   plateDetectionError = null,
+  showGalleryNote = false,
+  galleryNote = '',
+  onGalleryNoteChange,
   loading = false,
   bottomPadding,
   onRetake,
@@ -113,6 +120,23 @@ export function LogScanStep({
         confidence={plateConfidence}
         errorMessage={plateDetectionError}
       />
+
+      {showGalleryNote ? (
+        <LogCard className="mt-4">
+          <Text className="font-sans-semibold text-base text-neutral-900">Note for your coach (optional)</Text>
+          <Text className="mt-1 text-sm text-neutral-500">
+            Add context like portion size, sauces, or how the meal was prepared.
+          </Text>
+          <AppTextInput
+            value={galleryNote}
+            onChangeText={onGalleryNoteChange}
+            placeholder="e.g. Half portion, extra olive oil…"
+            placeholderTextColor="#9ca3af"
+            multiline
+            className="mt-3 min-h-[88px] rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4"
+          />
+        </LogCard>
+      ) : null}
 
       {preview ? (
         <View className="mt-4">

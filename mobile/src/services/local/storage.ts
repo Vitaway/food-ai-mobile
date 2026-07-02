@@ -1,7 +1,9 @@
-import { APP_LOCK_ENABLED_KEY, BIOMETRICS_ENABLED_KEY, STORAGE_KEYS } from '@/constants/storageKeys';
+import * as SecureStore from 'expo-secure-store';
+
+import { APP_LOCK_ENABLED_KEY, BIOMETRICS_ENABLED_KEY, LEGACY_PASSCODE_KEY, STORAGE_KEYS } from '@/constants/storageKeys';
 import { localNotificationsRepository } from '@/services/local/localNotificationsRepository';
 import type { DailyLog, MealSubmission, UserProfile } from '@/types';
-import { clearPasscode } from '@/utils/appLock';
+import { WATER_CUP_ML } from '@/utils/waterUnits';
 import { getStorageItem, removeStorageItem, setStorageItem } from '@/utils/storage';
 import { todayKey } from '@/utils/dates';
 
@@ -65,7 +67,63 @@ export async function saveDailyLog(log: DailyLog) {
 
 export async function addWater(date: string, amountMl: number) {
   const log = await getDailyLog(date);
-  log.waterMl += amountMl;
+  log.waterMl = Math.max(0, log.waterMl + amountMl);
+  await saveDailyLog(log);
+  return log;
+}
+
+function sumWaterEntries(entries: { amountMl: number }[]) {
+  return Math.max(0, entries.reduce((total, entry) => total + entry.amountMl, 0));
+}
+
+function createWaterEntryId() {
+  return `water-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export async function logWaterEntry(date: string, amountMl: number, cups: number) {
+  const log = await getDailyLog(date);
+  const entries = [...(log.waterEntries ?? [])];
+
+  if (!entries.length && log.waterMl > 0) {
+    entries.push({
+      id: createWaterEntryId(),
+      amountMl: log.waterMl,
+      cups: log.waterMl / WATER_CUP_ML,
+      loggedAt: new Date().toISOString(),
+    });
+  }
+
+  entries.unshift({
+    id: createWaterEntryId(),
+    amountMl,
+    cups,
+    loggedAt: new Date().toISOString(),
+  });
+
+  const next: DailyLog = {
+    ...log,
+    waterEntries: entries,
+    waterMl: sumWaterEntries(entries),
+  };
+  await saveDailyLog(next);
+  return next;
+}
+
+export async function removeWaterEntry(date: string, entryId: string) {
+  const log = await getDailyLog(date);
+  const entries = (log.waterEntries ?? []).filter((entry) => entry.id !== entryId);
+  const next: DailyLog = {
+    ...log,
+    waterEntries: entries,
+    waterMl: sumWaterEntries(entries),
+  };
+  await saveDailyLog(next);
+  return { log: next, removedMl: log.waterMl - next.waterMl };
+}
+
+export async function setWater(date: string, waterMl: number) {
+  const log = await getDailyLog(date);
+  log.waterMl = waterMl;
   await saveDailyLog(log);
   return log;
 }
@@ -87,5 +145,5 @@ export async function clearAllLocalData() {
   await clearProfileData();
   await removeStorageItem(APP_LOCK_ENABLED_KEY);
   await removeStorageItem(BIOMETRICS_ENABLED_KEY);
-  await clearPasscode();
+  await SecureStore.deleteItemAsync(LEGACY_PASSCODE_KEY);
 }

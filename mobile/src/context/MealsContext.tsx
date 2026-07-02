@@ -10,13 +10,17 @@ import {
 } from 'react';
 
 import type { MealTypeId } from '@/constants/mealTypes';
+import { isApiConfigured } from '@/constants/api';
 import { USE_MOCK_API } from '@/constants/features';
+import { useAuth } from '@/context/AuthContext';
+import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater } from '@/services/remote/consumerApi';
 import { services } from '@/services';
 import { mockAnalyzePhoto, mockAnalyzeText, toMealSubmission } from '@/services/local/mealAnalysis';
 import { resumeActiveMealPipelines, runMealPipeline } from '@/services/local/mealPipeline';
 import { clearNutritionData } from '@/services/local/storage';
 import type { DailyLog, MealAnalysisPreview, MealSubmission, MealSubmissionStatus } from '@/types';
 import { todayKey } from '@/utils/dates';
+import { cupsToMl, WATER_CUP_ML } from '@/utils/waterUnits';
 
 type SubmitMealInput = {
   mealType: MealTypeId;
@@ -40,6 +44,8 @@ type MealsContextValue = {
   }) => Promise<MealAnalysisPreview>;
   saveMealToDiary: (input: SubmitMealInput) => Promise<MealSubmission>;
   simulatePipeline: (mealId: string, fromStatus?: MealSubmissionStatus) => Promise<void>;
+  logWaterCups: (cups: number, date?: string) => Promise<void>;
+  removeWaterEntry: (entryId: string, date?: string) => Promise<void>;
   addWater: (amountMl: number, date?: string) => Promise<void>;
   getMeal: (id: string) => MealSubmission | undefined;
   updateMeal: (meal: MealSubmission) => Promise<MealSubmission>;
@@ -57,6 +63,7 @@ function withCoachReviewStub(meal: MealSubmission, status: MealSubmissionStatus)
 }
 
 export function MealsProvider({ children }: PropsWithChildren) {
+  const { isAuthenticated } = useAuth();
   const [meals, setMeals] = useState<MealSubmission[]>([]);
   const [dailyLog, setDailyLog] = useState<DailyLog>({ date: todayKey(), waterMl: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -96,14 +103,34 @@ export function MealsProvider({ children }: PropsWithChildren) {
     [updateMealInState],
   );
 
+  const syncRemoteWater = useCallback(async () => {
+    if (!isApiConfigured() || !isAuthenticated) return;
+    try {
+      const dashboard = await fetchConsumerDashboard();
+      const log = await services.mealsRepository.setWater(dashboard.date, dashboard.waterMl);
+      setDailyLog(log);
+    } catch {
+      /* keep local value */
+    }
+  }, [isAuthenticated]);
+
   const refreshMeals = useCallback(async () => {
+    if (isApiConfigured() && isAuthenticated) {
+      const remoteMeals = await fetchConsumerMeals();
+      setMeals(remoteMeals);
+      for (const meal of remoteMeals) {
+        await services.mealsRepository.upsertMeal(meal);
+      }
+      await syncRemoteWater();
+      return;
+    }
     const [storedMeals, log] = await Promise.all([
       services.mealsRepository.getMeals(),
       services.mealsRepository.getDailyLog(),
     ]);
     setMeals(storedMeals);
     setDailyLog(log);
-  }, []);
+  }, [isAuthenticated, syncRemoteWater]);
 
   const simulatePipeline = useCallback(
     async (mealId: string, fromStatus?: MealSubmissionStatus) => {
@@ -126,6 +153,18 @@ export function MealsProvider({ children }: PropsWithChildren) {
     let cancelled = false;
 
     (async () => {
+      if (isApiConfigured() && isAuthenticated) {
+        const remoteMeals = await fetchConsumerMeals();
+        if (!cancelled) {
+          setMeals(remoteMeals);
+          setIsLoading(false);
+        }
+        if (!cancelled) {
+          await syncRemoteWater();
+        }
+        return;
+      }
+
       const [storedMeals] = await Promise.all([
         services.mealsRepository.getMeals(),
         services.mealsRepository.getDailyLog().then((log) => {
@@ -142,7 +181,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [resumeActivePipelines]);
+  }, [resumeActivePipelines, isAuthenticated, syncRemoteWater]);
 
   const analyzeMeal = useCallback(
     async ({
@@ -188,21 +227,69 @@ export function MealsProvider({ children }: PropsWithChildren) {
         textInput: input.textInput,
         note: input.note,
         plateDiameterCm: input.plateDiameterCm ?? analysis.plateDiameterCm,
-        status: 'pending',
+        status: isApiConfigured() && isAuthenticated ? 'in_review' : 'pending',
       });
+
+      if (isApiConfigured() && isAuthenticated) {
+        const saved = await submitConsumerMeal(meal);
+        await services.mealsRepository.upsertMeal(saved);
+        updateMealInState(saved);
+        return saved;
+      }
 
       await services.mealsRepository.upsertMeal(meal);
       updateMealInState(meal);
       void simulatePipeline(meal.id, 'pending');
       return meal;
     },
-    [simulatePipeline, updateMealInState],
+    [simulatePipeline, updateMealInState, isAuthenticated],
   );
 
-  const addWater = useCallback(async (amountMl: number, date = todayKey()) => {
-    const log = await services.mealsRepository.addWater(date, amountMl);
-    setDailyLog(log);
-  }, []);
+  const syncWaterDelta = useCallback(
+    async (amountMl: number, date: string) => {
+      if (!isApiConfigured() || !isAuthenticated || date !== todayKey()) return;
+      try {
+        const remote = await logConsumerWater(amountMl, date);
+        const local = await services.mealsRepository.getDailyLog(date);
+        local.waterMl = remote.waterMl;
+        await services.mealsRepository.setWater(date, remote.waterMl);
+        const updated = await services.mealsRepository.getDailyLog(date);
+        setDailyLog({ ...updated, waterEntries: local.waterEntries });
+      } catch {
+        /* keep local entry history */
+      }
+    },
+    [isAuthenticated],
+  );
+
+  const logWaterCups = useCallback(
+    async (cups: number, date = todayKey()) => {
+      const amountMl = cupsToMl(cups);
+      if (amountMl === 0) return;
+      const log = await services.mealsRepository.logWaterEntry(date, amountMl, cups);
+      setDailyLog(log);
+      await syncWaterDelta(amountMl, date);
+    },
+    [syncWaterDelta],
+  );
+
+  const removeWaterEntry = useCallback(
+    async (entryId: string, date = todayKey()) => {
+      const { log, removedMl } = await services.mealsRepository.removeWaterEntry(date, entryId);
+      setDailyLog(log);
+      if (removedMl !== 0) {
+        await syncWaterDelta(-removedMl, date);
+      }
+    },
+    [syncWaterDelta],
+  );
+
+  const addWater = useCallback(
+    async (amountMl: number, date = todayKey()) => {
+      await logWaterCups(amountMl / WATER_CUP_ML, date);
+    },
+    [logWaterCups],
+  );
 
   const getMeal = useCallback((id: string) => meals.find((meal) => meal.id === id), [meals]);
 
@@ -239,6 +326,8 @@ export function MealsProvider({ children }: PropsWithChildren) {
       analyzeMeal,
       saveMealToDiary,
       simulatePipeline,
+      logWaterCups,
+      removeWaterEntry,
       addWater,
       getMeal,
       updateMeal,
@@ -253,6 +342,8 @@ export function MealsProvider({ children }: PropsWithChildren) {
       analyzeMeal,
       saveMealToDiary,
       simulatePipeline,
+      logWaterCups,
+      removeWaterEntry,
       addWater,
       getMeal,
       updateMeal,

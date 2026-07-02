@@ -1,20 +1,20 @@
 import '../../global.css';
 
 import {
-  NataSans_400Regular,
-  NataSans_500Medium,
-  NataSans_600SemiBold,
-  NataSans_700Bold,
-  useFonts,
-} from '@expo-google-fonts/nata-sans';
+  CabinSketch_400Regular,
+  CabinSketch_700Bold,
+} from '@expo-google-fonts/cabin-sketch';
+import { Sniglet_400Regular, Sniglet_800ExtraBold } from '@expo-google-fonts/sniglet';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts } from 'expo-font';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AppProviders } from '@/context/AppProviders';
 import { semanticColors } from '@/design-system/colors';
 
@@ -28,10 +28,10 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
-    NataSans_400Regular,
-    NataSans_500Medium,
-    NataSans_600SemiBold,
-    NataSans_700Bold,
+    Sniglet_400Regular,
+    Sniglet_800ExtraBold,
+    CabinSketch_400Regular,
+    CabinSketch_700Bold,
   });
 
   useEffect(() => {
@@ -50,20 +50,25 @@ export default function RootLayout() {
 
   return (
     <AppProviders>
-      <StatusBar style="light" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: semanticColors.background },
-        }}>
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="notifications" />
-        <Stack.Screen name="profile" options={{ presentation: 'card' }} />
-        <Stack.Screen name="(tabs)" />
-        <Stack.Screen name="meal" options={{ presentation: 'card' }} />
-        <Stack.Screen name="ar-measure" options={{ presentation: 'fullScreenModal' }} />
-      </Stack>
+      <AuthGuard>
+        <StatusBar style="light" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: semanticColors.background },
+          }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="notifications" />
+          <Stack.Screen name="water" options={{ presentation: 'card' }} />
+          <Stack.Screen name="referral" options={{ presentation: 'card' }} />
+          <Stack.Screen name="profile" options={{ presentation: 'card' }} />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="meal" options={{ presentation: 'card' }} />
+          <Stack.Screen name="ar-measure" options={{ presentation: 'fullScreenModal' }} />
+        </Stack>
+      </AuthGuard>
     </AppProviders>
   );
 }

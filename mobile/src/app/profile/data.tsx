@@ -3,7 +3,6 @@ import { Alert, ScrollView, View } from 'react-native';
 
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
-import { useAppLock } from '@/context/AppLockContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 
@@ -11,7 +10,6 @@ export default function DataPrivacyScreen() {
   const router = useRouter();
   const { resetNutritionData, deleteAccount } = useProfile();
   const { clearAllMeals } = useMeals();
-  const { refreshSettings } = useAppLock();
 
   const handleResetData = () => {
     Alert.alert('Reset nutrition data?', 'Meals and hydration logs will be cleared.', [
@@ -42,7 +40,6 @@ export default function DataPrivacyScreen() {
               onPress: async () => {
                 await deleteAccount();
                 await clearAllMeals();
-                await refreshSettings();
                 router.replace('/onboarding' as Href);
               },
             },

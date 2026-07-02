@@ -1,13 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Platform, Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import {
-  BRAND_GRADIENT_COLORS,
-  BRAND_GRADIENT_END,
-  BRAND_GRADIENT_START,
-} from '@/components/ui/GradientHeader';
+import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 
@@ -47,10 +42,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
       pointerEvents="box-none"
       className="absolute left-0 right-0 items-center"
       style={{ bottom: bottomOffset }}>
-      <LinearGradient
-        colors={[...BRAND_GRADIENT_COLORS]}
-        start={BRAND_GRADIENT_START}
-        end={BRAND_GRADIENT_END}
+      <View
         style={[
           {
             width: '92%',
@@ -62,6 +54,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'space-between',
+            backgroundColor: BRAND_HEADER_COLOR,
           },
           Platform.select({
             ios: {
@@ -128,7 +121,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
             </Pressable>
           );
         })}
-      </LinearGradient>
+      </View>
     </View>
   );
 }

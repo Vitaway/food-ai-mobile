@@ -11,6 +11,7 @@ export type MealTimelineItem = {
   id: string;
   mealTypeId: MealTypeId;
   label: string;
+  subtitle?: string;
   time?: string;
   items?: string[];
   logged: boolean;
@@ -66,6 +67,7 @@ function LoggedSlotCard({
     <View className="min-h-[72px] flex-1 flex-row items-start justify-between rounded-2xl bg-ash-grey-50 px-4 py-3">
       <Pressable className="flex-1 pr-3" onPress={handlePress}>
         <Text className="font-sans-semibold text-base text-neutral-900">{meal.label}</Text>
+        {meal.subtitle ? <Text className="mt-0.5 text-xs text-neutral-400">{meal.subtitle}</Text> : null}
         {meal.pending ? (
           <Text className="mt-1 text-sm text-neutral-500">Analysis in progress…</Text>
         ) : meal.items?.length ? (
@@ -118,7 +120,7 @@ export function MealTimeline({ dateLabel, summary, meals, onMealPress, onAddMeal
         <View className="absolute bottom-4 left-[18px] top-4 w-px bg-ash-grey-200" />
 
         {meals.map((meal, index) => (
-          <View key={meal.mealTypeId} className={`flex-row gap-4 ${index < meals.length - 1 ? 'mb-5' : ''}`}>
+          <View key={meal.id} className={`flex-row gap-4 ${index < meals.length - 1 ? 'mb-5' : ''}`}>
             <View className="w-9 items-center pt-1">
               <View className={`h-2.5 w-2.5 rounded-full ${meal.logged ? 'bg-shamrock-500' : 'bg-ash-grey-300'}`} />
             </View>

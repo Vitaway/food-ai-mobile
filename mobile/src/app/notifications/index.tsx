@@ -18,7 +18,13 @@ export default function NotificationsScreen() {
   const openItem = useCallback(
     async (item: AppNotification) => {
       await markRead(item.readKey);
-      if (item.mealId) push(`/meal/${item.mealId}`);
+      if (item.mealId) {
+        push(`/meal/${item.mealId}`);
+        return;
+      }
+      if (item.kind === 'referral') {
+        push('/referral');
+      }
     },
     [markRead, push],
   );
@@ -30,7 +36,7 @@ export default function NotificationsScreen() {
       <StackScreenBody>
         {unread.length > 0 ? (
           <Pressable onPress={markAllReadOnce} className="mx-5 mb-2 self-end">
-            <Text className="font-sans-semibold text-sm text-blue-spruce-600">Mark all read</Text>
+            <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">Mark all read</Text>
           </Pressable>
         ) : null}
 
@@ -39,7 +45,7 @@ export default function NotificationsScreen() {
             <View className="rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-5 py-10">
               <Text className="text-center font-sans-semibold text-neutral-700">All caught up</Text>
               <Text className="mt-2 text-center text-sm text-neutral-500">
-                Meal updates and local nudges will show up here.
+                Meal updates, referrals, and local nudges will show up here in real time.
               </Text>
             </View>
           ) : (

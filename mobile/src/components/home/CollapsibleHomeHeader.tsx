@@ -1,4 +1,3 @@
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, {
   Extrapolation,
@@ -12,8 +11,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HealthScoreRing } from '@/components/home/HealthScoreRing';
 import { WeekDaySelector } from '@/components/home/WeekDaySelector';
 import { Text } from '@/components/ui/Text';
-import { CONTENT_SHEET_OVERLAP } from '@/components/ui/GradientHeader';
+import { BRAND_HEADER_COLOR, CONTENT_SHEET_OVERLAP } from '@/components/ui/GradientHeader';
+import { DISPLAY_TITLE_CLASS } from '@/constants/fonts';
 import { palette } from '@/design-system/colors';
+import { cn } from '@/utils/cn';
 
 const WEEK_DAY_BAR_HEIGHT = 40;
 /** Extra offset below the header/sheet seam. */
@@ -158,14 +159,16 @@ export function CollapsibleHomeHeader({
         },
         containerStyle,
       ]}>
-      <LinearGradient
-        colors={[palette['blue-spruce'][800], palette['blue-spruce'][600], palette['blue-spruce'][400]]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={{ flex: 1, paddingTop: insets.top + 12, paddingHorizontal: 20 }}>
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: BRAND_HEADER_COLOR,
+          paddingTop: insets.top + 12,
+          paddingHorizontal: 20,
+        }}>
         <View className="flex-row items-center justify-between">
           <View>
-            <Text className="font-sans-bold text-3xl text-white">Hello, {displayName}</Text>
+            <Text className={cn('text-3xl text-white', DISPLAY_TITLE_CLASS)}>Hello, {displayName}</Text>
             <Text className="mt-1 text-sm text-white/80">How do you feel today?</Text>
           </View>
           <View className="flex-row items-center gap-2">
@@ -197,7 +200,7 @@ export function CollapsibleHomeHeader({
         <Animated.View style={ringSectionStyle}>
           <HealthScoreRing score={healthScore} subtitle={isToday ? 'Balanced day' : 'Past day snapshot'} />
         </Animated.View>
-      </LinearGradient>
+      </View>
     </Animated.View>
   );
 }

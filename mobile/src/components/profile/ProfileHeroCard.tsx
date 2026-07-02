@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Image, Platform, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { palette } from '@/design-system/colors';
 
 type ProfileHeroCardProps = {
@@ -14,12 +14,10 @@ type ProfileHeroCardProps = {
 
 export function ProfileHeroCard({ displayName, subtitle, avatarUrl, initial }: ProfileHeroCardProps) {
   return (
-    <LinearGradient
-      colors={[palette['blue-spruce'][700], palette['blue-spruce'][500], palette['blue-spruce'][400]]}
-      start={{ x: 0, y: 0.5 }}
-      end={{ x: 1, y: 0.5 }}
+    <View
       style={[
         {
+          backgroundColor: BRAND_HEADER_COLOR,
           borderRadius: 20,
           padding: 20,
           flexDirection: 'row',
@@ -52,6 +50,6 @@ export function ProfileHeroCard({ displayName, subtitle, avatarUrl, initial }: P
         <Text className="font-sans-bold text-xl text-white">{displayName}</Text>
         {subtitle ? <Text className="mt-1 text-sm text-white/80">{subtitle}</Text> : null}
       </View>
-    </LinearGradient>
+    </View>
   );
 }

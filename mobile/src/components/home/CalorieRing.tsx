@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
+import { semanticColors } from '@/design-system/colors';
 
 type CalorieRingProps = {
   consumed: number;
@@ -27,7 +28,7 @@ export function CalorieRing({
   const strokeDashoffset = circumference * (1 - progress);
   const isLight = tone === 'light';
   const trackColor = isLight ? 'rgba(255,255,255,0.25)' : '#E8EAE4';
-  const ringColor = over ? '#FF6F32' : isLight ? '#ffffff' : '#1D9E75';
+  const ringColor = over ? semanticColors.accentOrange : isLight ? '#ffffff' : '#1D9E75';
   const valueClass = isLight ? 'text-white' : 'text-neutral-900';
   const metaClass = isLight ? 'text-white/75' : 'text-neutral-500';
   const labelClass = isLight ? 'text-white/60' : 'text-neutral-400';
@@ -62,7 +63,7 @@ export function CalorieRing({
           {consumed}
         </Text>
         <Text className={`text-xs ${metaClass}`}>/ {target}</Text>
-        <Text className={`mt-0.5 text-[10px] font-sans-medium uppercase tracking-wide ${labelClass}`}>kcal</Text>
+        <Text className={`mt-0.5 text-[10px] font-sans-medium tracking-wide ${labelClass}`}>kcal</Text>
       </View>
     </View>
   );

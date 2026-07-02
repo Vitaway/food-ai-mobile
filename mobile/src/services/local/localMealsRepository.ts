@@ -5,6 +5,9 @@ import {
   getDailyLog,
   getStoredDailyLogs,
   getStoredMeals,
+  logWaterEntry,
+  removeWaterEntry,
+  setWater,
   upsertMeal,
 } from '@/services/local/storage';
 
@@ -15,4 +18,7 @@ export const localMealsRepository: MealsRepository = {
   getDailyLog,
   getDailyLogs: getStoredDailyLogs,
   addWater,
+  logWaterEntry,
+  removeWaterEntry,
+  setWater,
 };

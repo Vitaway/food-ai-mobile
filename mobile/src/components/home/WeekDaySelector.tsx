@@ -62,7 +62,7 @@ export function WeekDaySelector({
               </Text>
               <Text
                 className={`mt-0.5 font-sans-bold text-base ${
-                  isSelected ? 'text-cinnamon-wood-500' : 'text-white'
+                  isSelected ? 'text-cinnamon-wood-400' : 'text-white'
                 }`}>
                 {dayNum}
               </Text>

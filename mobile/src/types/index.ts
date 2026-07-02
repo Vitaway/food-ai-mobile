@@ -127,9 +127,17 @@ export interface MealSubmission {
   coachReview?: CoachReview | null;
 }
 
+export interface WaterLogEntry {
+  id: string;
+  amountMl: number;
+  cups: number;
+  loggedAt: string;
+}
+
 export interface DailyLog {
   date: string;
   waterMl: number;
+  waterEntries?: WaterLogEntry[];
 }
 
 export interface DailyDashboard {

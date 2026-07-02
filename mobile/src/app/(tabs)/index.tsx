@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
 
+import { HomeWaterCard } from '@/components/home/HomeWaterCard';
 import { HomeHeroCard } from '@/components/home/HomeHeroCard';
 import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
 import { HomeQuickLogBar } from '@/components/home/HomeQuickLogBar';
@@ -22,15 +23,15 @@ import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useSinglePress } from '@/hooks/useSinglePress';
 import type { MealTypeId } from '@/constants/mealTypes';
 import { formatDayHeading, formatDisplayDate, parseDateKey, todayKey } from '@/utils/dates';
-import { setLogMealTypeIntent } from '@/utils/logIntent';
+import { setLogMealTypeIntent, setLogMethodIntent } from '@/utils/logIntent';
 
 export default function HomeScreen() {
   const { push } = useNavigateOnce();
   const isFocused = useIsFocused();
-  const { meals, addWater } = useMeals();
+  const { meals } = useMeals();
   const { profile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(todayKey());
-  const { dashboard, timeline, mealsPerDay, displayName } = useDashboard(selectedDate);
+  const { dashboard, timeline, mealCount, displayName } = useDashboard(selectedDate);
   const { unreadCount: notificationUnread } = useAppNotifications();
   const firstName = useMemo(() => displayName.trim().split(/\s+/)[0] || 'there', [displayName]);
 
@@ -66,12 +67,16 @@ export default function HomeScreen() {
   const onMealPress = useSinglePress(handleMealPress);
   const onOpenNotifications = useSinglePress(handleOpenNotifications);
   const onOpenProfile = useSinglePress(handleOpenProfile);
+  const onOpenScan = useSinglePress(() => {
+    setLogMethodIntent('camera');
+    push('/(tabs)/log');
+  });
+  const onOpenDescribe = useSinglePress(() => {
+    setLogMethodIntent('describe');
+    push('/(tabs)/log');
+  });
   const onOpenInsights = useSinglePress(() => push('/(tabs)/analytics'));
-  const onOpenHealth = useSinglePress(() => push('/profile/health'));
-
-  const handleAddWater = useCallback(async () => {
-    await addWater(250, selectedDate);
-  }, [addWater, selectedDate]);
+  const onOpenWater = useSinglePress(() => push('/water'));
 
   const activePipelineCount = useMemo(
     () => meals.filter((meal) => isPipelineActive(meal.status)).length,
@@ -108,8 +113,7 @@ export default function HomeScreen() {
     [dashboard.macros, dashboard.macrosConsumed],
   );
 
-  const loggedMealCount = timeline.filter((m) => m.logged).length;
-  const totalSlots = mealsPerDay;
+  const onOpenHealth = useSinglePress(() => push('/profile/health'));
 
   return (
     <View className="flex-1 bg-white">
@@ -157,10 +161,16 @@ export default function HomeScreen() {
           <HomeQuickLogBar onPress={() => onAddMeal?.()} />
 
           <HomeQuickCategories
-            onScan={() => onAddMeal?.()}
-            onDescribe={() => onAddMeal?.()}
-            onWater={handleAddWater}
+            onScan={() => onOpenScan?.()}
+            onDescribe={() => onOpenDescribe?.()}
+            onWater={() => onOpenWater?.()}
             onInsights={() => onOpenInsights?.()}
+          />
+
+          <HomeWaterCard
+            waterMl={dashboard.waterMl}
+            waterTargetMl={dashboard.waterTargetMl}
+            onPress={() => onOpenWater?.()}
           />
 
           <HomeHeroCard
@@ -211,11 +221,10 @@ export default function HomeScreen() {
 
           <HomeTodaySection
             title={mealsTitle}
-            loggedCount={loggedMealCount}
-            totalSlots={totalSlots}
+            mealCount={mealCount}
             meals={timeline}
             onMealPress={(mealId) => onMealPress?.(mealId)}
-            onAddMeal={(mealTypeId) => onAddMeal?.(mealTypeId)}
+            onAddMeal={() => onAddMeal?.()}
           />
         </ScrollView>
       </ContentSheet>

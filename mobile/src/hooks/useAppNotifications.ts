@@ -1,7 +1,10 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { isApiConfigured } from '@/constants/api';
 import { isPipelineActive, MEAL_STATUS_MESSAGES, MEAL_STATUS_LABELS } from '@/constants/mealStatus';
+import { useAuth } from '@/context/AuthContext';
+import { useNotificationSocket } from '@/context/NotificationContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 import { services } from '@/services';
@@ -17,11 +20,12 @@ import { notificationReadKey } from '@/utils/notificationReads';
 export type AppNotification = {
   id: string;
   readKey: string;
+  serverId?: string;
   mealId?: string;
   title: string;
   message: string;
   status?: MealSubmissionStatus;
-  kind: 'meal' | 'nudge';
+  kind: 'meal' | 'nudge' | 'referral' | 'system';
   createdAt: string;
   read: boolean;
 };
@@ -58,6 +62,15 @@ function mealNotifications(meals: MealSubmission[], readKeys: Set<string>): AppN
 }
 
 export function useAppNotifications() {
+  const { isAuthenticated } = useAuth();
+  const useServer = isApiConfigured() && isAuthenticated;
+  const {
+    serverNotifications,
+    serverUnreadCount,
+    refreshServerNotifications,
+    markServerRead,
+    markAllServerRead,
+  } = useNotificationSocket();
   const { meals } = useMeals();
   const { profile } = useProfile();
   const [readKeys, setReadKeys] = useState<Set<string>>(new Set());
@@ -77,7 +90,11 @@ export function useAppNotifications() {
     setReadKeys(reads);
     setSettings(notificationSettings);
     setWaterMl(log.waterMl);
-  }, []);
+
+    if (useServer) {
+      await refreshServerNotifications();
+    }
+  }, [refreshServerNotifications, useServer]);
 
   useEffect(() => {
     refreshContext();
@@ -90,7 +107,6 @@ export function useAppNotifications() {
   );
 
   const items = useMemo(() => {
-    const mealItems = mealNotifications(meals, readKeys);
     const waterTarget = profile?.waterTargetMl ?? 2450;
 
     const nudgeItems: AppNotification[] = profile
@@ -110,28 +126,65 @@ export function useAppNotifications() {
         }))
       : [];
 
-    const merged = [...nudgeItems, ...mealItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const serverItems: AppNotification[] = useServer
+      ? serverNotifications.map((item) => ({
+          id: `server:${item.id}`,
+          readKey: `server:${item.id}`,
+          serverId: item.id,
+          mealId: item.mealId ?? undefined,
+          title: item.title,
+          message: item.message,
+          status: (item.status as MealSubmissionStatus | null) ?? undefined,
+          kind: item.kind,
+          createdAt: item.createdAt,
+          read: item.read,
+        }))
+      : mealNotifications(meals, readKeys);
+
+    const merged = [...nudgeItems, ...serverItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
     return merged.map((item) => ({
       ...item,
       timeLabel: timeAgo(item.createdAt),
       statusLabel: item.status ? MEAL_STATUS_LABELS[item.status] : undefined,
     }));
-  }, [meals, profile, readKeys, settings, waterMl]);
+  }, [meals, profile, readKeys, settings, serverNotifications, useServer, waterMl]);
 
-  const unreadCount = useMemo(() => items.filter((item) => !item.read).length, [items]);
+  const unreadCount = useMemo(() => {
+    const localUnread = items.filter((item) => !item.read && !item.serverId).length;
+    if (useServer) {
+      return serverUnreadCount + localUnread;
+    }
+    return items.filter((item) => !item.read).length;
+  }, [items, serverUnreadCount, useServer]);
 
-  const markRead = useCallback(async (readKey: string) => {
-    await services.notificationsRepository.markRead(readKey);
-    setReadKeys((current) => new Set([...current, readKey]));
-  }, []);
+  const markRead = useCallback(
+    async (readKey: string) => {
+      if (readKey.startsWith('server:')) {
+        const serverId = readKey.slice('server:'.length);
+        await markServerRead(serverId);
+        return;
+      }
+
+      await services.notificationsRepository.markRead(readKey);
+      setReadKeys((current) => new Set([...current, readKey]));
+    },
+    [markServerRead],
+  );
 
   const markAllRead = useCallback(async () => {
-    await Promise.all(
-      items.filter((item) => !item.read).map((item) => services.notificationsRepository.markRead(item.readKey)),
-    );
+    const localUnread = items.filter((item) => !item.read && !item.serverId);
+    await Promise.all(localUnread.map((item) => services.notificationsRepository.markRead(item.readKey)));
+
+    if (useServer) {
+      await markAllServerRead();
+    }
+
     await refreshReads();
-  }, [items, refreshReads]);
+    if (useServer) {
+      await refreshServerNotifications();
+    }
+  }, [items, markAllServerRead, refreshReads, refreshServerNotifications, useServer]);
 
   const dismiss = markRead;
 

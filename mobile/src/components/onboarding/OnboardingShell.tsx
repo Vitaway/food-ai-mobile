@@ -1,14 +1,13 @@
 import { ArrowRight } from 'iconoir-react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { type ReactNode, useMemo } from 'react';
-import { Pressable, View } from 'react-native';
+import { Platform, Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppLogo } from '@/components/ui/AppLogo';
-import { GradientButton } from '@/components/ui/GradientButton';
-import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
+import { Button } from '@/components/ui/Button';
+import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 
@@ -54,45 +53,43 @@ export function OnboardingNavButton({
   variant = 'next',
 }: OnboardingNavButtonProps) {
   return (
-    <GradientButton
+    <Button
       label={label}
       onPress={onPress}
       disabled={disabled}
       loading={loading}
       loadingLabel="Saving…"
       trailingIcon={loading ? undefined : ArrowRight}
+      fullWidth={variant === 'finish'}
       className={variant === 'finish' ? 'w-full' : 'min-w-[132px]'}
     />
   );
 }
 
 type OnboardingShellProps = {
-  headerTitle: string;
+  /** Step title in the navy toolbar (hidden on intro). */
+  headerTitle?: string;
   stepIndex: number;
   totalSteps: number;
   showBack?: boolean;
-  showSkip?: boolean;
   onBack?: () => void;
-  onSkip?: () => void;
   footer: ReactNode;
   footerLayout?: 'inline' | 'stacked';
   intro?: boolean;
-  hero?: ReactNode;
   children: ReactNode;
 };
+
+const TOOLBAR_SLOT = 44;
 
 export function OnboardingShell({
   headerTitle,
   stepIndex,
   totalSteps,
   showBack,
-  showSkip,
   onBack,
-  onSkip,
   footer,
   footerLayout = 'inline',
   intro = false,
-  hero,
   children,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
@@ -112,9 +109,14 @@ export function OnboardingShell({
 
   return (
     <GestureDetector gesture={swipeBackGesture}>
-      <View className="flex-1 bg-blue-spruce-700">
-        <GradientHeader style={{ paddingBottom: intro ? 52 : 44 }}>
-          <View className="flex-row items-center justify-between gap-3">
+      <View className="flex-1" style={{ backgroundColor: BRAND_HEADER_COLOR }}>
+        <View
+          style={{
+            paddingTop: insets.top + 8,
+            paddingBottom: 14,
+            paddingHorizontal: 16,
+          }}>
+          <View className="min-h-11 flex-row items-center">
             {showBack && onBack ? (
               <Pressable
                 onPress={onBack}
@@ -125,35 +127,40 @@ export function OnboardingShell({
                 <Ionicons name="chevron-back" size={24} color="#ffffff" />
               </Pressable>
             ) : (
-              <View className="h-11 w-11 shrink-0" />
+              <View style={{ width: TOOLBAR_SLOT, height: TOOLBAR_SLOT }} />
             )}
 
-            {intro ? (
-              <View className="flex-1 flex-row items-center justify-center gap-3">
-                <AppLogo size={36} />
-                <GradientHeaderTitle numberOfLines={1}>{headerTitle}</GradientHeaderTitle>
-              </View>
-            ) : (
-              <GradientHeaderTitle className="flex-1 text-center" numberOfLines={2}>
+            {!intro && headerTitle ? (
+              <Text
+                className="flex-1 px-2 text-center font-sans-semibold text-lg leading-snug text-white"
+                numberOfLines={2}>
                 {headerTitle}
-              </GradientHeaderTitle>
-            )}
-
-            {showSkip && onSkip ? (
-              <Pressable onPress={onSkip} hitSlop={12} className="shrink-0 px-1 py-2">
-                <Text className="font-sans-semibold text-sm text-white/90">Skip</Text>
-              </Pressable>
+              </Text>
             ) : (
-              <View className="h-11 w-11 shrink-0" />
+              <View className="flex-1" />
             )}
-          </View>
-        </GradientHeader>
 
-        <ContentSheet className="flex-1 px-5">
-          <View className="min-h-0 flex-1">
-            {hero ? <View className="mb-4">{hero}</View> : null}
-            <View className="min-h-0 flex-1">{children}</View>
+            <View style={{ width: TOOLBAR_SLOT, height: TOOLBAR_SLOT }} />
           </View>
+        </View>
+
+        <View
+          className="min-h-0 flex-1 bg-white px-5"
+          style={{
+            borderTopLeftRadius: 32,
+            borderTopRightRadius: 32,
+            borderCurve: 'continuous',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#051f1c',
+                shadowOffset: { width: 0, height: -4 },
+                shadowOpacity: 0.08,
+                shadowRadius: 12,
+              },
+              android: { elevation: 8 },
+            }),
+          }}>
+          <View className="min-h-0 flex-1 pt-6">{children}</View>
 
           <View
             className="border-t border-ash-grey-100 pt-4"
@@ -170,7 +177,7 @@ export function OnboardingShell({
               </View>
             )}
           </View>
-        </ContentSheet>
+        </View>
       </View>
     </GestureDetector>
   );

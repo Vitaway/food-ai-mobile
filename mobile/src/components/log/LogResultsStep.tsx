@@ -1,29 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
-import { View } from 'react-native';
+import { useMemo } from 'react';
+import { Image, View } from 'react-native';
 
-import { IngredientFlowerChart } from '@/components/log/IngredientFlowerChart';
+import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
 import { IngredientList } from '@/components/log/IngredientList';
-import { PlateSizeCard } from '@/components/log/PlateSizeCard';
 import { LogCard } from '@/components/log/LogScreenShell';
-import { RecommendationList } from '@/components/recommendations/RecommendationList';
-import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import { useMeals } from '@/context/MealsContext';
-import { useProfile } from '@/context/ProfileContext';
-import { services } from '@/services';
-import {
-  getPostLogRecommendations,
-  getTodayApprovedMeals,
-} from '@/services/local/recommendations';
+import { semanticColors } from '@/design-system/colors';
+import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealAnalysisPreview } from '@/types';
-import { todayKey } from '@/utils/dates';
 import { formatDiameterCm } from '@/utils/formatDiameter';
+import { formatMacroG } from '@/utils/formatMacro';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
   imageUri?: string;
-  saving?: boolean;
-  onSave: () => void;
+  selectedMealType: MealTypeId | null;
+  onSelectMealType: (id: MealTypeId) => void;
 };
 
 const FLAG_STYLES = {
@@ -33,35 +25,13 @@ const FLAG_STYLES = {
   red: { bg: 'bg-red-100', text: 'text-red-800' },
 } as const;
 
-export function LogResultsStep({ analysis, imageUri, saving, onSave }: LogResultsStepProps) {
-  const { meals } = useMeals();
-  const { profile } = useProfile();
-  const [waterMl, setWaterMl] = useState(0);
-
-  useEffect(() => {
-    services.mealsRepository.getDailyLog(todayKey()).then((log) => {
-      setWaterMl(log.waterMl);
-    });
-  }, []);
-
-  const { tips, swaps } = useMemo(() => {
-    const targets = profile?.macroTargets ?? {
-      calories: 2100,
-      proteinG: 140,
-      carbsG: 220,
-      fatG: 70,
-      fiberG: 30,
-    };
-    return getPostLogRecommendations({
-      analysis,
-      approvedTodayMeals: getTodayApprovedMeals(meals),
-      targets,
-      waterMl,
-      waterTargetMl: profile?.waterTargetMl ?? 2450,
-      goal: profile?.goal ?? 'maintain_weight',
-      dietaryPreferences: profile?.dietaryPreferences ?? [],
-    });
-  }, [analysis, meals, profile, waterMl]);
+export function LogResultsStep({
+  analysis,
+  imageUri,
+  selectedMealType,
+  onSelectMealType,
+}: LogResultsStepProps) {
+  const flag = FLAG_STYLES[analysis.healthFlag];
 
   const ingredients = analysis.items.map((item) => ({
     id: item.id,
@@ -69,13 +39,20 @@ export function LogResultsStep({ analysis, imageUri, saving, onSave }: LogResult
     weightG: item.estimatedWeightG,
     emoji: item.emoji ?? '🍽️',
     macros: {
-      carbs: `${item.nutrition.carbsG}g`,
-      fats: `${item.nutrition.fatG}g`,
-      sugar: `${item.nutrition.sugarG ?? 0}g`,
+      carbs: formatMacroG(item.nutrition.carbsG),
+      fats: formatMacroG(item.nutrition.fatG),
+      sugar: formatMacroG(item.nutrition.sugarG ?? 0),
     },
   }));
 
-  const flag = FLAG_STYLES[analysis.healthFlag];
+  const macroSummary = useMemo(
+    () => [
+      { label: 'Protein', value: formatMacroG(analysis.totalNutrition.proteinG), color: '#1D9E75' },
+      { label: 'Carbs', value: formatMacroG(analysis.totalNutrition.carbsG), color: '#023459' },
+      { label: 'Fat', value: formatMacroG(analysis.totalNutrition.fatG), color: semanticColors.accentOrange },
+    ],
+    [analysis.totalNutrition],
+  );
 
   return (
     <>
@@ -83,41 +60,47 @@ export function LogResultsStep({ analysis, imageUri, saving, onSave }: LogResult
         <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
 
-      {analysis.plateDiameterCm != null ? (
-        <PlateSizeCard detected plateDiameterCm={analysis.plateDiameterCm} />
-      ) : null}
+      <LogCard>
+        <View className="flex-row gap-4">
+          {imageUri ? (
+            <Image source={{ uri: imageUri }} className="h-24 w-24 rounded-2xl bg-ash-grey-100" resizeMode="cover" />
+          ) : (
+            <View className="h-24 w-24 items-center justify-center rounded-2xl bg-ash-grey-100">
+              <Text className="text-3xl">🍽️</Text>
+            </View>
+          )}
+          <View className="min-w-0 flex-1 justify-center">
+            <Text className="font-sans-bold text-xl text-neutral-900">{analysis.mealName}</Text>
+            <Text className="mt-1 text-sm text-neutral-500">
+              {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal
+              {analysis.plateDiameterCm ? ` · ${formatDiameterCm(analysis.plateDiameterCm)}` : ''}
+            </Text>
+          </View>
+        </View>
 
-      <LogCard className="items-center">
-        <IngredientFlowerChart imageUri={imageUri} petals={analysis.petals} />
-        <Text className="mt-4 font-sans-bold text-2xl text-neutral-900">{analysis.mealName}</Text>
-        <Text className="mt-1 text-sm text-neutral-500">
-          {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal
-          {analysis.plateDiameterCm ? ` · Plate ${formatDiameterCm(analysis.plateDiameterCm)}` : ''}
-        </Text>
-        <View className="mt-3 flex-row gap-4">
-          <Text className="text-sm text-neutral-600">P {analysis.totalNutrition.proteinG}g</Text>
-          <Text className="text-sm text-neutral-600">C {analysis.totalNutrition.carbsG}g</Text>
-          <Text className="text-sm text-neutral-600">F {analysis.totalNutrition.fatG}g</Text>
+        <View className="mt-4 flex-row gap-2">
+          {macroSummary.map((macro) => (
+            <View key={macro.label} className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-2.5">
+              <Text className="text-xs text-neutral-500">{macro.label}</Text>
+              <Text className="mt-0.5 font-sans-bold text-base" style={{ color: macro.color }}>
+                {macro.value}
+              </Text>
+            </View>
+          ))}
         </View>
       </LogCard>
 
       <LogCard>
-        <Text className="mb-4 font-sans-semibold text-lg text-neutral-900">Ingredients</Text>
-        <IngredientList ingredients={ingredients} />
+        <CompactMealTypePicker selected={selectedMealType} onSelect={onSelectMealType} />
+        {!selectedMealType ? (
+          <Text className="mt-2 text-sm text-cinnamon-wood-600">Pick a meal type before submitting.</Text>
+        ) : null}
       </LogCard>
 
-      {tips.length > 0 || swaps.length > 0 ? (
-        <LogCard>
-          <RecommendationList tips={tips} swaps={swaps} title="Before you submit" />
-        </LogCard>
-      ) : null}
-
-      <Button
-        label={saving ? 'Submitting…' : 'Submit for review'}
-        variant="secondary"
-        onPress={onSave}
-        disabled={saving}
-      />
+      <LogCard>
+        <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Ingredients</Text>
+        <IngredientList ingredients={ingredients} />
+      </LogCard>
     </>
   );
 }

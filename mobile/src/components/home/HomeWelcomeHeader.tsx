@@ -46,7 +46,7 @@ export function HomeWelcomeHeader({
         }}>
         <Ionicons name="notifications-outline" size={22} color="#023459" />
         {notificationCount > 0 ? (
-          <View className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-cinnamon-wood-500" />
+          <View className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-cinnamon-wood-400" />
         ) : null}
       </Pressable>
     </View>

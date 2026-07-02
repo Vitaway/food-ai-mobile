@@ -7,4 +7,7 @@ export interface MealsRepository {
   getDailyLog: (date?: string) => Promise<DailyLog>;
   getDailyLogs: () => Promise<DailyLog[]>;
   addWater: (date: string, amountMl: number) => Promise<DailyLog>;
+  logWaterEntry: (date: string, amountMl: number, cups: number) => Promise<DailyLog>;
+  removeWaterEntry: (date: string, entryId: string) => Promise<{ log: DailyLog; removedMl: number }>;
+  setWater: (date: string, waterMl: number) => Promise<DailyLog>;
 }

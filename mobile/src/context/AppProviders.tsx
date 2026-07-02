@@ -1,7 +1,8 @@
-import { AppLockProvider } from '@/context/AppLockContext';
+import { AuthProvider } from '@/context/AuthContext';
+import { NotificationProvider } from '@/context/NotificationContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { MealsProvider } from '@/context/MealsContext';
-import { AppLockOverlay } from '@/components/security/AppLockOverlay';
+import { ToastProvider } from '@/context/ToastContext';
 import { IconoirProviderRoot } from '@/components/ui/IconoirIcon';
 import { createContext, useContext, type PropsWithChildren } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -14,16 +15,17 @@ export function AppProviders({ children }: PropsWithChildren) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <IconoirProviderRoot>
-          <AppLockProvider>
-            <ProfileProvider>
-              <MealsProvider>
-                <AppContext.Provider value={{ ready: true }}>
-                  {children}
-                  <AppLockOverlay />
-                </AppContext.Provider>
-              </MealsProvider>
-            </ProfileProvider>
-          </AppLockProvider>
+          <ToastProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <ProfileProvider>
+                  <MealsProvider>
+                    <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
+                  </MealsProvider>
+                </ProfileProvider>
+              </NotificationProvider>
+            </AuthProvider>
+          </ToastProvider>
         </IconoirProviderRoot>
       </SafeAreaProvider>
     </GestureHandlerRootView>

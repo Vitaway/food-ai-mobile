@@ -1,110 +1,101 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
-import { MealTypePicker } from '@/components/log/MealTypePicker';
 import { LogCard } from '@/components/log/LogScreenShell';
-import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
-import type { MealTypeId } from '@/constants/mealTypes';
+import { LOG_METHOD_IMAGES } from '@/constants/logMethodImages';
+import { semanticColors } from '@/design-system/colors';
 
-type MethodId = 'camera' | 'gallery' | 'text' | 'past';
+export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past';
 
-const INPUT_METHODS: Array<{
-  id: MethodId;
-  label: string;
+const METHODS: Array<{
+  id: LogMethodId;
+  title: string;
+  subtitle: string;
   icon: ComponentProps<typeof Ionicons>['name'];
-  color: string;
   tintClass: string;
+  iconColor: string;
+  image: number;
 }> = [
-  { id: 'camera', label: 'Camera', icon: 'camera-outline', color: '#1D9E75', tintClass: 'bg-shamrock-50' },
-  { id: 'gallery', label: 'Gallery', icon: 'images-outline', color: '#023459', tintClass: 'bg-blue-spruce-50' },
-  { id: 'text', label: 'Describe', icon: 'create-outline', color: '#023459', tintClass: 'bg-blue-spruce-50' },
-  { id: 'past', label: 'Past meal', icon: 'time-outline', color: '#023459', tintClass: 'bg-blue-spruce-50' },
+  {
+    id: 'camera',
+    title: 'Scan your plate',
+    subtitle: 'Opens camera right away — meal type comes later',
+    icon: 'camera-outline',
+    tintClass: 'bg-shamrock-50',
+    iconColor: '#1D9E75',
+    image: LOG_METHOD_IMAGES.camera,
+  },
+  {
+    id: 'gallery',
+    title: 'From gallery',
+    subtitle: 'Pick a photo and add an optional note for your coach',
+    icon: 'images-outline',
+    tintClass: 'bg-blue-spruce-50',
+    iconColor: '#023459',
+    image: LOG_METHOD_IMAGES.gallery,
+  },
+  {
+    id: 'text',
+    title: 'Describe it',
+    subtitle: 'Type what you ate in your own words',
+    icon: 'create-outline',
+    tintClass: 'bg-blue-spruce-50',
+    iconColor: '#023459',
+    image: LOG_METHOD_IMAGES.text,
+  },
+  {
+    id: 'past',
+    title: 'Repeat a meal',
+    subtitle: 'Log something you ate before',
+    icon: 'time-outline',
+    tintClass: 'bg-cinnamon-wood-50',
+    iconColor: semanticColors.accentOrange,
+    image: LOG_METHOD_IMAGES.past,
+  },
 ];
 
 type LogMethodStepProps = {
-  selectedMethod: string;
-  selectedMealType: MealTypeId | null;
   loading?: boolean;
-  onSelectMethod: (id: string) => void;
-  onSelectMealType: (id: MealTypeId | null) => void;
-  onContinue: () => void;
+  onSelectMethod: (id: LogMethodId) => void;
 };
 
-export function LogMethodStep({
-  selectedMethod,
-  selectedMealType,
-  loading = false,
-  onSelectMethod,
-  onSelectMealType,
-  onContinue,
-}: LogMethodStepProps) {
+export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStepProps) {
   return (
-    <>
-      <LogCard>
-        <Text className="font-sans-semibold text-lg text-neutral-900">How are you logging?</Text>
-        <Text className="mt-1 text-sm text-neutral-500">Choose a method below</Text>
-
-        <View className="mt-5 flex-row justify-between px-1">
-          {INPUT_METHODS.map((method) => {
-            const selected = selectedMethod === method.id;
-            return (
-              <Pressable
-                key={method.id}
-                onPress={() => onSelectMethod(method.id)}
-                disabled={loading}
-                className="items-center gap-2 active:opacity-85">
-                <View
-                  className={`h-14 w-14 items-center justify-center rounded-full bg-white ${method.tintClass} ${
-                    selected ? 'border-2 border-blue-spruce-500' : ''
-                  }`}
-                  style={{
-                    shadowColor: '#1a1c17',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: selected ? 0.1 : 0.06,
-                    shadowRadius: 10,
-                    elevation: 2,
-                  }}>
-                  <Ionicons name={method.icon} size={24} color={selected ? '#023459' : method.color} />
-                </View>
-                <Text
-                  className={`font-sans-medium text-xs ${selected ? 'text-blue-spruce-700' : 'text-neutral-600'}`}>
-                  {method.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+    <View className="gap-3">
+      <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/40">
+        <Text className="font-sans-semibold text-lg text-neutral-900">Log a meal</Text>
+        <Text className="mt-1 text-sm leading-5 text-neutral-600">
+          Tap a method below. You can log as many meals as you want today — no fixed slots.
+        </Text>
       </LogCard>
 
-      <LogCard>
-        <Text className="font-sans-semibold text-lg text-neutral-900">What meal is this?</Text>
-        <Text className="mt-1 text-sm text-neutral-500">Pick the slot that best matches</Text>
-        <View className="mt-4">
-          <MealTypePicker
-            selected={selectedMealType}
-            disabled={loading}
-            onSelect={onSelectMealType}
-          />
-        </View>
-      </LogCard>
-
-      {selectedMethod === 'camera' ? (
-        <LogCard className="mb-3 border border-blue-spruce-100 bg-blue-spruce-50/60">
-          <Text className="font-sans-semibold text-sm text-blue-spruce-700">Camera + AR portions</Text>
-          <Text className="mt-1 text-sm leading-5 text-neutral-600">
-            After you snap your meal, you will measure the plate in AR before we analyze the photo.
-          </Text>
-        </LogCard>
-      ) : null}
-
-      <Button
-        label={loading ? 'Opening…' : 'Continue'}
-        variant="secondary"
-        onPress={onContinue}
-        disabled={loading || !selectedMealType}
-      />
-    </>
+      {METHODS.map((method) => (
+        <Pressable
+          key={method.id}
+          disabled={loading}
+          onPress={() => onSelectMethod(method.id)}
+          className="overflow-hidden rounded-3xl bg-white active:opacity-90"
+          style={{
+            shadowColor: '#1a1c17',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.06,
+            shadowRadius: 14,
+            elevation: 2,
+          }}>
+          <View className="flex-row items-center gap-3 p-4">
+            <View className={`h-16 w-16 overflow-hidden rounded-2xl ${method.tintClass}`}>
+              <Image source={method.image} className="h-full w-full" resizeMode="cover" />
+            </View>
+            <View className="min-w-0 flex-1">
+              <Text className="font-sans-semibold text-base text-neutral-900">{method.title}</Text>
+              <Text className="mt-0.5 text-sm leading-5 text-neutral-500">{method.subtitle}</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#848a75" />
+          </View>
+        </Pressable>
+      ))}
+    </View>
   );
 }

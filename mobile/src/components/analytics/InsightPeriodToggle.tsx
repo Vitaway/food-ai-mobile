@@ -39,7 +39,7 @@ export function InsightPeriodToggle({ value, onChange }: InsightPeriodToggleProp
                 className={`font-sans-semibold text-sm ${
                   selected ? 'text-blue-spruce-800' : 'text-neutral-500'
                 }`}>
-                {days}d
+                {days} days
               </Text>
             </View>
           </TouchableOpacity>

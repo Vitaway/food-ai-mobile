@@ -1,5 +1,5 @@
 import { CheckCircle } from 'iconoir-react-native';
-import { Pressable, View } from 'react-native';
+import { Image, Pressable, View } from 'react-native';
 
 import { IconoirIcon } from '@/components/ui/IconoirIcon';
 import { Text } from '@/components/ui/Text';
@@ -7,18 +7,18 @@ import {
   onboardingOptionCard,
   onboardingOptionTitle,
 } from '@/constants/onboardingStyles';
-import { ICONOIR_DEFAULTS, SEX_OPTION_ICONS } from '@/constants/onboardingIcons';
+import { ICONOIR_DEFAULTS } from '@/constants/onboardingIcons';
+import { SEX_OPTION_IMAGES } from '@/constants/sexOptionImages';
 import type { UserSex } from '@/types';
 
 export const SEX_OPTIONS: {
   id: UserSex;
   label: string;
-  iconKey: keyof typeof SEX_OPTION_ICONS;
 }[] = [
-  { id: 'male', label: 'Male', iconKey: 'male' },
-  { id: 'female', label: 'Female', iconKey: 'female' },
-  { id: 'other', label: 'Other', iconKey: 'other' },
-  { id: 'prefer_not_to_say', label: 'Prefer not to say', iconKey: 'prefer_not_to_say' },
+  { id: 'male', label: 'Male' },
+  { id: 'female', label: 'Female' },
+  { id: 'other', label: 'Other' },
+  { id: 'prefer_not_to_say', label: 'Prefer not to say' },
 ];
 
 type SexSelectorProps = {
@@ -31,6 +31,7 @@ export function SexSelector({ value, onChange }: SexSelectorProps) {
     <View className="gap-3">
       {SEX_OPTIONS.map((option) => {
         const selected = value === option.id;
+        if (!option.id) return null;
 
         return (
           <Pressable
@@ -38,16 +39,13 @@ export function SexSelector({ value, onChange }: SexSelectorProps) {
             onPress={() => onChange(option.id)}
             className={onboardingOptionCard(selected, 'green')}>
             <View className="flex-row items-center gap-4">
-              <View
-                className={`h-11 w-11 items-center justify-center rounded-2xl ${
-                  selected ? 'bg-shamrock-600' : 'bg-shamrock-50'
-                }`}>
-                <IconoirIcon
-                  icon={SEX_OPTION_ICONS[option.iconKey]}
-                  size={22}
-                  color={selected ? ICONOIR_DEFAULTS.colorOnDark : ICONOIR_DEFAULTS.color}
-                />
-              </View>
+              <Image
+                source={SEX_OPTION_IMAGES[option.id]}
+                style={{ width: 56, height: 56, borderRadius: 16 }}
+                className="bg-ash-grey-100"
+                resizeMode="cover"
+                accessibilityIgnoresInvertColors
+              />
               <Text className={`flex-1 font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>
                 {option.label}
               </Text>

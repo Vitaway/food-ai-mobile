@@ -11,7 +11,7 @@ const SIZE_CONFIG: Record<AppTextInputSize, { fontSize: number; lineHeight: numb
   display: { fontSize: 36, lineHeight: 44, paddingVertical: 8 },
 };
 
-/** Avoids clipped descenders with Nata Sans on iOS/Android. */
+/** Avoids clipped descenders with Sniglet on iOS/Android. */
 export function appTextInputStyle(
   size: AppTextInputSize = 'base',
   options?: { weight?: 'regular' | 'bold'; multiline?: boolean },
@@ -21,7 +21,7 @@ export function appTextInputStyle(
   const multiline = options?.multiline ?? false;
 
   return {
-    fontFamily: weight === 'bold' ? fonts.bold : fonts.regular,
+    fontFamily: weight === 'bold' ? fonts.sansExtraBold : fonts.sans,
     fontSize,
     lineHeight,
     paddingVertical: multiline ? 12 : paddingVertical,

@@ -1,10 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { GradientHeaderTitle } from '@/components/ui/GradientHeader';
-import { palette } from '@/design-system/colors';
+import { BRAND_HEADER_COLOR, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { cn } from '@/utils/cn';
 
 type ScreenTopBarProps = {
@@ -20,12 +18,10 @@ export function ScreenTopBar({ title, onBack, rightAction, className }: ScreenTo
   const insets = useSafeAreaInsets();
 
   return (
-    <LinearGradient
-      colors={[palette['blue-spruce'][700], palette['blue-spruce'][500], palette['blue-spruce'][400]]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
+    <View
       className={cn(className)}
       style={{
+        backgroundColor: BRAND_HEADER_COLOR,
         paddingTop: insets.top + 4,
         paddingBottom: STACK_HEADER_BOTTOM_PADDING,
         paddingHorizontal: 20,
@@ -47,7 +43,7 @@ export function ScreenTopBar({ title, onBack, rightAction, className }: ScreenTo
         </View>
         {rightAction}
       </View>
-    </LinearGradient>
+    </View>
   );
 }
 

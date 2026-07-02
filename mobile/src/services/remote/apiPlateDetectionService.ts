@@ -1,9 +1,15 @@
-import { PLATE_API_URL } from '@/constants/api';
+import { API_BASE_URL } from '@/constants/api';
 import type {
   PlateDetectionInput,
   PlateDetectionResult,
   PlateDetectionService,
 } from '@/services/contracts/plateDetectionService';
+
+type ApiEnvelope<T> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
 
 function normalizeResult(body: Record<string, unknown>): PlateDetectionResult {
   const detected = Boolean(body.detected);
@@ -46,18 +52,21 @@ export const apiPlateDetectionService: PlateDetectionService = {
 
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch(`${PLATE_API_URL}/plates/detect`, {
+    const response = await fetch(`${API_BASE_URL}/api/v1/vision/plates/detect`, {
       method: 'POST',
       body: formData,
     });
 
-    const body = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    const body = (await response.json().catch(() => ({}))) as ApiEnvelope<
+      Record<string, unknown>
+    >;
 
-    if (!response.ok) {
-      const detail = typeof body.error === 'string' ? body.error : `HTTP ${response.status}`;
+    if (!response.ok || !body.success) {
+      const detail =
+        (typeof body.error === 'string' && body.error) || `HTTP ${response.status}`;
       throw new Error(detail);
     }
 
-    return normalizeResult(body);
+    return normalizeResult(body.data ?? {});
   },
 };
