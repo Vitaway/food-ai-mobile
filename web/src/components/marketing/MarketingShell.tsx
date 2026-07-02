@@ -77,7 +77,7 @@ export function MarketingShell() {
               Customer support
             </Link>
             <a
-              href="mailto:hello@vitaway.com"
+              href="mailto:hello@vitaway.org"
               className={cn(
                 'font-normal transition-colors',
                 navBlue ? 'hover:text-white' : 'hover:text-blue-spruce-600',

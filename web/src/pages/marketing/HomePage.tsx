@@ -46,7 +46,7 @@ const solutions = [
     title: 'For clinics & teams',
     desc: 'Scale human-in-the-loop meal review across clients with consistent, evidence-based workflows.',
     cta: 'Contact us',
-    href: 'mailto:hello@vitaway.com',
+    href: 'mailto:hello@vitaway.org',
   },
 ];
 

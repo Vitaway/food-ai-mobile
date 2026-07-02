@@ -43,32 +43,32 @@ export function SupportPage() {
               <div>
                 <dt className="font-normal text-ash-grey-700">General support</dt>
                 <dd>
-                  <a href="mailto:support@vitaway.com" className="text-blue-spruce-600">
-                    support@vitaway.com
+                  <a href="mailto:support@vitaway.org" className="text-blue-spruce-600">
+                    support@vitaway.org
                   </a>
                 </dd>
               </div>
               <div>
                 <dt className="font-normal text-ash-grey-700">Privacy requests</dt>
                 <dd>
-                  <a href="mailto:privacy@vitaway.com" className="text-blue-spruce-600">
-                    privacy@vitaway.com
+                  <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600">
+                    privacy@vitaway.org
                   </a>
                 </dd>
               </div>
               <div>
                 <dt className="font-normal text-ash-grey-700">Legal</dt>
                 <dd>
-                  <a href="mailto:legal@vitaway.com" className="text-blue-spruce-600">
-                    legal@vitaway.com
+                  <a href="mailto:legal@vitaway.org" className="text-blue-spruce-600">
+                    legal@vitaway.org
                   </a>
                 </dd>
               </div>
               <div>
                 <dt className="font-normal text-ash-grey-700">Business & partnerships</dt>
                 <dd>
-                  <a href="mailto:hello@vitaway.com" className="text-blue-spruce-600">
-                    hello@vitaway.com
+                  <a href="mailto:hello@vitaway.org" className="text-blue-spruce-600">
+                    hello@vitaway.org
                   </a>
                 </dd>
               </div>

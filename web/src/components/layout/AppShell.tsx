@@ -73,7 +73,7 @@ function AppFooter() {
         <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-ash-grey-500">
           <span>© {year} Vitaway</span>
           <span className="hidden h-4 w-px bg-ash-grey-200 sm:block" />
-          <a href="mailto:support@vitaway.com" className="hover:text-blue-spruce-600">
+          <a href="mailto:support@vitaway.org" className="hover:text-blue-spruce-600">
             Support
           </a>
           <Link to="/privacy" className="hover:text-blue-spruce-600">

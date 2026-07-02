@@ -1,20 +1,28 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
 import { AuthLayout } from '@/features/auth/components/AuthLayout';
 import { AUTH_ROUTES } from '@/features/auth/constants';
+import { resetPasswordWithToken } from '@/features/auth/api/authApi';
 import { useForgotPassword } from '@/features/auth/hooks/useForgotPassword';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 
 const FORM_ID = 'forgot-password-form';
+const RESET_FORM_ID = 'reset-password-form';
 
 export function ForgotPasswordPage() {
+  const [searchParams] = useSearchParams();
+  const resetToken = useMemo(() => searchParams.get('token')?.trim() ?? '', [searchParams]);
   const forgotPassword = useForgotPassword();
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [sent, setSent] = useState(false);
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetting, setResetting] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +40,86 @@ export function ForgotPasswordPage() {
         onError: (error) =>
           toast.error(getApiErrorMessage(error, 'Unable to send reset link'), 'Reset unavailable'),
       },
+    );
+  }
+
+  async function handleResetSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 8) {
+      toast.error('Password must be at least 8 characters.', 'Invalid password');
+      return;
+    }
+    if (password !== confirmPassword) {
+      toast.error('Passwords do not match.', 'Invalid password');
+      return;
+    }
+
+    setResetting(true);
+    try {
+      await resetPasswordWithToken(resetToken, password);
+      setResetDone(true);
+      toast.success('You can sign in with your new password.', 'Password updated');
+    } catch (error) {
+      toast.error(getApiErrorMessage(error, 'Unable to reset password'), 'Reset failed');
+    } finally {
+      setResetting(false);
+    }
+  }
+
+  if (resetToken) {
+    return (
+      <AuthLayout
+        title="Choose a new password"
+        subtitle="Enter a strong password for your MiraFood account."
+        actions={
+          resetDone ? undefined : (
+            <Button
+              type="submit"
+              form={RESET_FORM_ID}
+              variant="primary"
+              size="lg"
+              fullWidth
+              disabled={resetting}>
+              {resetting ? 'Updating…' : 'Update password'}
+            </Button>
+          )
+        }>
+        {resetDone ? (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-shamrock-200 bg-shamrock-50 p-5 text-sm text-shamrock-800">
+              <p className="font-normal text-shamrock-900">Password updated</p>
+              <p className="mt-2 leading-relaxed">Your password has been changed. Sign in to continue.</p>
+            </div>
+            <Link to={AUTH_ROUTES.login}>
+              <Button variant="primary" size="lg" fullWidth>
+                Sign in
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          <form id={RESET_FORM_ID} onSubmit={handleResetSubmit} className="space-y-5">
+            <TextField
+              label="New password"
+              type="password"
+              name="password"
+              autoComplete="new-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="At least 8 characters"
+            />
+            <TextField
+              label="Confirm password"
+              type="password"
+              name="confirmPassword"
+              autoComplete="new-password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </form>
+        )}
+      </AuthLayout>
     );
   }
 
@@ -74,7 +162,7 @@ export function ForgotPasswordPage() {
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@vitaway.com"
+            placeholder="you@vitaway.org"
             hint="We'll send a reset link if this email is registered."
           />
 

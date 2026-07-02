@@ -22,7 +22,8 @@ export function formatMealType(type: string) {
     .join(' ');
 }
 
-export function formatGoal(goal: string) {
+export function formatGoal(goal?: string | null) {
+  if (!goal) return '—';
   return goal.replace(/_/g, ' ');
 }
 

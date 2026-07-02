@@ -39,7 +39,7 @@ export function LoginForm({ login, toast }: LoginFormProps) {
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@vitaway.com"
+        placeholder="you@vitaway.org"
       />
 
       <TextField

@@ -3,9 +3,22 @@ import { MacroBar } from '@/components/ui/MacroBar';
 import { formatGoal, formatCoachPatientLabel, cn } from '@/lib/utils';
 import type { CoachClient } from '@/types';
 
+const DEFAULT_MACRO_TARGETS = {
+  proteinG: 120,
+  carbsG: 200,
+  fatG: 65,
+};
+
 export function ClientPanel({ client }: { client: CoachClient }) {
   const { profile, dashboard, patientId } = client;
-  const caloriePct = Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100);
+  const macroTargets = profile.macroTargets ?? DEFAULT_MACRO_TARGETS;
+  const macrosConsumed = dashboard.macrosConsumed ?? {
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+  };
+  const calorieTarget = dashboard.calorieTarget || 1;
+  const caloriePct = Math.round((dashboard.caloriesConsumed / calorieTarget) * 100);
 
   return (
     <Card>
@@ -24,10 +37,10 @@ export function ClientPanel({ client }: { client: CoachClient }) {
       </CardHeader>
       <CardBody className="space-y-4">
         <div className="grid grid-cols-2 gap-3 text-sm">
-          <Stat label="Age" value={`${profile.age}`} />
-          <Stat label="Weight" value={`${profile.weightKg} kg`} />
-          <Stat label="Streak" value={`${dashboard.streakDays} days`} />
-          <Stat label="Health score" value={`${dashboard.healthScore}`} />
+          <Stat label="Age" value={profile.age != null ? `${profile.age}` : '—'} />
+          <Stat label="Weight" value={profile.weightKg != null ? `${profile.weightKg} kg` : '—'} />
+          <Stat label="Streak" value={`${dashboard.streakDays ?? 0} days`} />
+          <Stat label="Health score" value={`${dashboard.healthScore ?? 0}`} />
         </div>
 
         <div className="rounded-2xl bg-ash-grey-50 p-4">
@@ -49,20 +62,20 @@ export function ClientPanel({ client }: { client: CoachClient }) {
         <div className="space-y-3">
           <MacroBar
             label="Protein"
-            value={dashboard.macrosConsumed.proteinG}
-            target={profile.macroTargets.proteinG}
+            value={macrosConsumed.proteinG}
+            target={macroTargets.proteinG}
             colorClass="bg-shamrock-500"
           />
           <MacroBar
             label="Carbs"
-            value={dashboard.macrosConsumed.carbsG}
-            target={profile.macroTargets.carbsG}
+            value={macrosConsumed.carbsG}
+            target={macroTargets.carbsG}
             colorClass="bg-blue-spruce-500"
           />
           <MacroBar
             label="Fats"
-            value={dashboard.macrosConsumed.fatG}
-            target={profile.macroTargets.fatG}
+            value={macrosConsumed.fatG}
+            target={macroTargets.fatG}
             colorClass="bg-cinnamon-wood-400"
           />
         </div>

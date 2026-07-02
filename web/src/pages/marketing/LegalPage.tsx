@@ -59,12 +59,12 @@ export function LegalPage() {
         <div className="mx-auto mt-12 max-w-7xl px-4 text-center text-sm text-ash-grey-600 sm:px-6 lg:px-8">
           <p>
             Questions? Email{' '}
-            <a href="mailto:support@vitaway.com" className="text-blue-spruce-600">
-              support@vitaway.com
+            <a href="mailto:support@vitaway.org" className="text-blue-spruce-600">
+              support@vitaway.org
             </a>{' '}
             or{' '}
-            <a href="mailto:privacy@vitaway.com" className="text-blue-spruce-600">
-              privacy@vitaway.com
+            <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600">
+              privacy@vitaway.org
             </a>
           </p>
         </div>

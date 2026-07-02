@@ -76,7 +76,7 @@ export function RegisterForm({ register, toast, onValidityChange }: RegisterForm
         required
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        placeholder="you@vitaway.com"
+        placeholder="you@vitaway.org"
       />
 
       <div>

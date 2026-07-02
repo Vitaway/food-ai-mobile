@@ -8,7 +8,7 @@ export function getApiErrorMessage(error: unknown, fallback = 'Something went wr
 
   if (error instanceof ApiError) {
     if (error.status === 404) {
-      return 'API endpoint not found. Start the MiraFood API server (port 3010) or check your proxy URL.';
+      return 'API endpoint not found. Start the MiraFood API server (port 3011) or check your proxy URL.';
     }
     if (error.status === 401) {
       return error.message === 'Request failed (401)' || error.message === 'Unauthorized'

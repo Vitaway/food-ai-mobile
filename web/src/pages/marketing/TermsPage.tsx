@@ -61,8 +61,8 @@ export function TermsPage() {
         <p>
           You are responsible for maintaining the confidentiality of your account credentials and for
           all activity under your account. Notify us immediately at{' '}
-          <a href="mailto:support@vitaway.com" className="text-blue-spruce-600 underline">
-            support@vitaway.com
+          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+            support@vitaway.org
           </a>{' '}
           of any unauthorized use.
         </p>
@@ -118,8 +118,8 @@ export function TermsPage() {
       <LegalSection title="Contact">
         <p>
           Questions about these Terms:{' '}
-          <a href="mailto:legal@vitaway.com" className="text-blue-spruce-600 underline">
-            legal@vitaway.com
+          <a href="mailto:legal@vitaway.org" className="text-blue-spruce-600 underline">
+            legal@vitaway.org
           </a>
         </p>
       </LegalSection>

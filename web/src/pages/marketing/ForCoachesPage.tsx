@@ -49,7 +49,7 @@ export function ForCoachesPage() {
           </div>
           <p className="mt-10 text-ash-grey-600">
             Interested in bringing MiraFood to your clinic or coaching practice?{' '}
-            <a href="mailto:hello@vitaway.com" className="font-normal text-blue-spruce-600 underline-offset-2 hover:underline">
+            <a href="mailto:hello@vitaway.org" className="font-normal text-blue-spruce-600 underline-offset-2 hover:underline">
               Get in touch
             </a>
           </p>

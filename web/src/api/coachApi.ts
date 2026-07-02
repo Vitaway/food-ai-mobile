@@ -67,7 +67,7 @@ export async function updateCoachProfile(
 }
 
 export async function updateCoachPassword(_payload: UpdateCoachPasswordPayload): Promise<void> {
-  throw new Error('Password change is not available yet. Contact support@vitaway.com.');
+  throw new Error('Password change is not available yet. Contact support@vitaway.org.');
 }
 
 export async function fetchCoachStats(): Promise<CoachDashboardStats> {

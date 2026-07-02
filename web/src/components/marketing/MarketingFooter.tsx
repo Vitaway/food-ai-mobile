@@ -77,17 +77,17 @@ export function MarketingFooter() {
                 ·
               </span>
               <a
-                href="https://vitaway.com"
+                href="https://vitaway.org"
                 className="transition-colors hover:text-blue-spruce-600"
                 target="_blank"
                 rel="noopener noreferrer">
-                vitaway.com
+                vitaway.org
               </a>
               <span className="text-ash-grey-300" aria-hidden>
                 ·
               </span>
-              <a href="mailto:support@vitaway.com" className="transition-colors hover:text-blue-spruce-600">
-                support@vitaway.com
+              <a href="mailto:support@vitaway.org" className="transition-colors hover:text-blue-spruce-600">
+                support@vitaway.org
               </a>
             </p>
 

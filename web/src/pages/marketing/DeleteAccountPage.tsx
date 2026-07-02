@@ -30,8 +30,8 @@ export function DeleteAccountPage() {
       <LegalSection title="Request deletion by email">
         <p>
           If you cannot access the app, email{' '}
-          <a href="mailto:support@vitaway.com" className="text-blue-spruce-600 underline">
-            support@vitaway.com
+          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+            support@vitaway.org
           </a>{' '}
           from the address linked to your account with the subject line &quot;Account deletion
           request.&quot; Include your full name and the email used for MiraFood. We will verify your
@@ -66,8 +66,8 @@ export function DeleteAccountPage() {
       <LegalSection title="Questions">
         <p>
           Contact{' '}
-          <a href="mailto:privacy@vitaway.com" className="text-blue-spruce-600 underline">
-            privacy@vitaway.com
+          <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600 underline">
+            privacy@vitaway.org
           </a>{' '}
           for privacy-related deletion questions.
         </p>

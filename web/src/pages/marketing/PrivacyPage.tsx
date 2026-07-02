@@ -97,8 +97,8 @@ export function PrivacyPage() {
         <p>
           Depending on your location, you may have rights to access, correct, delete, or export your
           data, and to object to or restrict certain processing. Contact us at{' '}
-          <a href="mailto:privacy@vitaway.com" className="text-blue-spruce-600 underline">
-            privacy@vitaway.com
+          <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600 underline">
+            privacy@vitaway.org
           </a>{' '}
           to exercise these rights.
         </p>
@@ -138,13 +138,13 @@ export function PrivacyPage() {
           Vitaway / MiraFood
           <br />
           Email:{' '}
-          <a href="mailto:privacy@vitaway.com" className="text-blue-spruce-600 underline">
-            privacy@vitaway.com
+          <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600 underline">
+            privacy@vitaway.org
           </a>
           <br />
           Support:{' '}
-          <a href="mailto:support@vitaway.com" className="text-blue-spruce-600 underline">
-            support@vitaway.com
+          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+            support@vitaway.org
           </a>
         </p>
       </LegalSection>

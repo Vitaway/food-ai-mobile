@@ -122,9 +122,17 @@ export async function requestPasswordReset(payload: ForgotPasswordPayload): Prom
   if (!payload.email.includes('@')) {
     throw new AuthError('Please enter a valid email address.');
   }
-  throw new AuthError(
-    'Password reset is not set up yet. Email support@vitaway.com and we will help you regain access.',
-  );
+  await apiRequest<{ ok: boolean }>('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify({ email: payload.email.trim() }),
+  });
+}
+
+export async function resetPasswordWithToken(token: string, password: string): Promise<void> {
+  await apiRequest<{ ok: boolean }>('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  });
 }
 
 export async function logoutCoach(): Promise<void> {
