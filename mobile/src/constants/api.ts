@@ -1,10 +1,10 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-/** Production MiraFood API + web host */
-const PROD_HOST = 'mirafood.vitaway.org';
-/** Legacy staging host */
-const LEGACY_PROD_HOST = 'vitaway.nsengi.space';
+/** Production API host (Node server on Contabo) */
+export const PROD_API_HOST = 'vitaway.nsengi.space';
+/** Production web dashboard host */
+export const PROD_WEB_HOST = 'mirafood.vitaway.org';
 const DEFAULT_DEV_PORT = 3011;
 
 function getMetroDevHost(): string | null {
@@ -34,13 +34,17 @@ function buildDevApiUrl(host: string, port: number): string {
   return `http://${host}:${port}`;
 }
 
+function isProdApiHost(url: string): boolean {
+  return url.includes(PROD_API_HOST) || url.includes(PROD_WEB_HOST);
+}
+
 function resolveApiBaseUrl(): string {
   const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
 
   if (__DEV__) {
     const port = getDevApiPort(fromEnv || `http://127.0.0.1:${DEFAULT_DEV_PORT}`);
 
-    if (!fromEnv || fromEnv.includes(LEGACY_PROD_HOST) || fromEnv.includes(PROD_HOST)) {
+    if (!fromEnv || isProdApiHost(fromEnv)) {
       const host = getMetroDevHost() ?? '127.0.0.1';
       return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
@@ -67,7 +71,11 @@ function resolveApiBaseUrl(): string {
     }
   }
 
-  return fromEnv;
+  if (fromEnv) {
+    return fromEnv;
+  }
+
+  return `https://${PROD_API_HOST}`;
 }
 
 /** MiraFood API origin (no trailing slash) */

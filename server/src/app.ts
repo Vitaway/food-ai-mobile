@@ -15,6 +15,7 @@ import {
 } from "./middlewares/auth.middleware";
 import { authLoginRateLimit, authRegisterRateLimit, visionDetectRateLimit } from "./middlewares/rate-limit.middleware";
 import { errorResponse } from "./utils/response";
+import legacyRoutes from "./routes/legacy.routes";
 
 const app = express();
 
@@ -55,6 +56,9 @@ app.use("/api/v1/auth/register", authRegisterRateLimit);
 app.use("/api/v1/vision/plates/detect", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze-text", visionDetectRateLimit);
+
+// Legacy Flask mobile/backend paths (GET /health, POST /plates/detect at domain root)
+app.use(legacyRoutes);
 
 const validationOptions: ValidatorOptions = {
   whitelist: true,

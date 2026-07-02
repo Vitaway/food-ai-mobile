@@ -146,7 +146,8 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
 
-# Python backend
+# Deprecated Flask backend (removed — API is in server/)
+backend/
 # Expo
 .expo/
 dist/

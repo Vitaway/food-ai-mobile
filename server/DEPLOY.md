@@ -119,6 +119,37 @@ bash deploy/security-check.sh
 
 **Optional (whole VPS):** If you want firewall-level protection for all projects, allow only `22`, `80`, `443` via UFW — but audit your other apps first (hexad `:5434`, trusthome `:5435`, etc. are currently public).
 
+install-nginx.sh passes `API_PORT` to the snippets (default `3011`).
+
+## nginx only (no Docker rebuild)
+
+```bash
+cd ~/food-ai-mobile/server
+sudo API_PORT=3011 bash deploy/install-nginx.sh
+```
+
+Before certbot exists:
+
+```bash
+sudo bash deploy/install-nginx.sh --http-only
+```
+
+### Config files
+
+| File | Purpose |
+|------|---------|
+| `deploy/nginx/snippets/mirafood-api-locations.conf` | Proxy rules (`/health`, `/plates/detect`, `/api/`, `/ws/`) |
+| `deploy/nginx/vitaway.nsengi.space.conf` | API host template (reference) |
+| `deploy/nginx/mirafood.vitaway.org.conf` | Web SPA static site (coach dashboard) |
+
+Legacy Flask paths:
+
+| Old (`mobile/backend`) | nginx → Node |
+|------------------------|--------------|
+| `GET /health` | `/api/v1/health` |
+| `POST /plates/detect` | `/api/v1/vision/plates/detect` |
+| gunicorn `:5050` | Docker API `127.0.0.1:3011` |
+
 ## 4. Run deploy (one command)
 
 **Do not run `docker compose up` on the VPS** — that is the local dev file (exposes DB ports, no build step).
@@ -151,13 +182,26 @@ docker compose -f docker-compose.prod.yml exec api npm run seed
 
 ## 6. Update mobile app production URL
 
-In EAS / TestFlight env or `mobile/.env`:
+API and web are on **different hosts**:
+
+| App | URL |
+|-----|-----|
+| Mobile API | `https://vitaway.nsengi.space` |
+| Web dashboard | `https://mirafood.vitaway.org` |
+
+In EAS / TestFlight (`eas.json`):
 
 ```env
 EXPO_PUBLIC_API_URL=https://vitaway.nsengi.space
+EXPO_PUBLIC_WEB_URL=https://mirafood.vitaway.org
 ```
 
-(Or `https://mirafood.vitaway.org` when that DNS points to the same VPS.)
+Legacy Flask paths still work (redirected by nginx + Node):
+
+| Old (Flask) | New (Node) |
+|-------------|------------|
+| `GET /health` | `GET /api/v1/health` |
+| `POST /plates/detect` | `POST /api/v1/vision/plates/detect` |
 
 ## Redeploy after code changes
 

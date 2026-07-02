@@ -74,51 +74,11 @@ for i in $(seq 1 30); do
   fi
 done
 
-proxy_block() {
-  cat <<EOF
-    client_max_body_size 25M;
-
-    location /ws/ {
-        proxy_pass http://127.0.0.1:${PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade \$http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 3600s;
-    }
-
-    location / {
-        proxy_pass http://127.0.0.1:${PORT};
-        proxy_http_version 1.1;
-        proxy_set_header Host \$host;
-        proxy_set_header X-Real-IP \$remote_addr;
-        proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto \$scheme;
-        proxy_read_timeout 180s;
-        proxy_connect_timeout 30s;
-        proxy_send_timeout 180s;
-    }
-EOF
-}
-
 echo "[5/9] Verifying DB/Redis are not exposed..."
 bash "$SCRIPT_DIR/security-check.sh"
 
-echo "[6/9] nginx HTTP site (for certbot)..."
-cat > "$SITE_FILE" <<EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name $DOMAIN;
-$(proxy_block)
-}
-EOF
-ln -sf "$SITE_FILE" "$SITE_ENABLED"
-nginx -t
-systemctl reload nginx
+echo "[6/9] nginx HTTP site..."
+API_PORT="$PORT" bash "$SCRIPT_DIR/install-nginx.sh" --http-only
 
 echo "[7/9] SSL certificate..."
 if [[ ! -f "$CERT_DIR/fullchain.pem" ]]; then
@@ -134,35 +94,7 @@ else
 fi
 
 echo "[8/9] nginx HTTPS site..."
-SSL_INCLUDE=""
-[[ -f /etc/letsencrypt/options-ssl-nginx.conf ]] && SSL_INCLUDE="include /etc/letsencrypt/options-ssl-nginx.conf;"
-SSL_DH=""
-[[ -f /etc/letsencrypt/ssl-dhparams.pem ]] && SSL_DH="ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem;"
-
-cat > "$SITE_FILE" <<EOF
-server {
-    listen 80;
-    listen [::]:80;
-    server_name $DOMAIN;
-    return 301 https://\$host\$request_uri;
-}
-
-server {
-    listen 443 ssl;
-    listen [::]:443 ssl;
-    server_name $DOMAIN;
-
-    ssl_certificate $CERT_DIR/fullchain.pem;
-    ssl_certificate_key $CERT_DIR/privkey.pem;
-    $SSL_INCLUDE
-    $SSL_DH
-
-$(proxy_block)
-}
-EOF
-
-nginx -t
-systemctl reload nginx
+API_PORT="$PORT" bash "$SCRIPT_DIR/install-nginx.sh"
 
 echo "[9/9] Verifying HTTPS..."
 HTTP_CODE="$(curl -sk -o /tmp/mirafood-health.json -w '%{http_code}' "https://$DOMAIN/api/v1/health/ready")"

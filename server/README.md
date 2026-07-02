@@ -24,6 +24,8 @@ API base: `http://localhost:3011/api/v1` (port 3010 may be used by other local s
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
+| GET | `/health` | No | **Legacy** — same as `/api/v1/health` (Flask compat) |
+| POST | `/plates/detect` | No | **Legacy** — same as `/api/v1/vision/plates/detect` |
 | GET | `/api/v1/health` | No | Liveness + OpenRouter status |
 | GET | `/api/v1/health/ready` | No | DB + Redis readiness |
 | POST | `/api/v1/auth/register` | No | Create consumer account + patient ID |

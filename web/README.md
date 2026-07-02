@@ -20,7 +20,7 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173)
 
-Uses mock coach API data until the real backend is wired.
+Uses the MiraFood Node API (`server/`) via `VITE_API_BASE_URL`.
 
 ## Pages
 
@@ -46,13 +46,14 @@ web/src/
   types/         Shared with mobile meal pipeline types
 ```
 
-## Connect to real API
-
-Replace `src/api/mockCoachApi.ts` with fetch calls to your backend coach endpoints when ready.
+## Connect to production API
 
 ```env
-VITE_API_URL=https://vitaway.nsengi.space
+# web/.env.production
+VITE_API_BASE_URL=https://vitaway.nsengi.space/api/v1
 ```
+
+Local dev proxies `/api` to `http://127.0.0.1:3011` (see `vite.config.ts`).
 
 ## Build
 
