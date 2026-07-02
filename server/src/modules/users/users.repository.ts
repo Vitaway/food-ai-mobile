@@ -13,6 +13,14 @@ export class UsersRepository {
     return this.repo.findOne({ where: { id } });
   }
 
+  findByReferralCode(code: string) {
+    return this.repo.findOne({ where: { referralCode: code.toUpperCase().trim() } });
+  }
+
+  countReferrals(userId: string) {
+    return this.repo.count({ where: { referredByUserId: userId } });
+  }
+
   findByRole(role: UserRole) {
     return this.repo.find({ where: { role }, order: { createdAt: "DESC" } });
   }

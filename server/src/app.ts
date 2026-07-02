@@ -5,7 +5,6 @@ import helmet from "helmet";
 import compression from "compression";
 import { useExpressServer } from "routing-controllers";
 import type { ValidatorOptions } from "class-validator";
-import multer from "multer";
 import { env } from "./config/env";
 import { controllers } from "./modules";
 import { ResponseInterceptor } from "./interceptors/response.interceptor";
@@ -14,10 +13,8 @@ import {
   createAuthorizationChecker,
   createCurrentUserChecker,
 } from "./middlewares/auth.middleware";
-import { authLoginRateLimit, visionDetectRateLimit } from "./middlewares/rate-limit.middleware";
+import { authLoginRateLimit, authRegisterRateLimit, visionDetectRateLimit } from "./middlewares/rate-limit.middleware";
 import { errorResponse } from "./utils/response";
-import { visionService } from "./modules/vision/vision.service";
-import { healthService } from "./modules/health/health.service";
 
 const app = express();
 
@@ -53,33 +50,8 @@ app.use(compression());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
-const visionUpload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 12 * 1024 * 1024 },
-});
-
-async function handlePlateDetect(req: Request, res: Response, next: NextFunction) {
-  try {
-    const file = req.file;
-    if (!file) {
-      res.status(400).json(errorResponse("Missing image file (field name: image)"));
-      return;
-    }
-    const metadata = typeof req.body?.metadata === "string" ? req.body.metadata : "{}";
-    const result = await visionService.detectPlate(file.buffer, file.mimetype, metadata);
-    res.json(result);
-  } catch (err: any) {
-    next(err);
-  }
-}
-
-/** Legacy Flask paths — keep until mobile clients point at /api/v1/vision/plates/detect */
-app.get("/health", (_req, res) => {
-  res.json(healthService.getStatus());
-});
-app.post("/plates/detect", visionDetectRateLimit, visionUpload.single("image"), handlePlateDetect);
-
 app.use("/api/v1/auth/login", authLoginRateLimit);
+app.use("/api/v1/auth/register", authRegisterRateLimit);
 app.use("/api/v1/vision/plates/detect", visionDetectRateLimit);
 
 const validationOptions: ValidatorOptions = {

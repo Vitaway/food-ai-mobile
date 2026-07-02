@@ -22,6 +22,17 @@ export class MealsRepository {
     return this.meals.findOne({ where: { id } });
   }
 
+  findMealsByClientId(clientId: string) {
+    return this.meals.find({
+      where: { clientId },
+      order: { submittedAt: "DESC" },
+    });
+  }
+
+  findMealByIdForClient(id: string, clientId: string) {
+    return this.meals.findOne({ where: { id, clientId } });
+  }
+
   saveMeal(meal: MealSubmission) {
     return this.meals.save(meal);
   }

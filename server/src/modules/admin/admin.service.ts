@@ -69,6 +69,7 @@ export const adminService = {
       const dashboard = c.dashboard as Record<string, unknown>;
       return {
         id: c.id,
+        patientId: c.id,
         displayName: profile.displayName ?? c.id,
         email: profile.email ?? null,
         goal: profile.goal ?? null,

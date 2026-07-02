@@ -1,9 +1,11 @@
 import "reflect-metadata";
+import http from "http";
 import app from "./app";
 import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { AppDataSource } from "./config/database";
 import { redisService } from "./services/redis.service";
+import { attachNotificationWebSocket } from "./services/notification-realtime.service";
 
 async function bootstrap() {
   redisService.connect();
@@ -18,7 +20,10 @@ async function bootstrap() {
     logger.info("Migrations applied");
   }
 
-  app.listen(env.PORT, () => {
+  const server = http.createServer(app);
+  attachNotificationWebSocket(server);
+
+  server.listen(env.PORT, () => {
     logger.info(
       `MiraFood API listening on http://0.0.0.0:${env.PORT} (env=${env.NODE_ENV})`,
     );

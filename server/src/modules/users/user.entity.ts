@@ -32,6 +32,13 @@ export class User {
   @Column({ type: "boolean", name: "is_active", default: true })
   isActive!: boolean;
 
+  @Index({ unique: true })
+  @Column({ type: "varchar", name: "referral_code", length: 16, nullable: true })
+  referralCode!: string | null;
+
+  @Column({ type: "uuid", name: "referred_by_user_id", nullable: true })
+  referredByUserId!: string | null;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 

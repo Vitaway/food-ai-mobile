@@ -26,6 +26,7 @@ API base: `http://localhost:3010/api/v1`
 |--------|------|------|-------|
 | GET | `/api/v1/health` | No | Liveness + OpenRouter status |
 | GET | `/api/v1/health/ready` | No | DB + Redis readiness |
+| POST | `/api/v1/auth/register` | No | Create consumer account + patient ID |
 | POST | `/api/v1/auth/login` | No | Returns JWT + user |
 | POST | `/api/v1/auth/logout` | Yes | Revokes session |
 | POST | `/api/v1/auth/me` | Yes | Current user |
@@ -36,12 +37,12 @@ API base: `http://localhost:3010/api/v1`
 | GET | `/api/v1/coach/clients` | Coach | Client list |
 | GET | `/api/v1/coach/meals/:id` | Coach | Meal detail |
 | POST | `/api/v1/coach/meals/:id/review` | Coach | Approve/reject |
+| GET | `/api/v1/consumer/profile` | Consumer | Profile + patient ID |
+| PATCH | `/api/v1/consumer/profile` | Consumer | Update health profile |
+| GET | `/api/v1/consumer/dashboard` | Consumer | Today's dashboard |
+| GET | `/api/v1/consumer/meals` | Consumer | Meal history |
+| POST | `/api/v1/consumer/meals` | Consumer | Submit meal for coach review |
 | POST | `/api/v1/vision/plates/detect` | No | Plate/bowl vision (multipart) |
-
-**Legacy (Flask-compatible during migration):**
-
-- `GET /health`
-- `POST /plates/detect` — returns raw detection JSON (no envelope), same as Flask
 
 ## Environment
 

@@ -1,5 +1,7 @@
 import { NotFoundError } from "routing-controllers";
 import { mealsRepository } from "./meals.repository";
+import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
+import { notificationsService } from "../notifications/notifications.service";
 import type { MealSubmission } from "./meal-submission.entity";
 import type { ReviewMealDto } from "./meals.dto";
 
@@ -14,9 +16,18 @@ function toMealDto(row: MealSubmission) {
   };
 }
 
+function coachSafeFirstName(displayName: unknown): string {
+  if (typeof displayName !== "string" || !displayName.trim()) return "Patient";
+  return displayName.trim().split(/\s+/)[0];
+}
+
 function toClientDto(consumer: { id: string; profile: Record<string, unknown>; dashboard: Record<string, unknown> }) {
   return {
-    profile: consumer.profile,
+    patientId: consumer.id,
+    profile: {
+      ...consumer.profile,
+      displayName: coachSafeFirstName(consumer.profile.displayName),
+    },
     dashboard: consumer.dashboard,
   };
 }
@@ -93,6 +104,17 @@ export const coachMealsService = {
     };
 
     await mealsRepository.saveMeal(meal);
+
+    const consumer = await consumerProfilesRepository.findById(meal.clientId);
+    if (consumer?.userId) {
+      const mealName = (meal.data.mealName as string | undefined) ?? undefined;
+      void notificationsService.notifyMealStatus(consumer.userId, {
+        id: meal.id,
+        mealName,
+        status: meal.status,
+      });
+    }
+
     return toMealDto(meal);
   },
 };

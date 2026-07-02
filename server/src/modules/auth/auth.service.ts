@@ -1,11 +1,21 @@
 import bcrypt from "bcryptjs";
 import type { Request } from "express";
-import { UnauthorizedError, ForbiddenError } from "routing-controllers";
+import {
+  UnauthorizedError,
+  BadRequestError,
+  NotFoundError,
+} from "routing-controllers";
 import { signAuthToken } from "../../middlewares/auth.middleware";
 import { usersRepository } from "../users/users.repository";
 import { authRepository } from "./auth.repository";
-import type { LoginDto } from "./auth.dto";
+import type { LoginDto, RegisterDto } from "./auth.dto";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
+import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
+import { generatePatientId } from "../../utils/patient-id";
+import { logger } from "../../config/logger";
+import { emailService } from "../../services/email.service";
+import { generateReferralCode } from "../../utils/referral-code";
+import { notificationsService } from "../notifications/notifications.service";
 
 export interface AuthUserDto {
   id: string;
@@ -13,8 +23,9 @@ export interface AuthUserDto {
   role: string;
   displayName: string;
   avatarUrl: string | null;
+  patientId?: string;
 }
-
+ 
 export interface LoginResult {
   token: string;
   user: AuthUserDto;
@@ -23,25 +34,167 @@ export interface LoginResult {
     title: string | null;
     organization: string | null;
   };
+  consumerProfile?: {
+    patientId: string;
+    onboardingComplete: boolean;
+  };
 }
 
-function toAuthUser(user: {
-  id: string;
-  email: string;
-  role: string;
-  displayName: string;
-  avatarUrl: string | null;
-}): AuthUserDto {
+function toAuthUser(
+  user: {
+    id: string;
+    email: string;
+    role: string;
+    displayName: string;
+    avatarUrl: string | null;
+  },
+  patientId?: string,
+): AuthUserDto {
   return {
     id: user.id,
     email: user.email,
     role: user.role,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    ...(patientId ? { patientId } : {}),
   };
 }
 
+async function createSession(userId: string, req?: Request) {
+  const session = authRepository.create({
+    userId,
+    userAgent: req?.headers["user-agent"] ?? null,
+    ip: req?.ip ?? null,
+    revokedAt: null,
+  });
+  await authRepository.save(session);
+  return session;
+}
+
+async function attachRoleContext(
+  user: { id: string; role: string },
+  result: LoginResult,
+): Promise<LoginResult> {
+  if (user.role === "coach") {
+    const profile = await coachProfilesRepository.findByUserId(user.id);
+    if (profile) {
+      result.coachProfile = {
+        id: profile.id,
+        title: profile.title,
+        organization: profile.organization,
+      };
+    }
+    return result;
+  }
+
+  if (user.role === "consumer") {
+    const profile = await consumerProfilesRepository.findByUserId(user.id);
+    if (profile) {
+      result.user.patientId = profile.id;
+      result.consumerProfile = {
+        patientId: profile.id,
+        onboardingComplete: Boolean(profile.profile.onboardingComplete),
+      };
+    }
+  }
+
+  return result;
+}
+
 export const authService = {
+  async register(dto: RegisterDto, req?: Request): Promise<LoginResult> {
+    const email = dto.email.toLowerCase().trim();
+    const existing = await usersRepository.findByEmail(email);
+    if (existing) {
+      throw new BadRequestError("An account with this email already exists");
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 10);
+
+    let referrer: Awaited<ReturnType<typeof usersRepository.findByReferralCode>> | null = null;
+    if (dto.referralCode?.trim()) {
+      referrer = await usersRepository.findByReferralCode(dto.referralCode.trim());
+      if (!referrer || referrer.role !== "consumer") {
+        throw new BadRequestError("Invalid referral code");
+      }
+    }
+
+    let referralCode = generateReferralCode();
+    while (await usersRepository.findByReferralCode(referralCode)) {
+      referralCode = generateReferralCode();
+    }
+
+    const user = usersRepository.create({
+      email,
+      passwordHash,
+      role: "consumer",
+      displayName: dto.displayName.trim(),
+      avatarUrl: null,
+      isActive: true,
+      referralCode,
+      referredByUserId: referrer?.id ?? null,
+    });
+    await usersRepository.save(user);
+
+    let patientId = generatePatientId();
+    while (await consumerProfilesRepository.findById(patientId)) {
+      patientId = generatePatientId();
+    }
+
+    const now = new Date().toISOString();
+    const consumerProfile = consumerProfilesRepository.create({
+      id: patientId,
+      userId: user.id,
+      profile: {
+        displayName: user.displayName,
+        email: user.email,
+        onboardingComplete: false,
+        createdAt: now,
+        updatedAt: now,
+      },
+      dashboard: {
+        waterMl: 0,
+        streakDays: 0,
+      },
+    });
+    await consumerProfilesRepository.save(consumerProfile);
+
+    if (referrer) {
+      try {
+        await notificationsService.notifyReferralSignup(referrer.id, user.displayName);
+      } catch (err) {
+        logger.error({ err, referrerId: referrer.id }, "Failed to notify referrer");
+      }
+    }
+
+    try {
+      await emailService.sendWelcomeEmail(user.email, {
+        displayName: user.displayName,
+        patientId,
+      });
+    } catch (err) {
+      logger.error({ err, email: user.email }, "Failed to send welcome email");
+    }
+
+    const session = await createSession(user.id, req);
+    const token = signAuthToken({
+      sub: user.id,
+      sid: session.id,
+      role: user.role,
+    });
+
+    const result: LoginResult = {
+      token,
+      user: toAuthUser(user, patientId),
+      consumerProfile: {
+        patientId,
+        onboardingComplete: false,
+      },
+    };
+
+    return result;
+  },
+
   async login(dto: LoginDto, req?: Request): Promise<LoginResult> {
     const email = dto.email.toLowerCase().trim();
     const user = await usersRepository.findByEmail(email);
@@ -51,23 +204,13 @@ export const authService = {
     if (!user.isActive) {
       throw new UnauthorizedError("Invalid email or password");
     }
-    if (user.role !== "coach" && user.role !== "admin") {
-      throw new ForbiddenError("This account cannot sign in to the dashboard");
-    }
 
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedError("Invalid email or password");
     }
 
-    const session = authRepository.create({
-      userId: user.id,
-      userAgent: req?.headers["user-agent"] ?? null,
-      ip: req?.ip ?? null,
-      revokedAt: null,
-    });
-    await authRepository.save(session);
-
+    const session = await createSession(user.id, req);
     const token = signAuthToken({
       sub: user.id,
       sid: session.id,
@@ -79,18 +222,7 @@ export const authService = {
       user: toAuthUser(user),
     };
 
-    if (user.role === "coach") {
-      const profile = await coachProfilesRepository.findByUserId(user.id);
-      if (profile) {
-        result.coachProfile = {
-          id: profile.id,
-          title: profile.title,
-          organization: profile.organization,
-        };
-      }
-    }
-
-    return result;
+    return attachRoleContext(user, result);
   },
 
   async logout(sessionId: string): Promise<void> {
@@ -100,22 +232,25 @@ export const authService = {
     await authRepository.save(session);
   },
 
-  async me(userId: string): Promise<LoginResult["user"] & { coachProfile?: LoginResult["coachProfile"] }> {
+  async me(
+    userId: string,
+  ): Promise<LoginResult["user"] & {
+    coachProfile?: LoginResult["coachProfile"];
+    consumerProfile?: LoginResult["consumerProfile"];
+  }> {
     const user = await usersRepository.findById(userId);
     if (!user) {
-      throw new UnauthorizedError("User not found");
+      throw new NotFoundError("User not found");
     }
+
     const base = toAuthUser(user);
-    if (user.role !== "coach") return base;
-    const profile = await coachProfilesRepository.findByUserId(user.id);
-    if (!profile) return base;
+    const result: LoginResult = { token: "", user: base };
+    await attachRoleContext(user, result);
+
     return {
-      ...base,
-      coachProfile: {
-        id: profile.id,
-        title: profile.title,
-        organization: profile.organization,
-      },
+      ...result.user,
+      coachProfile: result.coachProfile,
+      consumerProfile: result.consumerProfile,
     };
   },
 };

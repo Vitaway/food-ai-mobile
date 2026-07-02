@@ -42,6 +42,19 @@ export const env = {
   SEED_COACH_PASSWORD: process.env.SEED_COACH_PASSWORD ?? "Test@123",
   SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL ?? "admin@vitaway.com",
   SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD ?? "Test@123",
+  APP_URL: (process.env.APP_URL ?? process.env.WEB_APP_URL ?? "http://localhost:5173").replace(
+    /\/$/,
+    "",
+  ),
+  email: {
+    service: process.env.SMTP_SERVICE ?? "",
+    host: process.env.SMTP_HOST ?? "",
+    port: Number(process.env.SMTP_PORT ?? 587),
+    secure: process.env.SMTP_SECURE === "true",
+    user: process.env.SMTP_USER ?? "",
+    pass: process.env.SMTP_PASS ?? "",
+    from: process.env.EMAIL_FROM ?? "MiraFood <noreply@vitaway.com>",
+  },
 } as const;
 
 export const isProduction = env.NODE_ENV === "production";

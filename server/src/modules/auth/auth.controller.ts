@@ -8,11 +8,16 @@ import {
 } from "routing-controllers";
 import type { Request } from "express";
 import { authService } from "./auth.service";
-import { LoginDto } from "./auth.dto";
+import { LoginDto, RegisterDto } from "./auth.dto";
 import type { User } from "../users/user.entity";
 
 @Controller("/auth")
 export class AuthController {
+  @Post("/register")
+  register(@Body() dto: RegisterDto, @Req() req: Request) {
+    return authService.register(dto, req);
+  }
+
   @Post("/login")
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return authService.login(dto, req);
