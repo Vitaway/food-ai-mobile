@@ -49,6 +49,7 @@ services:
       retries: 10
 
   api:
+    image: mirafood-api:prod
     build:
       context: .
       dockerfile: Dockerfile.prod
@@ -62,8 +63,8 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3011
-      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD}@postgres:5432/mirafood
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
       AUTO_RUN_MIGRATIONS: "true"
     env_file:
       - path: .env

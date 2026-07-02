@@ -54,6 +54,9 @@ check_secret_strength() {
   [[ -n "$value" ]] || fail "$name is not set in $ENV_FILE"
   [[ "${#value}" -ge "$min_len" ]] || fail "$name must be at least $min_len characters"
   is_weak_secret "$value" && fail "$name is too weak — use a random password"
+  if [[ "$value" == *"/"* || "$value" == *"="* || "$value" == *"+"* ]]; then
+    echo "WARNING: $name contains URL-unsafe characters (/, =, +). Prefer: openssl rand -hex 32"
+  fi
 }
 
 echo "Checking production secrets..."

@@ -18,11 +18,35 @@ function parseOrigins(raw: string): string[] {
     .filter(Boolean);
 }
 
+/** Prefer POSTGRES_PASSWORD in Docker prod — avoids broken DATABASE_URL in .env (localhost, / in password). */
+function buildDatabaseUrl(): string {
+  const password = process.env.POSTGRES_PASSWORD;
+  if (password) {
+    const user = process.env.POSTGRES_USER ?? "postgres";
+    const host = process.env.POSTGRES_HOST ?? "postgres";
+    const port = process.env.POSTGRES_PORT ?? "5432";
+    const db = process.env.POSTGRES_DB ?? "mirafood";
+    return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${db}`;
+  }
+  return required("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/mirafood");
+}
+
+/** Prefer REDIS_PASSWORD in Docker prod — same URL-encoding issue as Postgres. */
+function buildRedisUrl(): string {
+  const password = process.env.REDIS_PASSWORD;
+  if (password) {
+    const host = process.env.REDIS_HOST ?? "redis";
+    const port = process.env.REDIS_PORT ?? "6379";
+    return `redis://:${encodeURIComponent(password)}@${host}:${port}`;
+  }
+  return process.env.REDIS_URL ?? "redis://localhost:6380";
+}
+
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? "development",
   PORT: Number(process.env.PORT ?? 3010),
-  DATABASE_URL: required("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/mirafood"),
-  REDIS_URL: process.env.REDIS_URL ?? "redis://localhost:6380",
+  DATABASE_URL: buildDatabaseUrl(),
+  REDIS_URL: buildRedisUrl(),
   JWT_SECRET: required("JWT_SECRET", "dev-secret-change-me"),
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? "7d",
   CORS_ORIGIN: parseOrigins(
@@ -74,7 +98,10 @@ if (isProduction) {
   if (env.JWT_SECRET.length < 32 || WEAK_SECRETS.has(env.JWT_SECRET)) {
     throw new Error("JWT_SECRET must be a random string of at least 32 characters in production");
   }
-  if (env.DATABASE_URL.includes("postgres:postgres@") || env.DATABASE_URL.includes("@localhost")) {
-    throw new Error("DATABASE_URL must use production Docker credentials, not local defaults");
+  if (!process.env.POSTGRES_PASSWORD) {
+    throw new Error("POSTGRES_PASSWORD must be set in production");
+  }
+  if (!process.env.REDIS_PASSWORD) {
+    throw new Error("REDIS_PASSWORD must be set in production");
   }
 }
