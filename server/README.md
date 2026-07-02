@@ -13,11 +13,11 @@ npm run seed
 npm run dev
 ```
 
-API base: `http://localhost:3010/api/v1`
+API base: `http://localhost:3011/api/v1` (port 3010 may be used by other local services)
 
 ### Default coach (after seed)
 
-- Email: `coach@vitaway.com`
+- Email: `coach@vitaway.org`
 - Password: `Test@123`
 
 ## Endpoints
@@ -43,6 +43,10 @@ API base: `http://localhost:3010/api/v1`
 | GET | `/api/v1/consumer/meals` | Consumer | Meal history |
 | POST | `/api/v1/consumer/meals` | Consumer | Submit meal for coach review |
 | POST | `/api/v1/vision/plates/detect` | No | Plate/bowl vision (multipart) |
+| POST | `/api/v1/vision/meals/analyze` | Consumer | AI meal analysis from photo |
+| POST | `/api/v1/vision/meals/analyze-text` | Consumer | AI meal analysis from description |
+| POST | `/api/v1/auth/forgot-password` | No | Send password reset email |
+| POST | `/api/v1/auth/reset-password` | No | Set new password with token |
 
 ## Environment
 

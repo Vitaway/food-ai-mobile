@@ -1,3 +1,5 @@
+# Postgres + Redis + API. Run: docker compose up
+# API listens on http://localhost:3011 (override secrets via server/.env)
 services:
   postgres:
     image: postgres:16-alpine
@@ -28,6 +30,30 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  api:
+    build: .
+    container_name: mirafood-api
+    ports:
+      - "3011:3011"
+    environment:
+      NODE_ENV: development
+      PORT: 3011
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/mirafood
+      REDIS_URL: redis://redis:6379
+      AUTO_RUN_MIGRATIONS: "true"
+      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081
+    env_file:
+      - path: .env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - /app/node_modules
 
 volumes:
   mirafood_pg_data:

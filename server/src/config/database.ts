@@ -7,6 +7,7 @@ import { ConsumerProfile } from "../modules/meals/consumer-profile.entity";
 import { MealSubmission } from "../modules/meals/meal-submission.entity";
 import { AdminAuditLog } from "../modules/admin/admin-audit.entity";
 import { UserNotification } from "../modules/notifications/notification.entity";
+import { UserPushToken } from "../modules/notifications/user-push-token.entity";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -19,9 +20,12 @@ export const AppDataSource = new DataSource({
     MealSubmission,
     AdminAuditLog,
     UserNotification,
+    UserPushToken,
   ],
-  migrations: ["src/migrations/*.ts"],
+  migrations: [
+    env.NODE_ENV === "production" ? "dist/migrations/*.js" : "src/migrations/*.ts",
+  ],
   migrationsTableName: "typeorm_migrations",
   synchronize: false,
-  logging: env.NODE_ENV !== "production",
+  logging: env.TYPEORM_QUERY_LOG,
 });
