@@ -1,5 +1,4 @@
 import Constants from 'expo-constants';
-import * as Device from 'expo-device';
 import { Platform } from 'react-native';
 
 import { isApiConfigured } from '@/constants/api';
@@ -34,7 +33,7 @@ export async function ensureAndroidNotificationChannel() {
 }
 
 export async function requestPushPermissions(): Promise<boolean> {
-  if (!Device.isDevice || !isExpoNotificationsAvailable()) return false;
+  if (!Constants.isDevice || !isExpoNotificationsAvailable()) return false;
 
   const Notifications = await loadExpoNotifications();
   if (!Notifications) return false;
@@ -59,7 +58,7 @@ export async function requestPushPermissions(): Promise<boolean> {
 }
 
 export async function obtainExpoPushToken(): Promise<string | null> {
-  if (!Device.isDevice || !isExpoNotificationsAvailable()) return null;
+  if (!Constants.isDevice || !isExpoNotificationsAvailable()) return null;
 
   const Notifications = await loadExpoNotifications();
   if (!Notifications) return null;

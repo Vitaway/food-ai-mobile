@@ -32,6 +32,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",

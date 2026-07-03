@@ -19,13 +19,18 @@ import legacyRoutes from "./routes/legacy.routes";
 
 const app = express();
 
+function isAllowedOrigin(origin: string): boolean {
+  const normalized = origin.replace(/\/$/, "");
+  return env.CORS_ORIGIN.some((allowed) => allowed.replace(/\/$/, "") === normalized);
+}
+
 const corsOptions: cors.CorsOptions = {
   origin(origin, callback) {
     if (!origin) {
       callback(null, true);
       return;
     }
-    if (env.CORS_ORIGIN.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       callback(null, true);
       return;
     }
@@ -36,7 +41,7 @@ const corsOptions: cors.CorsOptions = {
       callback(null, true);
       return;
     }
-    callback(new Error("Not allowed by CORS"));
+    callback(null, false);
   },
   credentials: true,
 };
