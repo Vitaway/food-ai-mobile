@@ -17,7 +17,7 @@ npm run dev                             # API on http://localhost:3011
 
 Or run the full stack in Docker: `docker compose up -d --build`
 
-**VPS production:** see [DEPLOY.md](./DEPLOY.md) (manual commands, same compose file).
+**VPS production:** see [DEPLOY.md](./DEPLOY.md) — all commands + nginx config to paste.
 
 API base: `http://localhost:3011/api/v1`
 
