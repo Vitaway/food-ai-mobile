@@ -1,15 +1,18 @@
-# LOCAL DEVELOPMENT ONLY — do not use on the VPS.
-# Production: docker compose -f docker-compose.prod.yml up -d --build
+# MiraFood API stack — same file for local + VPS production.
+# Isolated from other projects via `name: mirafood` (avoids daily-focus `server` project clash).
+name: mirafood
+
 services:
   postgres:
     image: postgres:16-alpine
     container_name: mirafood-postgres
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: mirafood
-    ports:
-      - "5433:5432"
     volumes:
       - mirafood_pg_data:/var/lib/postgresql/data
     healthcheck:
@@ -17,43 +20,56 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+    # Local dev only — bound to loopback, never exposed to the internet
+    ports:
+      - "127.0.0.1:5433:5432"
 
   redis:
     image: redis:7-alpine
     container_name: mirafood-redis
-    ports:
-      - "6380:6379"
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?Set REDIS_PASSWORD in .env}
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD}
     volumes:
       - mirafood_redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          'redis-cli --no-auth-warning -a "$$REDIS_PASSWORD" ping | grep -q PONG',
+        ]
       interval: 5s
       timeout: 3s
       retries: 10
+    ports:
+      - "127.0.0.1:6380:6379"
 
   api:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mirafood-api:latest
     container_name: mirafood-api
-    ports:
-      - "3011:3011"
-    environment:
-      NODE_ENV: development
-      PORT: 3011
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/mirafood
-      REDIS_URL: redis://redis:6379
-      AUTO_RUN_MIGRATIONS: "true"
-      CORS_ORIGIN: http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081
-    env_file:
-      - path: .env
-        required: false
+    restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - .:/app
-      - /app/node_modules
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      PORT: 3011
+      AUTO_RUN_MIGRATIONS: "true"
+    ports:
+      - "127.0.0.1:3011:3011"
 
 volumes:
   mirafood_pg_data:

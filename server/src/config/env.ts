@@ -18,28 +18,30 @@ function parseOrigins(raw: string): string[] {
     .filter(Boolean);
 }
 
-/** Prefer POSTGRES_PASSWORD in Docker prod — avoids broken DATABASE_URL in .env (localhost, / in password). */
+/** Prefer POSTGRES_PASSWORD — URL-encoded; host defaults to Docker service or localhost dev ports. */
 function buildDatabaseUrl(): string {
   const password = process.env.POSTGRES_PASSWORD;
   if (password) {
     const user = process.env.POSTGRES_USER ?? "postgres";
-    const host = process.env.POSTGRES_HOST ?? "postgres";
-    const port = process.env.POSTGRES_PORT ?? "5432";
+    const dockerProd = process.env.NODE_ENV === "production";
+    const host = process.env.POSTGRES_HOST ?? (dockerProd ? "postgres" : "127.0.0.1");
+    const port = process.env.POSTGRES_PORT ?? (dockerProd ? "5432" : "5433");
     const db = process.env.POSTGRES_DB ?? "mirafood";
     return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${db}`;
   }
-  return required("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/mirafood");
+  return required("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5433/mirafood");
 }
 
-/** Prefer REDIS_PASSWORD in Docker prod — same URL-encoding issue as Postgres. */
+/** Prefer REDIS_PASSWORD — URL-encoded; host defaults to Docker service or localhost dev ports. */
 function buildRedisUrl(): string {
   const password = process.env.REDIS_PASSWORD;
   if (password) {
-    const host = process.env.REDIS_HOST ?? "redis";
-    const port = process.env.REDIS_PORT ?? "6379";
+    const dockerProd = process.env.NODE_ENV === "production";
+    const host = process.env.REDIS_HOST ?? (dockerProd ? "redis" : "127.0.0.1");
+    const port = process.env.REDIS_PORT ?? (dockerProd ? "6379" : "6380");
     return `redis://:${encodeURIComponent(password)}@${host}:${port}`;
   }
-  return process.env.REDIS_URL ?? "redis://localhost:6380";
+  return process.env.REDIS_URL ?? "redis://127.0.0.1:6380";
 }
 
 export const env = {

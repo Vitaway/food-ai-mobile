@@ -2,18 +2,24 @@
 
 Express + TypeScript API for the MiraFood coach dashboard and mobile app. Follows the same patterns as the Inzu `app-server` stack: `routing-controllers`, TypeORM, Postgres, Redis, JWT sessions, and `{ success, data }` responses.
 
-## Quick start
+## Quick start (local)
 
 ```bash
 cd server
 cp .env.example .env
-docker compose up -d
+# Set POSTGRES_PASSWORD, REDIS_PASSWORD, JWT_SECRET (openssl rand -hex 24)
+
+docker compose up -d postgres redis   # DB on 127.0.0.1:5433 / :6380
 npm install
 npm run seed
-npm run dev
+npm run dev                             # API on http://localhost:3011
 ```
 
-API base: `http://localhost:3011/api/v1` (port 3010 may be used by other local services)
+Or run the full stack in Docker: `docker compose up -d --build`
+
+**VPS production:** see [DEPLOY.md](./DEPLOY.md) (manual commands, same compose file).
+
+API base: `http://localhost:3011/api/v1`
 
 ### Default coach (after seed)
 
