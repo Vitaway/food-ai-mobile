@@ -93,13 +93,84 @@ docker compose exec api npm run seed    # first time only
 
 ---
 
-## 4. nginx — paste into sites-available
+## 4. nginx + SSL from scratch
+
+API must be up first:
+
+```bash
+curl http://127.0.0.1:3011/api/v1/health/ready
+```
+
+### 4a. Remove old site + old certificate
+
+```bash
+sudo rm -f /etc/nginx/sites-enabled/vitaway.nsengi.space
+sudo rm -f /etc/nginx/sites-available/vitaway.nsengi.space
+
+# Delete old Let's Encrypt cert (ignore error if none)
+sudo certbot delete --cert-name vitaway.nsengi.space --non-interactive 2>/dev/null || true
+```
+
+### 4b. Install certbot
+
+```bash
+sudo apt update
+sudo apt install -y nginx certbot python3-certbot-nginx
+```
+
+### 4c. HTTP-only nginx (certbot needs port 80)
 
 ```bash
 sudo nano /etc/nginx/sites-available/vitaway.nsengi.space
 ```
 
-**Delete everything** in that file and paste this entire block:
+Paste **only this** (temporary):
+
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name vitaway.nsengi.space;
+
+    location / {
+        proxy_pass http://127.0.0.1:3011;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+```bash
+sudo ln -sf /etc/nginx/sites-available/vitaway.nsengi.space /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+### 4d. Get certificate (creates cert + ssl helper files)
+
+```bash
+sudo certbot certonly --nginx \
+  -d vitaway.nsengi.space \
+  --non-interactive \
+  --agree-tos \
+  -m you@email.com
+```
+
+This creates:
+- `/etc/letsencrypt/live/vitaway.nsengi.space/fullchain.pem`
+- `/etc/letsencrypt/live/vitaway.nsengi.space/privkey.pem`
+- `/etc/letsencrypt/options-ssl-nginx.conf`
+- `/etc/letsencrypt/ssl-dhparams.pem`
+
+### 4e. Final HTTPS nginx config
+
+```bash
+sudo nano /etc/nginx/sites-available/vitaway.nsengi.space
+```
+
+**Delete everything** and paste this **full** config:
 
 ```nginx
 map $http_upgrade $connection_upgrade {
@@ -178,28 +249,18 @@ server {
 }
 ```
 
-Enable and reload:
-
 ```bash
-sudo ln -sf /etc/nginx/sites-available/vitaway.nsengi.space /etc/nginx/sites-enabled/
-sudo nginx -t
-sudo systemctl reload nginx
-```
-
-If `nginx -t` fails on `http2`, change `listen 443 ssl http2` to `listen 443 ssl` (both lines).
-
-### SSL (only if cert missing)
-
-```bash
-sudo certbot --nginx -d vitaway.nsengi.space --non-interactive --agree-tos -m you@email.com
 sudo nginx -t && sudo systemctl reload nginx
 ```
 
-### Verify
+If `nginx -t` fails on `http2`, change both `listen 443 ssl http2` lines to `listen 443 ssl`.
+
+### 4f. Verify
 
 ```bash
 curl https://vitaway.nsengi.space/api/v1/health/ready
 curl https://vitaway.nsengi.space/health
+sudo certbot renew --dry-run
 ```
 
 ---
