@@ -10,6 +10,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vitaway.foodai",
+      "buildNumber": "5",
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "MiraFood needs photo access for AR measurement.",
         "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
