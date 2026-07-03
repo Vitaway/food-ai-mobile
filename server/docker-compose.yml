@@ -1,5 +1,3 @@
-# MiraFood API stack — same file for local + VPS production.
-# Isolated from other projects via `name: mirafood` (avoids daily-focus `server` project clash).
 name: mirafood
 
 services:
