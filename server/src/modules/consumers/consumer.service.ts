@@ -4,8 +4,27 @@ import { consumerProfilesRepository } from "./consumer-profiles.repository";
 import { usersRepository } from "../users/users.repository";
 import { ensureUserReferralCode } from "../users/referral.util";
 import { notificationsService } from "../notifications/notifications.service";
+import { saveConsumerAvatar } from "../../services/uploads.service";
 import type { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto } from "./consumer.dto";
 import { computeDashboard, todayKey } from "./dashboard.util";
+
+async function syncUserFields(userId: string, fields: { displayName?: string; avatarUrl?: string | null }) {
+  const user = await usersRepository.findById(userId);
+  if (!user) return;
+
+  let changed = false;
+  if (fields.displayName !== undefined && fields.displayName !== user.displayName) {
+    user.displayName = fields.displayName;
+    changed = true;
+  }
+  if (fields.avatarUrl !== undefined && fields.avatarUrl !== user.avatarUrl) {
+    user.avatarUrl = fields.avatarUrl || null;
+    changed = true;
+  }
+  if (changed) {
+    await usersRepository.save(user);
+  }
+}
 
 function mealToDto(row: {
   id: string;
@@ -51,9 +70,23 @@ export const consumerService = {
     if (dto.displayName !== undefined) {
       nextProfile.displayName = dto.displayName;
     }
+    if (dto.avatarUrl !== undefined) {
+      nextProfile.avatarUrl = dto.avatarUrl;
+    }
     row.profile = nextProfile;
     await consumerProfilesRepository.save(row);
+
+    await syncUserFields(userId, {
+      displayName: dto.displayName,
+      avatarUrl: dto.avatarUrl,
+    });
+
     return this.getProfile(userId);
+  },
+
+  async uploadAvatar(userId: string, buffer: Buffer, mimeType: string, req?: import("express").Request) {
+    const { avatarUrl } = saveConsumerAvatar(buffer, mimeType, userId, req);
+    return this.updateProfile(userId, { avatarUrl });
   },
 
   async updateDashboardCache(userId: string, patch: Record<string, unknown>) {

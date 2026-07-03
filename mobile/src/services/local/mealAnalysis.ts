@@ -8,7 +8,9 @@ import type {
   NutritionFacts,
 } from '@/types';
 import { createId } from '@/utils/dates';
+import { isNegligibleCalorieLabel, ZERO_NUTRITION } from '@/utils/negligibleFoodItems';
 import { applyPlatePortionScale } from '@/utils/platePortion';
+import { sanitizeMealAnalysis } from '@/utils/sanitizeMealAnalysis';
 
 const PHOTO_MEALS = [
   {
@@ -39,6 +41,10 @@ const PHOTO_MEALS = [
 ];
 
 function nutritionForItem(label: string, weightG: number): NutritionFacts {
+  if (isNegligibleCalorieLabel(label)) {
+    return { ...ZERO_NUTRITION };
+  }
+
   const factor = weightG / 100;
   const presets: Record<string, NutritionFacts> = {
     Pasta: { caloriesKcal: 131, proteinG: 5, carbsG: 25, fatG: 1.1, fiberG: 1.8, sugarG: 0.6, sodiumMg: 1 },
@@ -132,13 +138,100 @@ export function mockAnalyzePhoto(
 
 export function mockAnalyzeText(text: string): MealAnalysisPreview {
   const cleaned = text.trim() || 'Custom meal';
-  const items = cleaned.split(',').slice(0, 4).map((part, index) => ({
-    label: part.trim(),
-    weightG: 80 + index * 20,
-    emoji: '🍽️',
-  }));
+
+  if (isNegligibleCalorieLabel(cleaned)) {
+    return {
+      mealName: cleaned,
+      items: [
+        {
+          id: createId('item'),
+          label: cleaned,
+          confidence: 0.4,
+          estimatedWeightG: 0,
+          emoji: '🥤',
+          nutrition: { ...ZERO_NUTRITION },
+        },
+      ],
+      totalNutrition: { ...ZERO_NUTRITION },
+      totalWeightG: 0,
+      confidenceAvg: 0.4,
+      petals: [{ label: cleaned, percent: 100, color: '#9ca3af' }],
+      healthFlag: 'yellow',
+      healthMessage: 'No meaningful nutrition — empty container or zero-calorie item.',
+    };
+  }
+
+  const items = cleaned.split(',').slice(0, 4).map((part, index) => {
+    const label = part.trim();
+    const negligible = isNegligibleCalorieLabel(label);
+    return {
+      label,
+      weightG: negligible ? 0 : 80 + index * 20,
+      emoji: negligible ? '🥤' : '🍽️',
+    };
+  });
 
   return buildAnalysis(cleaned, items.length ? items : [{ label: 'Custom meal', weightG: 200, emoji: '🍽️' }], 0.82);
+}
+
+/** Local dev mock — when the user adds a description with a photo, honor the text for food identity. */
+export function mockAnalyzeMeal(input: {
+  imageUri?: string;
+  text?: string;
+  note?: string;
+  plateDiameterCm?: number | null;
+}): MealAnalysisPreview {
+  if (input.text?.trim()) {
+    return sanitizeMealAnalysis(mockAnalyzeText(input.text));
+  }
+
+  const description = input.note?.trim();
+  if (input.imageUri && description) {
+    return sanitizeMealAnalysis(
+      applyPlatePortionScale(mockAnalyzeText(description), input.plateDiameterCm),
+    );
+  }
+
+  if (input.imageUri) {
+    return sanitizeMealAnalysis(mockAnalyzePhoto(input.imageUri, input.plateDiameterCm));
+  }
+
+  throw new Error('Add a photo or describe your meal');
+}
+
+/** Minimal preview when AI cannot analyze — coach reviews photo + description manually. */
+export function createCoachReviewStub(description: string): MealAnalysisPreview {
+  const cleaned = description.trim() || 'Meal pending review';
+  const title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;
+  const emptyNutrition: NutritionFacts = {
+    caloriesKcal: 0,
+    proteinG: 0,
+    carbsG: 0,
+    fatG: 0,
+    fiberG: 0,
+    sugarG: 0,
+    sodiumMg: 0,
+  };
+
+  return {
+    mealName: title,
+    items: [
+      {
+        id: createId('item'),
+        label: cleaned,
+        confidence: 0.25,
+        estimatedWeightG: 0,
+        emoji: '🍽️',
+        nutrition: emptyNutrition,
+      },
+    ],
+    totalNutrition: emptyNutrition,
+    totalWeightG: 0,
+    confidenceAvg: 0.25,
+    petals: [{ label: 'Pending review', percent: 100, color: '#9ca3af' }],
+    healthFlag: 'yellow',
+    healthMessage: 'Your coach will review this meal and confirm nutrition.',
+  };
 }
 
 type MealSubmissionExtras = Pick<
@@ -164,7 +257,7 @@ export function toMealSubmission(
   return {
     id: createId('meal'),
     mealType: input.mealType,
-    status: input.status ?? 'approved',
+    status: input.status ?? 'in_review',
     submittedAt: new Date().toISOString(),
     imageUrl: input.imageUrl,
     textInput: input.textInput,

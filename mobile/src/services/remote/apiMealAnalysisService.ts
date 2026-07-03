@@ -2,6 +2,7 @@ import { getApiAuthToken } from '@/lib/apiClient';
 import { API_BASE_URL } from '@/constants/api';
 import type { MealAnalysisService } from '@/services/contracts/mealAnalysisService';
 import type { MealAnalysisPreview } from '@/types';
+import { prepareImageForUpload } from '@/utils/prepareUploadImage';
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -9,8 +10,10 @@ type ApiEnvelope<T> = {
   error?: string;
 };
 
+import { sanitizeMealAnalysis } from '@/utils/sanitizeMealAnalysis';
+
 function normalizeAnalysis(data: Record<string, unknown>): MealAnalysisPreview {
-  return data as unknown as MealAnalysisPreview;
+  return sanitizeMealAnalysis(data as unknown as MealAnalysisPreview);
 }
 
 async function parseApiResponse<T>(response: Response): Promise<T> {
@@ -29,7 +32,7 @@ async function parseApiResponse<T>(response: Response): Promise<T> {
 }
 
 export const apiMealAnalysisService: MealAnalysisService = {
-  async analyzeMeal({ imageUri, text, plateDiameterCm }) {
+  async analyzeMeal({ imageUri, text, note, plateDiameterCm }) {
     if (!API_BASE_URL) {
       throw new Error('API is not configured');
     }
@@ -39,7 +42,7 @@ export const apiMealAnalysisService: MealAnalysisService = {
       throw new Error('Sign in to analyze meals with AI');
     }
 
-    if (text?.trim()) {
+    if (!imageUri && text?.trim()) {
       const response = await fetch(`${API_BASE_URL}/api/v1/vision/meals/analyze-text`, {
         method: 'POST',
         headers: {
@@ -59,15 +62,20 @@ export const apiMealAnalysisService: MealAnalysisService = {
       throw new Error('Add a photo or describe your meal');
     }
 
+    const upload = await prepareImageForUpload(imageUri);
     const formData = new FormData();
     formData.append('image', {
-      uri: imageUri,
-      type: 'image/jpeg',
-      name: 'meal.jpg',
+      uri: upload.uri,
+      type: upload.mimeType,
+      name: upload.name,
     } as unknown as Blob);
 
     if (plateDiameterCm != null) {
       formData.append('plateDiameterCm', String(plateDiameterCm));
+    }
+
+    if (note?.trim()) {
+      formData.append('note', note.trim());
     }
 
     formData.append('metadata', JSON.stringify({ source: 'mobile' }));

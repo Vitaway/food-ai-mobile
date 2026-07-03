@@ -1,6 +1,7 @@
 import type { MealSubmissionStatus } from '@/types';
 
-export const PIPELINE_STEPS: MealSubmissionStatus[] = ['pending', 'analyzing', 'in_review', 'approved'];
+/** Local AI pipeline only — stops at coach review; approval requires coach action on the server. */
+export const PIPELINE_STEPS: MealSubmissionStatus[] = ['pending', 'analyzing', 'in_review'];
 
 /** Delay after entering each step (ms). */
 export const PIPELINE_STEP_DELAYS_MS: Record<MealSubmissionStatus, number> = {
@@ -28,7 +29,11 @@ export const MEAL_STATUS_MESSAGES: Record<MealSubmissionStatus, string> = {
 };
 
 export function isPipelineActive(status: MealSubmissionStatus) {
-  return status === 'pending' || status === 'analyzing' || status === 'in_review';
+  return status === 'pending' || status === 'analyzing';
+}
+
+export function isAwaitingCoachReview(status: MealSubmissionStatus) {
+  return status === 'in_review';
 }
 
 export function isMealReadable(status: MealSubmissionStatus) {

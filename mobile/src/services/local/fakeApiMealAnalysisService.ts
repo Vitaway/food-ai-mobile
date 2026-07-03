@@ -1,5 +1,5 @@
 import type { AnalyzeMealInput, MealAnalysisService } from '@/services/contracts/mealAnalysisService';
-import { mockAnalyzePhoto, mockAnalyzeText } from '@/services/local/mealAnalysis';
+import { mockAnalyzeMeal } from '@/services/local/mealAnalysis';
 import { delay } from '@/utils/dates';
 
 type AnalysisJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
@@ -7,7 +7,7 @@ type AnalysisJobStatus = 'queued' | 'processing' | 'completed' | 'failed';
 type AnalysisJob = {
   status: AnalysisJobStatus;
   input: AnalyzeMealInput;
-  result?: Awaited<ReturnType<typeof mockAnalyzePhoto>>;
+  result?: Awaited<ReturnType<typeof mockAnalyzeMeal>>;
   error?: string;
 };
 
@@ -25,10 +25,7 @@ async function runAnalysisJob(jobId: string) {
   await delay(500);
 
   try {
-    const result = job.input.text?.trim()
-      ? mockAnalyzeText(job.input.text)
-      : mockAnalyzePhoto(job.input.imageUri, job.input.plateDiameterCm);
-    job.result = result;
+    job.result = mockAnalyzeMeal(job.input);
     job.status = 'completed';
   } catch {
     job.status = 'failed';

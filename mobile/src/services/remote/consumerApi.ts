@@ -1,5 +1,7 @@
-import { apiRequest } from '@/lib/apiClient';
+import { apiRequest, getApiAuthToken } from '@/lib/apiClient';
+import { API_BASE_URL } from '@/constants/api';
 import type { MealSubmission, UserProfile } from '@/types';
+import { prepareImageForUpload } from '@/utils/prepareUploadImage';
 
 export type ConsumerProfileResponse = {
   patientId: string;
@@ -20,6 +22,54 @@ export async function updateConsumerProfile(
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function uploadConsumerAvatar(imageUri: string): Promise<ConsumerProfileResponse> {
+  if (!API_BASE_URL) {
+    throw new Error('API is not configured');
+  }
+
+  const token = getApiAuthToken();
+  if (!token) {
+    throw new Error('Sign in to upload a profile photo');
+  }
+
+  const upload = await prepareImageForUpload(imageUri);
+  const formData = new FormData();
+  formData.append('image', {
+    uri: upload.uri,
+    type: upload.mimeType,
+    name: upload.name,
+  } as unknown as Blob);
+
+  const response = await fetch(`${API_BASE_URL}/api/v1/consumer/profile/avatar`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const body = (await response.json().catch(() => ({}))) as {
+    success?: boolean;
+    data?: ConsumerProfileResponse;
+    error?: string;
+    message?: string;
+  };
+
+  if (!response.ok || body.success === false) {
+    const message =
+      (typeof body.error === 'string' && body.error) ||
+      (typeof body.message === 'string' && body.message) ||
+      `Upload failed (${response.status})`;
+    throw new Error(message);
+  }
+
+  if (body.success === true && body.data) {
+    return body.data;
+  }
+
+  return body as unknown as ConsumerProfileResponse;
 }
 
 export async function fetchConsumerMeals(): Promise<MealSubmission[]> {

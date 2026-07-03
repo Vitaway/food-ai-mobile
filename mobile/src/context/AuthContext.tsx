@@ -9,6 +9,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 
+import { clearNutritionData, clearProfileData } from '@/services/local/storage';
 import { isApiConfigured } from '@/constants/api';
 import { setApiAuthToken } from '@/lib/apiClient';
 import { onUnauthorized } from '@/lib/authEvents';
@@ -57,7 +58,7 @@ function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession
     token: data.token,
     user: { ...data.user, patientId },
     expiresAt: jwtExpiresAt(data.token),
-    onboardingComplete: data.consumerProfile?.onboardingComplete,
+    onboardingComplete: Boolean(data.consumerProfile?.onboardingComplete),
   };
 }
 
@@ -71,7 +72,10 @@ async function readStoredSession(): Promise<AuthSession | null> {
       await SecureStore.deleteItemAsync(AUTH_STORAGE_KEY);
       return null;
     }
-    return session;
+    return {
+      ...session,
+      onboardingComplete: Boolean(session.onboardingComplete),
+    };
   } catch {
     return null;
   }
@@ -89,7 +93,7 @@ async function persistSession(session: AuthSession | null) {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => isApiConfigured());
 
   const applySession = useCallback(async (next: AuthSession | null) => {
     await persistSession(next);
@@ -97,6 +101,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    if (!isApiConfigured()) {
+      setIsLoading(false);
+      return;
+    }
+
     readStoredSession()
       .then(async (stored) => {
         if (stored) {
@@ -147,6 +156,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    await clearProfileData();
+    await clearNutritionData();
     await applySession(null);
   }, [applySession]);
 

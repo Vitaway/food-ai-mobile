@@ -47,8 +47,6 @@ export async function runMealPipeline(
 
       await deps.persistStatus(mealId, status);
 
-      if (status === 'approved') break;
-
       await delay(PIPELINE_STEP_DELAYS_MS[status]);
     }
   } finally {

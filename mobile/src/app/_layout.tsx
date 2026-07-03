@@ -13,7 +13,6 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
-import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { AppProviders } from '@/context/AppProviders';
 import { configureNotificationHandler } from '@/services/push/expoNotifications';
@@ -29,7 +28,7 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
+  const [, error] = useFonts({
     Sniglet_400Regular,
     Sniglet_800ExtraBold,
     CabinSketch_400Regular,
@@ -37,18 +36,12 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+    void SplashScreen.hideAsync();
+  }, []);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
-
-  if (!loaded) {
-    return <AppSplashScreen />;
-  }
+    if (error) throw error;
+  }, [error]);
 
   return (
     <AppProviders>

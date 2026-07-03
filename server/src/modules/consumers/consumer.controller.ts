@@ -1,5 +1,6 @@
 import {
   Authorized,
+  BadRequestError,
   Body,
   Controller,
   CurrentUser,
@@ -7,10 +8,19 @@ import {
   Param,
   Patch,
   Post,
+  Req,
+  UseBefore,
 } from "routing-controllers";
+import type { Request } from "express";
+import multer from "multer";
 import type { User } from "../users/user.entity";
 import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto } from "./consumer.dto";
 import { consumerService } from "./consumer.service";
+
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
 
 @Controller("/consumer")
 export class ConsumerController {
@@ -24,6 +34,17 @@ export class ConsumerController {
   @Patch("/profile")
   updateProfile(@CurrentUser() user: User, @Body() dto: UpdateConsumerProfileDto) {
     return consumerService.updateProfile(user.id, dto);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/profile/avatar")
+  @UseBefore(avatarUpload.single("image"))
+  async uploadAvatar(@CurrentUser() user: User, @Req() req: Request) {
+    const file = req.file;
+    if (!file) {
+      throw new BadRequestError("Missing image file (field name: image)");
+    }
+    return consumerService.uploadAvatar(user.id, file.buffer, file.mimetype, req);
   }
 
   @Authorized(["consumer"])

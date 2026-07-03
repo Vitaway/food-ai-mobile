@@ -67,7 +67,7 @@ export function PlateSizeCard({
             </>
           ) : (
             <Text className="mt-1 text-sm leading-5 text-neutral-500">
-              No plate or bowl detected. Try a top-down photo with the full dish visible.
+              No plate or bowl detected — you can still analyze the food or describe it below and send to your coach.
             </Text>
           )}
         </View>

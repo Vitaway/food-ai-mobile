@@ -1,11 +1,15 @@
 import { useRouter, useSegments, type Href } from 'expo-router';
-import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { useEffect, useRef, type PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+
+function isIndexRoute(root: string) {
+  return !root || root === 'index';
+}
 
 function resolveAuthTarget(opts: {
   requiresAuth: boolean;
@@ -46,11 +50,11 @@ function resolveAuthTarget(opts: {
     return null;
   }
 
-  if (hasCompletedOnboarding && root === 'index') {
+  if (hasCompletedOnboarding && isIndexRoute(root)) {
     return '/(tabs)';
   }
 
-  if (!isAuthenticated && root === 'index') {
+  if (!isAuthenticated && isIndexRoute(root)) {
     return requiresAuth ? '/auth/login' : '/onboarding';
   }
 
@@ -69,20 +73,12 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const segments = useSegments();
   const root = segments[0] ?? '';
   const authScreen = segments[1];
-  const { isAuthenticated, isLoading: authLoading, session } = useAuth();
-  const { isLoading: profileLoading, hasCompletedOnboarding } = useProfile();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { hasCompletedOnboarding, isLoading: profileLoading } = useProfile();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
-  const [hasBootstrapped, setHasBootstrapped] = useState(false);
 
-  const knowsOnboardingState =
-    hasCompletedOnboarding ||
-    profileLoading === false ||
-    typeof session?.onboardingComplete === 'boolean';
-
-  const waitingForProfile =
-    requiresAuth && isAuthenticated && profileLoading && !knowsOnboardingState;
-  const isBootstrapping = authLoading || waitingForProfile;
+  const isBootstrapping = authLoading || (requiresAuth && isAuthenticated && profileLoading);
 
   useEffect(() => {
     if (isBootstrapping) return;
@@ -120,15 +116,9 @@ export function AuthGuard({ children }: PropsWithChildren) {
     }
   }, [root]);
 
-  useEffect(() => {
-    if (!isBootstrapping) {
-      setHasBootstrapped(true);
-    }
-  }, [isBootstrapping]);
-
   return (
     <View style={styles.root}>
-      {hasBootstrapped ? children : null}
+      {children}
       {isBootstrapping ? (
         <View style={styles.splashOverlay}>
           <AppSplashScreen />

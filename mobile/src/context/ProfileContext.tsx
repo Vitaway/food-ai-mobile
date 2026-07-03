@@ -15,8 +15,9 @@ import { services } from '@/services';
 import {
   fetchConsumerProfile,
   updateConsumerProfile,
+  uploadConsumerAvatar,
 } from '@/services/remote/consumerApi';
-import { clearAllLocalData, clearNutritionData } from '@/services/local/storage';
+import { clearAllLocalData, clearNutritionData, clearProfileData } from '@/services/local/storage';
 import type { ActivityLevel, HealthGoal, UserProfile, UserSex } from '@/types';
 import { createId } from '@/utils/dates';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
@@ -35,12 +36,29 @@ type ProfileContextValue = {
   patientId: string | null;
   saveProfile: (draft: ProfileDraft) => Promise<UserProfile>;
   updateAccount: (fields: Partial<AccountFields>) => Promise<UserProfile | null>;
+  uploadAvatar: (localUri: string) => Promise<UserProfile | null>;
+  updateHealthProfile: (draft: Omit<ProfileDraft, 'displayName' | 'avatarUrl' | 'email'>) => Promise<UserProfile>;
   resetNutritionData: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
 
 const ProfileContext = createContext<ProfileContextValue | null>(null);
+
+function profileMatchesSession(profile: UserProfile | null, patientId: string | undefined) {
+  return Boolean(profile && patientId && profile.id === patientId);
+}
+
+async function loadProfileForSession(patientId: string | undefined): Promise<UserProfile | null> {
+  const stored = await services.profileRepository.getProfile();
+  if (!stored) return null;
+  if (patientId && stored.id !== patientId) {
+    await clearProfileData();
+    await clearNutritionData();
+    return null;
+  }
+  return stored;
+}
 
 function defaultMacroDraft(draft: ProfileDraft) {
   return calculateMacroTargets(
@@ -124,13 +142,33 @@ function buildProfile(
 export function ProfileProvider({ children }: PropsWithChildren) {
   const { isAuthenticated, session, markOnboardingComplete } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const patientId = session?.user.patientId ?? profile?.id ?? null;
 
   const loadedForUserIdRef = useRef<string | null>(null);
   const profileInflightRef = useRef<Promise<void> | null>(null);
   const userId = session?.user.id ?? null;
+
+  const syncProfileFromRemote = useCallback(async () => {
+    if (!isApiConfigured() || !isAuthenticated) return;
+
+    const patientId = session?.user.patientId;
+
+    try {
+      const remote = await fetchConsumerProfile();
+      const stored = await loadProfileForSession(patientId ?? remote.patientId);
+      const existing = stored?.id === remote.patientId ? stored : null;
+      const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, existing);
+      await services.profileRepository.saveProfile(normalized);
+      setProfile(normalized);
+      if (normalized.onboardingComplete) {
+        await markOnboardingComplete();
+      }
+    } catch {
+      // Cached profile already shown — remote sync is best-effort.
+    }
+  }, [isAuthenticated, session?.user.patientId, markOnboardingComplete]);
 
   const refreshProfile = useCallback(async () => {
     if (isApiConfigured() && !isAuthenticated) {
@@ -144,37 +182,29 @@ export function ProfileProvider({ children }: PropsWithChildren) {
 
     profileInflightRef.current = (async () => {
       try {
-        if (isApiConfigured() && isAuthenticated) {
-          try {
-            const remote = await fetchConsumerProfile();
-            const stored = await services.profileRepository.getProfile();
-            const existing = stored?.id === remote.patientId ? stored : null;
-            const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, existing);
-            // Prefer local onboarding flag when user finished offline or sync lagged behind.
-            if (existing?.onboardingComplete && !normalized.onboardingComplete) {
-              normalized.onboardingComplete = true;
-            }
-            await services.profileRepository.saveProfile(normalized);
-            setProfile(normalized);
-            return;
-          } catch {
-            // API unreachable — fall through to locally cached profile.
+        const patientId = session?.user.patientId;
+        const stored = await loadProfileForSession(patientId);
+        if (stored) {
+          setProfile(stored);
+          if (stored.onboardingComplete) {
+            await markOnboardingComplete();
           }
+        } else {
+          setProfile(null);
         }
-        const stored = await services.profileRepository.getProfile();
-        setProfile(stored);
+        await syncProfileFromRemote();
       } finally {
         profileInflightRef.current = null;
       }
     })();
 
     return profileInflightRef.current;
-  }, [isAuthenticated]);
+  }, [isAuthenticated, session?.user.patientId, markOnboardingComplete, syncProfileFromRemote]);
 
   useEffect(() => {
     let cancelled = false;
 
-    async function loadProfile() {
+    async function hydrateProfile() {
       if (isApiConfigured() && !isAuthenticated) {
         loadedForUserIdRef.current = null;
         setProfile(null);
@@ -183,52 +213,126 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       }
 
       const isNewUser = Boolean(userId && loadedForUserIdRef.current !== userId);
-      if (isNewUser || loadedForUserIdRef.current === null) {
-        if (isNewUser) setProfile(null);
-        setIsLoading(true);
+      const patientId = session?.user.patientId;
+
+      if (isNewUser) {
+        setProfile(null);
       }
 
+      setIsLoading(true);
+
       try {
-        await refreshProfile();
+        const stored = await loadProfileForSession(patientId);
+        if (!cancelled) {
+          if (stored) {
+            setProfile(stored);
+            if (stored.onboardingComplete) {
+              await markOnboardingComplete();
+            }
+          } else if (isNewUser) {
+            setProfile(null);
+          }
+        }
       } finally {
         if (!cancelled) {
           loadedForUserIdRef.current = userId;
           setIsLoading(false);
         }
       }
+
+      if (!cancelled) {
+        void syncProfileFromRemote();
+      }
     }
 
-    void loadProfile();
+    void hydrateProfile();
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, userId, refreshProfile]);
+  }, [isAuthenticated, userId, session?.user.patientId, markOnboardingComplete, syncProfileFromRemote]);
+
+  const persistRemoteProfile = useCallback(
+    async (next: UserProfile, avatarOverride?: string) => {
+      if (!isApiConfigured() || !isAuthenticated) return;
+
+      const avatarUrl = avatarOverride ?? next.avatarUrl;
+      const { avatarUrl: _ignored, ...rest } = next;
+      const payload: Partial<UserProfile> & { onboardingComplete?: boolean } = {
+        ...rest,
+        onboardingComplete: next.onboardingComplete,
+      };
+      if (avatarUrl?.startsWith('http')) {
+        payload.avatarUrl = avatarUrl;
+      }
+      await updateConsumerProfile(payload);
+    },
+    [isAuthenticated],
+  );
+
+  const uploadAvatar = useCallback(
+    async (localUri: string) => {
+      if (!profile) return null;
+
+      let remoteAvatarUrl: string | undefined;
+      if (isApiConfigured() && isAuthenticated) {
+        const remote = await uploadConsumerAvatar(localUri);
+        remoteAvatarUrl = remote.profile.avatarUrl;
+      }
+
+      const next: UserProfile = {
+        ...profile,
+        avatarUrl: remoteAvatarUrl ?? localUri,
+        updatedAt: new Date().toISOString(),
+      };
+      await services.profileRepository.saveProfile(next);
+      setProfile(next);
+      return next;
+    },
+    [profile, isAuthenticated],
+  );
 
   const saveProfile = useCallback(
     async (draft: ProfileDraft) => {
-      const next = buildProfile(draft, profile, patientId);
+      let avatarUrl = draft.avatarUrl;
+      if (avatarUrl && !avatarUrl.startsWith('http') && isApiConfigured() && isAuthenticated) {
+        try {
+          const remote = await uploadConsumerAvatar(avatarUrl);
+          avatarUrl = remote.profile.avatarUrl ?? avatarUrl;
+        } catch {
+          // Keep local URI — user can retry from account settings.
+        }
+      }
+
+      const next = buildProfile({ ...draft, avatarUrl }, profile, patientId);
       await services.profileRepository.saveProfile(next);
       setProfile(next);
       await markOnboardingComplete();
 
       if (isApiConfigured() && isAuthenticated) {
-        const { avatarUrl: nextAvatar, ...rest } = next;
-        const payload: Partial<UserProfile> & { onboardingComplete?: boolean } = {
-          ...rest,
-          onboardingComplete: true,
-        };
-        if (nextAvatar?.startsWith('http')) {
-          payload.avatarUrl = nextAvatar;
-        }
         try {
-          await updateConsumerProfile(payload);
+          await persistRemoteProfile(next, avatarUrl);
         } catch {
           // Local profile + session already mark onboarding done — sync retries on next refresh.
         }
       }
       return next;
     },
-    [profile, patientId, isAuthenticated, markOnboardingComplete],
+    [profile, patientId, isAuthenticated, markOnboardingComplete, persistRemoteProfile],
+  );
+
+  const updateHealthProfile = useCallback(
+    async (draft: Omit<ProfileDraft, 'displayName' | 'avatarUrl' | 'email'>) => {
+      if (!profile) {
+        throw new Error('Profile not loaded');
+      }
+      return saveProfile({
+        displayName: profile.displayName,
+        email: profile.email,
+        avatarUrl: profile.avatarUrl,
+        ...draft,
+      });
+    },
+    [profile, saveProfile],
   );
 
   const updateAccount = useCallback(
@@ -267,11 +371,14 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       profile,
       isLoading,
       hasCompletedOnboarding: Boolean(
-        profile?.onboardingComplete || session?.onboardingComplete,
+        session?.onboardingComplete ||
+        profileMatchesSession(profile, session?.user.patientId) && profile?.onboardingComplete,
       ),
       patientId,
       saveProfile,
       updateAccount,
+      uploadAvatar,
+      updateHealthProfile,
       resetNutritionData,
       deleteAccount,
       refreshProfile,
@@ -283,6 +390,8 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       patientId,
       saveProfile,
       updateAccount,
+      uploadAvatar,
+      updateHealthProfile,
       resetNutritionData,
       deleteAccount,
       refreshProfile,

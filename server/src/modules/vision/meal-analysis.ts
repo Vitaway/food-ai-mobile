@@ -30,6 +30,8 @@ export type MealAnalysisResult = {
   modelVersion: string;
 };
 
+import { isNegligibleCalorieLabel, ZERO_NUTRITION } from "./negligible-food";
+
 const REFERENCE_PLATE_DIAMETER_CM = 26;
 const PETAL_COLOR = "#50af73";
 
@@ -84,36 +86,51 @@ function portionNoteForPlate(plateDiameterCm: number) {
   return `Plate is ${plateDiameterCm} cm — portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
 }
 
+function normalizeItem(row: Record<string, unknown>, fallbackLabel: string): MealAnalysisItem {
+  const label =
+    typeof row.label === "string" && row.label.trim() ? row.label.trim() : fallbackLabel;
+  const negligible = isNegligibleCalorieLabel(label) || isNegligibleCalorieLabel(fallbackLabel);
+  const nutritionRaw = (row.nutrition ?? {}) as Record<string, unknown>;
+  const weightDefault = negligible ? 0 : 100;
+
+  return {
+    id: createId("item"),
+    label,
+    confidence: Math.max(
+      0,
+      Math.min(1, clampNumber(row.confidence, negligible ? 0.35 : 0.75)),
+    ),
+    estimatedWeightG: negligible
+      ? 0
+      : Math.max(1, Math.round(clampNumber(row.estimatedWeightG, weightDefault))),
+    emoji: typeof row.emoji === "string" ? row.emoji : negligible ? "🥤" : "🍽️",
+    nutrition: negligible ? { ...ZERO_NUTRITION } : normalizeNutrition(nutritionRaw),
+  };
+}
+
 export function normalizeMealAnalysisRaw(raw: Record<string, unknown>, modelVersion: string): MealAnalysisResult {
   const mealName =
     typeof raw.mealName === "string" && raw.mealName.trim() ? raw.mealName.trim() : "Meal";
   const itemsRaw = Array.isArray(raw.items) ? raw.items : [];
+  const mealNegligible = isNegligibleCalorieLabel(mealName);
 
-  const items: MealAnalysisItem[] = itemsRaw.slice(0, 8).map((entry) => {
-    const row = (entry ?? {}) as Record<string, unknown>;
-    const nutritionRaw = (row.nutrition ?? {}) as Record<string, unknown>;
-    return {
-      id: createId("item"),
-      label: typeof row.label === "string" && row.label.trim() ? row.label.trim() : "Food item",
-      confidence: Math.max(0, Math.min(1, clampNumber(row.confidence, 0.75))),
-      estimatedWeightG: Math.max(1, Math.round(clampNumber(row.estimatedWeightG, 100))),
-      emoji: typeof row.emoji === "string" ? row.emoji : "🍽️",
-      nutrition: normalizeNutrition(nutritionRaw),
-    };
-  });
+  const items: MealAnalysisItem[] = itemsRaw
+    .slice(0, 8)
+    .map((entry) => normalizeItem((entry ?? {}) as Record<string, unknown>, mealName));
 
   const safeItems =
     items.length > 0
       ? items
       : [
-          {
-            id: createId("item"),
-            label: mealName,
-            confidence: 0.7,
-            estimatedWeightG: 200,
-            emoji: "🍽️",
-            nutrition: { caloriesKcal: 240, proteinG: 12, carbsG: 28, fatG: 8, fiberG: 3, sugarG: 4, sodiumMg: 320 },
-          },
+          normalizeItem(
+            {
+              label: mealName,
+              confidence: mealNegligible ? 0.35 : 0.5,
+              estimatedWeightG: mealNegligible ? 0 : 100,
+              nutrition: mealNegligible ? ZERO_NUTRITION : undefined,
+            },
+            mealName,
+          ),
         ];
 
   const totalWeightG = safeItems.reduce((sum, item) => sum + item.estimatedWeightG, 0);
@@ -149,7 +166,9 @@ export function normalizeMealAnalysisRaw(raw: Record<string, unknown>, modelVers
     healthMessage:
       typeof raw.healthMessage === "string" && raw.healthMessage.trim()
         ? raw.healthMessage.trim()
-        : "Analysis complete — review portions before submitting.",
+        : mealNegligible || safeItems.every((item) => item.nutrition.caloriesKcal === 0)
+          ? "No meaningful nutrition detected — empty container or zero-calorie item."
+          : "Analysis complete — review portions before submitting.",
     modelVersion,
   };
 }
@@ -171,6 +190,11 @@ export function applyPlatePortionScale(
   }
 
   const items = analysis.items.map((item) => {
+    const negligible = isNegligibleCalorieLabel(item.label);
+    if (negligible || item.estimatedWeightG <= 0) {
+      return item;
+    }
+
     const weightG = Math.max(1, Math.round(item.estimatedWeightG * scale));
     const factor = weightG / item.estimatedWeightG;
     return {

@@ -12,16 +12,18 @@ type MealPipelineBannerProps = {
 
 export function MealPipelineBanner({ status }: MealPipelineBannerProps) {
   const isRejected = status === 'rejected';
-  const isActive = status === 'pending' || status === 'analyzing' || status === 'in_review';
+  const isAutomatedStep = status === 'pending' || status === 'analyzing';
+  const isAwaitingCoach = status === 'in_review';
 
-  if (!isActive && !isRejected) return null;
+  if (!isAutomatedStep && !isAwaitingCoach && !isRejected) return null;
 
   return (
     <View
       className={`rounded-2xl px-4 py-4 ${isRejected ? 'bg-red-50' : 'bg-blue-spruce-50'}`}>
       <View className="flex-row items-center justify-between gap-3">
         <View className="flex-row items-center gap-2">
-          {isActive ? <ActivityIndicator size="small" color="#023459" /> : null}
+          {isAutomatedStep ? <ActivityIndicator size="small" color="#023459" /> : null}
+          {isAwaitingCoach ? <Ionicons name="time-outline" size={20} color="#023459" /> : null}
           {isRejected ? <Ionicons name="alert-circle" size={20} color="#b91c1c" /> : null}
           <MealStatusBadge status={status} size="md" />
         </View>

@@ -1,6 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { MonthCalendar } from '@/components/home/MonthCalendar';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
@@ -61,12 +62,26 @@ export default function HealthProfileScreen() {
     [dashboard.macros, dashboard.macrosConsumed],
   );
 
-  const openEditHealth = () => {
-    Alert.alert('Update health profile?', undefined, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Continue', onPress: () => router.push('/onboarding' as Href) },
-    ]);
+  const openEditHealth = (step?: string) => {
+    if (step) {
+      router.push({ pathname: '/profile/edit-health', params: { step } } as Href);
+      return;
+    }
+    router.push('/profile/edit-health');
   };
+
+  const planRows: Array<{ label: string; value: string; step: string }> = profile
+    ? [
+        { label: 'Goal', value: formatHealthGoal(profile.goal), step: 'goals' },
+        { label: 'Activity', value: formatActivityLevel(profile.activityLevel), step: 'activity' },
+        { label: 'Sex', value: formatUserSex(profile.sex), step: 'about' },
+        { label: 'Age', value: `${profile.age}`, step: 'about' },
+        { label: 'Height', value: `${profile.heightCm} cm`, step: 'body' },
+        { label: 'Weight', value: `${profile.weightKg} kg`, step: 'body' },
+        { label: 'Meals / day', value: `${profile.mealsPerDay ?? 3}`, step: 'habits' },
+        { label: 'Calories', value: `${profile.macroTargets.calories.toLocaleString()} kcal`, step: 'review' },
+      ]
+    : [];
 
   return (
     <View className="flex-1 bg-white">
@@ -106,27 +121,26 @@ export default function HealthProfileScreen() {
 
           {profile ? (
             <View className="rounded-2xl border border-ash-grey-100 p-4">
-              <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Your plan</Text>
-              <View className="gap-2.5">
-                {[
-                  { label: 'Goal', value: formatHealthGoal(profile.goal) },
-                  { label: 'Activity', value: formatActivityLevel(profile.activityLevel) },
-                  { label: 'Sex', value: formatUserSex(profile.sex) },
-                  { label: 'Age', value: `${profile.age}` },
-                  { label: 'Height', value: `${profile.heightCm} cm` },
-                  { label: 'Weight', value: `${profile.weightKg} kg` },
-                  { label: 'Calories', value: `${profile.macroTargets.calories.toLocaleString()} kcal` },
-                ].map((row) => (
-                  <View key={row.label} className="flex-row justify-between gap-4">
+              <Text className="mb-1 font-sans-semibold text-base text-neutral-900">Your plan</Text>
+              <Text className="mb-3 text-sm text-neutral-500">Tap any row to edit that section</Text>
+              <View className="gap-1">
+                {planRows.map((row) => (
+                  <Pressable
+                    key={row.label}
+                    onPress={() => openEditHealth(row.step)}
+                    className="flex-row items-center justify-between gap-4 rounded-xl px-2 py-2.5 active:bg-ash-grey-50">
                     <Text className="text-neutral-500">{row.label}</Text>
-                    <Text className="font-sans-medium text-neutral-900">{row.value}</Text>
-                  </View>
+                    <View className="flex-row items-center gap-2">
+                      <Text className="font-sans-medium text-neutral-900">{row.value}</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9ca3af" />
+                    </View>
+                  </Pressable>
                 ))}
               </View>
             </View>
           ) : null}
 
-          <Button label="Update metrics" onPress={openEditHealth} />
+          <Button label="Edit health profile" onPress={() => openEditHealth()} />
         </ScrollView>
       </StackScreenBody>
     </View>

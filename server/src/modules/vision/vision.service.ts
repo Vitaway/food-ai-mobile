@@ -4,16 +4,18 @@ import { openRouterService } from "../ai/openrouter.service";
 import { SYSTEM_PROMPT, USER_PROMPT } from "../ai/prompts";
 import {
   MEAL_ANALYSIS_IMAGE_USER_PROMPT,
+  MEAL_ANALYSIS_IMAGE_WITH_DESCRIPTION_USER_PROMPT,
   MEAL_ANALYSIS_SYSTEM_PROMPT,
   MEAL_ANALYSIS_TEXT_USER_PROMPT,
 } from "../ai/meal-analysis.prompts";
 import { buildAnalysisContext } from "./metadata-context";
-import { resolveDiameterCm, resolveEffectiveDistanceCm } from "./diameter-math";
+import { resolveDiameterCm, resolveEffectiveDistanceCm, roundDiameterCm } from "./diameter-math";
 import {
   applyPlatePortionScale,
   normalizeMealAnalysisRaw,
   type MealAnalysisResult,
 } from "./meal-analysis";
+import { sanitizeMealAnalysisResult } from "./meal-analysis-sanitize";
 
 export interface PlateDetectResult {
   detected: boolean;
@@ -61,6 +63,8 @@ function normalizeResult(
     detected = false;
     container = null;
     diameterCm = null;
+  } else {
+    diameterCm = roundDiameterCm(diameterCm);
   }
 
   let confidenceVal: number | null = null;
@@ -73,7 +77,7 @@ function normalizeResult(
     message = raw.message;
   } else if (detected && container && diameterCm != null) {
     const label = container === "bowl" ? "Bowl" : "Plate";
-    message = `${label} detected — ${diameterCm} cm`;
+    message = `${label} detected — ${diameterCm.toFixed(2)} cm`;
   } else {
     message = "No plate or bowl detected";
   }
@@ -213,11 +217,19 @@ export const visionService = {
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
     const dataUrl = `data:${mime};base64,${imageBuffer.toString("base64")}`;
+    const userDescription = opts.note?.trim() || null;
     const analysisContext = {
       ...buildAnalysisContext(metadata),
       plateDiameterCm: opts.plateDiameterCm ?? null,
-      coachNote: opts.note ?? null,
+      userDescription,
     };
+    const contextJson = JSON.stringify(analysisContext, null, 2);
+    const imagePrompt = userDescription
+      ? MEAL_ANALYSIS_IMAGE_WITH_DESCRIPTION_USER_PROMPT.replace(
+          "{userDescription}",
+          userDescription.replace(/"/g, "'"),
+        ).replace("{context}", contextJson)
+      : MEAL_ANALYSIS_IMAGE_USER_PROMPT.replace("{context}", contextJson);
 
     const raw = await this.callMealAnalysisModel([
       { role: "system", content: MEAL_ANALYSIS_SYSTEM_PROMPT },
@@ -226,10 +238,7 @@ export const visionService = {
         content: [
           {
             type: "text",
-            text: MEAL_ANALYSIS_IMAGE_USER_PROMPT.replace(
-              "{context}",
-              JSON.stringify(analysisContext, null, 2),
-            ),
+            text: imagePrompt,
           },
           {
             type: "image_url",
@@ -239,7 +248,9 @@ export const visionService = {
       },
     ]);
 
-    const normalized = normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL);
+    const normalized = sanitizeMealAnalysisResult(
+      normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
+    );
     return applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
   },
 
@@ -268,7 +279,9 @@ export const visionService = {
       },
     ]);
 
-    const normalized = normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL);
+    const normalized = sanitizeMealAnalysisResult(
+      normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
+    );
     return applyPlatePortionScale(normalized, plateDiameterCm ?? null);
   },
 

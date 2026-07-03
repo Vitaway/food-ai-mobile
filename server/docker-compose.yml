@@ -66,9 +66,13 @@ services:
       NODE_ENV: production
       PORT: 3011
       AUTO_RUN_MIGRATIONS: "true"
+    volumes:
+      - mirafood_uploads:/app/uploads
+    # LAN-accessible for Expo Go / physical devices on the same Wi‑Fi (postgres/redis stay loopback-only).
     ports:
-      - "127.0.0.1:3011:3011"
+      - "3011:3011"
 
 volumes:
   mirafood_pg_data:
   mirafood_redis_data:
+  mirafood_uploads:

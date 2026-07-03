@@ -1,5 +1,5 @@
 import Constants from 'expo-constants';
-import { Platform } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 
 /** Production API host (Node server on Contabo) */
 export const PROD_API_HOST = 'vitaway.nsengi.space';
@@ -7,19 +7,52 @@ export const PROD_API_HOST = 'vitaway.nsengi.space';
 export const PROD_WEB_HOST = 'mirafood.vitaway.org';
 const DEFAULT_DEV_PORT = 3011;
 
+function hostFromUrl(url: string): string | null {
+  try {
+    return new URL(url).hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+function hostFromHostPort(value: string): string | null {
+  const host = value.split(':')[0]?.trim();
+  return host || null;
+}
+
 function getMetroDevHost(): string | null {
+  const manualHost = process.env.EXPO_PUBLIC_DEV_API_HOST?.trim();
+  if (manualHost) {
+    return manualHost.replace(/^https?:\/\//, '').split(':')[0] || null;
+  }
+
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
-    const host = hostUri.split(':')[0];
-    if (host) return host;
+    const host = hostFromHostPort(hostUri);
+    if (host && host !== 'localhost') return host;
   }
 
   const debuggerHost =
     Constants.expoGoConfig?.debuggerHost ??
-    (Constants as { manifest?: { debuggerHost?: string } }).manifest?.debuggerHost;
+    (Constants as { manifest?: { debuggerHost?: string } }).manifest?.debuggerHost ??
+    (Constants as { manifest2?: { extra?: { expoGo?: { debuggerHost?: string } } } }).manifest2
+      ?.extra?.expoGo?.debuggerHost;
 
   if (typeof debuggerHost === 'string') {
-    return debuggerHost.split(':')[0];
+    const host = hostFromHostPort(debuggerHost);
+    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
+  }
+
+  const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
+  if (scriptURL) {
+    const host = hostFromUrl(scriptURL);
+    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
+  }
+
+  const linkingUri = Constants.linkingUri;
+  if (linkingUri) {
+    const host = hostFromUrl(linkingUri);
+    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
   }
 
   return null;
@@ -60,7 +93,7 @@ function resolveApiBaseUrl(): string {
     // Physical devices cannot reach the dev machine via 127.0.0.1 — use Metro's LAN host.
     if (isLocalhost && Constants.isDevice) {
       const host = getMetroDevHost();
-      if (host && host !== '127.0.0.1' && host !== 'localhost') {
+      if (host) {
         return buildDevApiUrl(host, port);
       }
     }

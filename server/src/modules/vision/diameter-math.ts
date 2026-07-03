@@ -25,6 +25,10 @@ function clamp(value: number, low: number, high: number): number {
   return Math.max(low, Math.min(high, value));
 }
 
+export function roundDiameterCm(cm: number): number {
+  return Math.round(cm * 100) / 100;
+}
+
 export function estimateCameraDistanceCm(
   focal35mm: number | null,
   modelDistance: number | null,
@@ -93,7 +97,7 @@ export function resolveDiameterCm(
   const fraction = num(raw.plateDiameterFractionOfImageWidth);
   if (fraction == null) {
     const modelD = num(raw.diameterCm);
-    return modelD != null && modelD > 0 ? modelD : null;
+    return modelD != null && modelD > 0 ? roundDiameterCm(modelD) : null;
   }
 
   const cameraExif =
@@ -107,5 +111,5 @@ export function resolveDiameterCm(
   const computed = diameterFromFraction(fraction, distanceCm, shotAngle);
   const refKey = typeof raw.matchedReference === "string" ? raw.matchedReference : null;
   const container = typeof raw.containerType === "string" ? raw.containerType : null;
-  return scaleForReferenceClass(computed, refKey, container);
+  return roundDiameterCm(scaleForReferenceClass(computed, refKey, container));
 }

@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import type { MeasureStep } from '@/utils/arMeasure';
+import { formatDiameterCm } from '@/utils/formatDiameter';
 
 type ARMeasureOverlayProps = {
   step: MeasureStep;
@@ -67,7 +68,7 @@ export function ARMeasureOverlay({
       {step === 'confirmed' && diameterCm != null ? (
         <View className="mx-5 rounded-3xl bg-white px-5 py-5 shadow-lg">
           <Text className="text-center font-sans-semibold text-xl text-neutral-900">
-            Plate diameter: {diameterCm} cm
+            Plate diameter: {formatDiameterCm(diameterCm)}
           </Text>
           <Text className="mt-1 text-center text-sm text-neutral-500">
             Use this size to improve portion estimates when you log meals.

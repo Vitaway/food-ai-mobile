@@ -3,6 +3,7 @@ import { Image, View } from 'react-native';
 
 import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
 import { IngredientList } from '@/components/log/IngredientList';
+import { MealAiBreakdown } from '@/components/log/MealAiBreakdown';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
@@ -56,6 +57,13 @@ export function LogResultsStep({
 
   return (
     <>
+      <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/60">
+        <Text className="font-sans-semibold text-sm text-blue-spruce-800">Almost done</Text>
+        <Text className="mt-1 text-sm leading-5 text-blue-spruce-700">
+          Review the AI estimate below, pick a meal type, then tap <Text className="font-sans-semibold">Submit for coach review</Text> at the bottom.
+        </Text>
+      </LogCard>
+
       <View className={`rounded-2xl px-4 py-3 ${flag.bg}`}>
         <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
@@ -96,6 +104,8 @@ export function LogResultsStep({
           <Text className="mt-2 text-sm text-cinnamon-wood-600">Pick a meal type before submitting.</Text>
         ) : null}
       </LogCard>
+
+      <MealAiBreakdown analysis={analysis} />
 
       <LogCard>
         <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Ingredients</Text>
