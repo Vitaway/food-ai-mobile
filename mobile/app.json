@@ -2,7 +2,7 @@
   "expo": {
     "name": "MiraFood",
     "slug": "food-ai",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mirafood",
@@ -16,7 +16,9 @@
         "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
         "NSCameraUsageDescription": "MiraFood uses your camera to measure plate size in AR.",
         "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement.",
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -39,6 +41,14 @@
     },
     "plugins": [
       "expo-dev-client",
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "buildReactNativeFromSource": true
+          }
+        }
+      ],
       "expo-router",
       "expo-font",
       "expo-secure-store",
@@ -81,7 +91,8 @@
             "savePhotosPermission": "MiraFood may save AR captures to your photo library."
           }
         }
-      ]
+      ],
+      "expo-build-properties"
     ],
     "experiments": {
       "typedRoutes": true

@@ -122,7 +122,7 @@ function buildProfile(
 }
 
 export function ProfileProvider({ children }: PropsWithChildren) {
-  const { isAuthenticated, session } = useAuth();
+  const { isAuthenticated, session, markOnboardingComplete } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -145,13 +145,21 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     profileInflightRef.current = (async () => {
       try {
         if (isApiConfigured() && isAuthenticated) {
-          const remote = await fetchConsumerProfile();
-          const stored = await services.profileRepository.getProfile();
-          const existing = stored?.id === remote.patientId ? stored : null;
-          const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, existing);
-          await services.profileRepository.saveProfile(normalized);
-          setProfile(normalized);
-          return;
+          try {
+            const remote = await fetchConsumerProfile();
+            const stored = await services.profileRepository.getProfile();
+            const existing = stored?.id === remote.patientId ? stored : null;
+            const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, existing);
+            // Prefer local onboarding flag when user finished offline or sync lagged behind.
+            if (existing?.onboardingComplete && !normalized.onboardingComplete) {
+              normalized.onboardingComplete = true;
+            }
+            await services.profileRepository.saveProfile(normalized);
+            setProfile(normalized);
+            return;
+          } catch {
+            // API unreachable — fall through to locally cached profile.
+          }
         }
         const stored = await services.profileRepository.getProfile();
         setProfile(stored);
@@ -200,6 +208,9 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     async (draft: ProfileDraft) => {
       const next = buildProfile(draft, profile, patientId);
       await services.profileRepository.saveProfile(next);
+      setProfile(next);
+      await markOnboardingComplete();
+
       if (isApiConfigured() && isAuthenticated) {
         const { avatarUrl: nextAvatar, ...rest } = next;
         const payload: Partial<UserProfile> & { onboardingComplete?: boolean } = {
@@ -209,12 +220,15 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         if (nextAvatar?.startsWith('http')) {
           payload.avatarUrl = nextAvatar;
         }
-        await updateConsumerProfile(payload);
+        try {
+          await updateConsumerProfile(payload);
+        } catch {
+          // Local profile + session already mark onboarding done — sync retries on next refresh.
+        }
       }
-      setProfile(next);
       return next;
     },
-    [profile, patientId, isAuthenticated],
+    [profile, patientId, isAuthenticated, markOnboardingComplete],
   );
 
   const updateAccount = useCallback(
@@ -253,7 +267,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       profile,
       isLoading,
       hasCompletedOnboarding: Boolean(
-        profile?.onboardingComplete ?? session?.onboardingComplete,
+        profile?.onboardingComplete || session?.onboardingComplete,
       ),
       patientId,
       saveProfile,

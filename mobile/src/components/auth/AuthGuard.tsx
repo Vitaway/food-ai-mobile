@@ -70,16 +70,15 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const root = segments[0] ?? '';
   const authScreen = segments[1];
   const { isAuthenticated, isLoading: authLoading, session } = useAuth();
-  const { isLoading: profileLoading, profile } = useProfile();
+  const { isLoading: profileLoading, hasCompletedOnboarding } = useProfile();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
   const [hasBootstrapped, setHasBootstrapped] = useState(false);
 
-  const sessionOnboarding = session?.onboardingComplete;
   const knowsOnboardingState =
-    profile !== null || typeof sessionOnboarding === 'boolean';
-  const effectiveOnboardingComplete =
-    profile?.onboardingComplete ?? sessionOnboarding ?? false;
+    hasCompletedOnboarding ||
+    profileLoading === false ||
+    typeof session?.onboardingComplete === 'boolean';
 
   const waitingForProfile =
     requiresAuth && isAuthenticated && profileLoading && !knowsOnboardingState;
@@ -91,7 +90,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
     const target = resolveAuthTarget({
       requiresAuth,
       isAuthenticated,
-      hasCompletedOnboarding: effectiveOnboardingComplete,
+      hasCompletedOnboarding,
       root,
       authScreen,
     });
@@ -109,7 +108,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
     isBootstrapping,
     requiresAuth,
     isAuthenticated,
-    effectiveOnboardingComplete,
+    hasCompletedOnboarding,
     root,
     authScreen,
     router,

@@ -36,6 +36,7 @@ type AuthContextValue = {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, displayName: string, referralCode?: string) => Promise<void>;
   logout: () => Promise<void>;
+  markOnboardingComplete: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -149,6 +150,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await applySession(null);
   }, [applySession]);
 
+  const markOnboardingComplete = useCallback(async () => {
+    if (!session || session.onboardingComplete) return;
+    const next: AuthSession = { ...session, onboardingComplete: true };
+    await applySession(next);
+  }, [session, applySession]);
+
   const value = useMemo(
     () => ({
       session,
@@ -157,8 +164,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       register,
       logout,
+      markOnboardingComplete,
     }),
-    [session, isLoading, login, register, logout],
+    [session, isLoading, login, register, logout, markOnboardingComplete],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

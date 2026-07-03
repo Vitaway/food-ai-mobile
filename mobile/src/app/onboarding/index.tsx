@@ -1,4 +1,3 @@
-import { useRouter, type Href } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo, useState } from 'react';
@@ -54,7 +53,6 @@ const STEPS = [
 type Step = (typeof STEPS)[number];
 
 export default function OnboardingScreen() {
-  const router = useRouter();
   const { session } = useAuth();
   const { saveProfile, profile } = useProfile();
 
@@ -188,7 +186,12 @@ export default function OnboardingScreen() {
         dietaryPreferences,
         allergies,
       });
-      router.replace('/(tabs)' as Href);
+      // AuthGuard navigates to tabs once onboarding is marked complete.
+    } catch {
+      Alert.alert(
+        'Could not save profile',
+        'Something went wrong saving your plan. Please try again.',
+      );
     } finally {
       setSaving(false);
     }
