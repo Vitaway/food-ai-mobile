@@ -9,7 +9,13 @@ const DEFAULT_MACRO_TARGETS = {
   fatG: 65,
 };
 
-export function ClientPanel({ client }: { client: CoachClient }) {
+export function ClientPanel({
+  client,
+  showPreferences = false,
+}: {
+  client: CoachClient;
+  showPreferences?: boolean;
+}) {
   const { profile, dashboard, patientId } = client;
   const macroTargets = profile.macroTargets ?? DEFAULT_MACRO_TARGETS;
   const macrosConsumed = dashboard.macrosConsumed ?? {
@@ -92,6 +98,21 @@ export function ClientPanel({ client }: { client: CoachClient }) {
             </div>
           </div>
         ) : null}
+
+        {showPreferences && profile.dietaryPreferences?.length ? (
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
+              Dietary preferences
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {profile.dietaryPreferences.map((p) => (
+                <span key={p} className="rounded-full bg-blue-spruce-50 px-3 py-1 text-xs font-medium text-blue-spruce-800">
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </CardBody>
     </Card>
   );
@@ -116,10 +137,11 @@ export function StatsGrid({
     { label: 'Analyzing', value: stats.analyzing, accent: 'text-blue-spruce-600' },
     { label: 'Approved today', value: stats.approvedToday, accent: 'text-shamrock-600' },
     { label: 'Flagged', value: stats.flagged, accent: 'text-red-600' },
+    { label: 'Avg review', value: `${stats.avgReviewMinutes}m`, accent: 'text-ash-grey-700' },
   ];
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
       {items.map((item) => (
         <Card key={item.label}>
           <CardBody>

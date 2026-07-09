@@ -1,51 +1,90 @@
 import { Link } from 'react-router-dom';
+import { PastReviewCard } from '@/components/coach/PastReviewCard';
+import { AttentionAlerts } from '@/components/coach/AttentionAlerts';
+import { SmartCoachAlertsPanel } from '@/components/coach/SmartCoachAlertsPanel';
 import { StatsGrid } from '@/components/coach/ClientPanel';
-import { DashboardCharts } from '@/components/coach/DashboardCharts';
+import { DashboardCharts, CoachStatPills } from '@/components/coach/DashboardCharts';
 import { QueueCard } from '@/components/coach/QueueCard';
+import { CohortFilter } from '@/components/coach/CohortFilter';
+import { DashboardPageHeader, DashboardSectionTitle } from '@/components/layout/DashboardPageHeader';
 import { Card, CardBody } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { useCoachAnalytics } from '@/hooks/useCoachAnalytics';
-import { useCoachProfile } from '@/hooks/useCoachProfile';
-import { useCoachQueue, useCoachStats } from '@/hooks/useCoachQueries';
+import { useCoachQueue, useCoachPastReviews, useCoachStats } from '@/hooks/useCoachQueries';
+import { useCoachStore } from '@/stores/coachStore';
 
 export function OverviewPage() {
-  const { data: stats, isLoading: statsLoading } = useCoachStats();
-  const { data: queue, isLoading: queueLoading } = useCoachQueue();
+  const cohortId = useCoachStore((s) => s.cohortId);
+  const { data: stats, isLoading: statsLoading } = useCoachStats(cohortId ?? undefined);
+  const { data: queue, isLoading: queueLoading } = useCoachQueue({
+    cohortId: cohortId ?? undefined,
+    sort: 'oldest',
+  });
+  const { data: pastReviews, isLoading: pastLoading } = useCoachPastReviews({ limit: 5 });
   const { data: analytics, isLoading: analyticsLoading } = useCoachAnalytics();
-  const { data: profile } = useCoachProfile();
-  const firstName = profile?.displayName?.split(' ')[0] ?? 'Coach';
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl bg-gradient-to-br from-blue-spruce-700 via-blue-spruce-600 to-blue-spruce-500 p-6 text-white shadow-lg sm:p-8">
-        <p className="text-white/80">Good day, {firstName}</p>
-        <h2 className="mt-1 text-3xl tracking-tight">Overview</h2>
-        <p className="mt-2 max-w-xl text-white/85">
-          Review client meals waiting for approval. Meals stay hidden on mobile until you approve.
-        </p>
-        <Button to="/coach/queue" variant="primary" size="md" className="mt-5">
-          Open review queue →
-        </Button>
-      </div>
+      <DashboardPageHeader
+        title="Overview"
+        actions={<CohortFilter />}
+      />
 
-      {statsLoading ? null : stats ? <StatsGrid stats={stats} /> : null}
+      {statsLoading ? null : stats ? (
+        <>
+          <SmartCoachAlertsPanel />
+          <AttentionAlerts stats={stats} />
+          <StatsGrid stats={stats} />
+        </>
+      ) : null}
 
       {analyticsLoading ? (
         <p className="text-ash-grey-500">Loading charts…</p>
       ) : analytics ? (
         <div>
-          <h3 className="mb-4 text-xl font-bold text-ash-grey-900">Performance insights</h3>
-          <DashboardCharts analytics={analytics} />
+          <DashboardSectionTitle title="Your performance" />
+          <CoachStatPills stats={analytics.coachStats} />
+          <div className="mt-4">
+            <DashboardCharts analytics={analytics} />
+          </div>
         </div>
       ) : null}
 
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-bold text-ash-grey-900">Needs review</h3>
-          <Link to="/coach/queue" className="text-sm font-semibold text-blue-spruce-600 hover:underline">
-            View all
-          </Link>
-        </div>
+        <DashboardSectionTitle
+          title="Review history"
+          action={
+            <Link to="/coach/history" className="text-sm font-semibold text-blue-spruce-600 hover:underline">
+              View all
+            </Link>
+          }
+        />
+
+        {pastLoading ? (
+          <p className="text-ash-grey-500">Loading…</p>
+        ) : pastReviews?.length ? (
+          <div className="space-y-4">
+            {pastReviews.map((item) => (
+              <PastReviewCard key={item.meal.id} item={item} />
+            ))}
+          </div>
+        ) : (
+          <Card>
+            <CardBody className="py-8 text-center text-ash-grey-500">
+              No completed reviews yet.
+            </CardBody>
+          </Card>
+        )}
+      </div>
+
+      <div>
+        <DashboardSectionTitle
+          title="Needs review"
+          action={
+            <Link to="/coach/queue" className="text-sm font-semibold text-blue-spruce-600 hover:underline">
+              View all
+            </Link>
+          }
+        />
 
         {queueLoading ? (
           <p className="text-ash-grey-500">Loading queue…</p>
@@ -57,8 +96,11 @@ export function OverviewPage() {
           </div>
         ) : (
           <Card>
-            <CardBody className="py-12 text-center text-ash-grey-500">
-              No meals waiting for review 🎉
+            <CardBody className="py-12 text-center">
+              <p className="text-ash-grey-500">No meals waiting for review 🎉</p>
+              <Link to="/coach/clients" className="mt-2 inline-block text-sm text-blue-spruce-600 hover:underline">
+                Check inactive clients →
+              </Link>
             </CardBody>
           </Card>
         )}

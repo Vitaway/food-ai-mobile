@@ -26,9 +26,25 @@ export type MealTypeId =
   | 'post_workout';
 
 export interface CoachReview {
+  id?: string;
   coachId?: string;
   note?: string;
+  trainingNote?: string;
   reviewedAt?: string;
+  action?: 'approve' | 'reject';
+  mealName?: string;
+  items?: DetectedFoodItem[];
+  totalNutrition?: NutritionFacts;
+  reviewDurationSeconds?: number;
+}
+
+export interface AiAnalysis {
+  mealName?: string;
+  items: DetectedFoodItem[];
+  totalNutrition?: NutritionFacts;
+  confidenceAvg?: number;
+  healthFlag?: HealthFlagLevel;
+  healthMessage?: string;
 }
 
 export interface MacroTargets {
@@ -54,6 +70,10 @@ export interface DetectedFoodItem {
   label: string;
   confidence: number;
   estimatedWeightG: number;
+  servingUnit?: string;
+  servingAmount?: number;
+  servingGramsEquivalent?: number;
+  foodSource?: 'ai' | 'nutrition_db' | 'manual';
   emoji?: string;
   nutrition: NutritionFacts;
 }
@@ -116,18 +136,93 @@ export interface MealSubmission {
   mealClassification?: MealClassification | null;
   modelVersion?: string | null;
   autoApproved?: boolean | null;
+  manualReviewRequired?: boolean | null;
+  manualReviewReason?: string | null;
+  aiAnalysis?: AiAnalysis;
   coachReview?: CoachReview | null;
+  waitingMinutes?: number;
+  slaLevel?: 'ok' | 'warning' | 'critical';
+  slaMinutesRemaining?: number;
+  complexity?: 'low' | 'medium' | 'high';
+  classificationLabel?: string;
+  hasAllergies?: boolean;
 }
 
 export interface CoachClient {
   patientId: string;
   profile: UserProfile;
   dashboard: DailyDashboard;
+  lastMealAt?: string | null;
+  inReviewCount?: number;
+  cohortIds?: string[];
+  unreadMessages?: number;
+  adherenceTrend?: 'improving' | 'stable' | 'declining';
+  openFlags?: number;
+  hasAllergies?: boolean;
+}
+
+export interface CoachClientDetail {
+  client: CoachClient;
+  meals: MealSubmission[];
+  assignedCoachIds: string[];
+}
+
+export interface CoachWeeklySummary {
+  clientId: string;
+  weekStart: string;
+  daysLogged: number;
+  mealsSubmitted: number;
+  approvedCount: number;
+  rejectedCount: number;
+  avgDailyCalories: number;
+  totals: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  targets: { calories: number; proteinG: number; carbsG: number; fatG: number };
+  adherenceRate: number;
+}
+
+export interface CoachCohort {
+  id: string;
+  name: string;
+  organization?: string | null;
+  description?: string | null;
+  memberCount: number;
+}
+
+export interface CoachTeamMember {
+  coachUserId: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string | null;
+  role?: 'coach' | 'admin';
+  title?: string | null;
+  approvedToday: number;
+  totalReviews: number;
+  avgReviewMinutes: number;
+  caseload: number;
+  isSelf: boolean;
+}
+
+export interface CoachMessage {
+  id: string;
+  senderRole: 'coach' | 'consumer';
+  body: string;
+  mealId?: string | null;
+  readAt?: string | null;
+  createdAt: string;
+}
+
+export interface CoachMealDetail extends CoachQueueItem {
+  recentMeals: MealSubmission[];
+  reviewHistory: CoachReview[];
 }
 
 export interface CoachQueueItem {
   meal: MealSubmission;
   client: CoachClient;
+}
+
+export interface CoachPastReviewItem extends CoachQueueItem {
+  review: CoachReview;
 }
 
 export interface CoachDashboardStats {
@@ -136,14 +231,80 @@ export interface CoachDashboardStats {
   approvedToday: number;
   flagged: number;
   avgReviewMinutes: number;
+  waitingOverHour?: number;
+  inactiveClients?: number;
+  unreadMessages?: number;
 }
 
 export interface ReviewMealPayload {
   mealId: string;
   action: 'approve' | 'reject';
   note?: string;
+  trainingNote?: string;
   items?: DetectedFoodItem[];
   mealName?: string;
+}
+
+export interface CoachOperationsMetrics {
+  correctionRate: number;
+  autoApprovalRateToday: number;
+  autoApprovalRateWeek: number;
+  avgTurnaroundHours: number;
+  pendingReview: number;
+  nearSla: number;
+  slaOnTrack: boolean;
+}
+
+export interface CoachReviewDraft {
+  mealId: string;
+  mealName?: string;
+  items: DetectedFoodItem[];
+  note?: string;
+  trainingNote?: string;
+  updatedAt?: string;
+}
+
+export interface MealReviewTask {
+  id: string;
+  mealId: string;
+  type: 'second_opinion' | 'escalation';
+  status: 'open' | 'resolved';
+  note?: string | null;
+  notifyUser?: boolean;
+  createdAt: string;
+}
+
+export interface AdminOperationsMetrics {
+  activeUsers: number;
+  activeUsersGrowth: number;
+  autoApprovalRate: number;
+  correctionRate: number;
+  avgTurnaroundHours: number;
+  slaTargetHours: number;
+  coachUtilization: Array<{
+    coachId: string;
+    displayName: string;
+    email: string;
+    assignedClients: number;
+    queueCount: number;
+    utilization: number;
+    title: string | null;
+  }>;
+  autoApprovalTrend: Array<{ label: string; rate: number; approved: number }>;
+  consumers: number;
+  mealsInReview: number;
+}
+
+export interface AdminCoachRosterRow {
+  id: string;
+  email: string;
+  displayName: string;
+  isActive: boolean;
+  role: string;
+  assignedClients: number;
+  correctionRate: number;
+  avgTurnaroundHours: number;
+  organization: string | null;
 }
 
 export interface CoachProfile {

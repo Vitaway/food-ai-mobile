@@ -6,7 +6,12 @@ import { SelectField, TextAreaField, TextField } from '@/components/ui/Field';
 import { Tabs } from '@/components/ui/Tabs';
 import { DashboardCharts } from '@/components/coach/DashboardCharts';
 import { useCoachAnalytics } from '@/hooks/useCoachAnalytics';
-import { useCoachProfile, useUpdateCoachPassword, useUpdateCoachProfile } from '@/hooks/useCoachProfile';
+import {
+  useCoachProfile,
+  useUpdateCoachPassword,
+  useUpdateCoachProfile,
+  useUploadCoachAvatar,
+} from '@/hooks/useCoachProfile';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { cn } from '@/lib/utils';
@@ -31,6 +36,7 @@ export function ProfilePage() {
   const { data: profile, isLoading } = useCoachProfile();
   const { data: analytics } = useCoachAnalytics();
   const updateProfile = useUpdateCoachProfile();
+  const uploadAvatar = useUploadCoachAvatar();
   const updatePassword = useUpdateCoachPassword();
   const toast = useToast();
   const avatarRef = useRef<AvatarUploadHandle>(null);
@@ -62,7 +68,7 @@ export function ProfilePage() {
     e.preventDefault();
     if (!profileForm) return;
     try {
-      await updateProfile.mutateAsync({ ...profileForm, avatarUrl });
+      await updateProfile.mutateAsync(profileForm);
       toast.success('Your profile changes were saved.', 'Profile updated');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not save profile'), 'Save failed');
@@ -90,14 +96,30 @@ export function ProfilePage() {
     }
   }
 
-  function handleAvatarChange(url: string) {
-    setAvatarUrl(url);
-    if (profileForm) setProfileForm({ ...profileForm, avatarUrl: url });
+  async function handleAvatarFile(file: File) {
+    const preview = URL.createObjectURL(file);
+    setAvatarUrl(preview);
+    try {
+      const updated = await uploadAvatar.mutateAsync(file);
+      setAvatarUrl(updated.avatarUrl);
+      toast.success('Your profile photo was updated.', 'Photo saved');
+    } catch (err) {
+      setAvatarUrl(profile?.avatarUrl);
+      toast.error(getApiErrorMessage(err, 'Could not upload photo'), 'Upload failed');
+    } finally {
+      URL.revokeObjectURL(preview);
+    }
   }
 
-  function handleAvatarRemove() {
-    setAvatarUrl(undefined);
-    if (profileForm) setProfileForm({ ...profileForm, avatarUrl: undefined });
+  async function handleAvatarRemove() {
+    if (!profileForm) return;
+    try {
+      const updated = await updateProfile.mutateAsync({ ...profileForm, avatarUrl: undefined });
+      setAvatarUrl(updated.avatarUrl);
+      toast.success('Your profile photo was removed.', 'Photo removed');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not remove photo'), 'Remove failed');
+    }
   }
 
   if (isLoading || !profile || !profileForm) {
@@ -137,7 +159,7 @@ export function ProfilePage() {
                   ref={avatarRef}
                   name={profileForm.displayName}
                   imageUrl={avatarUrl}
-                  onChange={handleAvatarChange}
+                  onFileSelect={(file) => void handleAvatarFile(file)}
                   clickable={false}
                 />
                 <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
@@ -145,8 +167,9 @@ export function ProfilePage() {
                     type="button"
                     variant="outline"
                     size="sm"
+                    disabled={uploadAvatar.isPending}
                     onClick={() => avatarRef.current?.openPicker()}>
-                    Change photo
+                    {uploadAvatar.isPending ? 'Uploading…' : 'Change photo'}
                   </Button>
                   {avatarUrl ? (
                     <Button type="button" variant="ghost" size="sm" onClick={handleAvatarRemove}>
