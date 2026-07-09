@@ -9,12 +9,16 @@ import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { GuestRoute, ProtectedRoute } from '@/features/auth';
 import { AdminRoute } from '@/features/admin/components/AdminRoute';
 import { AdminShell } from '@/features/admin/components/AdminShell';
-import { OverviewPage, QueuePage, MealReviewPage, ProfilePage } from '@/pages/coach';
+import { OverviewPage, QueuePage, MealReviewPage, ProfilePage, ClientsPage, ClientDetailPage, TeamPage, PastReviewsPage, PastReviewDetailPage, MessagesPage, NutritionDbPage, ReportsPage } from '@/pages/coach';
 import {
   AdminOverviewPage,
   AdminCoachesPage,
   AdminUsersPage,
   AdminSystemPage,
+  AdminPaymentsPage,
+  AdminReportsPage,
+  AdminReferralsPage,
+  AdminFoodDbPage,
 } from '@/pages/admin';
 import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/pages/auth';
 import {
@@ -28,6 +32,9 @@ import { ConsumerShell } from '@/features/consumer/components/ConsumerShell';
 import { HomePage } from '@/pages/marketing/HomePage';
 import { FeaturesPage } from '@/pages/marketing/FeaturesPage';
 import { ForCoachesPage } from '@/pages/marketing/ForCoachesPage';
+import { ForPatientsPage } from '@/pages/marketing/ForPatientsPage';
+import { ForClinicsPage } from '@/pages/marketing/ForClinicsPage';
+import { ClinicalEvidencePage } from '@/pages/marketing/ClinicalEvidencePage';
 import { PrivacyPage } from '@/pages/marketing/PrivacyPage';
 import { TermsPage } from '@/pages/marketing/TermsPage';
 import { SupportPage } from '@/pages/marketing/SupportPage';
@@ -58,6 +65,9 @@ function App() {
           <Route path="features" element={<FeaturesPage />} />
           <Route path="download" element={<DownloadPage />} />
           <Route path="for-coaches" element={<ForCoachesPage />} />
+          <Route path="for-patients" element={<ForPatientsPage />} />
+          <Route path="for-clinics" element={<ForClinicsPage />} />
+          <Route path="clinical-evidence" element={<ClinicalEvidencePage />} />
           <Route path="legal" element={<LegalPage />} />
           <Route path="privacy" element={<PrivacyPage />} />
           <Route path="terms" element={<TermsPage />} />
@@ -107,6 +117,17 @@ function App() {
           <Route index element={<OverviewPage />} />
           <Route path="queue" element={<QueuePage />} />
           <Route path="queue/:id" element={<MealReviewPage />} />
+          <Route path="history" element={<PastReviewsPage />} />
+          <Route path="history/:id" element={<PastReviewDetailPage />} />
+          <Route path="reviews" element={<Navigate to="/coach/history" replace />} />
+          <Route path="reviews/:id" element={<PastReviewDetailPage />} />
+          <Route path="clients" element={<ClientsPage />} />
+          <Route path="clients/:id" element={<ClientDetailPage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="messages" element={<MessagesPage />} />
+          <Route path="messages/:id" element={<MessagesPage />} />
+          <Route path="nutrition-db" element={<NutritionDbPage />} />
+          <Route path="reports" element={<ReportsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/coach" replace />} />
         </Route>
@@ -122,6 +143,10 @@ function App() {
           <Route index element={<AdminOverviewPage />} />
           <Route path="coaches" element={<AdminCoachesPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="payments" element={<AdminPaymentsPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="food-db" element={<AdminFoodDbPage />} />
+          <Route path="referrals" element={<AdminReferralsPage />} />
           <Route path="system" element={<AdminSystemPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Route>

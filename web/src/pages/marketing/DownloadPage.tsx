@@ -7,7 +7,7 @@ import { Link } from 'react-router-dom';
 const highlights = [
   'Snap meals with camera, gallery, or text',
   'Coach-verified nutrition before it hits your diary',
-  'AR plate measurement & AI portion detection',
+  'AI plate detection & portion estimates from photos',
   'Daily macros, water, streaks & insights',
   'Works on iPhone and Android',
 ];
@@ -23,7 +23,7 @@ export function DownloadPage() {
         <div className="relative mx-auto flex min-h-[min(72vh,820px)] max-w-7xl flex-col justify-center px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-              <h1 className="text-4xl leading-tight tracking-tight sm:text-5xl lg:text-6xl">
+              <h1 className="font-sans text-4xl leading-tight tracking-tight normal-case sm:text-5xl lg:text-6xl">
                 Get the app
               </h1>
               <p className="mt-5 max-w-lg text-lg leading-relaxed text-white/85">
