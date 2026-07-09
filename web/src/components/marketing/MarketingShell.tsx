@@ -8,9 +8,11 @@ import { Button } from '@/components/ui/Button';
 import { SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
 
 const mainNav = [
+  { to: '/for-patients', label: 'Patients' },
+  { to: '/for-coaches', label: 'Coaches' },
+  { to: '/for-clinics', label: 'Clinics' },
   { to: '/features', label: 'Features' },
   { to: '/download', label: 'Get app' },
-  { to: '/for-coaches', label: 'For coaches' },
   { to: '/support', label: 'Support' },
 ];
 
@@ -18,25 +20,31 @@ const NAV_BLUE_PATHS = [
   '/features',
   '/download',
   '/support',
+  '/for-patients',
+  '/for-coaches',
+  '/for-clinics',
+  '/clinical-evidence',
   '/legal',
   '/privacy',
   '/terms',
   '/medical-disclaimer',
   '/cookie-policy',
   '/delete-account',
-  '/for-coaches',
 ];
 
 const HIDE_PRE_FOOTER_PATHS = [
   '/download',
   '/support',
+  '/for-patients',
+  '/for-coaches',
+  '/for-clinics',
+  '/clinical-evidence',
   '/legal',
   '/privacy',
   '/terms',
   '/medical-disclaimer',
   '/cookie-policy',
   '/delete-account',
-  '/for-coaches',
 ];
 
 export function MarketingShell() {
@@ -115,9 +123,9 @@ export function MarketingShell() {
       {/* Announcement */}
       {isHome ? (
         <div className="bg-shamrock-600 px-4 py-2.5 text-center text-sm font-normal text-white">
-          <span>Eat smarter, live better — </span>
-          <Link to="/features" className="underline underline-offset-2 hover:text-shamrock-100">
-            See how MiraFood works
+          <span>Coach-verified nutrition for patients, coaches, and clinics — </span>
+          <Link to="/clinical-evidence" className="underline underline-offset-2 hover:text-shamrock-100">
+            See our clinical approach
           </Link>
         </div>
       ) : null}

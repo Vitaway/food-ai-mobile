@@ -1,4 +1,7 @@
+import { mealCoachReviewsRepository } from "./meal-coach-reviews.repository";
 import { mealsRepository } from "./meals.repository";
+import { coachAssignmentsRepository } from "../coaches/coach-assignments.repository";
+import { filterMealsForCoach, resolveCoachCaseloadIds, resolveCoachQueueClientIds } from "./coach-scope.util";
 
 const WEEKDAY_LABELS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -13,14 +16,18 @@ function emptyWeekSeries(): { label: string; value: number }[] {
   return points;
 }
 
-function dayKey(date: Date): string {
-  return date.toISOString().slice(0, 10);
-}
-
 export const coachAnalyticsService = {
-  async getAnalytics() {
-    const meals = await mealsRepository.findAllMeals();
-    const consumers = await mealsRepository.findAllConsumers();
+  async getAnalytics(coachUserId: string, cohortId?: string) {
+    const [allMeals, allReviews, caseloadIds, assignments] = await Promise.all([
+      mealsRepository.findAllMeals(),
+      mealCoachReviewsRepository.findAll(),
+      resolveCoachCaseloadIds(coachUserId, cohortId),
+      coachAssignmentsRepository.findByCoachUserId(coachUserId),
+    ]);
+
+    const mealMap = new Map(allMeals.map((m) => [m.id, m]));
+    const queueClientIds = await resolveCoachQueueClientIds(cohortId);
+    const queueMeals = filterMealsForCoach(allMeals, queueClientIds);
 
     const reviewsThisWeek = emptyWeekSeries();
     const approvalTrend = emptyWeekSeries();
@@ -32,40 +39,41 @@ export const coachAnalyticsService = {
     let reviewed = 0;
     let approved = 0;
 
-    for (const meal of meals) {
-      if (meal.status === "approved" || meal.status === "rejected") {
-        reviewed++;
-        if (meal.status === "approved") {
-          approved++;
-          mealTypeCounts[meal.mealType] = (mealTypeCounts[meal.mealType] ?? 0) + 1;
-        }
+    const reviews = allReviews.filter((r) => r.coachId === coachUserId);
 
-        const reviewAt = meal.data.coachReview as { reviewedAt?: string } | undefined;
-        const reviewedAt = reviewAt?.reviewedAt
-          ? new Date(reviewAt.reviewedAt)
-          : meal.submittedAt;
-        if (reviewedAt >= weekStart) {
-          const offset = Math.floor(
-            (reviewedAt.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000),
-          );
-          if (offset >= 0 && offset < 7) {
-            reviewsThisWeek[offset].value += 1;
-            if (meal.status === "approved") {
-              approvalTrend[offset].value += 1;
-            }
+    for (const review of reviews) {
+      reviewed++;
+      const meal = mealMap.get(review.mealId);
+      if (!meal) continue;
+
+      if (review.action === "approve") {
+        approved++;
+        mealTypeCounts[meal.mealType] = (mealTypeCounts[meal.mealType] ?? 0) + 1;
+      }
+
+      if (review.reviewedAt >= weekStart) {
+        const offset = Math.floor(
+          (review.reviewedAt.getTime() - weekStart.getTime()) / (24 * 60 * 60 * 1000),
+        );
+        if (offset >= 0 && offset < 7) {
+          reviewsThisWeek[offset].value += 1;
+          if (review.action === "approve") {
+            approvalTrend[offset].value += 1;
           }
         }
       }
     }
 
-    const inReview = meals.filter((m) => m.status === "in_review").length;
-    const analyzing = meals.filter((m) => m.status === "analyzing").length;
-    const approvedTotal = meals.filter((m) => m.status === "approved").length;
-    const flagged = meals.filter(
+    const inReview = queueMeals.filter((m) => m.status === "in_review").length;
+    const analyzing = queueMeals.filter((m) => m.status === "analyzing").length;
+    const approvedTotal = queueMeals.filter((m) => m.status === "approved").length;
+    const flagged = queueMeals.filter(
       (m) => m.status === "in_review" && m.data.fraudCheckResult === "flag",
     ).length;
 
-    const clientIds = new Set(meals.map((m) => m.clientId));
+    const durations = reviews
+      .map((r) => r.reviewDurationSeconds)
+      .filter((v): v is number => typeof v === "number" && v > 0);
 
     return {
       reviewsThisWeek,
@@ -82,9 +90,12 @@ export const coachAnalyticsService = {
       })),
       coachStats: {
         totalReviews: reviewed,
-        activeClients: clientIds.size || consumers.length,
+        activeClients: assignments.length || caseloadIds.size,
         approvalRate: reviewed > 0 ? Math.round((approved / reviewed) * 100) : 0,
-        avgReviewMinutes: 0,
+        avgReviewMinutes:
+          durations.length > 0
+            ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length / 60)
+            : 0,
       },
     };
   },

@@ -20,12 +20,13 @@ export type FloatingTabBarProps = {
     navigate: (name: string, params?: object) => void;
   };
   notificationUnreadCount?: number;
+  chatUnreadCount?: number;
 };
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   index: { icon: 'home-outline', label: 'Home' },
   log: { icon: 'add', label: 'Log' },
-  analytics: { icon: 'bar-chart-outline', label: 'Insights' },
+  chat: { icon: 'chatbubbles-outline', label: 'Coach' },
   profile: { icon: 'person-outline', label: 'Profile' },
 };
 
@@ -34,9 +35,15 @@ const INACTIVE_ICON = 'rgba(255, 255, 255, 0.65)';
 
 export const FLOATING_TAB_BAR_CLEARANCE = 112;
 
-export function FloatingTabBar({ state, navigation, notificationUnreadCount = 0 }: FloatingTabBarProps) {
+export function FloatingTabBar({
+  state,
+  navigation,
+  notificationUnreadCount = 0,
+  chatUnreadCount = 0,
+}: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom - 4, 10);
+  const visibleRoutes = state.routes.filter((route) => route.name in TAB_CONFIG);
 
   return (
     <View
@@ -67,8 +74,9 @@ export function FloatingTabBar({ state, navigation, notificationUnreadCount = 0 
             android: { elevation: 14 },
           }),
         ]}>
-        {state.routes.map((route, index) => {
-          const isFocused = state.index === index;
+        {visibleRoutes.map((route) => {
+          const routeIndex = state.routes.findIndex((entry) => entry.key === route.key);
+          const isFocused = state.index === routeIndex;
           const config = TAB_CONFIG[route.name] ?? { icon: 'ellipse-outline' as const, label: route.name };
 
           const onPress = () => {
@@ -116,6 +124,13 @@ export function FloatingTabBar({ state, navigation, notificationUnreadCount = 0 
                       </Text>
                     </View>
                   ) : null}
+                  {route.name === 'chat' && chatUnreadCount > 0 ? (
+                    <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">
+                        {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
               ) : (
                 <View className="h-11 w-11 items-center justify-center rounded-full bg-white/15">
@@ -128,6 +143,13 @@ export function FloatingTabBar({ state, navigation, notificationUnreadCount = 0 
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
                         {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                      </Text>
+                    </View>
+                  ) : null}
+                  {route.name === 'chat' && chatUnreadCount > 0 ? (
+                    <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">
+                        {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
                       </Text>
                     </View>
                   ) : null}

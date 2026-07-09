@@ -26,8 +26,8 @@ const features: {
   {
     id: 'portion',
     title: 'Portion intelligence',
-    desc: 'AR plate measurement and AI plate detection help estimate serving sizes more accurately than eyeballing.',
-    bullets: ['On-device AR measurement', 'Remote plate detection API', 'Manual fallback always available'],
+    desc: 'AI plate detection from photos helps estimate serving sizes more accurately than eyeballing alone.',
+    bullets: ['Remote plate detection API', 'Optional description with photos', 'Manual diameter entry when needed'],
     image: 'logMeal',
   },
   {
@@ -60,7 +60,7 @@ export function FeaturesPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="text-center lg:text-left">
-              <h1 className="text-4xl tracking-tight text-ash-grey-900 sm:text-5xl">Features</h1>
+              <h1 className="font-sans text-4xl tracking-tight text-ash-grey-900 normal-case sm:text-5xl">Features</h1>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-ash-grey-600 lg:mx-0">
                 MiraFood combines modern AI with human coach review — the accuracy of a dietitian, the
                 speed of an app.

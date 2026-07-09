@@ -1,11 +1,10 @@
 import type { MealAnalysisService } from '@/services/contracts/mealAnalysisService';
-import { mockAnalyzePhoto, mockAnalyzeText } from '@/services/local/mealAnalysis';
+import { mockAnalyzeMeal } from '@/services/local/mealAnalysis';
 import { delay } from '@/utils/dates';
 
 export const mockMealAnalysisService: MealAnalysisService = {
-  async analyzeMeal({ imageUri, text, plateDiameterCm }) {
+  async analyzeMeal(input) {
     await delay(1200);
-    if (text?.trim()) return mockAnalyzeText(text);
-    return mockAnalyzePhoto(imageUri, plateDiameterCm);
+    return mockAnalyzeMeal(input);
   },
 };

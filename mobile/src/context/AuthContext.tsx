@@ -9,6 +9,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 
+import { clearNutritionData, clearProfileData } from '@/services/local/storage';
 import { isApiConfigured } from '@/constants/api';
 import { setApiAuthToken } from '@/lib/apiClient';
 import { onUnauthorized } from '@/lib/authEvents';
@@ -16,6 +17,7 @@ import {
   loginRequest,
   logoutRequest,
   registerRequest,
+  fetchMeRequest,
   type AuthUser,
 } from '@/services/remote/authApi';
 import { WrongAppRoleError } from '@/utils/authErrors';
@@ -34,7 +36,13 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string, referralCode?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    displayName: string,
+    referralCode?: string,
+    registrationSource?: 'individual' | 'company' | 'institution',
+  ) => Promise<void>;
   logout: () => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
 };
@@ -57,7 +65,24 @@ function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession
     token: data.token,
     user: { ...data.user, patientId },
     expiresAt: jwtExpiresAt(data.token),
-    onboardingComplete: data.consumerProfile?.onboardingComplete,
+    onboardingComplete: Boolean(data.consumerProfile?.onboardingComplete),
+  };
+}
+
+function mapMeToSession(session: AuthSession, me: Awaited<ReturnType<typeof fetchMeRequest>>): AuthSession {
+  const patientId = me.patientId ?? me.consumerProfile?.patientId ?? session.user.patientId;
+  const onboardingComplete = Boolean(me.consumerProfile?.onboardingComplete);
+  return {
+    ...session,
+    user: {
+      id: me.id,
+      email: me.email,
+      displayName: me.displayName,
+      role: me.role,
+      avatarUrl: me.avatarUrl,
+      patientId,
+    },
+    onboardingComplete: onboardingComplete || session.onboardingComplete,
   };
 }
 
@@ -71,7 +96,10 @@ async function readStoredSession(): Promise<AuthSession | null> {
       await SecureStore.deleteItemAsync(AUTH_STORAGE_KEY);
       return null;
     }
-    return session;
+    return {
+      ...session,
+      onboardingComplete: Boolean(session.onboardingComplete),
+    };
   } catch {
     return null;
   }
@@ -89,7 +117,7 @@ async function persistSession(session: AuthSession | null) {
 
 export function AuthProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<AuthSession | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => isApiConfigured());
 
   const applySession = useCallback(async (next: AuthSession | null) => {
     await persistSession(next);
@@ -97,20 +125,42 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   useEffect(() => {
+    if (!isApiConfigured()) {
+      setIsLoading(false);
+      return;
+    }
+
     readStoredSession()
       .then(async (stored) => {
-        if (stored) {
-          setApiAuthToken(stored.token);
-          setSession(stored);
+        if (!stored) return;
+
+        setApiAuthToken(stored.token);
+        setSession(stored);
+
+        try {
+          const me = await fetchMeRequest();
+          const refreshed = mapMeToSession(stored, me);
+          if (
+            refreshed.onboardingComplete !== stored.onboardingComplete ||
+            refreshed.user.patientId !== stored.user.patientId
+          ) {
+            await persistSession(refreshed);
+            setSession(refreshed);
+          }
+        } catch {
+          /* offline — keep stored session */
         }
       })
       .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
-    return onUnauthorized(() => {
+    const unsubscribe = onUnauthorized(() => {
       void applySession(null);
     });
+    return () => {
+      unsubscribe();
+    };
   }, [applySession]);
 
   useEffect(() => {
@@ -138,8 +188,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const register = useCallback(
-    async (email: string, password: string, displayName: string, referralCode?: string) => {
-      const data = await registerRequest(email, password, displayName, referralCode);
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      referralCode?: string,
+      registrationSource?: 'individual' | 'company' | 'institution',
+    ) => {
+      const data = await registerRequest(
+        email,
+        password,
+        displayName,
+        referralCode,
+        registrationSource,
+      );
       await applySession(mapSession(data));
     },
     [applySession],
@@ -147,6 +209,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const logout = useCallback(async () => {
     await logoutRequest();
+    await clearProfileData();
+    await clearNutritionData();
     await applySession(null);
   }, [applySession]);
 

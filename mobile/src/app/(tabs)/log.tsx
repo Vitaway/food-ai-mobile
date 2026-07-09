@@ -2,9 +2,10 @@ import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused } from '@react-navigation/native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
+import { LogAnalyzingStep, type MealAnalyzePhase } from '@/components/log/LogAnalyzingStep';
+import { LogBarcodeStep } from '@/components/log/LogBarcodeStep';
 import { LogMethodStep, type LogMethodId } from '@/components/log/LogMethodStep';
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
@@ -13,7 +14,7 @@ import { LogTextStep } from '@/components/log/LogTextStep';
 import { Button } from '@/components/ui/Button';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constants/mealTypes';
-import type { LogStep } from '@/constants/logMock';
+import type { LogStep } from '@/constants/logFlow';
 import { useMeals } from '@/context/MealsContext';
 import { useToast } from '@/context/ToastContext';
 import { services } from '@/services';
@@ -25,21 +26,29 @@ import {
   consumeLogMealTypeIntent,
   consumeLogMethodIntent,
 } from '@/utils/logIntent';
+import { createCoachReviewStub } from '@/services/local/mealAnalysis';
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
   type ImageCaptureMetadata,
 } from '@/utils/imageCaptureMetadata';
 
-type FlowStep = LogStep | 'text';
+type FlowStep = LogStep | 'text' | 'barcode';
 
 const STEP_TITLES: Record<FlowStep, string> = {
   method: 'Log meal',
   text: 'Describe',
+  barcode: 'Barcode',
   scan: 'Photo',
-  analyzing: 'Analyzing',
-  results: 'Results',
+  analyzing: 'AI analysis',
+  results: 'Review & submit',
 };
+
+function fallbackCoachDescription(opts: { imageUri?: string | null; mealDescription?: string; textInput?: string }) {
+  const described = opts.mealDescription?.trim() || opts.textInput?.trim();
+  if (described) return described;
+  return opts.imageUri ? 'Meal photo submitted for coach review' : 'Meal submitted for coach review';
+}
 
 export default function LogMealScreen() {
   const { push } = useNavigateOnce();
@@ -54,17 +63,18 @@ export default function LogMealScreen() {
   const [selectedMealType, setSelectedMealType] = useState<MealTypeId | null>(() => suggestMealTypeForNow());
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [textInput, setTextInput] = useState('');
-  const [galleryNote, setGalleryNote] = useState('');
+  const [mealDescription, setMealDescription] = useState('');
   const [analysis, setAnalysis] = useState<MealAnalysisPreview | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [captureMetadata, setCaptureMetadata] = useState<ImageCaptureMetadata | null>(null);
-  const [detectingPlate, setDetectingPlate] = useState(false);
   const [plateDetected, setPlateDetected] = useState(false);
   const [containerType, setContainerType] = useState<PlateContainerType | null>(null);
   const [plateDiameterCm, setPlateDiameterCm] = useState<number | null>(null);
   const [plateConfidence, setPlateConfidence] = useState<number | null>(null);
   const [plateDetectionError, setPlateDetectionError] = useState<string | null>(null);
+  const [analyzePhase, setAnalyzePhase] = useState<MealAnalyzePhase | null>(null);
+  const [fromBarcode, setFromBarcode] = useState(false);
 
   const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
   const stepTitle = STEP_TITLES[step];
@@ -74,9 +84,7 @@ export default function LogMealScreen() {
     return suggestMealTypeForNow();
   }, [mealTypeParam]);
 
-  const resetPlateDetection = useCallback(() => {
-    setCaptureMetadata(null);
-    setDetectingPlate(false);
+  const resetPlateResults = useCallback(() => {
     setPlateDetected(false);
     setContainerType(null);
     setPlateDiameterCm(null);
@@ -84,12 +92,18 @@ export default function LogMealScreen() {
     setPlateDetectionError(null);
   }, []);
 
+  const resetPlateDetection = useCallback(() => {
+    setCaptureMetadata(null);
+    resetPlateResults();
+    setAnalyzePhase(null);
+  }, [resetPlateResults]);
+
   const resetFlow = useCallback(() => {
     setStep('method');
     setSelectedMealType(resolveInitialMealType());
     setImageUri(null);
     setTextInput('');
-    setGalleryNote('');
+    setMealDescription('');
     setAnalysis(null);
     setAnalyzing(false);
     setSaving(false);
@@ -98,11 +112,6 @@ export default function LogMealScreen() {
   }, [resolveInitialMealType, resetPlateDetection]);
 
   const detectPlateFromPhoto = useCallback(async (uri: string, metadata: ImageCaptureMetadata) => {
-    setDetectingPlate(true);
-    setPlateDetected(false);
-    setContainerType(null);
-    setPlateDiameterCm(null);
-    setPlateConfidence(null);
     setPlateDetectionError(null);
 
     try {
@@ -111,48 +120,116 @@ export default function LogMealScreen() {
       setContainerType(result.containerType);
       setPlateDiameterCm(result.diameterCm);
       setPlateConfidence(result.confidence);
+      return result;
     } catch (error) {
       setPlateDetected(false);
       setContainerType(null);
       setPlateDiameterCm(null);
       setPlateConfidence(null);
-      setPlateDetectionError(
-        error instanceof Error ? error.message : 'Plate detection failed. Check the API server.',
-      );
-    } finally {
-      setDetectingPlate(false);
+      const message =
+        error instanceof Error ? error.message : 'Plate detection failed. Check the API server.';
+      setPlateDetectionError(message);
+      return null;
     }
   }, []);
 
-  useEffect(() => {
-    if (!imageUri || !captureMetadata || step !== 'scan') return;
-    detectPlateFromPhoto(imageUri, captureMetadata);
-  }, [captureMetadata, detectPlateFromPhoto, imageUri, step]);
+  const runPhotoAnalysis = useCallback(async () => {
+    if (analyzing || !imageUri || !captureMetadata) return;
 
-  const combinedTextInput = useMemo(() => {
-    const parts = [textInput.trim(), galleryNote.trim()].filter(Boolean);
-    return parts.join('. ');
-  }, [galleryNote, textInput]);
-
-  const runAnalysis = useCallback(async () => {
-    if (analyzing) return;
     setAnalyzing(true);
     setStep('analyzing');
+    setAnalyzePhase('plate');
+    resetPlateResults();
+
+    let resolvedDiameter: number | null = null;
+    const plateResult = await detectPlateFromPhoto(imageUri, captureMetadata);
+    if (plateResult?.detected && plateResult.diameterCm != null) {
+      resolvedDiameter = plateResult.diameterCm;
+    }
+
+    setAnalyzePhase('food');
     try {
       const result = await analyzeMeal({
-        imageUri: imageUri ?? undefined,
-        text: combinedTextInput || undefined,
-        plateDiameterCm: plateDiameterCm ?? undefined,
+        imageUri,
+        note: mealDescription.trim() || undefined,
+        plateDiameterCm: resolvedDiameter ?? undefined,
       });
       setAnalysis(result);
       setStep('results');
-    } catch {
-      toast.error('Could not analyze this meal. Try again.');
-      setStep(imageUri ? 'scan' : 'text');
+    } catch (error) {
+      const fallback = createCoachReviewStub(
+        fallbackCoachDescription({ imageUri, mealDescription }),
+      );
+      setAnalysis(fallback);
+      setStep('results');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
     } finally {
       setAnalyzing(false);
+      setAnalyzePhase(null);
     }
-  }, [analyzing, analyzeMeal, combinedTextInput, imageUri, plateDiameterCm, toast]);
+  }, [
+    analyzing,
+    analyzeMeal,
+    captureMetadata,
+    detectPlateFromPhoto,
+    imageUri,
+    mealDescription,
+    resetPlateResults,
+    toast,
+  ]);
+
+  const runTextAnalysis = useCallback(async () => {
+    if (analyzing) return;
+    setAnalyzing(true);
+    setStep('analyzing');
+    setAnalyzePhase('food');
+    try {
+      const result = await analyzeMeal({
+        text: textInput.trim() || undefined,
+      });
+      setAnalysis(result);
+      setStep('results');
+    } catch (error) {
+      const fallback = createCoachReviewStub(
+        fallbackCoachDescription({ textInput }),
+      );
+      setAnalysis(fallback);
+      setStep('results');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
+    } finally {
+      setAnalyzing(false);
+      setAnalyzePhase(null);
+    }
+  }, [analyzing, analyzeMeal, textInput, toast]);
+
+  const runAnalysis = useCallback(async () => {
+    if (imageUri) {
+      await runPhotoAnalysis();
+      return;
+    }
+    await runTextAnalysis();
+  }, [imageUri, runPhotoAnalysis, runTextAnalysis]);
+
+  const submitToCoachWithoutAi = useCallback(async () => {
+    const description = mealDescription.trim();
+    if (description.length < 3) {
+      toast.error('Describe what you ate so your coach can review it.');
+      return;
+    }
+    if (analyzing || saving) return;
+
+    setAnalyzing(true);
+    setStep('analyzing');
+    setAnalyzePhase('food');
+    try {
+      setAnalysis(createCoachReviewStub(description));
+      setStep('results');
+      toast.info('Your coach will confirm nutrition from your photo and description.', 'Sent for review');
+    } finally {
+      setAnalyzing(false);
+      setAnalyzePhase(null);
+    }
+  }, [analyzing, mealDescription, saving, toast]);
 
   const handlePermissionDenied = useCallback(
     (source: 'camera' | 'gallery', canAskAgain: boolean) => {
@@ -175,7 +252,7 @@ export default function LogMealScreen() {
       }
 
       const pickerOptions: ImagePicker.ImagePickerOptions = {
-        quality: 0.92,
+        quality: 0.8,
         allowsEditing: false,
         exif: true,
       };
@@ -200,7 +277,7 @@ export default function LogMealScreen() {
     async (source: 'camera' | 'gallery') => {
       if (analyzing || saving) return;
       setSelectedMethod(source);
-      setGalleryNote('');
+      setMealDescription('');
       const captured = await pickImage(source);
       if (!captured) {
         setStep('method');
@@ -231,7 +308,16 @@ export default function LogMealScreen() {
       }
 
       if (method === 'text') {
+        setFromBarcode(false);
         setStep('text');
+        return;
+      }
+
+      if (method === 'barcode') {
+        setFromBarcode(false);
+        setImageUri(null);
+        setAnalysis(null);
+        setStep('barcode');
         return;
       }
 
@@ -243,7 +329,7 @@ export default function LogMealScreen() {
       setSelectedMealType(past.mealType);
       setImageUri(past.imageUrl ?? null);
       setTextInput(past.textInput ?? past.mealName ?? '');
-      setGalleryNote('');
+      setMealDescription('');
       setStep('text');
     },
     [analyzing, meals, openPhotoFlow, saving, toast],
@@ -300,8 +386,8 @@ export default function LogMealScreen() {
       const meal = await saveMealToDiary({
         mealType: selectedMealType,
         imageUrl: imageUri ?? undefined,
-        textInput: combinedTextInput || undefined,
-        note: galleryNote.trim() || undefined,
+        textInput: (imageUri ? mealDescription : textInput).trim() || undefined,
+        note: mealDescription.trim() || undefined,
         plateDiameterCm: analysis.plateDiameterCm ?? plateDiameterCm,
         analysis,
       });
@@ -315,31 +401,41 @@ export default function LogMealScreen() {
     }
   }, [
     analysis,
-    combinedTextInput,
-    galleryNote,
     imageUri,
+    mealDescription,
     plateDiameterCm,
     push,
     resetFlow,
     saveMealToDiary,
     selectedMealType,
     saving,
+    textInput,
     toast,
   ]);
 
   const handleBack = useCallback(() => {
-    if (step === 'text' || step === 'scan') setStep('method');
-    else if (step === 'results') setStep(imageUri ? 'scan' : 'text');
-  }, [imageUri, step]);
+    if (step === 'text' || step === 'scan' || step === 'barcode') setStep('method');
+    else if (step === 'results') {
+      if (fromBarcode) setStep('barcode');
+      else setStep(imageUri ? 'scan' : 'text');
+    }
+  }, [fromBarcode, imageUri, step]);
 
   const showBack = step !== 'method' && step !== 'analyzing';
-  const useScroll = step === 'method' || step === 'results' || step === 'analyzing' || step === 'scan';
+  const useScroll =
+    step === 'method' ||
+    step === 'results' ||
+    step === 'analyzing' ||
+    step === 'scan' ||
+    step === 'text' ||
+    step === 'barcode';
+  const keyboardAvoid = step === 'text' || step === 'scan';
 
   const footer = useMemo(() => {
     if (step === 'results' && analysis) {
       return (
         <Button
-          label={saving ? 'Submitting…' : 'Submit for review'}
+          label={saving ? 'Submitting…' : 'Submit for coach review'}
           variant="secondary"
           onPress={handleSave}
           disabled={saving || !selectedMealType}
@@ -359,9 +455,24 @@ export default function LogMealScreen() {
         <LogTextStep
           value={textInput}
           loading={analyzing}
-          bottomPadding={bottomPadding}
           onChangeText={setTextInput}
           onContinue={runAnalysis}
+        />
+      );
+    }
+    if (step === 'barcode') {
+      return (
+        <LogBarcodeStep
+          loading={analyzing || saving}
+          onBack={() => setStep('method')}
+          onFound={(nextAnalysis) => {
+            setFromBarcode(true);
+            setImageUri(null);
+            setTextInput('');
+            setMealDescription('');
+            setAnalysis(nextAnalysis);
+            setStep('results');
+          }}
         />
       );
     }
@@ -369,31 +480,24 @@ export default function LogMealScreen() {
       return (
         <LogScanStep
           imageUri={imageUri}
-          preview={analysis}
-          detectingPlate={detectingPlate}
-          plateDetected={plateDetected}
-          containerType={containerType}
-          plateDiameterCm={plateDiameterCm}
-          plateConfidence={plateConfidence}
-          plateDetectionError={plateDetectionError}
-          showGalleryNote={selectedMethod === 'gallery'}
-          galleryNote={galleryNote}
-          onGalleryNoteChange={setGalleryNote}
+          mealDescription={mealDescription}
+          onMealDescriptionChange={setMealDescription}
           loading={analyzing}
-          bottomPadding={bottomPadding}
           onRetake={handleRetakePhoto}
-          onCapture={runAnalysis}
+          onAnalyze={runAnalysis}
+          onSubmitToCoach={submitToCoachWithoutAi}
         />
       );
     }
     if (step === 'analyzing') {
       return (
         <LogAnalyzingStep
-          detectingPlate={detectingPlate}
+          phase={analyzePhase ?? 'food'}
+          variant={imageUri ? 'photo' : 'text'}
           plateDetected={plateDetected}
           containerType={containerType}
           plateDiameterCm={plateDiameterCm}
-          plateConfidence={plateConfidence}
+          plateDetectionError={plateDetectionError}
         />
       );
     }
@@ -401,6 +505,7 @@ export default function LogMealScreen() {
       return (
         <LogResultsStep
           analysis={analysis}
+          onAnalysisChange={setAnalysis}
           imageUri={imageUri ?? undefined}
           selectedMealType={selectedMealType}
           onSelectMealType={setSelectedMealType}
@@ -410,22 +515,21 @@ export default function LogMealScreen() {
     return null;
   }, [
     analysis,
+    analyzePhase,
     analyzing,
     bottomPadding,
     containerType,
-    detectingPlate,
-    galleryNote,
     handleMethodSelect,
     handleRetakePhoto,
     imageUri,
-    plateConfidence,
+    mealDescription,
     plateDetected,
     plateDetectionError,
     plateDiameterCm,
     runAnalysis,
+    submitToCoachWithoutAi,
     saving,
     selectedMealType,
-    selectedMethod,
     step,
     textInput,
   ]);
@@ -437,6 +541,7 @@ export default function LogMealScreen() {
         title={stepTitle}
         onBack={showBack ? handleBack : undefined}
         scroll={useScroll}
+        keyboardAvoid={keyboardAvoid}
         bottomPadding={bottomPadding}
         footer={footer}>
         {content}

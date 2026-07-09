@@ -1,4 +1,5 @@
 import type { MealAnalysisPreview } from '@/types';
+import { isNegligibleCalorieLabel } from '@/utils/negligibleFoodItems';
 import { formatDiameterCm } from '@/utils/formatDiameter';
 
 /** Typical dinner plate diameter used as the mock model baseline. */
@@ -40,6 +41,10 @@ export function applyPlatePortionScale(
   }
 
   const items = analysis.items.map((item) => {
+    if (item.estimatedWeightG <= 0 || isNegligibleCalorieLabel(item.label)) {
+      return item;
+    }
+
     const weightG = Math.round(item.estimatedWeightG * scale);
     const nutritionFactor = weightG / item.estimatedWeightG;
     return {

@@ -31,3 +31,15 @@ export class SetUserActiveDto {
   @IsBoolean()
   isActive!: boolean;
 }
+
+export class SetUserRoleDto {
+  @IsString()
+  @MaxLength(32)
+  role!:
+    | "consumer"
+    | "coach"
+    | "admin"
+    | "data_entry_staff"
+    | "organization_admin"
+    | "nutrition_coach";
+}

@@ -15,7 +15,8 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
-        "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org"
+        "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
+        "EXPO_PUBLIC_USE_MOCK_API": "false"
       }
     },
     "apk": {

@@ -8,8 +8,12 @@ export default function ProfileStackLayout() {
         contentStyle: { backgroundColor: '#ffffff' },
       }}>
       <Stack.Screen name="account" />
+      <Stack.Screen name="edit-health" />
       <Stack.Screen name="health" />
+      <Stack.Screen name="day/[date]" />
       <Stack.Screen name="notifications" />
+      <Stack.Screen name="subscription" />
+      <Stack.Screen name="reports" />
       <Stack.Screen name="data" />
     </Stack>
   );

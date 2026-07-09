@@ -3,6 +3,7 @@ import { Image, View } from 'react-native';
 
 import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
 import { IngredientList } from '@/components/log/IngredientList';
+import { MealAiBreakdown } from '@/components/log/MealAiBreakdown';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
@@ -10,9 +11,11 @@ import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealAnalysisPreview } from '@/types';
 import { formatDiameterCm } from '@/utils/formatDiameter';
 import { formatMacroG } from '@/utils/formatMacro';
+import { applyServingUnitToItem, recalculateAnalysisTotals, SERVING_UNITS } from '@/utils/servingUnits';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
+  onAnalysisChange: (next: MealAnalysisPreview) => void;
   imageUri?: string;
   selectedMealType: MealTypeId | null;
   onSelectMealType: (id: MealTypeId) => void;
@@ -27,6 +30,7 @@ const FLAG_STYLES = {
 
 export function LogResultsStep({
   analysis,
+  onAnalysisChange,
   imageUri,
   selectedMealType,
   onSelectMealType,
@@ -37,6 +41,8 @@ export function LogResultsStep({
     id: item.id,
     name: item.label,
     weightG: item.estimatedWeightG,
+    servingUnit: item.servingUnit ?? 'g',
+    servingAmount: item.servingAmount ?? 1,
     emoji: item.emoji ?? '🍽️',
     macros: {
       carbs: formatMacroG(item.nutrition.carbsG),
@@ -56,6 +62,13 @@ export function LogResultsStep({
 
   return (
     <>
+      <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/60">
+        <Text className="font-sans-semibold text-sm text-blue-spruce-800">Almost done</Text>
+        <Text className="mt-1 text-sm leading-5 text-blue-spruce-700">
+          Review the AI estimate below, pick a meal type, then tap <Text className="font-sans-semibold">Submit for coach review</Text> at the bottom.
+        </Text>
+      </LogCard>
+
       <View className={`rounded-2xl px-4 py-3 ${flag.bg}`}>
         <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
@@ -97,9 +110,33 @@ export function LogResultsStep({
         ) : null}
       </LogCard>
 
+      <MealAiBreakdown analysis={analysis} />
+
       <LogCard>
         <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Ingredients</Text>
-        <IngredientList ingredients={ingredients} />
+        <IngredientList
+          ingredients={ingredients}
+          onCycleServingUnit={(ingredientId) => {
+            const nextItems = analysis.items.map((item) => {
+              if (item.id !== ingredientId) return item;
+              const current = item.servingUnit ?? 'g';
+              const idx = SERVING_UNITS.indexOf(current as (typeof SERVING_UNITS)[number]);
+              const next = SERVING_UNITS[(idx + 1) % SERVING_UNITS.length];
+              return applyServingUnitToItem(item, next, item.servingAmount ?? 1);
+            });
+            const totals = recalculateAnalysisTotals(nextItems);
+            onAnalysisChange({ ...analysis, items: nextItems, ...totals });
+          }}
+          onAdjustServingAmount={(ingredientId, delta) => {
+            const nextItems = analysis.items.map((item) => {
+              if (item.id !== ingredientId) return item;
+              const amount = Math.max(0.5, (item.servingAmount ?? 1) + delta);
+              return applyServingUnitToItem(item, item.servingUnit ?? 'g', amount);
+            });
+            const totals = recalculateAnalysisTotals(nextItems);
+            onAnalysisChange({ ...analysis, items: nextItems, ...totals });
+          }}
+        />
       </LogCard>
     </>
   );

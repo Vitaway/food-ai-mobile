@@ -25,6 +25,13 @@ export class UsersRepository {
     return this.repo.find({ where: { role }, order: { createdAt: "DESC" } });
   }
 
+  findAllActive() {
+    return this.repo.find({
+      where: { isActive: true },
+      order: { displayName: "ASC" },
+    });
+  }
+
   countByRole(role: UserRole) {
     return this.repo.count({ where: { role } });
   }

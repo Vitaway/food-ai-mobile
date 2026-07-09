@@ -66,17 +66,6 @@ export function calculateWaterTargetMl(weightKg: number) {
   return Math.round(weightKg * 35);
 }
 
-export function calculateHealthScore(
-  consumed: { calories: number; proteinG: number; carbsG: number; fatG: number; fiberG: number },
-  targets: MacroTargets,
-) {
-  const calorieScore = 1 - Math.min(1, Math.abs(consumed.calories - targets.calories) / targets.calories);
-  const proteinScore = Math.min(1, consumed.proteinG / targets.proteinG);
-  const fiberScore = Math.min(1, consumed.fiberG / targets.fiberG);
-  const score = (calorieScore * 0.4 + proteinScore * 0.35 + fiberScore * 0.25) * 100;
-  return Math.round(Math.max(35, Math.min(100, score)));
-}
-
 export function getHealthFlagLevel(value: number, target: number, type: 'max' | 'min' = 'max') {
   const ratio = type === 'max' ? value / target : target / Math.max(value, 1);
   if (ratio <= 1) return 'green';

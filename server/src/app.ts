@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import path from "path";
 import express, { type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -55,6 +56,9 @@ app.use(cors(corsOptions));
 app.use(compression());
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
+const uploadsRoot = path.join(process.cwd(), "uploads");
+app.use("/uploads", express.static(uploadsRoot, { maxAge: "7d", fallthrough: false }));
 
 app.use("/api/v1/auth/login", authLoginRateLimit);
 app.use("/api/v1/auth/register", authRegisterRateLimit);

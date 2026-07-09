@@ -7,7 +7,24 @@ import { AppDataSource } from "../config/database";
 import { UserSession } from "../modules/auth/user-session.entity";
 import { usersRepository } from "../modules/users/users.repository";
 
-export type UserRole = "consumer" | "coach" | "admin";
+export type UserRole =
+  | "consumer"
+  | "coach"
+  | "admin"
+  | "super_admin"
+  | "organization_admin"
+  | "nutrition_coach"
+  | "data_entry_staff";
+
+function expandedRoles(role: string): string[] {
+  if (role === "admin") return ["admin", "super_admin", "organization_admin"];
+  if (role === "coach") return ["coach", "nutrition_coach"];
+  if (role === "data_entry_staff") return ["data_entry_staff"];
+  if (role === "organization_admin") return ["organization_admin", "admin"];
+  if (role === "super_admin") return ["super_admin", "admin"];
+  if (role === "nutrition_coach") return ["nutrition_coach", "coach"];
+  return [role];
+}
 
 export interface AuthJwtPayload {
   sub: string;
@@ -69,7 +86,8 @@ export function createAuthorizationChecker() {
       (req as Request & { user?: typeof user; authPayload?: AuthJwtPayload }).user = user;
       (req as Request & { authPayload?: AuthJwtPayload }).authPayload = payload;
       if (!roles.length) return true;
-      return roles.includes(user.role);
+      const effectiveRoles = expandedRoles(user.role);
+      return roles.some((role) => effectiveRoles.includes(role));
     } catch {
       return false;
     }

@@ -3,9 +3,12 @@ import { MiraFoodLogo } from '@/components/marketing/MiraFoodLogo';
 import { FooterHalftoneScene } from '@/components/marketing/FooterHalftoneScene';
 
 const footerProducts = [
+  { to: '/for-patients', label: 'For patients' },
+  { to: '/for-coaches', label: 'For coaches' },
+  { to: '/for-clinics', label: 'For clinics' },
+  { to: '/clinical-evidence', label: 'Clinical evidence' },
   { to: '/download', label: 'Download app' },
   { to: '/features', label: 'Features' },
-  { to: '/for-coaches', label: 'For coaches' },
   { to: '/login', label: 'Sign in' },
 ];
 
@@ -58,8 +61,8 @@ export function MarketingFooter() {
               <span className="text-base tracking-tight text-ash-grey-700">Vitaway</span>
             </div>
             <p className="mt-5 max-w-md text-sm leading-relaxed text-ash-grey-600">
-              AI-powered meal logging with human coach review. Built for people who want accurate
-              nutrition without the guesswork.
+              AI-powered meal logging with human coach review. Clinical-grade nutrition you can
+              trust — built for patients, coaches, and care teams.
             </p>
           </div>
 

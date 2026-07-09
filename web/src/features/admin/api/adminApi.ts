@@ -14,6 +14,31 @@ export type AdminMetrics = {
     apiKeyStatus: string;
     model: string;
   };
+  payments?: {
+    activeSubscriptions: number;
+    pendingPayments: number;
+    failedPayments: number;
+    revenue: number;
+    subscriptionsByType?: {
+      individual: number;
+      corporate: number;
+      family: number;
+    };
+  };
+  totalUsers?: number;
+  activeUsersWeek?: number;
+  newRegistrationsWeek?: number;
+  newRegistrationsMonth?: number;
+  userSources?: {
+    individual: number;
+    company: number;
+    institution: number;
+    referral: number;
+    direct: number;
+  };
+  reports?: {
+    totalSnapshots: number;
+  };
   timestamp: string;
 };
 
@@ -61,6 +86,13 @@ export type AuditLogEntry = {
   createdAt: string;
 };
 
+export type AdminReferralRow = {
+  userId: string;
+  displayName: string;
+  referralCode: string;
+  referralCount: number;
+};
+
 export async function fetchAdminMetrics(): Promise<AdminMetrics> {
   return apiRequest<AdminMetrics>('/admin/metrics');
 }
@@ -80,6 +112,20 @@ export async function fetchAdminConsumers(): Promise<AdminConsumer[]> {
   return apiRequest<AdminConsumer[]>('/admin/consumers');
 }
 
+export type AdminUserRow = {
+  id: string;
+  email: string;
+  displayName: string;
+  role: string;
+  isActive: boolean;
+  registrationSource: string | null;
+  createdAt: string;
+};
+
+export async function fetchAdminUsers(): Promise<AdminUserRow[]> {
+  return apiRequest<AdminUserRow[]>('/admin/users');
+}
+
 export async function setUserActive(userId: string, isActive: boolean) {
   return apiRequest(`/admin/users/${userId}/active`, {
     method: 'PATCH',
@@ -93,4 +139,43 @@ export async function fetchAdminSystem() {
 
 export async function fetchAuditLogs(): Promise<AuditLogEntry[]> {
   return apiRequest<AuditLogEntry[]>('/admin/audit-logs');
+}
+
+export async function fetchAdminReferrals(): Promise<AdminReferralRow[]> {
+  return apiRequest<AdminReferralRow[]>('/admin/referrals');
+}
+
+export type GrowthPoint = { date: string; registrations: number };
+
+export async function fetchAdminGrowth(days = 30): Promise<GrowthPoint[]> {
+  return apiRequest<GrowthPoint[]>(`/admin/analytics/growth?days=${days}`);
+}
+
+export async function setUserRole(userId: string, role: string) {
+  return apiRequest(`/admin/users/${userId}/role`, {
+    method: 'PATCH',
+    body: JSON.stringify({ role }),
+  });
+}
+
+export async function fetchAdminOperations(): Promise<import('@/types').AdminOperationsMetrics> {
+  return apiRequest('/admin/metrics/operations');
+}
+
+export async function fetchAdminCoachRoster(): Promise<import('@/types').AdminCoachRosterRow[]> {
+  return apiRequest('/admin/coaches/roster');
+}
+
+export type PendingNutritionFood = import('@/api/nutritionDbApi').NutritionFood;
+
+export async function fetchPendingNutritionFoods(): Promise<PendingNutritionFood[]> {
+  return apiRequest('/admin/nutrition-db/pending');
+}
+
+export async function approveNutritionFood(id: string) {
+  return apiRequest(`/admin/nutrition-db/foods/${id}/approve`, { method: 'POST' });
+}
+
+export async function rejectNutritionFood(id: string) {
+  return apiRequest(`/admin/nutrition-db/foods/${id}/reject`, { method: 'POST' });
 }

@@ -1,7 +1,9 @@
 import { AppStoreBadgesLight } from '@/components/marketing/AppStoreBadges';
 import { AppScreenshot } from '@/components/marketing/AppScreenshot';
+import { ContactFormCard } from '@/components/marketing/ContactFormCard';
 import { MarketingPageHero } from '@/components/marketing/MarketingPageHero';
 import { appImage } from '@/constants/appImages';
+import { supportFaqsExtra } from '@/constants/marketingContent';
 import { Link } from 'react-router-dom';
 
 const faqs = [
@@ -23,8 +25,9 @@ const faqs = [
   },
   {
     q: 'What permissions does the app need?',
-    a: 'Camera and photo library (meal logging), notifications (meal updates and reminders), and optionally biometrics (app lock). AR features may use device sensors.',
+    a: 'Camera and photo library (meal logging), notifications (meal updates and reminders), and optionally biometrics (app lock).',
   },
+  ...supportFaqsExtra,
 ];
 
 export function SupportPage() {
@@ -37,8 +40,10 @@ export function SupportPage() {
 
       <section className="py-16">
         <div className="mx-auto grid max-w-7xl gap-10 px-4 sm:px-6 lg:grid-cols-2 lg:px-8">
+          <ContactFormCard defaultTopic="Technical support" />
+
           <div className="rounded-3xl border border-ash-grey-200 bg-white p-8 shadow-sm">
-            <h2 className="text-xl text-ash-grey-900">Contact us</h2>
+            <h2 className="text-xl text-ash-grey-900">Other ways to reach us</h2>
             <dl className="mt-6 space-y-4 text-sm">
               <div>
                 <dt className="font-normal text-ash-grey-700">General support</dt>
@@ -85,21 +90,27 @@ export function SupportPage() {
               We aim to respond within 2 business days.
             </p>
           </div>
+        </div>
+      </section>
 
-          <div className="rounded-3xl border border-ash-grey-200 bg-white p-8 shadow-sm">
-            <h2 className="text-xl text-ash-grey-900">Download the app</h2>
-            <p className="mt-3 text-sm text-ash-grey-600">
-              Get MiraFood on your phone to start logging meals and tracking your goals.
-            </p>
-            <div className="mt-6 flex justify-center">
+      <section className="border-t border-ash-grey-200 bg-white py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
+            <div>
+              <h2 className="text-xl text-ash-grey-900">Download the app</h2>
+              <p className="mt-3 text-sm text-ash-grey-600">
+                Get MiraFood on your phone to start logging meals and tracking your goals.
+              </p>
+              <div className="mt-6">
+                <AppStoreBadgesLight />
+              </div>
+              <Link to="/download" className="mt-4 inline-block text-sm text-blue-spruce-600 hover:underline">
+                Go to download page →
+              </Link>
+            </div>
+            <div className="flex justify-center">
               <AppScreenshot {...appImage('home')} variant="light" size="md" />
             </div>
-            <div className="mt-6 flex justify-center">
-              <AppStoreBadgesLight />
-            </div>
-            <Link to="/download" className="mt-4 inline-block text-sm text-blue-spruce-600 hover:underline">
-              Go to download page →
-            </Link>
           </div>
         </div>
       </section>

@@ -23,6 +23,9 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [registrationSource, setRegistrationSource] = useState<
+    'individual' | 'company' | 'institution'
+  >('individual');
   const [loading, setLoading] = useState(false);
 
   const canSubmit = isRegisterFormValid({ displayName, email, password, confirmPassword });
@@ -43,7 +46,13 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await register(email, password, displayName.trim(), referralCode.trim() || undefined);
+      await register(
+        email,
+        password,
+        displayName.trim(),
+        referralCode.trim() || undefined,
+        registrationSource,
+      );
       toast.success('Account created — finish your health profile next.', 'Welcome');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Registration failed'), 'Registration failed');
@@ -104,6 +113,31 @@ export default function RegisterScreen() {
           autoCapitalize="characters"
           placeholder="MIRA-XXXXXX"
         />
+        <View className="gap-2">
+          <Text className="text-sm font-sans-medium text-neutral-700">How did you join?</Text>
+          <View className="flex-row flex-wrap gap-2">
+            {(
+              [
+                ['individual', 'On my own'],
+                ['company', 'Through work'],
+                ['institution', 'Clinic / school'],
+              ] as const
+            ).map(([value, label]) => {
+              const active = registrationSource === value;
+              return (
+                <Pressable
+                  key={value}
+                  onPress={() => setRegistrationSource(value)}
+                  className={`rounded-full border px-4 py-2 ${active ? 'border-blue-spruce-600 bg-blue-spruce-50' : 'border-neutral-200 bg-white'}`}>
+                  <Text
+                    className={`text-sm ${active ? 'font-sans-semibold text-blue-spruce-800' : 'text-neutral-600'}`}>
+                    {label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
       </View>
     </AuthScreenShell>
   );

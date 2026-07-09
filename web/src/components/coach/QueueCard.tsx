@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
+import { MealImage } from '@/components/coach/MealImage';
 import { Card, CardBody } from '@/components/ui/Card';
 import { formatMealType, formatRelativeTime, formatCoachPatientLabel, cn } from '@/lib/utils';
 import type { CoachQueueItem } from '@/types';
@@ -9,17 +10,19 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
   const { meal, client } = item;
   const flagged = meal.fraudCheckResult === 'flag';
   const lowConfidence = (meal.confidenceAvg ?? 1) < 0.8;
+  const allergies = client.profile.allergies ?? [];
+  const hasAllergies = meal.hasAllergies || allergies.length > 0;
 
   return (
     <Link to={`/coach/queue/${meal.id}`}>
       <Card className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md">
         <div className="flex flex-col sm:flex-row">
-          <div className="relative h-40 w-full shrink-0 overflow-hidden bg-ash-grey-100 sm:h-auto sm:w-44">
-            {meal.imageUrl ? (
-              <img src={meal.imageUrl} alt={meal.mealName ?? 'Meal'} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full items-center justify-center text-4xl">🍽️</div>
-            )}
+          <div className="relative h-40 w-full shrink-0 overflow-hidden sm:h-auto sm:w-44">
+            <MealImage
+              imageUrl={meal.imageUrl}
+              alt={meal.mealName ?? 'Meal'}
+              className="h-full w-full"
+            />
             {meal.healthFlag ? (
               <span
                 className={cn(
@@ -42,6 +45,34 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
               <div className="flex flex-wrap gap-2">
                 <StatusBadge status={meal.status} />
                 <FlagBadge flagged={flagged} />
+                {meal.classificationLabel ? (
+                  <span className="rounded-full bg-ash-grey-100 px-2.5 py-1 text-xs font-semibold text-ash-grey-700">
+                    {meal.classificationLabel}
+                  </span>
+                ) : null}
+                {meal.complexity ? (
+                  <span
+                    className={cn(
+                      'rounded-full px-2.5 py-1 text-xs font-semibold uppercase tracking-wide',
+                      meal.complexity === 'high'
+                        ? 'bg-red-50 text-red-700'
+                        : meal.complexity === 'medium'
+                          ? 'bg-cinnamon-wood-50 text-cinnamon-wood-700'
+                          : 'bg-ash-grey-100 text-ash-grey-600',
+                    )}>
+                    {meal.complexity}
+                  </span>
+                ) : null}
+                {hasAllergies ? (
+                  <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                    Allergies
+                  </span>
+                ) : null}
+                {meal.manualReviewRequired ? (
+                  <span className="rounded-full bg-cinnamon-wood-100 px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-cinnamon-wood-700">
+                    {meal.manualReviewReason === 'ai_unavailable' ? 'AI unavailable' : 'Manual review'}
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -54,6 +85,33 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
                   <span>·</span>
                   <span className={lowConfidence ? 'font-semibold text-cinnamon-wood-600' : ''}>
                     {Math.round(meal.confidenceAvg * 100)}% confidence
+                  </span>
+                </>
+              ) : null}
+              {meal.slaMinutesRemaining != null && meal.slaMinutesRemaining <= 120 ? (
+                <>
+                  <span>·</span>
+                  <span
+                    className={
+                      meal.slaLevel === 'critical'
+                        ? 'font-semibold text-red-600'
+                        : 'font-semibold text-cinnamon-wood-600'
+                    }>
+                    {meal.slaMinutesRemaining <= 0
+                      ? 'SLA breached'
+                      : `${meal.slaMinutesRemaining}m to SLA`}
+                  </span>
+                </>
+              ) : meal.waitingMinutes != null && meal.waitingMinutes >= 60 ? (
+                <>
+                  <span>·</span>
+                  <span
+                    className={
+                      meal.slaLevel === 'critical'
+                        ? 'font-semibold text-red-600'
+                        : 'font-semibold text-cinnamon-wood-600'
+                    }>
+                    Waiting {meal.waitingMinutes}m
                   </span>
                 </>
               ) : null}

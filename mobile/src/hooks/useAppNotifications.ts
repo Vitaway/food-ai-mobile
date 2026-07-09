@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { isApiConfigured } from '@/constants/api';
-import { isPipelineActive, MEAL_STATUS_MESSAGES, MEAL_STATUS_LABELS } from '@/constants/mealStatus';
+import {
+  isAwaitingCoachReview,
+  isPipelineActive,
+  MEAL_STATUS_MESSAGES,
+  MEAL_STATUS_LABELS,
+} from '@/constants/mealStatus';
 import { useAuth } from '@/context/AuthContext';
 import { useNotificationSocket } from '@/context/NotificationContext';
 import { useMeals } from '@/context/MealsContext';
@@ -41,7 +46,13 @@ function timeAgo(iso: string) {
 
 function mealNotifications(meals: MealSubmission[], readKeys: Set<string>): AppNotification[] {
   return meals
-    .filter((meal) => isPipelineActive(meal.status) || meal.status === 'approved' || meal.status === 'rejected')
+    .filter(
+      (meal) =>
+        isPipelineActive(meal.status) ||
+        isAwaitingCoachReview(meal.status) ||
+        meal.status === 'approved' ||
+        meal.status === 'rejected',
+    )
     .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt))
     .slice(0, 20)
     .map((meal) => {

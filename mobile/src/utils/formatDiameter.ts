@@ -1,4 +1,9 @@
-/** Format diameter for display without rounding — shows the value the model returned. */
+/** Round plate/bowl diameter to two decimal places. */
+export function roundDiameterCm(cm: number): number {
+  return Math.round(cm * 100) / 100;
+}
+
+/** Format plate/bowl diameter for display (two decimals). */
 export function formatDiameterCm(cm: number): string {
-  return `${cm} cm`;
+  return `${roundDiameterCm(cm).toFixed(2)} cm`;
 }

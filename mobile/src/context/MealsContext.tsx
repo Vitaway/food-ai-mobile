@@ -11,11 +11,11 @@ import {
 
 import type { MealTypeId } from '@/constants/mealTypes';
 import { isApiConfigured } from '@/constants/api';
-import { USE_MOCK_API } from '@/constants/features';
+import { USE_MOCK_API, USE_OFFLINE_DEV_FALLBACKS } from '@/constants/features';
 import { useAuth } from '@/context/AuthContext';
-import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater } from '@/services/remote/consumerApi';
+import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater, backfillMealPhotos, isLocalImageUri, hasServerImageUrl } from '@/services/remote/consumerApi';
 import { services } from '@/services';
-import { mockAnalyzePhoto, mockAnalyzeText, toMealSubmission } from '@/services/local/mealAnalysis';
+import { mockAnalyzeMeal, toMealSubmission } from '@/services/local/mealAnalysis';
 import { resumeActiveMealPipelines, runMealPipeline } from '@/services/local/mealPipeline';
 import { clearNutritionData } from '@/services/local/storage';
 import type { DailyLog, MealAnalysisPreview, MealSubmission, MealSubmissionStatus } from '@/types';
@@ -40,6 +40,7 @@ type MealsContextValue = {
   analyzeMeal: (input: {
     imageUri?: string;
     text?: string;
+    note?: string;
     plateDiameterCm?: number | null;
   }) => Promise<MealAnalysisPreview>;
   saveMealToDiary: (input: SubmitMealInput) => Promise<MealSubmission>;
@@ -55,10 +56,10 @@ type MealsContextValue = {
 const MealsContext = createContext<MealsContextValue | null>(null);
 
 function withCoachReviewStub(meal: MealSubmission, status: MealSubmissionStatus): MealSubmission {
-  if (status !== 'in_review' || meal.coachReview) return meal;
+  if (!USE_OFFLINE_DEV_FALLBACKS || status !== 'in_review' || meal.coachReview) return meal;
   return {
     ...meal,
-    coachReview: { note: 'Coach review pending (simulated)' },
+    coachReview: { note: 'Coach review pending (dev simulation)' },
   };
 }
 
@@ -123,11 +124,21 @@ export function MealsProvider({ children }: PropsWithChildren) {
     mealsInflightRef.current = (async () => {
       try {
         if (isApiConfigured() && isAuthenticated) {
-          const remoteMeals = await fetchConsumerMeals();
-          setMeals(remoteMeals);
-          for (const meal of remoteMeals) {
-            await services.mealsRepository.upsertMeal(meal);
-          }
+          const localMeals = await services.mealsRepository.getMeals();
+          let remoteMeals = await fetchConsumerMeals();
+          await backfillMealPhotos(remoteMeals, localMeals);
+          remoteMeals = await fetchConsumerMeals();
+
+          const merged = remoteMeals.map((remote) => {
+            const local = localMeals.find((entry) => entry.id === remote.id);
+            const imageUrl = hasServerImageUrl(remote.imageUrl)
+              ? remote.imageUrl
+              : local?.imageUrl;
+            return imageUrl && imageUrl !== remote.imageUrl ? { ...remote, imageUrl } : remote;
+          });
+
+          setMeals(merged);
+          await services.mealsRepository.replaceMeals(merged);
           await syncRemoteWater();
           return;
         }
@@ -137,6 +148,8 @@ export function MealsProvider({ children }: PropsWithChildren) {
         ]);
         setMeals(storedMeals);
         setDailyLog(log);
+      } catch {
+        /* keep local cache on transient API failures */
       } finally {
         mealsInflightRef.current = null;
       }
@@ -147,12 +160,16 @@ export function MealsProvider({ children }: PropsWithChildren) {
 
   const simulatePipeline = useCallback(
     async (mealId: string, fromStatus?: MealSubmissionStatus) => {
+      if (!USE_OFFLINE_DEV_FALLBACKS || isApiConfigured()) return;
       await runMealPipeline(mealId, pipelineDeps, fromStatus);
     },
     [pipelineDeps],
   );
 
   const resumeActivePipelines = useCallback(async () => {
+    if (!USE_OFFLINE_DEV_FALLBACKS && !USE_MOCK_API) return;
+    if (isApiConfigured() && isAuthenticated) return;
+
     if (USE_MOCK_API && services.mealSubmission) {
       await services.mealSubmission.resumeActivePipelines();
       await refreshMeals();
@@ -160,13 +177,15 @@ export function MealsProvider({ children }: PropsWithChildren) {
     }
     const storedMeals = await services.mealsRepository.getMeals();
     await resumeActiveMealPipelines(storedMeals, pipelineDeps);
-  }, [pipelineDeps, refreshMeals]);
+  }, [pipelineDeps, refreshMeals, isAuthenticated]);
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
-      if (isApiConfigured() && isAuthenticated) {
+      const useRemote = isApiConfigured() && isAuthenticated;
+
+      if (useRemote) {
         try {
           await refreshMeals();
         } finally {
@@ -175,16 +194,19 @@ export function MealsProvider({ children }: PropsWithChildren) {
         return;
       }
 
-      const [storedMeals] = await Promise.all([
+      const [storedMeals, log] = await Promise.all([
         services.mealsRepository.getMeals(),
-        services.mealsRepository.getDailyLog().then((log) => {
-          if (!cancelled) setDailyLog(log);
-        }),
+        services.mealsRepository.getDailyLog(),
       ]);
+
       if (!cancelled) {
         setMeals(storedMeals);
-        await resumeActivePipelines();
+        setDailyLog(log);
         setIsLoading(false);
+      }
+
+      if (!cancelled) {
+        await resumeActivePipelines();
       }
     })();
 
@@ -197,24 +219,33 @@ export function MealsProvider({ children }: PropsWithChildren) {
     async ({
       imageUri,
       text,
+      note,
       plateDiameterCm,
     }: {
       imageUri?: string;
       text?: string;
+      note?: string;
       plateDiameterCm?: number | null;
     }) => {
-      return services.mealAnalysis.analyzeMeal({ imageUri, text, plateDiameterCm });
+      return services.mealAnalysis.analyzeMeal({ imageUri, text, note, plateDiameterCm });
     },
     [],
   );
 
   const saveMealToDiary = useCallback(
     async (input: SubmitMealInput) => {
-      const analysis =
-        input.analysis ??
-        (input.textInput
-          ? mockAnalyzeText(input.textInput)
-          : mockAnalyzePhoto(input.imageUrl, input.plateDiameterCm));
+      let analysis = input.analysis;
+      if (!analysis) {
+        if (isApiConfigured() || !USE_OFFLINE_DEV_FALLBACKS) {
+          throw new Error('Run AI analysis before submitting this meal.');
+        }
+        analysis = mockAnalyzeMeal({
+          imageUri: input.imageUrl,
+          text: input.textInput,
+          note: input.note,
+          plateDiameterCm: input.plateDiameterCm,
+        });
+      }
 
       if (USE_MOCK_API && services.mealSubmission) {
         const { mealId } = await services.mealSubmission.submitMeal({
@@ -241,10 +272,16 @@ export function MealsProvider({ children }: PropsWithChildren) {
       });
 
       if (isApiConfigured() && isAuthenticated) {
-        const saved = await submitConsumerMeal(meal);
+        const localImage =
+          input.imageUrl && isLocalImageUri(input.imageUrl) ? input.imageUrl : undefined;
+        const saved = await submitConsumerMeal(meal, localImage);
         await services.mealsRepository.upsertMeal(saved);
         updateMealInState(saved);
         return saved;
+      }
+
+      if (!USE_OFFLINE_DEV_FALLBACKS) {
+        throw new Error('Sign in to save meals to your diary.');
       }
 
       await services.mealsRepository.upsertMeal(meal);

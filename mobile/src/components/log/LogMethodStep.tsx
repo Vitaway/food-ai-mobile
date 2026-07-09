@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { LOG_METHOD_IMAGES } from '@/constants/logMethodImages';
 import { semanticColors } from '@/design-system/colors';
 
-export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past';
+export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past' | 'barcode';
 
 const METHODS: Array<{
   id: LogMethodId;
@@ -44,6 +44,15 @@ const METHODS: Array<{
     tintClass: 'bg-blue-spruce-50',
     iconColor: '#023459',
     image: LOG_METHOD_IMAGES.text,
+  },
+  {
+    id: 'barcode',
+    title: 'Scan barcode',
+    subtitle: 'Look up packaged food from the nutrition database',
+    icon: 'barcode-outline',
+    tintClass: 'bg-shamrock-50',
+    iconColor: '#1D9E75',
+    image: LOG_METHOD_IMAGES.gallery,
   },
   {
     id: 'past',

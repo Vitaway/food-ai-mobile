@@ -1,4 +1,4 @@
-import { IsOptional, IsString, MaxLength } from "class-validator";
+import { IsOptional, IsString, MinLength, MaxLength } from "class-validator";
 
 export class UpdateCoachProfileDto {
   @IsOptional()
@@ -34,4 +34,31 @@ export class UpdateCoachProfileDto {
   @IsString()
   @MaxLength(512)
   avatarUrl?: string;
+}
+
+export class ChangeCoachPasswordDto {
+  @IsString()
+  @MinLength(6)
+  currentPassword!: string;
+
+  @IsString()
+  @MinLength(8)
+  @MaxLength(128)
+  newPassword!: string;
+}
+
+export class SendCoachMessageDto {
+  @IsString()
+  @MinLength(1)
+  @MaxLength(2000)
+  body!: string;
+
+  @IsOptional()
+  @IsString()
+  mealId?: string;
+}
+
+export class AssignClientDto {
+  @IsString()
+  clientId!: string;
 }

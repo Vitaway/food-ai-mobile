@@ -27,6 +27,11 @@ export class RegisterDto {
   @IsString()
   @MaxLength(16)
   referralCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  registrationSource?: "individual" | "company" | "institution" | "referral";
 }
 
 export class ForgotPasswordDto {

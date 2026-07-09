@@ -9,6 +9,11 @@ export const AUTH_ROUTES = {
 export const COACH_ROUTES = {
   dashboard: '/coach',
   queue: '/coach/queue',
+  history: '/coach/history',
+  clients: '/coach/clients',
+  nutritionDb: '/coach/nutrition-db',
+  reports: '/coach/reports',
+  team: '/coach/team',
   profile: '/coach/profile',
 } as const;
 
@@ -16,6 +21,10 @@ export const ADMIN_ROUTES = {
   dashboard: '/admin',
   coaches: '/admin/coaches',
   users: '/admin/users',
+  payments: '/admin/payments',
+  reports: '/admin/reports',
+  referrals: '/admin/referrals',
+  foodDb: '/admin/food-db',
   system: '/admin/system',
 } as const;
 

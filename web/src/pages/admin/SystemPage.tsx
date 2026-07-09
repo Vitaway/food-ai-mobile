@@ -1,4 +1,5 @@
 import { Card, CardBody } from '@/components/ui/Card';
+import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
 import { useAdminSystem, useAuditLogs } from '@/features/admin/hooks/useAdminQueries';
 import { cn } from '@/lib/utils';
 
@@ -8,10 +9,7 @@ export function AdminSystemPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl tracking-tight text-ash-grey-900">System</h2>
-        <p className="mt-1 text-ash-grey-600">Infrastructure health, API status, and admin audit trail.</p>
-      </div>
+      <DashboardPageHeader title="System" />
 
       {isLoading ? (
         <p className="text-ash-grey-500">Loading system status…</p>

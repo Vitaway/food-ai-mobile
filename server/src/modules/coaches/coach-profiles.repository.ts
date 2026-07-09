@@ -8,6 +8,13 @@ export class CoachProfilesRepository {
     return this.repo.findOne({ where: { userId } });
   }
 
+  findByOrganization(organization: string) {
+    return this.repo
+      .createQueryBuilder("profile")
+      .where("LOWER(profile.organization) = LOWER(:organization)", { organization: organization.trim() })
+      .getMany();
+  }
+
   create(data: Partial<CoachProfile>) {
     return this.repo.create(data);
   }

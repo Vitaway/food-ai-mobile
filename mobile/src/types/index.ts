@@ -80,6 +80,11 @@ export interface DetectedFoodItem {
   label: string;
   confidence: number;
   estimatedWeightG: number;
+  servingUnit?: string;
+  servingAmount?: number;
+  servingGramsEquivalent?: number;
+  nutritionFoodId?: string;
+  micronutrients?: Record<string, number>;
   emoji?: string;
   nutrition: NutritionFacts;
 }
@@ -149,6 +154,13 @@ export interface DailyDashboard {
   waterMl: number;
   waterTargetMl: number;
   healthScore: number;
+  healthScoreBreakdown?: {
+    nutrientScore: number;
+    macroScore: number;
+    calorieScore: number;
+    consistencyScore: number;
+    varietyScore: number;
+  };
   streakDays: number;
   lastMeal?: MealSubmission;
 }

@@ -1,4 +1,4 @@
-import type { ImageSourcePropType, StyleProp, ViewStyle } from 'react-native';
+import type { ImageSourcePropType, ImageStyle, StyleProp } from 'react-native';
 import { Image } from 'react-native';
 
 import { palette } from '@/design-system/colors';
@@ -7,7 +7,7 @@ type OnboardingStepHeroProps = {
   source: ImageSourcePropType;
   /** Place below compact controls (chips) and use extra height. */
   placement?: 'above' | 'below';
-  style?: StyleProp<ViewStyle>;
+  style?: StyleProp<ImageStyle>;
 };
 
 export function OnboardingStepHero({ source, placement = 'above', style }: OnboardingStepHeroProps) {

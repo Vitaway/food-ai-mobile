@@ -57,7 +57,8 @@ export default function ProfileScreen() {
           <ProfileSection title="Account">
             <ProfileMenuRow
               icon="person-circle-outline"
-              title="Account"
+              title="Account & photo"
+              subtitle="Name and profile picture"
               onPress={() => router.push('/profile/account')}
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
@@ -69,8 +70,31 @@ export default function ProfileScreen() {
           </ProfileSection>
 
           <ProfileSection title="Health">
-            <ProfileMenuRow icon="fitness-outline" title="Health profile" onPress={() => router.push('/profile/health')} />
+            <ProfileMenuRow
+              icon="fitness-outline"
+              title="Health profile"
+              subtitle="Goals, metrics, diet & allergies"
+              onPress={() => router.push('/profile/health')}
+            />
+            <View className="mx-4 h-px bg-ash-grey-100" />
+            <ProfileMenuRow
+              icon="create-outline"
+              title="Edit health details"
+              subtitle="Update anytime"
+              onPress={() => router.push('/profile/edit-health')}
+            />
           </ProfileSection>
+
+          {isApiConfigured() && isAuthenticated ? (
+            <ProfileSection title="Care team">
+              <ProfileMenuRow
+                icon="chatbubbles-outline"
+                title="Message your coach"
+                subtitle="Ask about logged meals or share extra context"
+                onPress={() => router.push('/(tabs)/chat')}
+              />
+            </ProfileSection>
+          ) : null}
 
           <ProfileSection title="Preferences">
             <ProfileMenuRow
@@ -82,6 +106,20 @@ export default function ProfileScreen() {
 
           <ProfileSection title="More">
             <ProfileMenuRow icon="bar-chart-outline" title="Insights" onPress={() => router.push('/(tabs)/analytics')} />
+            <View className="mx-4 h-px bg-ash-grey-100" />
+            <ProfileMenuRow
+              icon="wallet-outline"
+              title="Subscription"
+              subtitle="Plan, status, and renewals"
+              onPress={() => router.push('/profile/subscription')}
+            />
+            <View className="mx-4 h-px bg-ash-grey-100" />
+            <ProfileMenuRow
+              icon="document-text-outline"
+              title="Reports"
+              subtitle="Weekly and monthly snapshots"
+              onPress={() => router.push('/profile/reports')}
+            />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="mail-outline"

@@ -1,61 +1,12 @@
 import { useRouter, useSegments, type Href } from 'expo-router';
-import { useEffect, useRef, useState, type PropsWithChildren } from 'react';
+import { useEffect, useRef, type PropsWithChildren } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-
-function resolveAuthTarget(opts: {
-  requiresAuth: boolean;
-  isAuthenticated: boolean;
-  hasCompletedOnboarding: boolean;
-  root: string;
-  authScreen?: string;
-}): string | null {
-  const { requiresAuth, isAuthenticated, hasCompletedOnboarding, root, authScreen } = opts;
-  const inAuth = root === 'auth';
-  const inOnboarding = root === 'onboarding';
-  const inTabs = root === '(tabs)';
-  const onResetPassword = authScreen === 'reset-password';
-
-  if (!requiresAuth) {
-    if (!hasCompletedOnboarding && !inOnboarding) return '/onboarding';
-    if (hasCompletedOnboarding && inOnboarding) return '/(tabs)';
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return inAuth ? null : '/auth/login';
-  }
-
-  if (inAuth && !onResetPassword) {
-    return hasCompletedOnboarding ? '/(tabs)' : '/onboarding';
-  }
-
-  if (!hasCompletedOnboarding && !inOnboarding && !inAuth) {
-    return '/onboarding';
-  }
-
-  if (hasCompletedOnboarding && inOnboarding) {
-    return '/(tabs)';
-  }
-
-  if (hasCompletedOnboarding && inTabs) {
-    return null;
-  }
-
-  if (hasCompletedOnboarding && root === 'index') {
-    return '/(tabs)';
-  }
-
-  if (!isAuthenticated && root === 'index') {
-    return requiresAuth ? '/auth/login' : '/onboarding';
-  }
-
-  return null;
-}
+import { resolveAuthTarget } from '@/utils/authRouting';
 
 function isAtTarget(target: string, root: string): boolean {
   if (target === '/onboarding') return root === 'onboarding';
@@ -69,20 +20,12 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const segments = useSegments();
   const root = segments[0] ?? '';
   const authScreen = segments[1];
-  const { isAuthenticated, isLoading: authLoading, session } = useAuth();
-  const { isLoading: profileLoading, hasCompletedOnboarding } = useProfile();
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { hasCompletedOnboarding, isBootstrapReady } = useProfile();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
-  const [hasBootstrapped, setHasBootstrapped] = useState(false);
 
-  const knowsOnboardingState =
-    hasCompletedOnboarding ||
-    profileLoading === false ||
-    typeof session?.onboardingComplete === 'boolean';
-
-  const waitingForProfile =
-    requiresAuth && isAuthenticated && profileLoading && !knowsOnboardingState;
-  const isBootstrapping = authLoading || waitingForProfile;
+  const isBootstrapping = authLoading || (requiresAuth && isAuthenticated && !isBootstrapReady);
 
   useEffect(() => {
     if (isBootstrapping) return;
@@ -120,15 +63,9 @@ export function AuthGuard({ children }: PropsWithChildren) {
     }
   }, [root]);
 
-  useEffect(() => {
-    if (!isBootstrapping) {
-      setHasBootstrapped(true);
-    }
-  }, [isBootstrapping]);
-
   return (
     <View style={styles.root}>
-      {hasBootstrapped ? children : null}
+      {children}
       {isBootstrapping ? (
         <View style={styles.splashOverlay}>
           <AppSplashScreen />

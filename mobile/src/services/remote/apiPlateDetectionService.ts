@@ -1,9 +1,10 @@
-import { API_BASE_URL } from '@/constants/api';
+import { getApiV1Url } from '@/constants/api';
 import type {
   PlateDetectionInput,
   PlateDetectionResult,
   PlateDetectionService,
 } from '@/services/contracts/plateDetectionService';
+import { prepareImageForUpload } from '@/utils/prepareUploadImage';
 
 type ApiEnvelope<T> = {
   success: boolean;
@@ -42,17 +43,18 @@ function normalizeResult(body: Record<string, unknown>): PlateDetectionResult {
 
 export const apiPlateDetectionService: PlateDetectionService = {
   async detectPlate({ imageUri, metadata }) {
+    const upload = await prepareImageForUpload(imageUri);
     const formData = new FormData();
 
     formData.append('image', {
-      uri: imageUri,
-      type: metadata.file.mimeType ?? 'image/jpeg',
-      name: metadata.file.name ?? 'meal.jpg',
+      uri: upload.uri,
+      type: upload.mimeType,
+      name: upload.name,
     } as unknown as Blob);
 
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/vision/plates/detect`, {
+    const response = await fetch(getApiV1Url('/vision/plates/detect'), {
       method: 'POST',
       body: formData,
     });
@@ -63,7 +65,9 @@ export const apiPlateDetectionService: PlateDetectionService = {
 
     if (!response.ok || !body.success) {
       const detail =
-        (typeof body.error === 'string' && body.error) || `HTTP ${response.status}`;
+        response.status === 413
+          ? 'Photo is too large for the server. Try again — the app will compress it automatically.'
+          : (typeof body.error === 'string' && body.error) || `HTTP ${response.status}`;
       throw new Error(detail);
     }
 

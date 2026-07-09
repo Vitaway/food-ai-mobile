@@ -1,14 +1,21 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardBody, CardHeader } from '@/components/ui/Card';
+import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
 import { TextAreaField, TextField } from '@/components/ui/Field';
-import { useAdminCoaches, useCreateCoach, useSetUserActive } from '@/features/admin/hooks/useAdminQueries';
+import {
+  useAdminCoaches,
+  useAdminCoachRoster,
+  useCreateCoach,
+  useSetUserActive,
+} from '@/features/admin/hooks/useAdminQueries';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { cn } from '@/lib/utils';
 
 export function AdminCoachesPage() {
   const { data: coaches, isLoading } = useAdminCoaches();
+  const { data: roster } = useAdminCoachRoster();
   const createCoach = useCreateCoach();
   const setActive = useSetUserActive();
   const toast = useToast();
@@ -44,21 +51,17 @@ export function AdminCoachesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-3xl tracking-tight text-ash-grey-900">Coaches</h2>
-          <p className="mt-1 text-ash-grey-600">
-            Add nutrition coaches and manage their access to the review dashboard.
-          </p>
-        </div>
-        <Button
-          type="button"
-          variant={showForm ? 'outline' : 'primary'}
-          size="md"
-          onClick={() => setShowForm((v) => !v)}>
-          {showForm ? 'Cancel' : '+ Add coach'}
-        </Button>
-      </div>
+      <DashboardPageHeader title="Coaches"
+        actions={
+          <Button
+            type="button"
+            variant={showForm ? 'outline' : 'primary'}
+            size="md"
+            onClick={() => setShowForm((v) => !v)}>
+            {showForm ? 'Cancel' : '+ Add coach'}
+          </Button>
+        }
+      />
 
       {showForm ? (
         <Card>
@@ -114,6 +117,49 @@ export function AdminCoachesPage() {
               </div>
             </form>
           </CardBody>
+        </Card>
+      ) : null}
+
+      {roster?.length ? (
+        <Card className="overflow-hidden">
+          <CardHeader>
+            <h3 className="text-lg font-bold text-ash-grey-900">Coach performance</h3>
+          </CardHeader>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-ash-grey-100 bg-ash-grey-50 text-xs text-ash-grey-500">
+                  <th className="px-4 py-3 font-semibold">Coach</th>
+                  <th className="px-4 py-3 font-semibold">Clients</th>
+                  <th className="px-4 py-3 font-semibold">Correction rate</th>
+                  <th className="px-4 py-3 font-semibold">Avg turnaround</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {roster.map((row) => (
+                  <tr key={row.id} className="border-b border-ash-grey-50 last:border-0">
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-ash-grey-900">{row.displayName}</p>
+                      <p className="text-xs text-ash-grey-500">{row.email}</p>
+                    </td>
+                    <td className="px-4 py-3">{row.assignedClients}</td>
+                    <td className="px-4 py-3">{row.correctionRate}%</td>
+                    <td className="px-4 py-3">{row.avgTurnaroundHours}h</td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-xs font-medium',
+                          row.isActive ? 'bg-shamrock-50 text-shamrock-700' : 'bg-red-50 text-red-700',
+                        )}>
+                        {row.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </Card>
       ) : null}
 

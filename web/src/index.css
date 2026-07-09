@@ -111,6 +111,26 @@ textarea {
   letter-spacing: 0.03em;
 }
 
+/* Coach & admin dashboards — clean SaaS typography (sentence case) */
+.dashboard-shell h1,
+.dashboard-shell h2,
+.dashboard-shell h3,
+.dashboard-shell h4,
+.dashboard-shell h5,
+.dashboard-shell h6 {
+  font-family: var(--font-sans);
+  text-transform: none;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+}
+
+.dashboard-shell thead th,
+.dashboard-shell thead tr {
+  font-family: var(--font-sans);
+  text-transform: none;
+  letter-spacing: normal;
+}
+
 /* Neo-brutalist buttons — thick border + hard offset shadow (MiraFood theme) */
 .brutal-btn {
   @apply relative inline-flex;

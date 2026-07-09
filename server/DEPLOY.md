@@ -217,6 +217,7 @@ server {
     }
 
     location /api/ {
+        client_max_body_size 25M;
         proxy_pass http://127.0.0.1:3011;
         proxy_http_version 1.1;
         proxy_set_header Host $host;

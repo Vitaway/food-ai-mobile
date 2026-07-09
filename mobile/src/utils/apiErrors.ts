@@ -1,9 +1,10 @@
 import { ApiError } from '@/lib/apiClient';
+import { API_BASE_URL } from '@/constants/api';
 
 export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (error instanceof ApiError) {
     if (error.status === 404) {
-      return 'API endpoint not found. Check EXPO_PUBLIC_API_URL and that the server is running.';
+      return `API endpoint not found (${API_BASE_URL}). Restart the API (docker compose up --build in server/) and reload the app.`;
     }
     if (error.status === 401) {
       return error.message === 'Request failed (401)'

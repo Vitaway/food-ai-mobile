@@ -11,6 +11,7 @@ import { OnboardingPlanSummary } from '@/components/onboarding/OnboardingPlanSum
 import { OnboardingStepHero } from '@/components/onboarding/OnboardingStepHero';
 import { AgeStepper, MetricStepper } from '@/components/onboarding/MetricStepper';
 import { OnboardingNavButton, OnboardingShell } from '@/components/onboarding/OnboardingShell';
+import { OnboardingRequiredBanner } from '@/components/onboarding/OnboardingRequiredBanner';
 import { SexSelector } from '@/components/onboarding/SexSelector';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { Button } from '@/components/ui/Button';
@@ -34,29 +35,23 @@ import {
 import { useProfile } from '@/context/ProfileContext';
 import { useAuth } from '@/context/AuthContext';
 import type { ActivityLevel, GoalPace, HealthGoal, UserSex } from '@/types';
+import {
+  getInitialOnboardingStepIndex,
+  getMinimumOnboardingStepIndex,
+  ONBOARDING_STEPS,
+  type OnboardingStep,
+} from '@/utils/onboardingResume';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
 
-const STEPS = [
-  'intro',
-  'photo',
-  'profile',
-  'sex',
-  'body',
-  'goals',
-  'target',
-  'activity',
-  'habits',
-  'preferences',
-  'allergies',
-  'summary',
-] as const;
-type Step = (typeof STEPS)[number];
+const STEPS = ONBOARDING_STEPS;
 
 export default function OnboardingScreen() {
-  const { session } = useAuth();
+  const { session, isAuthenticated } = useAuth();
   const { saveProfile, profile } = useProfile();
 
-  const [stepIndex, setStepIndex] = useState(0);
+  const minStepIndex = getMinimumOnboardingStepIndex(isAuthenticated);
+  const [stepIndex, setStepIndex] = useState(() => getInitialOnboardingStepIndex({ isAuthenticated }));
+  const [hasSetInitialStep, setHasSetInitialStep] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
   const [age, setAge] = useState(28);
@@ -74,10 +69,10 @@ export default function OnboardingScreen() {
   const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (session?.user.displayName && !displayName) {
-      setDisplayName(session.user.displayName);
-    }
-  }, [session?.user.displayName, displayName]);
+    if (!isAuthenticated || hasSetInitialStep) return;
+    setStepIndex(getInitialOnboardingStepIndex({ isAuthenticated }));
+    setHasSetInitialStep(true);
+  }, [isAuthenticated, hasSetInitialStep]);
 
   useEffect(() => {
     if (!profile) return;
@@ -95,6 +90,12 @@ export default function OnboardingScreen() {
     setDietaryPreferences(profile.dietaryPreferences);
     setAllergies(profile.allergies ?? []);
   }, [profile, session?.user.displayName]);
+
+  useEffect(() => {
+    if (session?.user.displayName && !displayName) {
+      setDisplayName(session.user.displayName);
+    }
+  }, [session?.user.displayName, displayName]);
 
   const pickProfilePhoto = async (source: 'camera' | 'gallery') => {
     const permission =
@@ -161,7 +162,7 @@ export default function OnboardingScreen() {
   };
 
   const goBack = () => {
-    if (stepIndex <= 0) return;
+    if (stepIndex <= minStepIndex) return;
     Keyboard.dismiss();
     setStepIndex((value) => value - 1);
   };
@@ -197,7 +198,7 @@ export default function OnboardingScreen() {
     }
   };
 
-  const stepMeta: Record<Step, { title: string; description: string }> = {
+  const stepMeta: Record<OnboardingStep, { title: string; description: string }> = {
     intro: {
       title: APP_NAME,
       description: 'Snap a meal, get instant insights, and track your health goals, all powered by AI.',
@@ -501,9 +502,10 @@ export default function OnboardingScreen() {
         intro={step === 'intro'}
         stepIndex={stepIndex}
         totalSteps={STEPS.length}
-        showBack={stepIndex > 0}
+        showBack={stepIndex > minStepIndex}
         onBack={goBack}
         footerLayout={isLastStep ? 'stacked' : 'inline'}
+        banner={isAuthenticated ? <OnboardingRequiredBanner /> : undefined}
         footer={
           isLastStep ? (
             <OnboardingNavButton label="Get started" variant="finish" onPress={handleFinish} loading={saving} />
