@@ -79,6 +79,7 @@ export const notificationsService = {
           kind: dto.kind,
           mealId: dto.mealId,
           status: dto.status,
+          ...(dto.data ?? {}),
         },
       })
       .catch(() => undefined);
