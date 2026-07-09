@@ -13,7 +13,7 @@ import type { MealTypeId } from '@/constants/mealTypes';
 import { isApiConfigured } from '@/constants/api';
 import { USE_MOCK_API, USE_OFFLINE_DEV_FALLBACKS } from '@/constants/features';
 import { useAuth } from '@/context/AuthContext';
-import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater } from '@/services/remote/consumerApi';
+import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater, backfillMealPhotos, isLocalImageUri, hasServerImageUrl } from '@/services/remote/consumerApi';
 import { services } from '@/services';
 import { mockAnalyzeMeal, toMealSubmission } from '@/services/local/mealAnalysis';
 import { resumeActiveMealPipelines, runMealPipeline } from '@/services/local/mealPipeline';
@@ -124,9 +124,21 @@ export function MealsProvider({ children }: PropsWithChildren) {
     mealsInflightRef.current = (async () => {
       try {
         if (isApiConfigured() && isAuthenticated) {
-          const remoteMeals = await fetchConsumerMeals();
-          setMeals(remoteMeals);
-          await services.mealsRepository.replaceMeals(remoteMeals);
+          const localMeals = await services.mealsRepository.getMeals();
+          let remoteMeals = await fetchConsumerMeals();
+          await backfillMealPhotos(remoteMeals, localMeals);
+          remoteMeals = await fetchConsumerMeals();
+
+          const merged = remoteMeals.map((remote) => {
+            const local = localMeals.find((entry) => entry.id === remote.id);
+            const imageUrl = hasServerImageUrl(remote.imageUrl)
+              ? remote.imageUrl
+              : local?.imageUrl;
+            return imageUrl && imageUrl !== remote.imageUrl ? { ...remote, imageUrl } : remote;
+          });
+
+          setMeals(merged);
+          await services.mealsRepository.replaceMeals(merged);
           await syncRemoteWater();
           return;
         }
@@ -136,6 +148,8 @@ export function MealsProvider({ children }: PropsWithChildren) {
         ]);
         setMeals(storedMeals);
         setDailyLog(log);
+      } catch {
+        /* keep local cache on transient API failures */
       } finally {
         mealsInflightRef.current = null;
       }
@@ -258,7 +272,9 @@ export function MealsProvider({ children }: PropsWithChildren) {
       });
 
       if (isApiConfigured() && isAuthenticated) {
-        const saved = await submitConsumerMeal(meal);
+        const localImage =
+          input.imageUrl && isLocalImageUri(input.imageUrl) ? input.imageUrl : undefined;
+        const saved = await submitConsumerMeal(meal, localImage);
         await services.mealsRepository.upsertMeal(saved);
         updateMealInState(saved);
         return saved;

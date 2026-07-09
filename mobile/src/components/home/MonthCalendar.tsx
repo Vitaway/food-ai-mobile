@@ -43,6 +43,8 @@ function CalendarDay({
     ? 'text-neutral-300'
     : isSelected
       ? 'text-white'
+      : hasLog
+        ? 'text-shamrock-800'
       : 'text-neutral-800';
 
   return (
@@ -54,7 +56,13 @@ function CalendarDay({
       accessibilityState={{ selected: isSelected }}>
       <View
         className={`h-9 w-9 items-center justify-center rounded-full ${
-          isSelected ? 'bg-blue-spruce-600' : isToday ? 'border-2 border-blue-spruce-400 bg-blue-spruce-50' : ''
+          isSelected
+            ? 'bg-blue-spruce-600'
+            : hasLog
+              ? 'bg-shamrock-100'
+              : isToday
+                ? 'border-2 border-blue-spruce-400 bg-blue-spruce-50'
+                : ''
         }`}>
         <Text className={`font-sans-medium text-sm ${textClass}`}>{dayNumber}</Text>
       </View>

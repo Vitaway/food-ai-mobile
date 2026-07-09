@@ -61,6 +61,7 @@ export default function RootLayout() {
           <Stack.Screen name="profile" options={{ presentation: 'card' }} />
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="meal" options={{ presentation: 'card' }} />
+          <Stack.Screen name="chat" options={{ presentation: 'card' }} />
           <Stack.Screen name="ar-measure" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
       </AuthGuard>

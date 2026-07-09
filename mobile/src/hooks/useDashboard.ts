@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { MEAL_TYPES } from '@/constants/mealTypes';
 import { isMealReadable } from '@/constants/mealStatus';
 import type { MealTimelineItem } from '@/components/home/MealTimeline';
+import { isApiConfigured } from '@/constants/api';
+import { useAuth } from '@/context/AuthContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
+import { fetchConsumerDashboard } from '@/services/remote/consumerApi';
+import { services } from '@/services';
 import type { DailyDashboard, MealSubmission } from '@/types';
 import { formatTime, todayKey, toLocalDateKey } from '@/utils/dates';
-import { calculateHealthScore } from '@/utils/nutrition';
 
 function isSameDay(iso: string, dateKey: string) {
   return iso.slice(0, 10) === dateKey;
@@ -36,8 +39,54 @@ function mealTypeLabel(mealType: string) {
 
 export function useDashboard(selectedDate = todayKey()) {
   const { profile } = useProfile();
+  const { isAuthenticated } = useAuth();
   const { meals, dailyLog } = useMeals();
-  const waterMl = selectedDate === dailyLog.date ? dailyLog.waterMl : 0;
+  const [selectedLogWaterMl, setSelectedLogWaterMl] = useState(0);
+  const [remoteDashboard, setRemoteDashboard] = useState<Awaited<ReturnType<typeof fetchConsumerDashboard>> | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (!isApiConfigured() || !isAuthenticated) {
+      setRemoteDashboard(null);
+      return;
+    }
+    let active = true;
+    void fetchConsumerDashboard(selectedDate)
+      .then((data) => {
+        if (active) setRemoteDashboard(data);
+      })
+      .catch(() => {
+        if (active) setRemoteDashboard(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, selectedDate]);
+
+  useEffect(() => {
+    if (selectedDate === dailyLog.date) {
+      setSelectedLogWaterMl(dailyLog.waterMl);
+      return;
+    }
+
+    let cancelled = false;
+    void services.mealsRepository.getDailyLog(selectedDate).then((log) => {
+      if (cancelled) return;
+      setSelectedLogWaterMl(log.waterMl);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, dailyLog.date, dailyLog.waterMl]);
+
+  const waterMl =
+    remoteDashboard?.date === selectedDate
+      ? remoteDashboard.waterMl
+      : selectedDate === dailyLog.date
+        ? dailyLog.waterMl
+        : selectedLogWaterMl;
 
   return useMemo(() => {
     const targets = profile?.macroTargets ?? {
@@ -68,24 +117,26 @@ export function useDashboard(selectedDate = todayKey()) {
       0,
     );
 
+    const useRemote = remoteDashboard?.date === selectedDate;
+
     const dashboard: DailyDashboard = {
       date: selectedDate,
-      caloriesConsumed: Math.round(caloriesConsumed),
-      calorieTarget: targets.calories,
+      caloriesConsumed: useRemote ? remoteDashboard.caloriesConsumed : Math.round(caloriesConsumed),
+      calorieTarget: useRemote ? remoteDashboard.calorieTarget : targets.calories,
       macros: targets,
-      macrosConsumed: {
-        proteinG: Math.round(macrosConsumed.proteinG),
-        carbsG: Math.round(macrosConsumed.carbsG),
-        fatG: Math.round(macrosConsumed.fatG),
-        fiberG: Math.round(macrosConsumed.fiberG),
-      },
+      macrosConsumed: useRemote
+        ? remoteDashboard.macrosConsumed
+        : {
+            proteinG: Math.round(macrosConsumed.proteinG),
+            carbsG: Math.round(macrosConsumed.carbsG),
+            fatG: Math.round(macrosConsumed.fatG),
+            fiberG: Math.round(macrosConsumed.fiberG),
+          },
       waterMl,
-      waterTargetMl: profile?.waterTargetMl ?? 2450,
-      healthScore: calculateHealthScore(
-        { calories: caloriesConsumed, ...macrosConsumed },
-        targets,
-      ),
-      streakDays: computeStreak(meals),
+      waterTargetMl: useRemote ? remoteDashboard.waterTargetMl : (profile?.waterTargetMl ?? 2450),
+      healthScore: useRemote ? remoteDashboard.healthScore : 0,
+      healthScoreBreakdown: useRemote ? remoteDashboard.healthScoreBreakdown : undefined,
+      streakDays: useRemote ? remoteDashboard.streakDays : computeStreak(meals),
       lastMeal: dayMealsAll[0],
     };
 
@@ -113,5 +164,5 @@ export function useDashboard(selectedDate = todayKey()) {
       mealCount: dayMealsAll.length,
       displayName: profile?.displayName ?? 'there',
     };
-  }, [meals, profile, selectedDate, waterMl]);
+  }, [meals, profile, remoteDashboard, selectedDate, waterMl]);
 }

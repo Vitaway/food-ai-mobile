@@ -76,6 +76,7 @@ type OnboardingShellProps = {
   footer: ReactNode;
   footerLayout?: 'inline' | 'stacked';
   intro?: boolean;
+  banner?: ReactNode;
   children: ReactNode;
 };
 
@@ -90,6 +91,7 @@ export function OnboardingShell({
   footer,
   footerLayout = 'inline',
   intro = false,
+  banner,
   children,
 }: OnboardingShellProps) {
   const insets = useSafeAreaInsets();
@@ -160,7 +162,10 @@ export function OnboardingShell({
               android: { elevation: 8 },
             }),
           }}>
-          <View className="min-h-0 flex-1 pt-6">{children}</View>
+          <View className="min-h-0 flex-1 pt-6">
+            {banner}
+            {children}
+          </View>
 
           <View
             className="border-t border-ash-grey-100 pt-4"

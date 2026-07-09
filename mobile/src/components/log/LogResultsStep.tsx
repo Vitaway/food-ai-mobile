@@ -11,9 +11,11 @@ import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealAnalysisPreview } from '@/types';
 import { formatDiameterCm } from '@/utils/formatDiameter';
 import { formatMacroG } from '@/utils/formatMacro';
+import { applyServingUnitToItem, recalculateAnalysisTotals, SERVING_UNITS } from '@/utils/servingUnits';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
+  onAnalysisChange: (next: MealAnalysisPreview) => void;
   imageUri?: string;
   selectedMealType: MealTypeId | null;
   onSelectMealType: (id: MealTypeId) => void;
@@ -28,6 +30,7 @@ const FLAG_STYLES = {
 
 export function LogResultsStep({
   analysis,
+  onAnalysisChange,
   imageUri,
   selectedMealType,
   onSelectMealType,
@@ -38,6 +41,8 @@ export function LogResultsStep({
     id: item.id,
     name: item.label,
     weightG: item.estimatedWeightG,
+    servingUnit: item.servingUnit ?? 'g',
+    servingAmount: item.servingAmount ?? 1,
     emoji: item.emoji ?? '🍽️',
     macros: {
       carbs: formatMacroG(item.nutrition.carbsG),
@@ -109,7 +114,29 @@ export function LogResultsStep({
 
       <LogCard>
         <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Ingredients</Text>
-        <IngredientList ingredients={ingredients} />
+        <IngredientList
+          ingredients={ingredients}
+          onCycleServingUnit={(ingredientId) => {
+            const nextItems = analysis.items.map((item) => {
+              if (item.id !== ingredientId) return item;
+              const current = item.servingUnit ?? 'g';
+              const idx = SERVING_UNITS.indexOf(current as (typeof SERVING_UNITS)[number]);
+              const next = SERVING_UNITS[(idx + 1) % SERVING_UNITS.length];
+              return applyServingUnitToItem(item, next, item.servingAmount ?? 1);
+            });
+            const totals = recalculateAnalysisTotals(nextItems);
+            onAnalysisChange({ ...analysis, items: nextItems, ...totals });
+          }}
+          onAdjustServingAmount={(ingredientId, delta) => {
+            const nextItems = analysis.items.map((item) => {
+              if (item.id !== ingredientId) return item;
+              const amount = Math.max(0.5, (item.servingAmount ?? 1) + delta);
+              return applyServingUnitToItem(item, item.servingUnit ?? 'g', amount);
+            });
+            const totals = recalculateAnalysisTotals(nextItems);
+            onAnalysisChange({ ...analysis, items: nextItems, ...totals });
+          }}
+        />
       </LogCard>
     </>
   );

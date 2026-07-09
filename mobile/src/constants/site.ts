@@ -13,5 +13,9 @@ export { API_BASE_URL, PROD_API_HOST, PROD_WEB_HOST };
 /** Vitaway organization site */
 export const VITAWAY_ORG_URL = 'https://vitaway.org';
 
+/** Legal pages on the MiraFood marketing site */
+export const TERMS_OF_USE_URL = `${MIRAFOOD_WEB_URL}/terms`;
+export const PRIVACY_POLICY_URL = `${MIRAFOOD_WEB_URL}/privacy`;
+
 /** @deprecated Use {@link USE_MOCK_API} from `@/constants/features` — dev-only, never true in production. */
 export const USE_MOCK_API = __DEV__ && process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';

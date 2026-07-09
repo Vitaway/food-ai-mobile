@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/constants/api';
+import { getApiV1Url } from '@/constants/api';
 import type {
   PlateDetectionInput,
   PlateDetectionResult,
@@ -54,7 +54,7 @@ export const apiPlateDetectionService: PlateDetectionService = {
 
     formData.append('metadata', JSON.stringify(metadata));
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/vision/plates/detect`, {
+    const response = await fetch(getApiV1Url('/vision/plates/detect'), {
       method: 'POST',
       body: formData,
     });

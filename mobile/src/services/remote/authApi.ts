@@ -18,6 +18,14 @@ export type AuthResponse = {
   };
 };
 
+export type MeResponse = AuthUser & {
+  consumerProfile?: AuthResponse['consumerProfile'];
+};
+
+export async function fetchMeRequest(): Promise<MeResponse> {
+  return apiRequest<MeResponse>('/auth/me', { method: 'POST' });
+}
+
 export async function loginRequest(email: string, password: string): Promise<AuthResponse> {
   return apiRequest<AuthResponse>('/auth/login', {
     method: 'POST',
@@ -30,6 +38,7 @@ export async function registerRequest(
   password: string,
   displayName: string,
   referralCode?: string,
+  registrationSource?: 'individual' | 'company' | 'institution',
 ): Promise<AuthResponse> {
   return apiRequest<AuthResponse>('/auth/register', {
     method: 'POST',
@@ -38,6 +47,7 @@ export async function registerRequest(
       password,
       displayName: displayName.trim(),
       ...(referralCode?.trim() ? { referralCode: referralCode.trim().toUpperCase() } : {}),
+      ...(registrationSource ? { registrationSource } : {}),
     }),
   });
 }

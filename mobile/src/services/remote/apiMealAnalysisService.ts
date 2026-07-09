@@ -1,5 +1,5 @@
 import { getApiAuthToken } from '@/lib/apiClient';
-import { API_BASE_URL } from '@/constants/api';
+import { API_BASE_URL, getApiV1Url } from '@/constants/api';
 import type { MealAnalysisService } from '@/services/contracts/mealAnalysisService';
 import type { MealAnalysisPreview } from '@/types';
 import { prepareImageForUpload } from '@/utils/prepareUploadImage';
@@ -43,7 +43,7 @@ export const apiMealAnalysisService: MealAnalysisService = {
     }
 
     if (!imageUri && text?.trim()) {
-      const response = await fetch(`${API_BASE_URL}/api/v1/vision/meals/analyze-text`, {
+      const response = await fetch(getApiV1Url('/vision/meals/analyze-text'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export const apiMealAnalysisService: MealAnalysisService = {
 
     formData.append('metadata', JSON.stringify({ source: 'mobile' }));
 
-    const response = await fetch(`${API_BASE_URL}/api/v1/vision/meals/analyze`, {
+    const response = await fetch(getApiV1Url('/vision/meals/analyze'), {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

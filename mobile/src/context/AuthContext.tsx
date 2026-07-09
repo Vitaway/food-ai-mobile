@@ -17,6 +17,7 @@ import {
   loginRequest,
   logoutRequest,
   registerRequest,
+  fetchMeRequest,
   type AuthUser,
 } from '@/services/remote/authApi';
 import { WrongAppRoleError } from '@/utils/authErrors';
@@ -35,7 +36,13 @@ type AuthContextValue = {
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, displayName: string, referralCode?: string) => Promise<void>;
+  register: (
+    email: string,
+    password: string,
+    displayName: string,
+    referralCode?: string,
+    registrationSource?: 'individual' | 'company' | 'institution',
+  ) => Promise<void>;
   logout: () => Promise<void>;
   markOnboardingComplete: () => Promise<void>;
 };
@@ -59,6 +66,23 @@ function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession
     user: { ...data.user, patientId },
     expiresAt: jwtExpiresAt(data.token),
     onboardingComplete: Boolean(data.consumerProfile?.onboardingComplete),
+  };
+}
+
+function mapMeToSession(session: AuthSession, me: Awaited<ReturnType<typeof fetchMeRequest>>): AuthSession {
+  const patientId = me.patientId ?? me.consumerProfile?.patientId ?? session.user.patientId;
+  const onboardingComplete = Boolean(me.consumerProfile?.onboardingComplete);
+  return {
+    ...session,
+    user: {
+      id: me.id,
+      email: me.email,
+      displayName: me.displayName,
+      role: me.role,
+      avatarUrl: me.avatarUrl,
+      patientId,
+    },
+    onboardingComplete: onboardingComplete || session.onboardingComplete,
   };
 }
 
@@ -108,18 +132,35 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     readStoredSession()
       .then(async (stored) => {
-        if (stored) {
-          setApiAuthToken(stored.token);
-          setSession(stored);
+        if (!stored) return;
+
+        setApiAuthToken(stored.token);
+        setSession(stored);
+
+        try {
+          const me = await fetchMeRequest();
+          const refreshed = mapMeToSession(stored, me);
+          if (
+            refreshed.onboardingComplete !== stored.onboardingComplete ||
+            refreshed.user.patientId !== stored.user.patientId
+          ) {
+            await persistSession(refreshed);
+            setSession(refreshed);
+          }
+        } catch {
+          /* offline — keep stored session */
         }
       })
       .finally(() => setIsLoading(false));
   }, []);
 
   useEffect(() => {
-    return onUnauthorized(() => {
+    const unsubscribe = onUnauthorized(() => {
       void applySession(null);
     });
+    return () => {
+      unsubscribe();
+    };
   }, [applySession]);
 
   useEffect(() => {
@@ -147,8 +188,20 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const register = useCallback(
-    async (email: string, password: string, displayName: string, referralCode?: string) => {
-      const data = await registerRequest(email, password, displayName, referralCode);
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      referralCode?: string,
+      registrationSource?: 'individual' | 'company' | 'institution',
+    ) => {
+      const data = await registerRequest(
+        email,
+        password,
+        displayName,
+        referralCode,
+        registrationSource,
+      );
       await applySession(mapSession(data));
     },
     [applySession],

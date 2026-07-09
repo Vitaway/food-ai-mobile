@@ -8,12 +8,14 @@ import { MealPipelineBanner } from '@/components/meal/MealPipelineBanner';
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
 import { IngredientList } from '@/components/log/IngredientList';
 import { LogCard } from '@/components/log/LogScreenShell';
+import { AskCoachButton } from '@/components/chat/AskCoachButton';
 import { Button } from '@/components/ui/Button';
 import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
+import { isApiConfigured } from '@/constants/api';
 import { isMealReadable } from '@/constants/mealStatus';
 import { semanticColors } from '@/design-system/colors';
 import { useMeals } from '@/context/MealsContext';
@@ -261,6 +263,8 @@ export default function MealResultScreen() {
             <View className="gap-3">
               <Button label="Log again" variant="secondary" onPress={logAgain} />
             </View>
+          ) : isApiConfigured() ? (
+            <AskCoachButton mealId={meal.id} />
           ) : null}
         </View>
       </ScrollView>

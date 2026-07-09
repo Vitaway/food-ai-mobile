@@ -1,10 +1,13 @@
 import { useRouter, type Href } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { MonthCalendar } from '@/components/home/MonthCalendar';
+import { HealthScoreBreakdownCard } from '@/components/home/HealthScoreBreakdownCard';
+import { HealthScoreTrendChart } from '@/components/home/HealthScoreTrendChart';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
+import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
 import { Button } from '@/components/ui/Button';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
@@ -12,15 +15,37 @@ import { formatActivityLevel, formatHealthGoal } from '@/constants/profileOption
 import { formatUserSex } from '@/components/onboarding/SexSelector';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useProfileBack } from '@/hooks/useProfileBack';
 import { useDashboard } from '@/hooks/useDashboard';
+import { fetchHealthScoreHistory, type HealthScoreHistoryEntry } from '@/services/remote/consumerApi';
+import { isApiConfigured } from '@/constants/api';
+import { useAuth } from '@/context/AuthContext';
 import { formatDisplayDate, todayKey } from '@/utils/dates';
 
 export default function HealthProfileScreen() {
   const router = useRouter();
+  const handleBack = useProfileBack();
   const { profile } = useProfile();
   const { meals } = useMeals();
+  const { isAuthenticated } = useAuth();
   const [selectedDate, setSelectedDate] = useState(todayKey());
+  const [scoreHistory, setScoreHistory] = useState<HealthScoreHistoryEntry[]>([]);
   const { dashboard } = useDashboard(selectedDate);
+
+  useEffect(() => {
+    if (!isApiConfigured() || !isAuthenticated) return;
+    let active = true;
+    void fetchHealthScoreHistory(30)
+      .then((entries) => {
+        if (active) setScoreHistory(entries);
+      })
+      .catch(() => {
+        if (active) setScoreHistory([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   const loggedDates = useMemo(() => {
     const keys = new Set<string>();
@@ -62,6 +87,14 @@ export default function HealthProfileScreen() {
     [dashboard.macros, dashboard.macrosConsumed],
   );
 
+  const mealsForSelectedDate = useMemo(
+    () =>
+      meals
+        .filter((meal) => meal.submittedAt.slice(0, 10) === selectedDate)
+        .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt)),
+    [meals, selectedDate],
+  );
+
   const openEditHealth = (step?: string) => {
     if (step) {
       router.push({ pathname: '/profile/edit-health', params: { step } } as Href);
@@ -85,12 +118,19 @@ export default function HealthProfileScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Health profile" onBack={() => router.back()} />
+      <ScreenTopBar title="Health profile" onBack={handleBack} />
 
       <StackScreenBody>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="gap-4 px-5 pb-10 pt-5">
           <View className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 p-3">
-            <MonthCalendar selectedDate={selectedDate} onSelectDate={setSelectedDate} markedDates={loggedDates} />
+            <MonthCalendar
+              selectedDate={selectedDate}
+              onSelectDate={(dateKey) => {
+                setSelectedDate(dateKey);
+                router.push({ pathname: '/profile/day/[date]', params: { date: dateKey } } as Href);
+              }}
+              markedDates={loggedDates}
+            />
           </View>
 
           <View className="rounded-2xl border border-ash-grey-100 p-4">
@@ -115,6 +155,45 @@ export default function HealthProfileScreen() {
                 <Text className="mt-1 font-sans-semibold text-shamrock-700">{dashboard.healthScore}</Text>
               </View>
             </View>
+          </View>
+
+          {dashboard.healthScoreBreakdown ? (
+            <HealthScoreBreakdownCard
+              totalScore={dashboard.healthScore}
+              breakdown={dashboard.healthScoreBreakdown}
+            />
+          ) : null}
+
+          {scoreHistory.length ? <HealthScoreTrendChart entries={scoreHistory} /> : null}
+
+          <View className="rounded-2xl border border-ash-grey-100 p-4">
+            <Text className="font-sans-semibold text-base text-neutral-900">Meals logged</Text>
+            <Text className="mt-1 text-sm text-neutral-500">{formatDisplayDate(new Date(selectedDate))}</Text>
+            {mealsForSelectedDate.length === 0 ? (
+              <Text className="mt-3 text-sm text-neutral-500">No meals logged on this day yet.</Text>
+            ) : (
+              <View className="mt-3 gap-2">
+                {mealsForSelectedDate.map((meal) => (
+                  <Pressable
+                    key={meal.id}
+                    onPress={() => router.push(`/meal/${meal.id}`)}
+                    className="flex-row items-center justify-between gap-3 rounded-xl bg-ash-grey-50 px-3 py-3 active:bg-ash-grey-100">
+                    <View className="min-w-0 flex-1">
+                      <Text className="font-sans-semibold text-neutral-900" numberOfLines={1}>
+                        {meal.mealName ?? 'Logged meal'}
+                      </Text>
+                      <Text className="mt-0.5 text-xs text-neutral-500">
+                        {new Date(meal.submittedAt).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </Text>
+                    </View>
+                    <MealStatusBadge status={meal.status} size="sm" />
+                  </Pressable>
+                ))}
+              </View>
+            )}
           </View>
 
           <MacroProgressBars macros={macroBars} />

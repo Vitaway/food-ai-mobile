@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { Alert, ScrollView, View } from 'react-native';
 
@@ -9,10 +8,11 @@ import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { useProfile } from '@/context/ProfileContext';
 import { useToast } from '@/context/ToastContext';
+import { useProfileBack } from '@/hooks/useProfileBack';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 
 export default function AccountScreen() {
-  const router = useRouter();
+  const handleBack = useProfileBack();
   const toast = useToast();
   const { profile, updateAccount, uploadAvatar } = useProfile();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
@@ -58,7 +58,7 @@ export default function AccountScreen() {
         displayName: trimmedName,
       });
       toast.success('Account updated');
-      router.back();
+      handleBack();
     } catch (error) {
       Alert.alert('Could not save', getApiErrorMessage(error, 'Please try again.'));
     } finally {
@@ -68,7 +68,7 @@ export default function AccountScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Account" onBack={() => router.back()} />
+      <ScreenTopBar title="Account" onBack={handleBack} />
 
       <StackScreenBody>
         <ScrollView

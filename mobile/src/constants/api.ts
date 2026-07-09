@@ -23,7 +23,12 @@ function hostFromHostPort(value: string): string | null {
 function getMetroDevHost(): string | null {
   const manualHost = process.env.EXPO_PUBLIC_DEV_API_HOST?.trim();
   if (manualHost) {
-    return manualHost.replace(/^https?:\/\//, '').split(':')[0] || null;
+    const host = manualHost.replace(/^https?:\/\//, '').split(':')[0] || null;
+    // iOS Simulator shares the Mac network stack — loopback works; stale LAN IPs do not.
+    if (host && !Constants.isDevice && Platform.OS === 'ios') {
+      return null;
+    }
+    if (host) return host;
   }
 
   const hostUri = Constants.expoConfig?.hostUri;
@@ -71,8 +76,12 @@ function isProdApiHost(url: string): boolean {
   return url.includes(PROD_API_HOST) || url.includes(PROD_WEB_HOST);
 }
 
+function normalizeApiOrigin(url: string): string {
+  return url.replace(/\/$/, '').replace(/\/api\/v1$/i, '');
+}
+
 function resolveApiBaseUrl(): string {
-  const fromEnv = process.env.EXPO_PUBLIC_API_URL?.replace(/\/$/, '') ?? '';
+  const fromEnv = normalizeApiOrigin(process.env.EXPO_PUBLIC_API_URL ?? '');
 
   if (__DEV__) {
     const port = getDevApiPort(fromEnv || `http://127.0.0.1:${DEFAULT_DEV_PORT}`);
@@ -105,14 +114,20 @@ function resolveApiBaseUrl(): string {
   }
 
   if (fromEnv) {
-    return fromEnv;
+    return normalizeApiOrigin(fromEnv);
   }
 
   return `https://${PROD_API_HOST}`;
 }
 
-/** MiraFood API origin (no trailing slash) */
+/** MiraFood API origin (no trailing slash, no /api/v1 suffix) */
 export const API_BASE_URL = resolveApiBaseUrl();
+
+export function getApiV1Url(path: string): string {
+  const base = API_BASE_URL.replace(/\/$/, '');
+  const suffix = path.startsWith('/') ? path : `/${path}`;
+  return `${base}/api/v1${suffix}`;
+}
 
 export function isApiConfigured(): boolean {
   return API_BASE_URL.length > 0;

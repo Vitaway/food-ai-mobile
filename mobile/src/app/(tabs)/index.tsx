@@ -6,6 +6,7 @@ import { Image, Pressable, ScrollView, View } from 'react-native';
 
 import { HomeWaterCard } from '@/components/home/HomeWaterCard';
 import { HomeHeroCard } from '@/components/home/HomeHeroCard';
+import { CoachingFeedCard } from '@/components/home/CoachingFeedCard';
 import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
 import { HomeQuickLogBar } from '@/components/home/HomeQuickLogBar';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
@@ -182,6 +183,8 @@ export default function HomeScreen() {
             onOpenCalendar={() => onOpenHealth?.()}
             onPressDetail={() => onOpenHealth?.()}
           />
+
+          <CoachingFeedCard />
 
           {activePipelineCount > 0 ? (
             <Pressable

@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useProfileBack } from '@/hooks/useProfileBack';
 import { ScrollView, View } from 'react-native';
 
 import { NotificationSettingsPanel } from '@/components/notifications/NotificationSettingsPanel';
@@ -7,11 +7,11 @@ import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 
 export default function NotificationSettingsScreen() {
-  const router = useRouter();
+  const handleBack = useProfileBack();
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Notification settings" onBack={() => router.back()} />
+      <ScreenTopBar title="Notification settings" onBack={handleBack} />
 
       <StackScreenBody>
         <ScrollView

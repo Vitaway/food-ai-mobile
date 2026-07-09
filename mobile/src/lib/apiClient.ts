@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/constants/api';
+import { API_BASE_URL, getApiV1Url } from '@/constants/api';
 import { emitUnauthorized } from '@/lib/authEvents';
 
 let authToken: string | null = null;
@@ -47,7 +47,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
 
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}/api/v1${path}`, {
+    response = await fetch(getApiV1Url(path), {
       ...options,
       headers,
       signal: controller.signal,

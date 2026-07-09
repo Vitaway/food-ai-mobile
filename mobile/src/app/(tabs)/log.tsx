@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
 import { LogAnalyzingStep, type MealAnalyzePhase } from '@/components/log/LogAnalyzingStep';
+import { LogBarcodeStep } from '@/components/log/LogBarcodeStep';
 import { LogMethodStep, type LogMethodId } from '@/components/log/LogMethodStep';
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
@@ -32,15 +33,22 @@ import {
   type ImageCaptureMetadata,
 } from '@/utils/imageCaptureMetadata';
 
-type FlowStep = LogStep | 'text';
+type FlowStep = LogStep | 'text' | 'barcode';
 
 const STEP_TITLES: Record<FlowStep, string> = {
   method: 'Log meal',
   text: 'Describe',
+  barcode: 'Barcode',
   scan: 'Photo',
   analyzing: 'AI analysis',
   results: 'Review & submit',
 };
+
+function fallbackCoachDescription(opts: { imageUri?: string | null; mealDescription?: string; textInput?: string }) {
+  const described = opts.mealDescription?.trim() || opts.textInput?.trim();
+  if (described) return described;
+  return opts.imageUri ? 'Meal photo submitted for coach review' : 'Meal submitted for coach review';
+}
 
 export default function LogMealScreen() {
   const { push } = useNavigateOnce();
@@ -66,6 +74,7 @@ export default function LogMealScreen() {
   const [plateConfidence, setPlateConfidence] = useState<number | null>(null);
   const [plateDetectionError, setPlateDetectionError] = useState<string | null>(null);
   const [analyzePhase, setAnalyzePhase] = useState<MealAnalyzePhase | null>(null);
+  const [fromBarcode, setFromBarcode] = useState(false);
 
   const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
   const stepTitle = STEP_TITLES[step];
@@ -148,13 +157,12 @@ export default function LogMealScreen() {
       setAnalysis(result);
       setStep('results');
     } catch (error) {
-      const message = getApiErrorMessage(error, 'Could not analyze this meal.');
-      if (mealDescription.trim().length >= 3) {
-        toast.error(`${message} Try “Send to coach without AI” instead.`);
-      } else {
-        toast.error(`${message} Add a description and try again, or send to coach without AI.`);
-      }
-      setStep('scan');
+      const fallback = createCoachReviewStub(
+        fallbackCoachDescription({ imageUri, mealDescription }),
+      );
+      setAnalysis(fallback);
+      setStep('results');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
     } finally {
       setAnalyzing(false);
       setAnalyzePhase(null);
@@ -182,8 +190,12 @@ export default function LogMealScreen() {
       setAnalysis(result);
       setStep('results');
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Could not analyze this meal.'));
-      setStep('text');
+      const fallback = createCoachReviewStub(
+        fallbackCoachDescription({ textInput }),
+      );
+      setAnalysis(fallback);
+      setStep('results');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
     } finally {
       setAnalyzing(false);
       setAnalyzePhase(null);
@@ -296,7 +308,16 @@ export default function LogMealScreen() {
       }
 
       if (method === 'text') {
+        setFromBarcode(false);
         setStep('text');
+        return;
+      }
+
+      if (method === 'barcode') {
+        setFromBarcode(false);
+        setImageUri(null);
+        setAnalysis(null);
+        setStep('barcode');
         return;
       }
 
@@ -393,12 +414,21 @@ export default function LogMealScreen() {
   ]);
 
   const handleBack = useCallback(() => {
-    if (step === 'text' || step === 'scan') setStep('method');
-    else if (step === 'results') setStep(imageUri ? 'scan' : 'text');
-  }, [imageUri, step]);
+    if (step === 'text' || step === 'scan' || step === 'barcode') setStep('method');
+    else if (step === 'results') {
+      if (fromBarcode) setStep('barcode');
+      else setStep(imageUri ? 'scan' : 'text');
+    }
+  }, [fromBarcode, imageUri, step]);
 
   const showBack = step !== 'method' && step !== 'analyzing';
-  const useScroll = step === 'method' || step === 'results' || step === 'analyzing' || step === 'scan' || step === 'text';
+  const useScroll =
+    step === 'method' ||
+    step === 'results' ||
+    step === 'analyzing' ||
+    step === 'scan' ||
+    step === 'text' ||
+    step === 'barcode';
   const keyboardAvoid = step === 'text' || step === 'scan';
 
   const footer = useMemo(() => {
@@ -427,6 +457,22 @@ export default function LogMealScreen() {
           loading={analyzing}
           onChangeText={setTextInput}
           onContinue={runAnalysis}
+        />
+      );
+    }
+    if (step === 'barcode') {
+      return (
+        <LogBarcodeStep
+          loading={analyzing || saving}
+          onBack={() => setStep('method')}
+          onFound={(nextAnalysis) => {
+            setFromBarcode(true);
+            setImageUri(null);
+            setTextInput('');
+            setMealDescription('');
+            setAnalysis(nextAnalysis);
+            setStep('results');
+          }}
         />
       );
     }
@@ -459,6 +505,7 @@ export default function LogMealScreen() {
       return (
         <LogResultsStep
           analysis={analysis}
+          onAnalysisChange={setAnalysis}
           imageUri={imageUri ?? undefined}
           selectedMealType={selectedMealType}
           onSelectMealType={setSelectedMealType}

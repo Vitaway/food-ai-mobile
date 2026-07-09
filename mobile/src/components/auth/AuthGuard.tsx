@@ -6,60 +6,7 @@ import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
-
-function isIndexRoute(root: string) {
-  return !root || root === 'index';
-}
-
-function resolveAuthTarget(opts: {
-  requiresAuth: boolean;
-  isAuthenticated: boolean;
-  hasCompletedOnboarding: boolean;
-  root: string;
-  authScreen?: string;
-}): string | null {
-  const { requiresAuth, isAuthenticated, hasCompletedOnboarding, root, authScreen } = opts;
-  const inAuth = root === 'auth';
-  const inOnboarding = root === 'onboarding';
-  const inTabs = root === '(tabs)';
-  const onResetPassword = authScreen === 'reset-password';
-
-  if (!requiresAuth) {
-    if (!hasCompletedOnboarding && !inOnboarding) return '/onboarding';
-    if (hasCompletedOnboarding && inOnboarding) return '/(tabs)';
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return inAuth ? null : '/auth/login';
-  }
-
-  if (inAuth && !onResetPassword) {
-    return hasCompletedOnboarding ? '/(tabs)' : '/onboarding';
-  }
-
-  if (!hasCompletedOnboarding && !inOnboarding && !inAuth) {
-    return '/onboarding';
-  }
-
-  if (hasCompletedOnboarding && inOnboarding) {
-    return '/(tabs)';
-  }
-
-  if (hasCompletedOnboarding && inTabs) {
-    return null;
-  }
-
-  if (hasCompletedOnboarding && isIndexRoute(root)) {
-    return '/(tabs)';
-  }
-
-  if (!isAuthenticated && isIndexRoute(root)) {
-    return requiresAuth ? '/auth/login' : '/onboarding';
-  }
-
-  return null;
-}
+import { resolveAuthTarget } from '@/utils/authRouting';
 
 function isAtTarget(target: string, root: string): boolean {
   if (target === '/onboarding') return root === 'onboarding';
@@ -74,11 +21,11 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const root = segments[0] ?? '';
   const authScreen = segments[1];
   const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { hasCompletedOnboarding, isLoading: profileLoading } = useProfile();
+  const { hasCompletedOnboarding, isBootstrapReady } = useProfile();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
 
-  const isBootstrapping = authLoading || (requiresAuth && isAuthenticated && profileLoading);
+  const isBootstrapping = authLoading || (requiresAuth && isAuthenticated && !isBootstrapReady);
 
   useEffect(() => {
     if (isBootstrapping) return;
