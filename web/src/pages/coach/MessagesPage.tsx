@@ -90,7 +90,7 @@ function ConversationRow({
 
 function ChatPanel({ conversationId }: { conversationId: string }) {
   const [membersOpen, setMembersOpen] = useState(false);
-  useChatRealtime(conversationId);
+  useChatRealtime();
   const { data: conversation } = useChatConversation(conversationId);
   const { data: messages, isLoading } = useChatMessages(conversationId);
 
@@ -209,7 +209,7 @@ function EmptyChatPanel() {
 export function MessagesPage() {
   const { id: selectedId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
-  useChatRealtime(selectedId ?? null);
+  useChatRealtime();
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');

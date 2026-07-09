@@ -15,7 +15,7 @@ export function CoachMessagesPanel({
   const ensureMutation = useEnsurePatientConversation();
   const conversationId = ensureMutation.data?.id ?? null;
 
-  useChatRealtime(conversationId);
+  useChatRealtime();
   const { data: messages, isLoading } = useChatMessages(conversationId);
 
   useEffect(() => {
