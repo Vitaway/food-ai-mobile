@@ -6,6 +6,10 @@ import { logger } from "./config/logger";
 import { AppDataSource } from "./config/database";
 import { redisService } from "./services/redis.service";
 import { attachNotificationWebSocket } from "./services/notification-realtime.service";
+import { attachCoachQueueWebSocket } from "./services/coach-realtime.service";
+import { attachChatWebSocket } from "./services/chat-realtime.service";
+import { seedNutritionFoods } from "./modules/nutrition-db/nutrition-seed.util";
+import { startReportScheduler } from "./services/report-scheduler.service";
 
 async function bootstrap() {
   redisService.connect();
@@ -20,8 +24,13 @@ async function bootstrap() {
     logger.info("Migrations applied");
   }
 
+  await seedNutritionFoods();
+  startReportScheduler();
+
   const server = http.createServer(app);
   attachNotificationWebSocket(server);
+  attachCoachQueueWebSocket(server);
+  attachChatWebSocket(server);
 
   server.listen(env.PORT, () => {
     logger.info(

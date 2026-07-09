@@ -16,6 +16,7 @@ import {
   type MealAnalysisResult,
 } from "./meal-analysis";
 import { sanitizeMealAnalysisResult } from "./meal-analysis-sanitize";
+import { enrichMealAnalysisWithNutritionDb } from "./nutrition-db-enrich.util";
 
 export interface PlateDetectResult {
   detected: boolean;
@@ -251,7 +252,8 @@ export const visionService = {
     const normalized = sanitizeMealAnalysisResult(
       normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
     );
-    return applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
+    const scaled = applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
+    return enrichMealAnalysisWithNutritionDb(scaled);
   },
 
   async analyzeMealFromText(
@@ -282,7 +284,8 @@ export const visionService = {
     const normalized = sanitizeMealAnalysisResult(
       normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
     );
-    return applyPlatePortionScale(normalized, plateDiameterCm ?? null);
+    const scaled = applyPlatePortionScale(normalized, plateDiameterCm ?? null);
+    return enrichMealAnalysisWithNutritionDb(scaled);
   },
 
   async callMealAnalysisModel(

@@ -75,6 +75,16 @@ export const env = {
     "",
   ),
   MOBILE_APP_SCHEME: process.env.MOBILE_APP_SCHEME ?? "mirafood",
+  iremboPay: {
+    apiUrl: (process.env.IREMBOPAY_API_URL ?? "https://api.irembopay.com").replace(/\/$/, ""),
+    checkoutBaseUrl: (process.env.IREMBOPAY_CHECKOUT_URL ?? "https://pay.irembopay.com/checkout").replace(
+      /\/$/,
+      "",
+    ),
+    apiKey: process.env.IREMBOPAY_API_KEY ?? "",
+    webhookSecret: process.env.IREMBOPAY_WEBHOOK_SECRET ?? "",
+    merchantId: process.env.IREMBOPAY_MERCHANT_ID ?? "",
+  },
   email: {
     service: process.env.SMTP_SERVICE ?? "",
     host: process.env.SMTP_HOST ?? "",

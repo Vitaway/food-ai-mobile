@@ -1,0 +1,44 @@
+import { IsNumber, IsOptional, IsString, MaxLength, Min } from "class-validator";
+
+export class CreateCheckoutDto {
+  @IsString()
+  @MaxLength(64)
+  planCode!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  subscriptionType?: "individual" | "corporate" | "family";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  organizationId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  organizationName?: string;
+
+  @IsNumber()
+  @Min(0)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(3)
+  currency?: string;
+}
+
+export class IremboWebhookDto {
+  @IsString()
+  @MaxLength(128)
+  externalRef!: string;
+
+  @IsString()
+  @MaxLength(24)
+  status!: "pending" | "succeeded" | "failed" | "cancelled" | "refunded";
+
+  @IsOptional()
+  payload?: Record<string, unknown>;
+}

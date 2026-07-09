@@ -13,6 +13,11 @@ export type MealAnalysisItem = {
     sugarG?: number;
     sodiumMg?: number;
   };
+  nutritionFoodId?: string;
+  micronutrients?: Record<string, number>;
+  servingUnit?: string;
+  servingAmount?: number;
+  servingGramsEquivalent?: number;
 };
 
 export type MealAnalysisResult = {

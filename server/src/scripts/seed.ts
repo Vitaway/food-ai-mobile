@@ -45,12 +45,18 @@ async function clearOperationalDemoData() {
 }
 
 async function seed() {
+  const usersOnly = process.argv.includes("--users-only");
+
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
   await AppDataSource.runMigrations();
 
-  await clearOperationalDemoData();
+  if (usersOnly) {
+    logger.info("Users-only seed — keeping meals and consumer profiles");
+  } else {
+    await clearOperationalDemoData();
+  }
 
   const coach = await upsertSeedUser({
     email: env.SEED_COACH_EMAIL,
@@ -78,6 +84,9 @@ async function seed() {
     role: "admin",
     displayName: "Platform Admin",
   });
+
+  const { seedNutritionFoods } = await import("../modules/nutrition-db/nutrition-seed.util");
+  await seedNutritionFoods();
 
   await AppDataSource.destroy();
 }
