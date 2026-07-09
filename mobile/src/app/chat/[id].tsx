@@ -89,12 +89,23 @@ export default function ChatThreadScreen() {
     void markChatRead(conversationId).then(() => refreshUnread()).catch(() => undefined);
   }, [conversationId, refreshUnread]);
 
+  const myAvatarUrl =
+    resolveMediaUrl(profile?.avatarUrl) ?? resolveMediaUrl(session?.user.avatarUrl ?? null);
+
   useEffect(() => {
     if (!conversationId) return;
     return subscribeMessages(({ conversationId: incomingId, message }) => {
       if (incomingId !== conversationId) return;
       setMessages((prev) => {
         if (prev.some((item) => item.id === message.id)) return prev;
+        if (message.isMine) {
+          const pendingIdx = prev.findIndex((item) => item.id.startsWith('pending-'));
+          if (pendingIdx >= 0) {
+            const next = [...prev];
+            next[pendingIdx] = message;
+            return next;
+          }
+        }
         return [...prev, message];
       });
       void markChatRead(conversationId).then(() => refreshUnread()).catch(() => undefined);
@@ -137,26 +148,59 @@ export default function ChatThreadScreen() {
   async function handleSend() {
     const trimmed = body.trim();
     if ((!trimmed && !pendingAttachment) || !conversationId || sending) return;
+
+    const attachmentSnapshot = pendingAttachment;
+    const tempId = attachmentSnapshot ? `pending-${Date.now()}` : null;
+
+    if (attachmentSnapshot && tempId) {
+      const optimistic: ChatMessage = {
+        id: tempId,
+        conversationId,
+        senderUserId: session?.user.id ?? '',
+        senderName: session?.user.displayName ?? 'You',
+        senderRole: session?.user.role ?? 'consumer',
+        senderAvatarUrl: myAvatarUrl,
+        body: trimmed,
+        mealId: linkedMealId ?? null,
+        attachmentUrl: attachmentSnapshot.uri,
+        attachmentName: attachmentSnapshot.name,
+        attachmentMime: attachmentSnapshot.mimeType,
+        attachmentKind: attachmentSnapshot.mimeType.startsWith('image/') ? 'image' : 'file',
+        createdAt: new Date().toISOString(),
+        isMine: true,
+      };
+      setMessages((prev) => [...prev, optimistic]);
+      setBody('');
+      setPendingAttachment(null);
+    }
+
     setSending(true);
     try {
-      const message = pendingAttachment
+      const message = attachmentSnapshot
         ? await sendChatMessageWithAttachment(
             conversationId,
-            pendingAttachment,
+            attachmentSnapshot,
             trimmed || undefined,
             linkedMealId,
           )
         : await sendChatMessage(conversationId, trimmed, linkedMealId);
-      setMessages((prev) => [...prev, { ...message, isMine: true }]);
-      setBody('');
-      setPendingAttachment(null);
+
+      setMessages((prev) => {
+        if (tempId) {
+          return prev.map((item) =>
+            item.id === tempId ? { ...message, isMine: true } : item,
+          );
+        }
+        return [...prev, { ...message, isMine: true }];
+      });
+
+      if (!attachmentSnapshot) {
+        setBody('');
+      }
     } finally {
       setSending(false);
     }
   }
-
-  const myAvatarUrl =
-    resolveMediaUrl(profile?.avatarUrl) ?? resolveMediaUrl(session?.user.avatarUrl ?? null);
 
   return (
     <View className="flex-1" style={{ backgroundColor: chatTheme.header }}>

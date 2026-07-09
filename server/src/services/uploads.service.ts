@@ -226,10 +226,9 @@ export function saveChatAttachment(
   fs.writeFileSync(filePath, buffer);
 
   const attachmentName = sanitizeFilename(originalName ?? `attachment.${ext}`);
-  const base = publicApiBaseUrl(req);
 
   return {
-    attachmentUrl: `${base}/uploads/chat/${filename}`,
+    attachmentUrl: `/uploads/chat/${filename}`,
     attachmentName,
     attachmentMime: resolvedMime,
     attachmentKind: isImage ? "image" : "file",

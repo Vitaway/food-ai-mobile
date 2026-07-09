@@ -20,6 +20,15 @@ export function resolveMediaUrl(url: string | undefined | null): string | null {
     return null;
   }
   if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const parsed = new URL(trimmed);
+      if (parsed.pathname.startsWith('/uploads/')) {
+        const origin = apiOrigin();
+        return `${origin}${parsed.pathname}${parsed.search}`;
+      }
+    } catch {
+      return trimmed;
+    }
     return trimmed;
   }
   if (trimmed.startsWith('/uploads/')) {
