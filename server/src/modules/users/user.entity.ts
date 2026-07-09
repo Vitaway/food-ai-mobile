@@ -39,6 +39,9 @@ export class User {
   @Column({ type: "uuid", name: "referred_by_user_id", nullable: true })
   referredByUserId!: string | null;
 
+  @Column({ type: "varchar", name: "registration_source", length: 32, nullable: true })
+  registrationSource!: string | null;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 

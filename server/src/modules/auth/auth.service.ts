@@ -16,6 +16,8 @@ import type { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from 
 import { env } from "../../config/env";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
+import { resolveOnboardingComplete } from "../consumers/onboarding.util";
+import { ensureConsumerProfileForUser } from "../consumers/ensure-consumer-profile.util";
 import { generatePatientId } from "../../utils/patient-id";
 import { logger } from "../../config/logger";
 import { emailService } from "../../services/email.service";
@@ -93,14 +95,12 @@ async function attachRoleContext(
   }
 
   if (user.role === "consumer") {
-    const profile = await consumerProfilesRepository.findByUserId(user.id);
-    if (profile) {
-      result.user.patientId = profile.id;
-      result.consumerProfile = {
-        patientId: profile.id,
-        onboardingComplete: Boolean(profile.profile.onboardingComplete),
-      };
-    }
+    const profile = await ensureConsumerProfileForUser(user.id);
+    result.user.patientId = profile.id;
+    result.consumerProfile = {
+      patientId: profile.id,
+      onboardingComplete: resolveOnboardingComplete(profile.profile),
+    };
   }
 
   return result;
@@ -129,6 +129,10 @@ export const authService = {
       referralCode = generateReferralCode();
     }
 
+    const registrationSource = dto.referralCode?.trim()
+      ? "referral"
+      : dto.registrationSource ?? "individual";
+
     const user = usersRepository.create({
       email,
       passwordHash,
@@ -138,6 +142,7 @@ export const authService = {
       isActive: true,
       referralCode,
       referredByUserId: referrer?.id ?? null,
+      registrationSource,
     });
     await usersRepository.save(user);
 
