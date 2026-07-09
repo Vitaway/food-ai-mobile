@@ -5,7 +5,7 @@ import { useAuthStore } from '@/features/auth/stores/authStore';
 import { chatKeys } from '@/hooks/useChatQueries';
 import { getApiBaseUrl } from '@/lib/apiClient';
 
-export function useChatRealtime(conversationId?: string | null) {
+export function useChatRealtime() {
   const token = useAuthStore((s) => s.session?.token);
   const qc = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
