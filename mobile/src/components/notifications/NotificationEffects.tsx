@@ -40,7 +40,7 @@ export function NotificationMealSync() {
     }
 
     if (shouldRefresh) {
-      void refreshMeals();
+      void refreshMeals().catch(() => undefined);
     }
   }, [hasLoadedNotifications, isAuthenticated, refreshMeals, serverNotifications]);
 

@@ -152,6 +152,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
             return [notification, ...current];
           });
           if (isNew && !notification.read) {
+            setServerUnreadCount((count) => count + 1);
             toastRef.current.info(notification.message, notification.title);
           }
         }

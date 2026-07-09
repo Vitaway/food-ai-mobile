@@ -15,9 +15,14 @@ function navigateFromNotificationData(
   router: ReturnType<typeof useRouter>,
   data: Record<string, unknown>,
 ) {
+  const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
   const mealId = typeof data.mealId === 'string' ? data.mealId : null;
   const kind = typeof data.kind === 'string' ? data.kind : null;
 
+  if (conversationId) {
+    router.push(`/chat/${conversationId}`);
+    return;
+  }
   if (mealId) {
     router.push(`/meal/${mealId}`);
     return;
@@ -46,7 +51,11 @@ export function PushNotificationSetup() {
 
     if (!isExpoNotificationsAvailable()) return;
 
-    void syncPushTokenWithServer();
+    void (async () => {
+      const { requestPushPermissions } = await import('@/services/push/pushNotifications');
+      await requestPushPermissions();
+      await syncPushTokenWithServer();
+    })();
 
     let subscription: { remove: () => void } | undefined;
 
