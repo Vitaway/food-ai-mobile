@@ -1,4 +1,6 @@
+import type { Request } from "express";
 import { NotFoundError } from "routing-controllers";
+import { saveConsumerAvatar } from "../../services/uploads.service";
 import { usersRepository } from "../users/users.repository";
 import { coachProfilesRepository } from "./coach-profiles.repository";
 import type { UpdateCoachProfileDto } from "./coach.dto";
@@ -48,6 +50,22 @@ export const coachService = {
     if (dto.phone !== undefined) profile.phone = dto.phone || null;
     if (dto.timezone !== undefined) profile.timezone = dto.timezone || null;
     await coachProfilesRepository.save(profile);
+
+    return this.getProfile(userId);
+  },
+
+  async uploadAvatar(
+    userId: string,
+    buffer: Buffer,
+    mimeType: string,
+    req?: Request,
+  ) {
+    const user = await usersRepository.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+
+    const { avatarUrl } = saveConsumerAvatar(buffer, mimeType, userId, req);
+    user.avatarUrl = avatarUrl;
+    await usersRepository.save(user);
 
     return this.getProfile(userId);
   },

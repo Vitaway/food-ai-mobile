@@ -14,4 +14,37 @@ export class ReviewMealDto {
 
   @IsOptional()
   items?: unknown[];
+
+  @IsOptional()
+  @IsString()
+  trainingNote?: string;
+}
+
+export class SaveReviewDraftDto {
+  @IsOptional()
+  @IsString()
+  mealName?: string;
+
+  @IsOptional()
+  items?: unknown[];
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  @IsString()
+  trainingNote?: string;
+}
+
+export class CreateReviewTaskDto {
+  @IsIn(["second_opinion", "escalation"])
+  type!: "second_opinion" | "escalation";
+
+  @IsOptional()
+  @IsString()
+  note?: string;
+
+  @IsOptional()
+  notifyUser?: boolean;
 }
