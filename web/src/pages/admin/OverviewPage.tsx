@@ -1,34 +1,28 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { Card, CardBody } from '@/components/ui/Card';
+import { DashboardPageHeader, DashboardSectionTitle } from '@/components/layout/DashboardPageHeader';
 import { ADMIN_ROUTES } from '@/features/auth/constants';
-import { useAdminMetrics, useAuditLogs } from '@/features/admin/hooks/useAdminQueries';
+import { useAdminMetrics, useAuditLogs, useAdminOperations } from '@/features/admin/hooks/useAdminQueries';
+import { AdminGrowthChart } from '@/components/admin/AdminGrowthChart';
+import { fetchAdminGrowth } from '@/features/admin/api/adminApi';
 import { cn } from '@/lib/utils';
 
 function MetricCard({
   label,
   value,
   hint,
-  accent,
 }: {
   label: string;
   value: string | number;
   hint?: string;
   accent?: 'green' | 'orange' | 'blue';
 }) {
-  const accentClass =
-    accent === 'green'
-      ? 'from-shamrock-500 to-shamrock-600'
-      : accent === 'orange'
-        ? 'from-cinnamon-wood-400 to-cinnamon-wood-500'
-        : 'from-blue-spruce-600 to-blue-spruce-700';
-
   return (
     <Card className="overflow-hidden">
-      <div className={cn('h-1 bg-gradient-to-r', accentClass)} />
-      <CardBody>
+      <CardBody className="p-6">
         <p className="text-sm text-ash-grey-500">{label}</p>
-        <p className="mt-1 text-3xl font-bold text-ash-grey-900">{value}</p>
+        <p className="mt-2 text-3xl tracking-tight text-ash-grey-900">{value}</p>
         {hint ? <p className="mt-1 text-xs text-ash-grey-400">{hint}</p> : null}
       </CardBody>
     </Card>
@@ -37,26 +31,13 @@ function MetricCard({
 
 export function AdminOverviewPage() {
   const { data: metrics, isLoading } = useAdminMetrics();
+  const { data: ops, isLoading: opsLoading } = useAdminOperations();
   const { data: audit } = useAuditLogs();
-  const firstName = 'Admin';
+  const { data: growth } = useQuery({ queryKey: ['admin', 'growth'], queryFn: () => fetchAdminGrowth(30) });
 
   return (
     <div className="space-y-6">
-      <div className="rounded-3xl bg-gradient-to-br from-blue-spruce-900 via-blue-spruce-800 to-blue-spruce-700 p-6 text-white shadow-lg sm:p-8">
-        <p className="text-white/75">Platform control</p>
-        <h2 className="mt-1 text-3xl tracking-tight">Hello, {firstName}</h2>
-        <p className="mt-2 max-w-2xl text-white/85">
-          Oversee coaches, consumers, and the meal review pipeline across the entire MiraFood platform.
-        </p>
-        <div className="mt-5 flex flex-wrap gap-3">
-          <Button to={ADMIN_ROUTES.coaches} variant="primary" size="md">
-            Manage coaches →
-          </Button>
-          <Button to={ADMIN_ROUTES.users} variant="outline-light" size="md">
-            View consumers
-          </Button>
-        </div>
-      </div>
+      <DashboardPageHeader title="Overview" />
 
       {isLoading ? (
         <p className="text-ash-grey-500">Loading metrics…</p>
@@ -79,10 +60,138 @@ export function AdminOverviewPage() {
         </div>
       ) : null}
 
+      {opsLoading ? (
+        <p className="text-ash-grey-500">Loading operations metrics…</p>
+      ) : ops ? (
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <MetricCard
+              label="Auto-approval rate"
+              value={`${ops.autoApprovalRate}%`}
+              hint="Approved without coach edits"
+              accent="green"
+            />
+            <MetricCard
+              label="Correction rate"
+              value={`${ops.correctionRate}%`}
+              hint="Coach changed AI nutrition"
+              accent="orange"
+            />
+            <MetricCard
+              label="Avg turnaround"
+              value={`${ops.avgTurnaroundHours}h`}
+              hint={`SLA target ${ops.slaTargetHours}h`}
+              accent="blue"
+            />
+            <MetricCard
+              label="Meals in review"
+              value={ops.mealsInReview}
+              hint={`${ops.consumers} active consumers`}
+              accent="orange"
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardBody>
+                <DashboardSectionTitle title="Coach utilization" />
+                <ul className="mt-4 space-y-3">
+                  {ops.coachUtilization.map((coach) => (
+                    <li key={coach.coachId}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="font-medium text-ash-grey-800">{coach.displayName}</span>
+                        <span className="text-ash-grey-500">
+                          {coach.queueCount} queued · {coach.utilization}%
+                        </span>
+                      </div>
+                      <div className="h-2 overflow-hidden rounded-full bg-ash-grey-100">
+                        <div
+                          className={cn(
+                            'h-full rounded-full',
+                            coach.utilization >= 80
+                              ? 'bg-red-500'
+                              : coach.utilization >= 50
+                                ? 'bg-cinnamon-wood-400'
+                                : 'bg-shamrock-500',
+                          )}
+                          style={{ width: `${coach.utilization}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+
+            <Card>
+              <CardBody>
+                <DashboardSectionTitle title="Auto-approval trend" />
+                <ul className="mt-4 space-y-3">
+                  {ops.autoApprovalTrend.map((week) => (
+                    <li key={week.label} className="flex items-center justify-between text-sm">
+                      <span className="text-ash-grey-600">{week.label}</span>
+                      <span className="font-semibold text-ash-grey-900">
+                        {week.rate}% <span className="font-normal text-ash-grey-400">({week.approved} meals)</span>
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+          </div>
+        </>
+      ) : null}
+
+      {metrics?.payments || metrics?.reports || metrics?.totalUsers ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard label="Total users" value={metrics.totalUsers ?? 0} accent="blue" />
+          <MetricCard label="Active this week" value={metrics.activeUsersWeek ?? 0} accent="green" />
+          <MetricCard label="New registrations (7d)" value={metrics.newRegistrationsWeek ?? 0} accent="green" />
+          <MetricCard
+            label="Referral signups"
+            value={metrics.userSources?.referral ?? 0}
+            hint={`${metrics.userSources?.individual ?? 0} individual · ${metrics.userSources?.company ?? 0} company`}
+            accent="blue"
+          />
+        </div>
+      ) : null}
+
+      {growth?.length ? <AdminGrowthChart points={growth} /> : null}
+
+      {metrics?.payments || metrics?.reports ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Revenue"
+            value={metrics.payments?.revenue ?? 0}
+            accent="green"
+          />
+          <MetricCard
+            label="Active subscriptions"
+            value={metrics.payments?.activeSubscriptions ?? 0}
+            accent="green"
+          />
+          <MetricCard
+            label="Pending payments"
+            value={metrics.payments?.pendingPayments ?? 0}
+            accent="orange"
+          />
+          <MetricCard
+            label="Failed payments"
+            value={metrics.payments?.failedPayments ?? 0}
+            accent="orange"
+          />
+          <MetricCard
+            label="Report snapshots"
+            value={metrics.reports?.totalSnapshots ?? 0}
+            accent="blue"
+          />
+        </div>
+      ) : null}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <CardBody>
-            <h3 className="text-xl font-bold text-ash-grey-900">Meal pipeline</h3>
+            <DashboardSectionTitle title="Meal pipeline" />
             {metrics ? (
               <dl className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between border-b border-ash-grey-100 pb-2">
@@ -108,12 +217,14 @@ export function AdminOverviewPage() {
 
         <Card>
           <CardBody>
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-ash-grey-900">Recent activity</h3>
-              <Link to={ADMIN_ROUTES.system} className="text-sm text-blue-spruce-600 hover:underline">
-                System →
-              </Link>
-            </div>
+            <DashboardSectionTitle
+              title="Recent activity"
+              action={
+                <Link to={ADMIN_ROUTES.system} className="text-sm text-blue-spruce-600 hover:underline">
+                  System →
+                </Link>
+              }
+            />
             {audit?.length ? (
               <ul className="space-y-3">
                 {audit.slice(0, 6).map((entry) => (
