@@ -7,6 +7,7 @@ import { coachAssignmentsRepository } from "../coaches/coach-assignments.reposit
 import { cohortsRepository } from "../coaches/cohorts.repository";
 import { coachMessagesRepository } from "../coaches/coach-messages.repository";
 import { chatRepository } from "../chat/chat.repository";
+import { chatService } from "../chat/chat.service";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { buildOrganizationRoster } from "../coaches/team-roster.util";
 import { notificationsService } from "../notifications/notifications.service";
@@ -803,6 +804,31 @@ export const coachMealsService = {
       notifyUser: dto.notifyUser ?? false,
       status: "open",
     });
+
+    try {
+      const coach = await usersRepository.findById(coachId);
+      const profile = await coachProfilesRepository.findByUserId(coachId);
+      if (coach?.role === "coach" && profile?.organization?.trim()) {
+        const team = await chatService.ensureTeamChannel(coach);
+        const meal = await mealsRepository.findMealById(mealId);
+        const mealName =
+          (typeof meal?.data?.mealName === "string" && meal.data.mealName) ||
+          (typeof meal?.data?.aiAnalysis === "object" &&
+            meal.data.aiAnalysis &&
+            typeof (meal.data.aiAnalysis as { mealName?: string }).mealName === "string" &&
+            (meal.data.aiAnalysis as { mealName: string }).mealName) ||
+          mealId;
+        const label =
+          dto.type === "second_opinion" ? "Second opinion requested" : "Review escalated";
+        const body = dto.note?.trim()
+          ? `${label} on “${mealName}”: ${dto.note.trim()}`
+          : `${label} on “${mealName}”.`;
+        await chatService.sendMessage(coach, team.id, body, mealId);
+      }
+    } catch (err) {
+      logger.warn({ err, mealId, coachId }, "Failed to mirror review task to team chat");
+    }
+
     return {
       id: task.id,
       mealId: task.mealId,

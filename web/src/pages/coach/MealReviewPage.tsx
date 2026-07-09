@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CoachMessagesPanel } from '@/components/coach/CoachMessagesPanel';
+import { ReviewTasksPanel } from '@/components/coach/ReviewTasksPanel';
 import { ClientPanel } from '@/components/coach/ClientPanel';
 import { MealReviewPanel } from '@/components/coach/MealReviewPanel';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
@@ -251,6 +252,7 @@ export function MealReviewPage() {
               </ul>
             </div>
           ) : null}
+          <ReviewTasksPanel mealId={meal.id} />
           <CoachMessagesPanel clientId={mealItem.client.patientId} mealId={meal.id} />
         </div>
       </div>
@@ -263,8 +265,8 @@ export function MealReviewPage() {
             </h3>
             <p className="mt-1 text-sm text-ash-grey-500">
               {taskModal === 'second_opinion'
-                ? 'Flag this meal for another coach to review before you finalize.'
-                : 'Log an escalation for admin or senior coach follow-up.'}
+                ? 'Flag this meal for another coach. Your note appears here and in the team chat.'
+                : 'Log an escalation for admin or senior coach follow-up. Posted to the team chat when possible.'}
             </p>
             <textarea
               className="mt-4 min-h-24 w-full rounded-2xl border border-ash-grey-200 px-4 py-3 text-sm outline-none focus:border-blue-spruce-400"
