@@ -70,6 +70,15 @@ export const env = {
   SEED_COACH_PASSWORD: process.env.SEED_COACH_PASSWORD ?? "Test@123",
   SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL ?? "admin@vitaway.org",
   SEED_ADMIN_PASSWORD: process.env.SEED_ADMIN_PASSWORD ?? "Test@123",
+  SEED_CONSUMER_EMAIL: process.env.SEED_CONSUMER_EMAIL ?? "patient@vitaway.org",
+  SEED_CONSUMER_PASSWORD: process.env.SEED_CONSUMER_PASSWORD ?? "Test@123",
+  SEED_NUTRITION_COACH_EMAIL:
+    process.env.SEED_NUTRITION_COACH_EMAIL ?? "nutrition@vitaway.org",
+  SEED_NUTRITION_COACH_PASSWORD: process.env.SEED_NUTRITION_COACH_PASSWORD ?? "Test@123",
+  SEED_ORG_ADMIN_EMAIL: process.env.SEED_ORG_ADMIN_EMAIL ?? "orgadmin@vitaway.org",
+  SEED_ORG_ADMIN_PASSWORD: process.env.SEED_ORG_ADMIN_PASSWORD ?? "Test@123",
+  SEED_DATA_ENTRY_EMAIL: process.env.SEED_DATA_ENTRY_EMAIL ?? "dataentry@vitaway.org",
+  SEED_DATA_ENTRY_PASSWORD: process.env.SEED_DATA_ENTRY_PASSWORD ?? "Test@123",
   APP_URL: (process.env.APP_URL ?? process.env.WEB_APP_URL ?? "http://localhost:5173").replace(
     /\/$/,
     "",

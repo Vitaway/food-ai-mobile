@@ -82,7 +82,7 @@ async function attachRoleContext(
   user: { id: string; role: string },
   result: LoginResult,
 ): Promise<LoginResult> {
-  if (user.role === "coach") {
+  if (user.role === "coach" || user.role === "nutrition_coach") {
     const profile = await coachProfilesRepository.findByUserId(user.id);
     if (profile) {
       result.coachProfile = {

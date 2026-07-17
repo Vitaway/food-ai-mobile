@@ -21,10 +21,20 @@ Or run the full stack in Docker: `docker compose up -d --build`
 
 API base: `http://localhost:3011/api/v1`
 
-### Default coach (after seed)
+### Default accounts (after seed)
 
-- Email: `coach@vitaway.org`
-- Password: `Test@123`
+Password for all seed users: `Test@123` (override via `SEED_*_PASSWORD` env vars).
+
+| Role | Email | Dashboard |
+|------|-------|-----------|
+| admin | `admin@vitaway.org` | `/admin` |
+| coach | `coach@vitaway.org` | `/coach` |
+| consumer | `patient@vitaway.org` | `/app` |
+| nutrition_coach | `nutrition@vitaway.org` | `/coach` |
+| organization_admin | `orgadmin@vitaway.org` | `/admin` |
+| data_entry_staff | `dataentry@vitaway.org` | staff APIs |
+
+`npm run seed:users` refreshes passwords/roles without wiping meals.
 
 ## Endpoints
 
@@ -64,7 +74,9 @@ See `.env.example`. Required for vision: `OPENROUTER_API_KEY` (regular `sk-or-�
 
 - `npm run dev` — watch mode
 - `npm run build` / `npm start` — production
-- `npm run seed` — coach user + profile
+- `npm run seed` — dashboard users + coach/consumer profiles + nutrition foods
+- `npm run seed:users` — upsert seed users only (keep meals)
+- `npm run import:tfct` — import TFCT food composition into nutrition DB
 - `npm run migration:run` — apply migrations manually
 
 ## Stack
