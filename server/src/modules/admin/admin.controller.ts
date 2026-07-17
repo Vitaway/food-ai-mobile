@@ -15,7 +15,8 @@ import type { User } from "../users/user.entity";
 import { adminService } from "./admin.service";
 import { platformMetricsService } from "./platform-metrics.service";
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
-import { CreateCoachDto, SetUserActiveDto, SetUserRoleDto } from "./admin.dto";
+import { CreateCoachDto, SetUserActiveDto, SetUserRoleDto, SetOrganizationModulesDto, EnsureOrganizationModulesDto } from "./admin.dto";
+import { moduleEntitlementsService } from "./module-entitlements.service";
 
 @Controller("/admin")
 export class AdminController {
@@ -127,5 +128,49 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return adminService.setUserRole(admin.id, id, dto, req);
+  }
+
+  @Authorized(["admin"])
+  @Get("/modules/catalog")
+  moduleCatalog() {
+    return { catalog: moduleEntitlementsService.catalog() };
+  }
+
+  @Authorized(["admin"])
+  @Get("/modules/entitlements")
+  listModuleEntitlements() {
+    return moduleEntitlementsService.listAccounts();
+  }
+
+  @Authorized(["admin"])
+  @Get("/modules/entitlements/:organizationKey")
+  getModuleEntitlements(@Param("organizationKey") organizationKey: string) {
+    return moduleEntitlementsService.getOrganization(decodeURIComponent(organizationKey));
+  }
+
+  @Authorized(["admin"])
+  @Patch("/modules/entitlements/:organizationKey")
+  setModuleEntitlements(
+    @CurrentUser() admin: User,
+    @Param("organizationKey") organizationKey: string,
+    @Body() dto: SetOrganizationModulesDto,
+    @Req() req: Request,
+  ) {
+    return moduleEntitlementsService.setOrganizationModules(
+      admin.id,
+      decodeURIComponent(organizationKey),
+      dto.modules ?? [],
+      req,
+    );
+  }
+
+  @Authorized(["admin"])
+  @Post("/modules/entitlements")
+  ensureModuleAccount(
+    @CurrentUser() admin: User,
+    @Body() dto: EnsureOrganizationModulesDto,
+    @Req() req: Request,
+  ) {
+    return moduleEntitlementsService.ensureAccount(admin.id, dto.organizationKey, req);
   }
 }

@@ -1,4 +1,4 @@
-import { IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+import { IsArray, IsBoolean, IsEmail, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 
 export class CreateCoachDto {
   @IsEmail()
@@ -42,4 +42,16 @@ export class SetUserRoleDto {
     | "data_entry_staff"
     | "organization_admin"
     | "nutrition_coach";
+}
+
+export class SetOrganizationModulesDto {
+  @IsArray()
+  @IsString({ each: true })
+  modules!: string[];
+}
+
+export class EnsureOrganizationModulesDto {
+  @IsString()
+  @MaxLength(255)
+  organizationKey!: string;
 }

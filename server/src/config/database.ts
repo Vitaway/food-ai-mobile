@@ -6,6 +6,7 @@ import { CoachProfile } from "../modules/coaches/coach-profile.entity";
 import { ConsumerProfile } from "../modules/meals/consumer-profile.entity";
 import { MealSubmission } from "../modules/meals/meal-submission.entity";
 import { AdminAuditLog } from "../modules/admin/admin-audit.entity";
+import { OrganizationModuleEntitlement } from "../modules/admin/organization-module-entitlement.entity";
 import { UserNotification } from "../modules/notifications/notification.entity";
 import { UserPushToken } from "../modules/notifications/user-push-token.entity";
 import { MealCoachReview } from "../modules/meals/meal-coach-review.entity";
@@ -54,6 +55,7 @@ export const AppDataSource = new DataSource({
     Organization,
     ReportSnapshot,
     AdminAuditLog,
+    OrganizationModuleEntitlement,
     UserNotification,
     UserPushToken,
   ],
