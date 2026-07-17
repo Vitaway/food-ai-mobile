@@ -88,8 +88,11 @@ MiraFood API listening on http://0.0.0.0:3011
 
 ```bash
 curl http://127.0.0.1:3011/api/v1/health/ready
-docker compose exec api npm run seed    # first time only
+docker compose exec api npm run seed         # first time / refresh seed users
+docker compose exec api npm run import:tfct  # optional: TFCT food composition (also runs inside seed)
 ```
+
+Production scripts use `node dist/...` (no `tsx` in the image).
 
 ---
 

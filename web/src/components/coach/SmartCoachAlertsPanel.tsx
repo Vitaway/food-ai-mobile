@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Card, CardBody } from '@/components/ui/Card';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { apiRequest } from '@/lib/apiClient';
 
 type SmartAlert = {
@@ -12,6 +12,12 @@ type SmartAlert = {
   category: string;
 };
 
+const toneDot = {
+  warning: 'bg-cinnamon-wood-500',
+  critical: 'bg-red-500',
+  info: 'bg-blue-spruce-500',
+};
+
 export function SmartCoachAlertsPanel() {
   const { data } = useQuery({
     queryKey: ['coach', 'smart-alerts'],
@@ -21,32 +27,33 @@ export function SmartCoachAlertsPanel() {
 
   if (!data?.length) return null;
 
-  const toneClass = {
-    warning: 'border-cinnamon-wood-200 bg-cinnamon-wood-50 text-cinnamon-wood-900',
-    critical: 'border-red-200 bg-red-50 text-red-900',
-    info: 'border-blue-spruce-200 bg-blue-spruce-50 text-blue-spruce-900',
-  };
-
   return (
-    <Card>
-      <CardBody>
-        <h3 className="mb-3 text-sm font-medium text-ash-grey-600">
-          Smart coach alerts
-        </h3>
-        <ul className="space-y-2">
-          {data.map((alert) => (
-            <li
-              key={alert.id}
-              className={`rounded-xl border px-3 py-2 text-sm ${toneClass[alert.severity]}`}>
-              <p className="font-semibold">{alert.clientName}</p>
-              <p className="mt-0.5">{alert.message}</p>
-              <Link to={`/coach/clients/${alert.clientId}`} className="mt-1 inline-block text-xs font-semibold underline">
-                View client
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </CardBody>
-    </Card>
+    <DashboardPanel
+      title="Smart coach alerts"
+      action={<span className="text-xs text-ash-grey-500">{data.length} open</span>}
+      bodyClassName="px-0 py-0 sm:px-0 sm:py-0">
+      <ul className="max-h-48 divide-y divide-ash-grey-100 overflow-y-auto">
+        {data.map((alert) => (
+          <li
+            key={alert.id}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm hover:bg-ash-grey-50/80">
+            <span
+              className={`h-1.5 w-1.5 shrink-0 rounded-full ${toneDot[alert.severity]}`}
+              aria-hidden
+            />
+            <p className="min-w-0 flex-1 truncate text-ash-grey-800">
+              <span className="font-semibold text-ash-grey-900">{alert.clientName}</span>
+              <span className="text-ash-grey-400"> · </span>
+              <span className="text-ash-grey-600">{alert.message}</span>
+            </p>
+            <Link
+              to={`/coach/clients/${alert.clientId}`}
+              className="shrink-0 text-xs font-semibold text-blue-spruce-600 hover:underline">
+              View
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </DashboardPanel>
   );
 }
