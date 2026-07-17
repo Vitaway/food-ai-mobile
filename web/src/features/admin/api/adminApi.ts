@@ -179,3 +179,43 @@ export async function approveNutritionFood(id: string) {
 export async function rejectNutritionFood(id: string) {
   return apiRequest(`/admin/nutrition-db/foods/${id}/reject`, { method: 'POST' });
 }
+
+export type ModuleDefinition = {
+  key: string;
+  name: string;
+  description: string;
+  defaultAudience: string;
+};
+
+export type ModuleEntitlementAccount = {
+  organizationKey: string;
+  modules: string[];
+  moduleLabels: string[];
+  stored: boolean;
+};
+
+export type ModuleEntitlementsResponse = {
+  catalog: ModuleDefinition[];
+  accounts: ModuleEntitlementAccount[];
+};
+
+export async function fetchModuleEntitlements(): Promise<ModuleEntitlementsResponse> {
+  return apiRequest('/admin/modules/entitlements');
+}
+
+export async function setModuleEntitlements(organizationKey: string, modules: string[]) {
+  return apiRequest<ModuleEntitlementAccount>(
+    `/admin/modules/entitlements/${encodeURIComponent(organizationKey)}`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ modules }),
+    },
+  );
+}
+
+export async function ensureModuleAccount(organizationKey: string) {
+  return apiRequest<ModuleEntitlementAccount>('/admin/modules/entitlements', {
+    method: 'POST',
+    body: JSON.stringify({ organizationKey }),
+  });
+}

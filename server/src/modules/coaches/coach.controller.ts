@@ -37,19 +37,19 @@ const avatarUpload = multer({
 
 @Controller("/coach")
 export class CoachController {
-  @Authorized(["coach"])
+  @Authorized(["coach", "admin"])
   @Get("/profile")
   profile(@CurrentUser() user: User) {
     return coachService.getProfile(user.id);
   }
 
-  @Authorized(["coach"])
+  @Authorized(["coach", "admin"])
   @Patch("/profile")
   updateProfile(@CurrentUser() user: User, @Body() dto: UpdateCoachProfileDto) {
     return coachService.updateProfile(user.id, dto);
   }
 
-  @Authorized(["coach"])
+  @Authorized(["coach", "admin"])
   @Post("/profile/avatar")
   @UseBefore(avatarUpload.single("image"))
   async uploadAvatar(@CurrentUser() user: User, @Req() req: Request) {
@@ -60,7 +60,7 @@ export class CoachController {
     return coachService.uploadAvatar(user.id, file.buffer, file.mimetype, req);
   }
 
-  @Authorized(["coach"])
+  @Authorized(["coach", "admin"])
   @Post("/password")
   changePassword(@CurrentUser() user: User, @Body() dto: ChangeCoachPasswordDto) {
     return coachMealsService.changePassword(
@@ -82,7 +82,7 @@ export class CoachController {
     return smartAlertsService.listForCoach(user.id);
   }
 
-  @Authorized(["coach"])
+  @Authorized(["coach", "admin"])
   @Get("/analytics")
   analytics(@CurrentUser() user: User, @QueryParam("cohortId") cohortId?: string) {
     return coachAnalyticsService.getAnalytics(user.id, cohortId);

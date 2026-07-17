@@ -6,9 +6,30 @@ import { NutritionServingProfile } from "./nutrition-serving-profile.entity";
 import type { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.dto";
 import { SERVING_UNITS } from "./serving-units.util";
 import { bestNutritionFoodMatch } from "./nutrition-lookup.util";
+import {
+  composeTfctFromLegacy,
+  toLegacyMicronutrients,
+  toLegacyNutritionPer100g,
+  toTfctComposition,
+} from "./tfct-nutrients";
 
 const foodRepo = AppDataSource.getRepository(NutritionFood);
 const servingRepo = AppDataSource.getRepository(NutritionServingProfile);
+
+const LEGACY_CATEGORIES = [
+  "Staples",
+  "Breads",
+  "Grains",
+  "Protein",
+  "Traditional dishes",
+  "Fruits",
+  "Vegetables",
+  "Dairy",
+  "Beverages",
+  "Snacks",
+  "Condiments",
+  "Packaged",
+];
 
 function normalizeServing(serving: NutritionServingProfile) {
   return {
@@ -21,40 +42,56 @@ function normalizeServing(serving: NutritionServingProfile) {
 }
 
 function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
+  const composition = food.nutritionPer100g ?? {};
   return {
     id: food.id,
+    foodCode: food.foodCode,
     name: food.name,
     category: food.category,
+    foodGroup: food.foodGroup,
+    foodGroupName: food.foodGroupName,
+    recipeNote: food.recipeNote,
+    sourceType: food.sourceType,
+    applicableCountries: food.applicableCountries,
+    nameSw: food.nameSw,
+    nameRw: food.nameRw,
+    nameLocalOther: food.nameLocalOther,
     brand: food.brand,
     isActive: food.isActive,
     imageUrl: food.imageUrl,
+    imageConfirmed: food.imageConfirmed,
     barcode: food.barcode,
+    packageSizeG: food.packageSizeG != null ? Number(food.packageSizeG) : null,
+    labelSource: food.labelSource,
+    source: food.source,
+    sourceVersion: food.sourceVersion,
     approvalStatus: food.approvalStatus ?? "approved",
     submittedByUserId: food.submittedByUserId,
     verifiedByUserId: food.verifiedByUserId,
-    nutritionPer100g: food.nutritionPer100g ?? {},
-    micronutrients: food.micronutrients ?? {},
+    /** Full TFCT composition — snake_case keys matching the spreadsheet. */
+    composition,
+    /** CamelCase macros for meal analysis / existing UI. */
+    nutritionPer100g: toLegacyNutritionPer100g(composition),
+    /** CamelCase micros for existing UI. */
+    micronutrients: toLegacyMicronutrients(composition, food.micronutrients),
     servings: servings.map(normalizeServing),
     updatedAt: food.updatedAt.toISOString(),
   };
 }
 
 export const nutritionDbService = {
-  listCategories() {
-    return [
-      "Staples",
-      "Breads",
-      "Grains",
-      "Protein",
-      "Traditional dishes",
-      "Fruits",
-      "Vegetables",
-      "Dairy",
-      "Beverages",
-      "Snacks",
-      "Condiments",
-      "Packaged",
-    ];
+  async listCategories() {
+    const rows = await foodRepo
+      .createQueryBuilder("food")
+      .select("DISTINCT food.category", "category")
+      .where("food.category IS NOT NULL")
+      .andWhere("food.category <> ''")
+      .orderBy("food.category", "ASC")
+      .getRawMany<{ category: string }>();
+    const fromDb = rows.map((r) => r.category).filter(Boolean);
+    if (!fromDb.length) return LEGACY_CATEGORIES;
+    const merged = new Set([...fromDb, ...LEGACY_CATEGORIES]);
+    return [...merged].sort((a, b) => a.localeCompare(b));
   },
 
   listServingUnits() {
@@ -65,11 +102,12 @@ export const nutritionDbService = {
     query?: string,
     category?: string,
     includeInactive = false,
-    approvalFilter: "approved" | "pending" | "all" = "approved",
+    approvalFilter: "approved" | "pending" | "rejected" | "all" = "approved",
     page?: number,
     pageSize?: number,
+    sourceType?: string,
   ) {
-    const qb = foodRepo.createQueryBuilder("food").orderBy("food.updated_at", "DESC");
+    const qb = foodRepo.createQueryBuilder("food").orderBy("food.name", "ASC");
     if (!includeInactive) {
       qb.andWhere("food.is_active = true");
     }
@@ -77,12 +115,24 @@ export const nutritionDbService = {
       qb.andWhere("food.approval_status = 'approved'");
     } else if (approvalFilter === "pending") {
       qb.andWhere("food.approval_status = 'pending'");
+    } else if (approvalFilter === "rejected") {
+      qb.andWhere("food.approval_status = 'rejected'");
     }
     if (query?.trim()) {
-      qb.andWhere("(food.name ILIKE :q OR food.brand ILIKE :q)", { q: `%${query.trim()}%` });
+      qb.andWhere(
+        `(food.name ILIKE :q OR food.brand ILIKE :q OR food.name_sw ILIKE :q
+          OR food.name_rw ILIKE :q OR food.name_local_other ILIKE :q
+          OR food.food_code ILIKE :q OR food.barcode ILIKE :q)`,
+        { q: `%${query.trim()}%` },
+      );
     }
     if (category?.trim()) {
-      qb.andWhere("food.category = :category", { category: category.trim() });
+      qb.andWhere("(food.category = :category OR food.food_group_name = :category)", {
+        category: category.trim(),
+      });
+    }
+    if (sourceType?.trim()) {
+      qb.andWhere("food.source_type = :sourceType", { sourceType: sourceType.trim() });
     }
 
     const paginate = page != null || pageSize != null;
@@ -159,6 +209,14 @@ export const nutritionDbService = {
   },
 
   async createFood(dto: CreateNutritionFoodDto, submittedByUserId?: string, coachSubmitted = false) {
+    const composition = composeTfctFromLegacy({
+      nutritionPer100g: dto.nutritionPer100g,
+      micronutrients: dto.micronutrients,
+    });
+    // Allow explicit composition (snake_case) to override
+    const fromComposition = toTfctComposition(dto.composition);
+    const merged = { ...composition, ...fromComposition };
+
     const food = foodRepo.create({
       name: dto.name.trim(),
       category: dto.category.trim(),
@@ -166,9 +224,20 @@ export const nutritionDbService = {
       isActive: coachSubmitted ? false : true,
       approvalStatus: coachSubmitted ? "pending" : "approved",
       submittedByUserId: submittedByUserId ?? null,
-      nutritionPer100g: dto.nutritionPer100g ?? {},
-      micronutrients: dto.micronutrients ?? {},
+      nutritionPer100g: merged,
+      micronutrients: {},
       barcode: dto.barcode?.trim() || null,
+      sourceType: dto.sourceType?.trim() || (coachSubmitted ? "custom_local" : "custom_local"),
+      applicableCountries: dto.applicableCountries?.trim() || null,
+      nameSw: dto.nameSw?.trim() || null,
+      nameRw: dto.nameRw?.trim() || null,
+      nameLocalOther: dto.nameLocalOther?.trim() || null,
+      foodGroupName: dto.foodGroupName?.trim() || null,
+      packageSizeG:
+        dto.packageSizeG != null && Number.isFinite(dto.packageSizeG)
+          ? String(dto.packageSizeG)
+          : null,
+      labelSource: dto.labelSource?.trim() || null,
     });
     await foodRepo.save(food);
     if (dto.servings?.length) {
@@ -183,9 +252,7 @@ export const nutritionDbService = {
       );
       await servingRepo.save(payload);
     }
-    const created = await this.listFoods(food.name, undefined, true, "all");
-    const items = Array.isArray(created) ? created : created.items;
-    return items[0];
+    return this.getFood(food.id);
   },
 
   async listPendingFoods() {
@@ -220,9 +287,39 @@ export const nutritionDbService = {
     if (dto.category !== undefined) food.category = dto.category.trim();
     if (dto.brand !== undefined) food.brand = dto.brand?.trim() || null;
     if (dto.isActive !== undefined) food.isActive = dto.isActive;
-    if (dto.nutritionPer100g !== undefined) food.nutritionPer100g = dto.nutritionPer100g;
-    if (dto.micronutrients !== undefined) food.micronutrients = dto.micronutrients;
     if (dto.barcode !== undefined) food.barcode = dto.barcode?.trim() || null;
+    if (dto.sourceType !== undefined) food.sourceType = dto.sourceType.trim() || food.sourceType;
+    if (dto.applicableCountries !== undefined) {
+      food.applicableCountries = dto.applicableCountries?.trim() || null;
+    }
+    if (dto.nameSw !== undefined) food.nameSw = dto.nameSw?.trim() || null;
+    if (dto.nameRw !== undefined) food.nameRw = dto.nameRw?.trim() || null;
+    if (dto.nameLocalOther !== undefined) food.nameLocalOther = dto.nameLocalOther?.trim() || null;
+    if (dto.foodGroupName !== undefined) food.foodGroupName = dto.foodGroupName?.trim() || null;
+    if (dto.packageSizeG !== undefined) {
+      food.packageSizeG =
+        dto.packageSizeG != null && Number.isFinite(dto.packageSizeG)
+          ? String(dto.packageSizeG)
+          : null;
+    }
+    if (dto.labelSource !== undefined) food.labelSource = dto.labelSource?.trim() || null;
+    if (dto.imageConfirmed !== undefined) food.imageConfirmed = dto.imageConfirmed;
+
+    if (
+      dto.nutritionPer100g !== undefined ||
+      dto.micronutrients !== undefined ||
+      dto.composition !== undefined
+    ) {
+      const base = { ...(food.nutritionPer100g ?? {}) };
+      const fromLegacy = composeTfctFromLegacy({
+        nutritionPer100g: dto.nutritionPer100g,
+        micronutrients: dto.micronutrients,
+      });
+      const fromComposition = toTfctComposition(dto.composition);
+      food.nutritionPer100g = { ...base, ...fromLegacy, ...fromComposition };
+      food.micronutrients = {};
+    }
+
     await foodRepo.save(food);
 
     if (dto.servings) {
@@ -241,8 +338,6 @@ export const nutritionDbService = {
         );
       }
     }
-    const rows = await this.listFoods(food.name, undefined, true, "all");
-    const items = Array.isArray(rows) ? rows : rows.items;
-    return items.find((row) => row.id === id) ?? null;
+    return this.getFood(id);
   },
 };

@@ -21,27 +21,30 @@ const chatAttachmentUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
+const STAFF_OR_CONSUMER = ["coach", "admin", "consumer"] as const;
+const STAFF = ["coach", "admin"] as const;
+
 @Controller("/chat")
 export class ChatController {
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Get("/conversations")
   listConversations(@CurrentUser() user: User) {
     return chatService.listConversations(user);
   }
 
-  @Authorized(["coach"])
+  @Authorized([...STAFF])
   @Get("/contacts")
   listContacts(@CurrentUser() user: User) {
     return chatService.listContacts(user);
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Get("/unread-count")
   unreadCount(@CurrentUser() user: User) {
     return chatService.getUnreadCount(user.id).then((count) => ({ count }));
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Post("/conversations/patient")
   ensurePatientConversation(
     @CurrentUser() user: User,
@@ -50,7 +53,7 @@ export class ChatController {
     return chatService.ensurePatientConversation(user, dto);
   }
 
-  @Authorized(["coach"])
+  @Authorized([...STAFF])
   @Post("/conversations/direct")
   ensureDirectConversation(
     @CurrentUser() user: User,
@@ -59,7 +62,7 @@ export class ChatController {
     return chatService.ensureDirectConversation(user, dto);
   }
 
-  @Authorized(["coach"])
+  @Authorized([...STAFF])
   @Post("/conversations/team")
   ensureTeamChannel(@CurrentUser() user: User) {
     return chatService.ensureTeamChannel(user).then((conv) =>
@@ -67,19 +70,19 @@ export class ChatController {
     );
   }
 
-  @Authorized(["coach"])
+  @Authorized([...STAFF])
   @Get("/conversations/:id/members")
   listMembers(@CurrentUser() user: User, @Param("id") id: string) {
     return chatService.listMembers(user, id);
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Get("/conversations/:id/messages")
   getMessages(@CurrentUser() user: User, @Param("id") id: string) {
     return chatService.getMessages(user, id);
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Post("/conversations/:id/messages/with-attachment")
   @UseBefore(chatAttachmentUpload.single("file"))
   async sendMessageWithAttachment(
@@ -107,7 +110,7 @@ export class ChatController {
     );
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Post("/conversations/:id/messages")
   sendMessage(
     @CurrentUser() user: User,
@@ -117,13 +120,13 @@ export class ChatController {
     return chatService.sendMessage(user, id, dto.body, dto.mealId);
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Post("/conversations/:id/read")
   markRead(@CurrentUser() user: User, @Param("id") id: string) {
     return chatService.markRead(user, id);
   }
 
-  @Authorized(["coach", "consumer"])
+  @Authorized([...STAFF_OR_CONSUMER])
   @Get("/conversations/:id")
   getConversation(@CurrentUser() user: User, @Param("id") id: string) {
     return chatService.getConversation(user, id);

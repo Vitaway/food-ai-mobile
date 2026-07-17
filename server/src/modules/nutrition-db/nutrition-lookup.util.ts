@@ -2,8 +2,12 @@ export type NutritionFoodRow = {
   id: string;
   name: string;
   brand: string | null;
+  nameSw?: string | null;
+  nameRw?: string | null;
+  nameLocalOther?: string | null;
   nutritionPer100g: Record<string, number>;
   micronutrients: Record<string, number>;
+  composition?: Record<string, number>;
   servings: Array<{ unit: string; gramsEquivalent: number; isDefault: boolean }>;
 };
 
@@ -40,7 +44,13 @@ export function bestNutritionFoodMatch(query: string, foods: NutritionFoodRow[])
   let bestScore = 0;
 
   for (const food of foods) {
-    const score = scoreNameMatch(trimmed, food.name, food.brand);
+    const scores = [
+      scoreNameMatch(trimmed, food.name, food.brand),
+      food.nameSw ? scoreNameMatch(trimmed, food.nameSw, food.brand) : 0,
+      food.nameRw ? scoreNameMatch(trimmed, food.nameRw, food.brand) : 0,
+      food.nameLocalOther ? scoreNameMatch(trimmed, food.nameLocalOther, food.brand) : 0,
+    ];
+    const score = Math.max(...scores);
     if (score > bestScore) {
       bestScore = score;
       best = food;

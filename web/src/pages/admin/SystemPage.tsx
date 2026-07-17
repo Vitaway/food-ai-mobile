@@ -1,90 +1,101 @@
-import { Card, CardBody } from '@/components/ui/Card';
 import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { KpiStrip } from '@/components/ui/KpiStrip';
+import { StatusPill } from '@/components/ui/StatusPill';
 import { useAdminSystem, useAuditLogs } from '@/features/admin/hooks/useAdminQueries';
-import { cn } from '@/lib/utils';
+import type { AuditLogEntry } from '@/features/admin/api/adminApi';
 
 export function AdminSystemPage() {
   const { data: system, isLoading } = useAdminSystem();
   const { data: audit } = useAuditLogs();
 
+  const readiness = system as
+    | {
+        readiness?: { checks?: { database?: boolean; redis?: boolean } };
+        openRouter?: { apiKeyStatus?: string };
+      }
+    | undefined;
+
+  const auditColumns: DataTableColumn<AuditLogEntry>[] = [
+    {
+      key: 'when',
+      header: 'When',
+      cell: (entry) => (
+        <span className="text-ash-grey-600">{new Date(entry.createdAt).toLocaleString()}</span>
+      ),
+    },
+    {
+      key: 'action',
+      header: 'Action',
+      cell: (entry) => <span className="font-semibold text-ash-grey-900">{entry.action}</span>,
+    },
+    {
+      key: 'target',
+      header: 'Target',
+      cell: (entry) => (
+        <span className="text-ash-grey-600">
+          {entry.targetType ?? '—'}
+          {entry.targetId ? ` · ${entry.targetId}` : ''}
+        </span>
+      ),
+    },
+    {
+      key: 'meta',
+      header: 'Details',
+      cell: (entry) => (
+        <span className="text-xs text-ash-grey-500">
+          {entry.meta ? JSON.stringify(entry.meta).slice(0, 80) : '—'}
+        </span>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
-      <DashboardPageHeader title="System" />
+    <div className="space-y-5">
+      <DashboardPageHeader title="System & audit" />
 
       {isLoading ? (
         <p className="text-ash-grey-500">Loading system status…</p>
-      ) : system ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatusCard
-            label="Database"
-            ok={(system as { readiness: { checks: { database: boolean } } }).readiness.checks.database}
-          />
-          <StatusCard
-            label="Redis"
-            ok={(system as { readiness: { checks: { redis: boolean } } }).readiness.checks.redis}
-          />
-          <StatusCard
-            label="OpenRouter"
-            ok={(system as { openRouter: { apiKeyStatus: string } }).openRouter.apiKeyStatus === 'configured'}
-            hint={(system as { openRouter: { apiKeyStatus: string } }).openRouter.apiKeyStatus}
-          />
-        </div>
+      ) : readiness ? (
+        <KpiStrip
+          items={[
+            {
+              label: 'Database',
+              value: readiness.readiness?.checks?.database ? 'Healthy' : 'Check',
+              warn: !readiness.readiness?.checks?.database,
+            },
+            {
+              label: 'Redis',
+              value: readiness.readiness?.checks?.redis ? 'Healthy' : 'Check',
+              warn: !readiness.readiness?.checks?.redis,
+            },
+            {
+              label: 'OpenRouter',
+              value:
+                readiness.openRouter?.apiKeyStatus === 'configured' ? 'Configured' : 'Missing',
+              warn: readiness.openRouter?.apiKeyStatus !== 'configured',
+              caption: readiness.openRouter?.apiKeyStatus,
+            },
+          ]}
+        />
       ) : null}
 
-      <Card>
-        <CardBody>
-          <h3 className="text-xl font-bold text-ash-grey-900">Audit log</h3>
-          {audit?.length ? (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full min-w-[32rem] text-left text-sm">
-                <thead>
-                  <tr className="border-b border-ash-grey-200 text-ash-grey-500">
-                    <th className="pb-3 pr-4 font-medium">Action</th>
-                    <th className="pb-3 pr-4 font-medium">Target</th>
-                    <th className="pb-3 font-medium">When</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {audit.map((entry) => (
-                    <tr key={entry.id} className="border-b border-ash-grey-100 last:border-0">
-                      <td className="py-3 pr-4 font-medium text-ash-grey-900">{entry.action}</td>
-                      <td className="py-3 pr-4 text-ash-grey-600">
-                        {entry.targetType ?? '—'}
-                        {entry.targetId ? ` · ${entry.targetId}` : ''}
-                      </td>
-                      <td className="py-3 text-ash-grey-500">
-                        {new Date(entry.createdAt).toLocaleString()}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-ash-grey-500">No audit entries yet.</p>
-          )}
-        </CardBody>
-      </Card>
+      <DashboardPanel
+        title="Audit log"
+        action={
+          audit?.length ? (
+            <StatusPill tone="muted">{audit.length} entries</StatusPill>
+          ) : null
+        }>
+        <DataTable
+          columns={auditColumns}
+          rows={audit ?? []}
+          rowKey={(e) => e.id}
+          emptyTitle="No audit entries yet"
+          emptyDescription="Admin actions will appear here as they happen."
+        />
+      </DashboardPanel>
     </div>
-  );
-}
-
-function StatusCard({ label, ok, hint }: { label: string; ok: boolean; hint?: string }) {
-  return (
-    <Card>
-      <CardBody>
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-ash-grey-500">{label}</p>
-          <span
-            className={cn(
-              'rounded-full px-2.5 py-0.5 text-xs font-medium',
-              ok ? 'bg-shamrock-50 text-shamrock-700' : 'bg-cinnamon-wood-50 text-cinnamon-wood-600',
-            )}>
-            {ok ? 'Healthy' : 'Check'}
-          </span>
-        </div>
-        {hint ? <p className="mt-2 text-xs text-ash-grey-400">{hint}</p> : null}
-      </CardBody>
-    </Card>
   );
 }

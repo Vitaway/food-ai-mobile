@@ -14,6 +14,9 @@ import {
   rejectNutritionFood,
   setUserActive,
   setUserRole,
+  fetchModuleEntitlements,
+  setModuleEntitlements,
+  ensureModuleAccount,
   type CreateCoachPayload,
 } from '@/features/admin/api/adminApi';
 
@@ -27,6 +30,7 @@ export const adminKeys = {
   operations: () => [...adminKeys.all, 'operations'] as const,
   roster: () => [...adminKeys.all, 'roster'] as const,
   pendingFoods: () => [...adminKeys.all, 'pending-foods'] as const,
+  modules: () => [...adminKeys.all, 'modules'] as const,
 };
 
 export function useAdminMetrics() {
@@ -100,7 +104,11 @@ export function useApproveNutritionFood() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => approveNutritionFood(id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: adminKeys.pendingFoods() }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.pendingFoods() });
+      void qc.invalidateQueries({ queryKey: ['admin', 'nutrition-db'] });
+      void qc.invalidateQueries({ queryKey: ['nutrition-db'] });
+    },
   });
 }
 
@@ -108,7 +116,11 @@ export function useRejectNutritionFood() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => rejectNutritionFood(id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: adminKeys.pendingFoods() }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.pendingFoods() });
+      void qc.invalidateQueries({ queryKey: ['admin', 'nutrition-db'] });
+      void qc.invalidateQueries({ queryKey: ['nutrition-db'] });
+    },
   });
 }
 
@@ -143,6 +155,36 @@ export function useSetUserRole() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+    },
+  });
+}
+
+export function useModuleEntitlements() {
+  return useQuery({
+    queryKey: adminKeys.modules(),
+    queryFn: fetchModuleEntitlements,
+  });
+}
+
+export function useSetModuleEntitlements() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ organizationKey, modules }: { organizationKey: string; modules: string[] }) =>
+      setModuleEntitlements(organizationKey, modules),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.modules() });
+      void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+    },
+  });
+}
+
+export function useEnsureModuleAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (organizationKey: string) => ensureModuleAccount(organizationKey),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.modules() });
+      void qc.invalidateQueries({ queryKey: adminKeys.audit() });
     },
   });
 }

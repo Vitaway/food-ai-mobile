@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { MiraFoodLogo } from '@/components/marketing/MiraFoodLogo';
 import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { LoginIcon } from '@/components/icons/LoginIcon';
 import { Button } from '@/components/ui/Button';
 import { SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
 
@@ -163,7 +164,10 @@ export function MarketingShell() {
 
           <div className="flex items-center gap-2 sm:gap-3">
             <Button to="/login" variant="primary" size="sm">
-              My account
+              <span className="inline-flex items-center gap-1.5">
+                <LoginIcon className="h-3.5 w-3.5" />
+                Login
+              </span>
             </Button>
           </div>
         </div>

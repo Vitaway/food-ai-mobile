@@ -1,16 +1,35 @@
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
+import { readNutrient } from "../nutrition-db/tfct-nutrients";
 import type { MealAnalysisItem, MealAnalysisResult } from "./meal-analysis";
 
 function nutritionFromPer100g(per100g: Record<string, number>, weightG: number) {
   const factor = weightG / 100;
   return {
-    caloriesKcal: Math.max(0, Math.round((per100g.caloriesKcal ?? 0) * factor)),
-    proteinG: Math.max(0, Math.round((per100g.proteinG ?? 0) * factor * 10) / 10),
-    carbsG: Math.max(0, Math.round((per100g.carbsG ?? 0) * factor * 10) / 10),
-    fatG: Math.max(0, Math.round((per100g.fatG ?? 0) * factor * 10) / 10),
-    fiberG: Math.max(0, Math.round((per100g.fiberG ?? 0) * factor * 10) / 10),
-    sugarG: Math.max(0, Math.round((per100g.sugarG ?? 0) * factor * 10) / 10),
-    sodiumMg: Math.max(0, Math.round((per100g.sodiumMg ?? 0) * factor)),
+    caloriesKcal: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "energy_kcal", "caloriesKcal") * factor),
+    ),
+    proteinG: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "protein_g", "proteinG") * factor * 10) / 10,
+    ),
+    carbsG: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "carb_g", "carbsG") * factor * 10) / 10,
+    ),
+    fatG: Math.max(0, Math.round(readNutrient(per100g, "fat_g", "fatG") * factor * 10) / 10),
+    fiberG: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "fiber_g", "fiberG") * factor * 10) / 10,
+    ),
+    sugarG: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "sugar_g", "sugarG") * factor * 10) / 10,
+    ),
+    sodiumMg: Math.max(
+      0,
+      Math.round(readNutrient(per100g, "sodium_mg", "sodiumMg") * factor),
+    ),
   };
 }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { FilePdfIcon, FileSpreadsheetIcon } from '@/components/icons/ActionIcons';
 import { Button } from '@/components/ui/Button';
 import type { ExportableReport } from '@/types/reports';
 
@@ -43,16 +44,18 @@ export function ReportDownloadActions({ report, size = 'sm' }: ReportDownloadAct
         <Button
           variant="outline"
           size={size}
+          icon={<FilePdfIcon />}
           disabled={busy !== null}
           onClick={() => void handlePdf()}>
-          {busy === 'pdf' ? 'Preparing PDF…' : 'Download PDF'}
+          {busy === 'pdf' ? 'Preparing…' : 'PDF'}
         </Button>
         <Button
           variant="outline"
           size={size}
+          icon={<FileSpreadsheetIcon />}
           disabled={busy !== null}
           onClick={() => void handleExcel()}>
-          {busy === 'excel' ? 'Preparing Excel…' : 'Download Excel'}
+          {busy === 'excel' ? 'Preparing…' : 'Excel'}
         </Button>
       </div>
       {error ? <p className="text-xs text-cinnamon-wood-600">{error}</p> : null}

@@ -9,6 +9,8 @@ type BaseProps = {
   variant?: Variant;
   size?: Size;
   fullWidth?: boolean;
+  /** Optional leading icon (dashboard actions, etc.) */
+  icon?: React.ReactNode;
   children: React.ReactNode;
   className?: string;
   onClick?: React.MouseEventHandler<HTMLElement>;
@@ -50,6 +52,7 @@ function ButtonFace({
   variant = 'primary',
   size = 'md',
   fullWidth = false,
+  icon,
   children,
   className = '',
 }: BaseProps) {
@@ -58,6 +61,7 @@ function ButtonFace({
       className={cn('brutal-btn', variantClasses[variant], fullWidth && 'brutal-btn--block', className)}>
       <span
         className={cn('brutal-btn__face', sizeClasses[size], fullWidth && 'brutal-btn__face--full')}>
+        {icon ?? null}
         {children}
       </span>
     </span>
@@ -70,13 +74,19 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       variant = 'primary',
       size = 'md',
       fullWidth = false,
+      icon,
       children,
       className = '',
       onClick,
     } = props;
 
     const content = (
-      <ButtonFace variant={variant} size={size} fullWidth={fullWidth} className={className}>
+      <ButtonFace
+        variant={variant}
+        size={size}
+        fullWidth={fullWidth}
+        icon={icon}
+        className={className}>
         {children}
       </ButtonFace>
     );
@@ -116,6 +126,7 @@ export const Button = forwardRef<HTMLButtonElement | HTMLAnchorElement, ButtonPr
       variant: _v,
       size: _s,
       fullWidth: _f,
+      icon: _icon,
       children: _c,
       className: _c2,
       onClick: _onClick,

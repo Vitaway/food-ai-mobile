@@ -7,8 +7,13 @@ import {
   buildServingsFromSeed,
   REGIONAL_FOOD_SEEDS,
 } from "./nutrition-seed.data";
+import { composeTfctFromLegacy } from "./tfct-nutrients";
+import { importTfctFoods } from "./tfct-import.util";
 
 export async function seedNutritionFoods() {
+  // Official TFCT catalog first (upsert by food_code; absorbs same-name legacy seeds)
+  await importTfctFoods();
+
   const foodRepo = AppDataSource.getRepository(NutritionFood);
   const servingRepo = AppDataSource.getRepository(NutritionServingProfile);
   let created = 0;
@@ -17,7 +22,16 @@ export async function seedNutritionFoods() {
   for (const seed of REGIONAL_FOOD_SEEDS) {
     const existing = await foodRepo.findOne({ where: { name: seed.name } });
     if (!existing) {
-      const food = foodRepo.create(buildFoodFromSeed(seed));
+      const food = foodRepo.create({
+        ...buildFoodFromSeed(seed),
+        sourceType: "custom_local",
+        source: "regional_seed",
+        nutritionPer100g: composeTfctFromLegacy({
+          nutritionPer100g: seed.nutritionPer100g,
+          micronutrients: seed.micronutrients,
+        }),
+        micronutrients: {},
+      });
       await foodRepo.save(food);
       await servingRepo.save(
         buildServingsFromSeed(food.id, seed).map((row) => servingRepo.create(row)),
@@ -26,21 +40,22 @@ export async function seedNutritionFoods() {
       continue;
     }
 
+    // Don't overwrite TFCT-owned rows
+    if (existing.foodCode || existing.sourceType === "TFCT") continue;
+
     let changed = false;
     if (seed.barcode && !existing.barcode) {
       existing.barcode = seed.barcode;
       changed = true;
     }
     if (seed.micronutrients && Object.keys(seed.micronutrients).length > 0) {
-      const current = existing.micronutrients ?? {};
-      const merged = { ...current };
-      for (const [key, value] of Object.entries(seed.micronutrients)) {
-        if (merged[key] == null) {
-          merged[key] = value;
-          changed = true;
-        }
-      }
-      if (changed) existing.micronutrients = merged;
+      const merged = composeTfctFromLegacy({
+        nutritionPer100g: existing.nutritionPer100g,
+        micronutrients: { ...(existing.micronutrients ?? {}), ...seed.micronutrients },
+      });
+      existing.nutritionPer100g = merged;
+      existing.micronutrients = {};
+      changed = true;
     }
     if (changed) {
       await foodRepo.save(existing);

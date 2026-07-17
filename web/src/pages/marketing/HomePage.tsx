@@ -65,7 +65,7 @@ export function HomePage() {
         <div className="relative mx-auto flex min-h-[min(85vh,920px)] max-w-7xl flex-col justify-center px-4 py-16 sm:px-6 sm:py-20 lg:px-8 lg:py-24">
           <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
             <div>
-              <h1 className="font-sans text-3xl leading-tight tracking-tight text-white normal-case sm:text-4xl lg:text-5xl">
+              <h1 className="text-3xl leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
                 Trust what&apos;s in your diary
               </h1>
               <p className="mt-5 max-w-lg font-sans text-base leading-relaxed text-white/85 sm:text-lg">

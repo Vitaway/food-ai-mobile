@@ -28,6 +28,9 @@ type DashboardSidebarLayoutProps = {
 function SidebarNav({ nav, onNavigate }: { nav: SidebarNavItem[]; onNavigate?: () => void }) {
   return (
     <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3 py-2">
+      <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">
+        Navigate
+      </p>
       {nav.map((item) => (
         <NavLink
           key={item.to}
@@ -36,13 +39,17 @@ function SidebarNav({ nav, onNavigate }: { nav: SidebarNavItem[]; onNavigate?: (
           onClick={onNavigate}
           className={({ isActive }) =>
             cn(
-              'group flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm transition-all',
+              'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors',
               isActive
-                ? 'bg-ash-grey-100 text-ash-grey-900 shadow-sm'
-                : 'text-ash-grey-600 hover:bg-ash-grey-50 hover:text-ash-grey-900',
+                ? 'bg-blue-spruce-700 font-semibold text-white'
+                : 'text-white/75 hover:bg-white/10 hover:text-white',
             )
           }>
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white text-ash-grey-600 shadow-sm ring-1 ring-ash-grey-100 group-[&.active]:text-blue-spruce-700">
+          <span
+            className={cn(
+              'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+              'bg-white/10 text-white/80 group-[&.active]:bg-white/15 group-[&.active]:text-white',
+            )}>
             {item.icon}
           </span>
           <span className="min-w-0 flex-1 truncate">{item.label}</span>
@@ -71,7 +78,7 @@ function SearchField() {
       <input
         type="search"
         placeholder="Search tasks, clients, meals…"
-        className="h-11 w-full rounded-2xl border border-ash-grey-200 bg-white pl-11 pr-4 text-sm text-ash-grey-900 shadow-sm outline-none transition placeholder:text-ash-grey-400 focus:border-blue-spruce-300 focus:ring-2 focus:ring-blue-spruce-100"
+        className="h-11 w-full rounded-xl border border-ash-grey-200 bg-white pl-11 pr-4 text-sm text-ash-grey-900 shadow-sm outline-none transition placeholder:text-ash-grey-400 focus:border-blue-spruce-300 focus:ring-2 focus:ring-blue-spruce-100"
       />
     </label>
   );
@@ -94,7 +101,7 @@ export function DashboardSidebarLayout({
   const location = useLocation();
   const immersive = immersivePrefixes.some((prefix) => location.pathname.startsWith(prefix));
 
-  const profileBlock = (
+  const headerProfile = (
     <div className="flex items-center gap-3">
       {profileTo ? (
         <Link to={profileTo} className="shrink-0 rounded-full ring-2 ring-white">
@@ -106,6 +113,22 @@ export function DashboardSidebarLayout({
       <div className="min-w-0 hidden sm:block">
         <p className="truncate text-sm font-medium text-ash-grey-900">{userDisplayName ?? 'User'}</p>
         {userRole ? <p className="truncate text-xs text-ash-grey-500">{userRole}</p> : null}
+      </div>
+    </div>
+  );
+
+  const sidebarProfile = (
+    <div className="flex items-center gap-3">
+      {profileTo ? (
+        <Link to={profileTo} className="shrink-0 rounded-full ring-2 ring-white/30">
+          <NavbarAvatar name={userDisplayName ?? 'User'} imageUrl={userAvatarUrl} />
+        </Link>
+      ) : (
+        <NavbarAvatar name={userDisplayName ?? 'User'} imageUrl={userAvatarUrl} />
+      )}
+      <div className="min-w-0">
+        <p className="truncate text-sm font-medium text-white">{userDisplayName ?? 'User'}</p>
+        {userRole ? <p className="truncate text-xs text-white/55">{userRole}</p> : null}
       </div>
     </div>
   );
@@ -127,27 +150,27 @@ export function DashboardSidebarLayout({
 
       <aside
         className={cn(
-          'fixed inset-y-0 left-0 z-50 flex h-screen w-[260px] flex-col border-r border-ash-grey-200 bg-white shadow-[4px_0_24px_rgba(26,28,23,0.04)] transition-transform duration-200',
+          'fixed inset-y-0 left-0 z-50 flex h-screen w-[260px] flex-col bg-blue-spruce-600 transition-transform duration-200',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
         )}>
         <div className="shrink-0 px-5 pb-4 pt-6">
           <Link to="/" className="block" onClick={() => setMobileOpen(false)}>
-            <p className="text-lg tracking-tight text-ash-grey-900">{brandName}</p>
-            <p className="mt-0.5 text-sm text-ash-grey-500">{brandSubtitle}</p>
+            <p className="text-lg tracking-tight text-white">{brandName}</p>
+            <p className="mt-0.5 text-sm text-white/55">{brandSubtitle}</p>
           </Link>
         </div>
 
         <SidebarNav nav={nav} onNavigate={() => setMobileOpen(false)} />
 
-        <div className="mt-auto shrink-0 space-y-3 border-t border-ash-grey-100 px-4 py-4">
+        <div className="mt-auto shrink-0 space-y-3 border-t border-white/10 px-4 py-4">
           {sidebarStat}
-          <div className="rounded-2xl bg-ash-grey-50 p-3">
-            {profileBlock}
+          <div className="rounded-xl bg-blue-spruce-700/80 p-3">
+            {sidebarProfile}
             {onLogout ? (
               <button
                 type="button"
                 onClick={onLogout}
-                className="mt-3 text-xs text-ash-grey-500 transition-colors hover:text-ash-grey-800">
+                className="mt-3 text-xs text-white/55 transition-colors hover:text-white">
                 Sign out
               </button>
             ) : null}
@@ -178,8 +201,8 @@ export function DashboardSidebarLayout({
               </button>
               <SearchField />
             </div>
-            <div className="flex shrink-0 items-center gap-3 lg:hidden">{profileBlock}</div>
-            <div className="hidden shrink-0 items-center gap-3 lg:flex">{profileBlock}</div>
+            <div className="flex shrink-0 items-center gap-3 lg:hidden">{headerProfile}</div>
+            <div className="hidden shrink-0 items-center gap-3 lg:flex">{headerProfile}</div>
           </div>
         </header>
 

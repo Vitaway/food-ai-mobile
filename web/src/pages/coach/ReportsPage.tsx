@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Card, CardBody } from '@/components/ui/Card';
 import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { StatusPill } from '@/components/ui/StatusPill';
 import { ReportDownloadActions } from '@/components/reports/ReportDownloadActions';
 import { fetchCoachReports, type CoachReportSnapshot } from '@/api/coachApi';
 
@@ -21,78 +23,103 @@ export function ReportsPage() {
 
   const reports = data ?? [];
 
+  const columns: DataTableColumn<CoachReportSnapshot>[] = [
+    {
+      key: 'period',
+      header: 'Period',
+      cell: (report) => (
+        <div>
+          <p className="font-semibold capitalize text-ash-grey-900">{report.period} report</p>
+          <p className="text-xs text-ash-grey-500">
+            {new Date(report.periodStart).toLocaleDateString()} –{' '}
+            {new Date(report.periodEnd).toLocaleDateString()}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: 'org',
+      header: 'Organization',
+      cell: (report) => {
+        const organization = metricValue(report.metrics, ['organization']);
+        return organization ? (
+          <span className="text-ash-grey-700">{organization}</span>
+        ) : (
+          <span className="text-ash-grey-400">—</span>
+        );
+      },
+    },
+    {
+      key: 'reviews',
+      header: 'Reviews',
+      cell: (report) => (
+        <StatusPill tone="info">
+          {metricValue(report.metrics, ['coachActivity', 'reviewsCompleted']) ?? '0'}
+        </StatusPill>
+      ),
+    },
+    {
+      key: 'approved',
+      header: 'Approved',
+      cell: (report) => (
+        <StatusPill tone="good">
+          {metricValue(report.metrics, ['coachActivity', 'mealsApproved']) ?? '0'}
+        </StatusPill>
+      ),
+    },
+    {
+      key: 'queue',
+      header: 'In queue',
+      cell: (report) => (
+        <span className="text-ash-grey-700">
+          {metricValue(report.metrics, ['coachActivity', 'mealsInQueue']) ?? '0'}
+        </span>
+      ),
+    },
+    {
+      key: 'generated',
+      header: 'Generated',
+      cell: (report) => (
+        <span className="text-xs text-ash-grey-500">
+          {new Date(report.createdAt).toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'Export',
+      cell: (report) => (
+        <div onClick={(e) => e.stopPropagation()}>
+          <ReportDownloadActions
+            report={{
+              ...report,
+              variant: 'coach',
+            }}
+          />
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <DashboardPageHeader title="Reports" />
 
-      {isLoading ? <p className="text-sm text-ash-grey-500">Loading reports...</p> : null}
-      {error ? (
-        <p className="text-sm text-red-600">Unable to load reports right now.</p>
-      ) : null}
-
-      {!isLoading && !error && reports.length === 0 ? (
-        <Card>
-          <CardBody>
-            <p className="text-sm text-ash-grey-600">
-              No reports yet. Reports are generated automatically each week.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {reports.map((report: CoachReportSnapshot) => {
-        const reviews = metricValue(report.metrics, ['coachActivity', 'reviewsCompleted']);
-        const approved = metricValue(report.metrics, ['coachActivity', 'mealsApproved']);
-        const inQueue = metricValue(report.metrics, ['coachActivity', 'mealsInQueue']);
-        const organization = metricValue(report.metrics, ['organization']);
-
-        return (
-          <Card key={report.id}>
-            <CardBody>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-medium text-blue-spruce-600">
-                    {report.period} report
-                  </p>
-                  <p className="mt-1 text-sm text-ash-grey-600">
-                    {new Date(report.periodStart).toLocaleDateString()} –{' '}
-                    {new Date(report.periodEnd).toLocaleDateString()}
-                  </p>
-                  {organization ? (
-                    <p className="mt-1 text-sm text-ash-grey-500">{organization}</p>
-                  ) : null}
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <ReportDownloadActions
-                    report={{
-                      ...report,
-                      variant: 'coach',
-                    }}
-                  />
-                  <p className="text-xs text-ash-grey-400">
-                    Generated {new Date(report.createdAt).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3">
-                  <p className="text-xs text-ash-grey-500">Reviews completed</p>
-                  <p className="text-2xl font-bold text-ash-grey-900">{reviews ?? '0'}</p>
-                </div>
-                <div className="rounded-xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3">
-                  <p className="text-xs text-ash-grey-500">Meals approved</p>
-                  <p className="text-2xl font-bold text-ash-grey-900">{approved ?? '0'}</p>
-                </div>
-                <div className="rounded-xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3">
-                  <p className="text-xs text-ash-grey-500">In review queue</p>
-                  <p className="text-2xl font-bold text-ash-grey-900">{inQueue ?? '0'}</p>
-                </div>
-              </div>
-            </CardBody>
-          </Card>
-        );
-      })}
+      <DashboardPanel title="Weekly reports">
+        {isLoading ? (
+          <p className="px-3 py-8 text-sm text-ash-grey-500">Loading reports…</p>
+        ) : error ? (
+          <p className="px-3 py-8 text-sm text-red-600">Unable to load reports right now.</p>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={reports}
+            rowKey={(r) => r.id}
+            emptyTitle="No reports yet"
+            emptyDescription="Reports are generated automatically each week."
+          />
+        )}
+      </DashboardPanel>
     </div>
   );
 }

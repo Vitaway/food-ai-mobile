@@ -60,7 +60,7 @@ export function FeaturesPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div className="text-center lg:text-left">
-              <h1 className="font-sans text-4xl tracking-tight text-ash-grey-900 normal-case sm:text-5xl">Features</h1>
+              <h1 className="text-4xl tracking-tight text-ash-grey-900 sm:text-5xl">Features</h1>
               <p className="mx-auto mt-4 max-w-2xl text-lg text-ash-grey-600 lg:mx-0">
                 MiraFood combines modern AI with human coach review — the accuracy of a dietitian, the
                 speed of an app.

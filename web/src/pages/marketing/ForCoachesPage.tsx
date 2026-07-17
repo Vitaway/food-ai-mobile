@@ -39,7 +39,7 @@ export function ForCoachesPage() {
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
-              <h1 className="font-sans text-4xl leading-tight tracking-tight normal-case sm:text-5xl">For coaches</h1>
+              <h1 className="text-4xl leading-tight tracking-tight sm:text-5xl">For coaches</h1>
               <p className="mt-5 text-lg leading-relaxed text-white/85">
                 Review client meals like a structured nutrition consult — verify AI output, edit
                 portions, and keep your queue moving from a clean web dashboard.

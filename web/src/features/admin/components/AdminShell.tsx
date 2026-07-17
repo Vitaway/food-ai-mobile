@@ -2,17 +2,20 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
 import { ADMIN_ROUTES, AUTH_ROUTES } from '@/features/auth/constants';
 import { useAdminMetrics } from '@/features/admin/hooks/useAdminQueries';
+import { useChatUnreadCount } from '@/hooks/useChatQueries';
+import { useChatRealtime } from '@/hooks/useChatRealtime';
 import { DashboardSidebarLayout, type SidebarNavItem } from '@/components/layout/DashboardSidebarLayout';
 
 const navRoutes = [
   { to: ADMIN_ROUTES.dashboard, label: 'Overview', end: true },
+  { to: ADMIN_ROUTES.users, label: 'Users & roles', end: false },
   { to: ADMIN_ROUTES.coaches, label: 'Coaches', end: false },
-  { to: ADMIN_ROUTES.users, label: 'Consumers', end: false },
+  { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
+  { to: ADMIN_ROUTES.foodDb, label: 'Food database', end: false },
   { to: ADMIN_ROUTES.payments, label: 'Payments', end: false },
   { to: ADMIN_ROUTES.reports, label: 'Reports', end: false },
-  { to: ADMIN_ROUTES.foodDb, label: 'Food DB', end: false },
   { to: ADMIN_ROUTES.referrals, label: 'Referrals', end: false },
-  { to: ADMIN_ROUTES.system, label: 'System', end: false },
+  { to: ADMIN_ROUTES.system, label: 'Audit & system', end: false },
 ];
 
 function NavIcon({ label }: { label: string }) {
@@ -23,17 +26,21 @@ function NavIcon({ label }: { label: string }) {
       </svg>
     );
   }
-  if (label === 'Coaches') {
+  if (label === 'Messages') {
     return (
       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+        <path
+          fillRule="evenodd"
+          d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
+          clipRule="evenodd"
+        />
       </svg>
     );
   }
-  if (label === 'Consumers') {
+  if (label === 'Coaches' || label === 'Users & roles') {
     return (
       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
-        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+        <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
       </svg>
     );
   }
@@ -58,8 +65,11 @@ function NavCountBadge({ count }: { count: number }) {
 }
 
 export function AdminShell() {
+  useChatRealtime();
   const { data: metrics } = useAdminMetrics();
+  const { data: chatUnread } = useChatUnreadCount();
   const { user, logout } = useAuth();
+  const unreadCount = chatUnread?.count ?? 0;
 
   const nav: SidebarNavItem[] = navRoutes.map((item) => ({
     ...item,
@@ -67,6 +77,8 @@ export function AdminShell() {
     badge:
       item.to === ADMIN_ROUTES.coaches && metrics?.coaches ? (
         <NavCountBadge count={metrics.coaches} />
+      ) : item.to === ADMIN_ROUTES.messages && unreadCount ? (
+        <NavCountBadge count={unreadCount} />
       ) : undefined,
   }));
 
@@ -74,14 +86,16 @@ export function AdminShell() {
     <DashboardSidebarLayout
       brandSubtitle="Platform admin"
       nav={nav}
+      immersivePrefixes={[ADMIN_ROUTES.messages]}
       userDisplayName={user?.displayName ?? 'Admin'}
       userRole="Platform administrator"
       userAvatarUrl={user?.avatarUrl}
+      profileTo={ADMIN_ROUTES.profile}
       onLogout={() => void logout()}
       sidebarStat={
         metrics ? (
-          <div className="rounded-2xl border border-ash-grey-100 bg-white px-3 py-2.5 text-xs text-ash-grey-600 shadow-sm">
-            <span className="font-medium text-ash-grey-900">{metrics.meals.inReview}</span> meals in review
+          <div className="rounded-xl bg-blue-spruce-700/60 px-3 py-2.5 text-xs text-white/70">
+            <span className="font-semibold text-white">{metrics.meals.inReview}</span> meals in review
           </div>
         ) : null
       }

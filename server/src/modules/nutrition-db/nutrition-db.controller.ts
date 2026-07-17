@@ -32,9 +32,10 @@ export class NutritionDbController {
     @QueryParam("q") q?: string,
     @QueryParam("category") category?: string,
     @QueryParam("includeInactive") includeInactive?: boolean,
-    @QueryParam("approval") approval?: "approved" | "pending" | "all",
+    @QueryParam("approval") approval?: "approved" | "pending" | "rejected" | "all",
     @QueryParam("page") page?: number,
     @QueryParam("pageSize") pageSize?: number,
+    @QueryParam("sourceType") sourceType?: string,
     @CurrentUser() user?: User,
   ) {
     const approvalFilter =
@@ -46,6 +47,7 @@ export class NutritionDbController {
       approvalFilter,
       page,
       pageSize,
+      sourceType,
     );
   }
 
@@ -69,7 +71,7 @@ export class NutritionDbController {
 
   @Authorized(["coach", "admin", "data_entry_staff"])
   @Get("/categories")
-  categories() {
+  async categories() {
     return nutritionDbService.listCategories();
   }
 

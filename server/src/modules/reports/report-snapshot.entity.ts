@@ -7,7 +7,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 
-export type ReportPeriod = "weekly" | "monthly";
+export type ReportPeriod = "weekly" | "monthly" | "custom";
 
 @Entity({ name: "report_snapshots" })
 export class ReportSnapshot {
