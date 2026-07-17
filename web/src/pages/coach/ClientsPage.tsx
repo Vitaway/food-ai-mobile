@@ -1,124 +1,155 @@
-import { Link } from 'react-router-dom';
+import type { ReactNode } from 'react';
+import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CohortFilter } from '@/components/coach/CohortFilter';
 import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
-import { Card, CardBody } from '@/components/ui/Card';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
+import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { StatusPill } from '@/components/ui/StatusPill';
 import { useCoachClients } from '@/hooks/useCoachQueries';
 import { useCoachStore } from '@/stores/coachStore';
-import { cn, formatCoachPatientLabel, formatRelativeTime } from '@/lib/utils';
+import { formatCoachPatientLabel, formatRelativeTime } from '@/lib/utils';
+import type { CoachClient } from '@/types';
 
-const TREND_STYLES = {
-  improving: 'text-shamrock-600',
-  declining: 'text-red-600',
-  stable: 'text-ash-grey-500',
+const TREND_TONE = {
+  improving: 'good',
+  declining: 'bad',
+  stable: 'muted',
 } as const;
 
 export function ClientsPage() {
+  const navigate = useNavigate();
   const cohortId = useCoachStore((s) => s.cohortId);
   const { data: clients, isLoading } = useCoachClients(cohortId ?? undefined);
 
-  const sorted = [...(clients ?? [])].sort((a, b) => {
-    const aReview = a.inReviewCount ?? 0;
-    const bReview = b.inReviewCount ?? 0;
-    if (bReview !== aReview) return bReview - aReview;
-    const aTime = a.lastMealAt ? new Date(a.lastMealAt).getTime() : 0;
-    const bTime = b.lastMealAt ? new Date(b.lastMealAt).getTime() : 0;
-    return bTime - aTime;
-  });
+  const sorted = useMemo(() => {
+    return [...(clients ?? [])].sort((a, b) => {
+      const aReview = a.inReviewCount ?? 0;
+      const bReview = b.inReviewCount ?? 0;
+      if (bReview !== aReview) return bReview - aReview;
+      const aTime = a.lastMealAt ? new Date(a.lastMealAt).getTime() : 0;
+      const bTime = b.lastMealAt ? new Date(b.lastMealAt).getTime() : 0;
+      return bTime - aTime;
+    });
+  }, [clients]);
+
+  const columns: DataTableColumn<CoachClient>[] = [
+    {
+      key: 'client',
+      header: 'Patient',
+      cell: (client) => (
+        <span className="font-semibold text-ash-grey-900">
+          {formatCoachPatientLabel(client.patientId, client.profile.displayName)}
+        </span>
+      ),
+    },
+    {
+      key: 'score',
+      header: 'Health score',
+      cell: (client) => (
+        <span className="font-medium text-ash-grey-800">{client.dashboard.healthScore ?? 0}</span>
+      ),
+    },
+    {
+      key: 'adherence',
+      header: 'Adherence',
+      cell: (client) => {
+        const trend = client.adherenceTrend ?? 'stable';
+        return (
+          <StatusPill tone={TREND_TONE[trend]}>
+            {trend.charAt(0).toUpperCase() + trend.slice(1)}
+          </StatusPill>
+        );
+      },
+    },
+    {
+      key: 'allergies',
+      header: 'Allergies',
+      cell: (client) => {
+        const allergies = client.profile.allergies ?? [];
+        if (!allergies.length) return <span className="text-ash-grey-400">—</span>;
+        return (
+          <div className="flex flex-wrap gap-1">
+            {allergies.slice(0, 2).map((a) => (
+              <StatusPill key={a} tone="bad">
+                {a}
+              </StatusPill>
+            ))}
+            {allergies.length > 2 ? (
+              <span className="text-xs text-ash-grey-400">+{allergies.length - 2}</span>
+            ) : null}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'flags',
+      header: 'Flags',
+      cell: (client) => {
+        const chips: ReactNode[] = [];
+        if ((client.inReviewCount ?? 0) > 0) {
+          chips.push(
+            <StatusPill key="review" tone="warn">
+              {client.inReviewCount} review
+            </StatusPill>,
+          );
+        }
+        if ((client.unreadMessages ?? 0) > 0) {
+          chips.push(
+            <StatusPill key="msg" tone="info">
+              {client.unreadMessages} msg
+            </StatusPill>,
+          );
+        }
+        if ((client.openFlags ?? 0) > 0) {
+          chips.push(
+            <StatusPill key="flags" tone="bad">
+              {client.openFlags} flag
+            </StatusPill>,
+          );
+        }
+        if (!chips.length) return <span className="text-ash-grey-400">—</span>;
+        return <div className="flex flex-wrap gap-1">{chips}</div>;
+      },
+    },
+    {
+      key: 'last',
+      header: 'Last log',
+      cell: (client) => (
+        <span className="text-ash-grey-600">
+          {client.lastMealAt ? formatRelativeTime(client.lastMealAt) : 'Never'}
+        </span>
+      ),
+    },
+    {
+      key: 'today',
+      header: 'Today',
+      cell: (client) => (
+        <span className="text-ash-grey-600">
+          {client.dashboard.caloriesConsumed} / {client.dashboard.calorieTarget} kcal
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-6">
-      <DashboardPageHeader
-        title="Clients"
-        actions={<CohortFilter />}
-      />
+    <div className="space-y-5">
+      <DashboardPageHeader title="Clients" actions={<CohortFilter />} />
 
-      {isLoading ? (
-        <p className="text-ash-grey-500">Loading clients…</p>
-      ) : sorted.length ? (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-ash-grey-100 bg-ash-grey-50 text-xs text-ash-grey-500">
-                  <th className="px-4 py-3 font-semibold">Client</th>
-                  <th className="px-4 py-3 font-semibold">Health score</th>
-                  <th className="px-4 py-3 font-semibold">Adherence</th>
-                  <th className="px-4 py-3 font-semibold">Allergies</th>
-                  <th className="px-4 py-3 font-semibold">Flags</th>
-                  <th className="px-4 py-3 font-semibold">Last log</th>
-                  <th className="px-4 py-3 font-semibold">Today</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sorted.map((client) => {
-                  const allergies = client.profile.allergies ?? [];
-                  const trend = client.adherenceTrend ?? 'stable';
-                  return (
-                    <tr key={client.patientId} className="border-b border-ash-grey-50 last:border-0 hover:bg-ash-grey-50/50">
-                      <td className="px-4 py-3">
-                        <Link
-                          to={`/coach/clients/${client.patientId}`}
-                          className="font-semibold text-blue-spruce-700 hover:underline">
-                          {formatCoachPatientLabel(client.patientId, client.profile.displayName)}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 font-medium">{client.dashboard.healthScore ?? 0}</td>
-                      <td className={cn('px-4 py-3 capitalize', TREND_STYLES[trend])}>{trend}</td>
-                      <td className="px-4 py-3">
-                        {allergies.length ? (
-                          <div className="flex flex-wrap gap-1">
-                            {allergies.slice(0, 2).map((a) => (
-                              <span key={a} className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-red-700">
-                                {a}
-                              </span>
-                            ))}
-                            {allergies.length > 2 ? (
-                              <span className="text-xs text-ash-grey-400">+{allergies.length - 2}</span>
-                            ) : null}
-                          </div>
-                        ) : (
-                          <span className="text-ash-grey-400">—</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap gap-1">
-                          {(client.inReviewCount ?? 0) > 0 ? (
-                            <span className="rounded-full bg-cinnamon-wood-100 px-2 py-0.5 text-xs font-semibold text-cinnamon-wood-700">
-                              {client.inReviewCount} review
-                            </span>
-                          ) : null}
-                          {(client.unreadMessages ?? 0) > 0 ? (
-                            <span className="rounded-full bg-blue-spruce-100 px-2 py-0.5 text-xs font-semibold text-blue-spruce-700">
-                              {client.unreadMessages} msg
-                            </span>
-                          ) : null}
-                          {(client.openFlags ?? 0) === 0 &&
-                          !(client.inReviewCount ?? 0) &&
-                          !(client.unreadMessages ?? 0) ? (
-                            <span className="text-ash-grey-400">—</span>
-                          ) : null}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-ash-grey-600">
-                        {client.lastMealAt ? formatRelativeTime(client.lastMealAt) : 'Never'}
-                      </td>
-                      <td className="px-4 py-3 text-ash-grey-600">
-                        {client.dashboard.caloriesConsumed} / {client.dashboard.calorieTarget} kcal
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      ) : (
-        <Card>
-          <CardBody className="py-16 text-center text-ash-grey-500">
-            No patients on your caseload yet. Review meals from the queue and tap &quot;Add to my caseload&quot; when you take ownership.
-          </CardBody>
-        </Card>
-      )}
+      <DashboardPanel title="Caseload">
+        {isLoading ? (
+          <p className="px-3 py-8 text-sm text-ash-grey-500">Loading clients…</p>
+        ) : (
+          <DataTable
+            columns={columns}
+            rows={sorted}
+            rowKey={(c) => c.patientId}
+            onRowClick={(c) => navigate(`/coach/clients/${c.patientId}`)}
+            emptyTitle="No patients on your caseload yet"
+            emptyDescription='Review meals from the queue and tap "Add to my caseload" when you take ownership.'
+          />
+        )}
+      </DashboardPanel>
     </div>
   );
 }

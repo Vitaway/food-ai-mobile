@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ChatThread } from '@/components/chat/ChatThread';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { TeamMembersModal } from '@/components/chat/TeamMembersModal';
@@ -209,7 +209,10 @@ function EmptyChatPanel() {
 export function MessagesPage() {
   const { id: selectedId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   useChatRealtime();
+
+  const basePath = location.pathname.startsWith('/admin') ? '/admin/messages' : '/coach/messages';
 
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<FilterTab>('all');
@@ -238,7 +241,7 @@ export function MessagesPage() {
   }, [conversations, filter, search]);
 
   function openConversation(conversationId: string) {
-    navigate(`/coach/messages/${conversationId}`);
+    navigate(`${basePath}/${conversationId}`);
   }
 
   return (
@@ -345,7 +348,7 @@ export function MessagesPage() {
             <div className="flex h-[60px] shrink-0 items-center border-b border-ash-grey-200 bg-[#f0f2f5] px-2 lg:hidden">
               <button
                 type="button"
-                onClick={() => navigate('/coach/messages')}
+                onClick={() => navigate(basePath)}
                 className="rounded-lg p-2 text-blue-spruce-600 hover:bg-ash-grey-100"
                 aria-label="Back to conversations">
                 <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">

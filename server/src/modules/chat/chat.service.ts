@@ -17,6 +17,11 @@ import { saveChatAttachment } from "../../services/uploads.service";
 import type { Request } from "express";
 import type { ChatConversation } from "./chat-conversation.entity";
 
+/** Coaches and platform admins can use staff messaging (inbox, contacts, team). */
+function isStaffMessenger(user: { role: string }): boolean {
+  return user.role === "coach" || user.role === "admin";
+}
+
 function coachSafeFirstName(displayName: unknown): string {
   if (typeof displayName !== "string" || !displayName.trim()) return "Patient";
   return displayName.trim().split(/\s+/)[0];
@@ -39,11 +44,11 @@ function privacySafeSenderName(
     return sender.displayName ?? "User";
   }
 
-  if (sender.role === "coach") {
+  if (sender.role === "coach" || sender.role === "admin") {
     return formatCoachLabelForPatient(coachSafeFirstName(sender.displayName));
   }
 
-  if (viewer.role === "coach" && conv.clientId) {
+  if (isStaffMessenger(viewer) && conv.clientId) {
     return formatCoachPatientLabel(conv.clientId, sender.displayName);
   }
 
@@ -63,7 +68,7 @@ function conversationTitle(
   if (conv.type === "direct") {
     return peerName ?? "Direct message";
   }
-  if (viewer.role === "coach") {
+  if (isStaffMessenger(viewer)) {
     if (conv.clientId) {
       return formatCoachPatientLabel(conv.clientId, clientName);
     }
@@ -104,7 +109,7 @@ async function resolveParticipantUserIds(conv: ChatConversation): Promise<string
 
 async function assertCanAccessConversation(user: User, conv: ChatConversation) {
   if (conv.type === "patient") {
-    if (user.role === "coach") {
+    if (isStaffMessenger(user)) {
       if (conv.coachUserId !== user.id) {
         throw new ForbiddenError("You cannot access this conversation");
       }
@@ -122,7 +127,7 @@ async function assertCanAccessConversation(user: User, conv: ChatConversation) {
   }
 
   if (conv.type === "team") {
-    if (user.role !== "coach") {
+    if (!isStaffMessenger(user)) {
       throw new ForbiddenError("Team channel is for coaches only");
     }
     const profile = await coachProfilesRepository.findByUserId(user.id);
@@ -163,7 +168,7 @@ async function enrichConversation(
         const u = await usersRepository.findById(consumer.userId);
         if (u) {
           clientName = coachSafeFirstName(u.displayName);
-          if (user.role === "coach") {
+          if (isStaffMessenger(user)) {
             peerAvatarUrl = u.avatarUrl ?? null;
           }
         }
@@ -318,7 +323,9 @@ async function deliverChatMessage(
 
     if (conv.type === "patient") {
       const title =
-        user.role === "coach" ? "Message from your coach" : "Message from your patient";
+        user.role === "coach" || user.role === "admin"
+          ? "Message from your coach"
+          : "Message from your patient";
       void notificationsService.create({
         userId: participantId,
         kind: "system",
@@ -355,7 +362,7 @@ export const chatService = {
   async listConversations(user: User) {
     let conversations: ChatConversation[] = [];
 
-    if (user.role === "coach") {
+    if (isStaffMessenger(user)) {
       const profile = await coachProfilesRepository.findByUserId(user.id);
       conversations = await chatRepository.listCoachConversations(
         user.id,
@@ -386,7 +393,7 @@ export const chatService = {
   },
 
   async listContacts(user: User) {
-    if (user.role !== "coach") {
+    if (!isStaffMessenger(user)) {
       throw new ForbiddenError("Only coaches can browse chat contacts");
     }
 
@@ -416,7 +423,7 @@ export const chatService = {
   },
 
   async ensureDirectConversation(user: User, opts: { userId: string }) {
-    if (user.role !== "coach") {
+    if (!isStaffMessenger(user)) {
       throw new ForbiddenError("Only coaches can start direct conversations");
     }
 
@@ -451,7 +458,7 @@ export const chatService = {
     user: User,
     opts: { clientId?: string; coachUserId?: string },
   ) {
-    if (user.role === "coach") {
+    if (isStaffMessenger(user)) {
       const clientId = opts.clientId?.trim();
       if (!clientId) throw new BadRequestError("clientId is required");
 
@@ -497,7 +504,7 @@ export const chatService = {
   },
 
   async ensureTeamChannel(user: User) {
-    if (user.role !== "coach") {
+    if (!isStaffMessenger(user)) {
       throw new ForbiddenError("Team channel is for coaches only");
     }
     const profile = await coachProfilesRepository.findByUserId(user.id);
