@@ -3,16 +3,34 @@ import { useAuthStore } from '@/features/auth/stores/authStore';
 
 export type NutritionFood = {
   id: string;
+  foodCode?: string | null;
   name: string;
   category: string;
+  foodGroup?: string | null;
+  foodGroupName?: string | null;
+  recipeNote?: string | null;
+  sourceType?: string | null;
+  applicableCountries?: string | null;
+  nameSw?: string | null;
+  nameRw?: string | null;
+  nameLocalOther?: string | null;
   brand: string | null;
   isActive: boolean;
   imageUrl: string | null;
+  imageConfirmed?: boolean;
   barcode: string | null;
+  packageSizeG?: number | null;
+  labelSource?: string | null;
+  source?: string | null;
+  sourceVersion?: string | null;
   approvalStatus?: 'approved' | 'pending' | 'rejected';
   submittedByUserId?: string | null;
   verifiedByUserId?: string | null;
+  /** Full TFCT per-100g panel — snake_case keys matching the spreadsheet. */
+  composition?: Record<string, number>;
+  /** CamelCase macros for forms / meal UI. */
   nutritionPer100g: Record<string, number>;
+  /** CamelCase micros for forms. */
   micronutrients: Record<string, number>;
   servings: Array<{ id: string; unit: string; amount: number; gramsEquivalent: number; isDefault: boolean }>;
   updatedAt: string;
@@ -43,6 +61,8 @@ export async function fetchNutritionFoods(params?: {
   q?: string;
   category?: string;
   includeInactive?: boolean;
+  approval?: 'approved' | 'pending' | 'all' | 'rejected';
+  sourceType?: string;
   page?: number;
   pageSize?: number;
 }) {
@@ -50,7 +70,9 @@ export async function fetchNutritionFoods(params?: {
   if (params?.q) search.set('q', params.q);
   if (params?.category) search.set('category', params.category);
   if (params?.includeInactive) search.set('includeInactive', 'true');
-  if (params?.includeInactive) search.set('approval', 'all');
+  if (params?.approval) search.set('approval', params.approval);
+  else if (params?.includeInactive) search.set('approval', 'all');
+  if (params?.sourceType) search.set('sourceType', params.sourceType);
   if (params?.page != null) search.set('page', String(params.page));
   if (params?.pageSize != null) search.set('pageSize', String(params.pageSize));
   const suffix = search.toString() ? `?${search.toString()}` : '';
@@ -61,6 +83,8 @@ export async function fetchNutritionFoodsPage(params?: {
   q?: string;
   category?: string;
   includeInactive?: boolean;
+  approval?: 'approved' | 'pending' | 'all' | 'rejected';
+  sourceType?: string;
   page?: number;
   pageSize?: number;
 }): Promise<NutritionFoodsPage> {

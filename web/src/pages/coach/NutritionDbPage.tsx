@@ -1,12 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import { ArchiveIcon, PencilIcon, PlusIcon, RefreshIcon } from '@/components/icons/ActionIcons';
+import { TfctCompositionGrid } from '@/components/nutrition/TfctCompositionGrid';
 import { Button } from '@/components/ui/Button';
 import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
-import { Card } from '@/components/ui/Card';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { resolveMediaUrl } from '@/lib/mediaUrls';
 import { cn } from '@/lib/utils';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+import { useToast } from '@/context/ToastContext';
+import { getApiErrorMessage } from '@/lib/apiErrors';
 import {
   createNutritionFood,
   fetchNutritionCategories,
@@ -423,6 +428,8 @@ function StatusBadge({ food }: { food: NutritionFood }) {
 
 export function NutritionDbPage() {
   const qc = useQueryClient();
+  const toast = useToast();
+  const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const rowPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [q, setQ] = useState('');
   const [category, setCategory] = useState('');
@@ -430,6 +437,7 @@ export function NutritionDbPage() {
   const [barcodeLookup, setBarcodeLookup] = useState('');
   const [form, setForm] = useState(EMPTY_FORM);
   const [editing, setEditing] = useState<NutritionFood | null>(null);
+  const [compositionFood, setCompositionFood] = useState<NutritionFood | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
@@ -528,7 +536,34 @@ export function NutritionDbPage() {
   const archiveMutation = useMutation({
     mutationFn: (food: NutritionFood) => updateNutritionFood(food.id, { isActive: !food.isActive }),
     onSuccess: () => void qc.invalidateQueries({ queryKey: ['coach', 'nutrition-db'] }),
+    onError: (err) => toast.error(getApiErrorMessage(err, 'Could not update food')),
   });
+
+  async function handleArchive(food: NutritionFood) {
+    const archiving = food.isActive;
+    const ok = await confirm({
+      title: archiving ? 'Archive this food?' : 'Restore this food?',
+      description: archiving
+        ? `“${food.name}” will be hidden from active lookups until restored.`
+        : `“${food.name}” will be available in the nutrition database again.`,
+      confirmLabel: archiving ? 'Archive' : 'Restore',
+      tone: archiving ? 'danger' : 'primary',
+    });
+    if (!ok) return;
+    archiveMutation.mutate(food);
+  }
+
+  async function handleSave() {
+    const ok = await confirm({
+      title: editing ? 'Save food changes?' : 'Add food to database?',
+      description: editing
+        ? `Update “${form.name.trim() || editing.name}” with the values in this form.`
+        : `Create “${form.name.trim()}”. Coach submissions may require admin approval before they go live.`,
+      confirmLabel: editing ? 'Save changes' : 'Save to database',
+    });
+    if (!ok) return;
+    saveMutation.mutate();
+  }
 
   const imageMutation = useMutation({
     mutationFn: ({ foodId, file }: { foodId: string; file: File }) => uploadNutritionFoodImage(foodId, file),
@@ -595,8 +630,8 @@ export function NutritionDbPage() {
       <DashboardPageHeader
         title="Nutrition database"
         actions={
-          <Button variant="primary" onClick={openAddModal}>
-            + Add food
+          <Button variant="primary" icon={<PlusIcon />} onClick={openAddModal}>
+            Add food
           </Button>
         }
       />
@@ -637,21 +672,23 @@ export function NutritionDbPage() {
         <p className="rounded-xl bg-blue-spruce-50 px-4 py-2 text-sm text-blue-spruce-800">{lookupMessage}</p>
       ) : null}
 
-      <Card className="overflow-hidden">
+      <DashboardPanel
+        title={data?.total != null ? `Foods (${data.total})` : 'Foods'}
+        bodyClassName="px-0 py-0 sm:px-0 sm:py-0">
         {isLoading ? (
           <p className="px-6 py-12 text-center text-sm text-ash-grey-500">Loading foods…</p>
         ) : foods.length ? (
           <>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[960px] text-left text-sm">
+            <table className="w-full min-w-[1100px] text-left text-sm">
               <thead>
-                <tr className="border-b border-ash-grey-100 bg-ash-grey-50 text-xs text-ash-grey-500">
+                <tr className="border-b border-ash-grey-100 bg-ash-grey-50/80 text-[11px] uppercase tracking-wide text-ash-grey-500">
                   <th className="px-5 py-3.5 font-semibold">Photo</th>
+                  <th className="px-5 py-3.5 font-semibold">Code</th>
                   <th className="px-5 py-3.5 font-semibold">Food</th>
-                  <th className="px-5 py-3.5 font-semibold">Category</th>
-                  <th className="px-5 py-3.5 font-semibold">Barcode</th>
+                  <th className="px-5 py-3.5 font-semibold">Group</th>
+                  <th className="px-5 py-3.5 font-semibold">Source</th>
                   <th className="px-5 py-3.5 font-semibold">Per 100g</th>
-                  <th className="px-5 py-3.5 font-semibold">Servings</th>
                   <th className="px-5 py-3.5 font-semibold">Status</th>
                   <th className="px-5 py-3.5 text-right font-semibold">Actions</th>
                 </tr>
@@ -687,16 +724,33 @@ export function NutritionDbPage() {
                           }}
                         />
                       </td>
+                      <td className="px-5 py-4 font-mono text-xs text-ash-grey-600">
+                        {food.foodCode ?? '—'}
+                      </td>
                       <td className="px-5 py-4">
                         <div className="min-w-0">
                           <p className="font-semibold text-ash-grey-900">{food.name}</p>
                           {food.brand ? (
                             <p className="truncate text-xs text-ash-grey-500">{food.brand}</p>
                           ) : null}
+                          {food.barcode ? (
+                            <p className="truncate font-mono text-[11px] text-ash-grey-400">
+                              {food.barcode}
+                            </p>
+                          ) : null}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-ash-grey-700">{food.category}</td>
-                      <td className="px-5 py-4 font-mono text-xs text-ash-grey-600">{food.barcode ?? '—'}</td>
+                      <td className="px-5 py-4 text-ash-grey-700">
+                        <p>{food.foodGroupName ?? food.category}</p>
+                        {food.foodGroup ? (
+                          <p className="text-[11px] text-ash-grey-400">{food.foodGroup}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className="rounded-md bg-ash-grey-100 px-2 py-0.5 text-xs text-ash-grey-700">
+                          {food.sourceType ?? 'custom_local'}
+                        </span>
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-wrap gap-1.5">
                           <span className="rounded-md bg-ash-grey-100 px-2 py-0.5 text-xs font-medium">
@@ -714,26 +768,28 @@ export function NutritionDbPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex max-w-[14rem] flex-wrap gap-1">
-                          {food.servings.map((s) => (
-                            <span
-                              key={s.id}
-                              className="rounded-full bg-ash-grey-100 px-2 py-0.5 text-xs text-ash-grey-700">
-                              {s.amount} {s.unit} = {s.gramsEquivalent}g
-                              {s.isDefault ? ' · default' : ''}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-5 py-4">
                         <StatusBadge food={food} />
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
-                          <Button variant="outline" size="sm" onClick={() => openEditModal(food)}>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setCompositionFood(food)}>
+                            Composition
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            icon={<PencilIcon />}
+                            onClick={() => openEditModal(food)}>
                             Edit
                           </Button>
-                          <Button variant="ghost" size="sm" onClick={() => archiveMutation.mutate(food)}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            icon={food.isActive ? <ArchiveIcon /> : <RefreshIcon />}
+                            onClick={() => void handleArchive(food)}>
                             {food.isActive ? 'Archive' : 'Restore'}
                           </Button>
                         </div>
@@ -755,12 +811,12 @@ export function NutritionDbPage() {
           <div className="px-6 py-16 text-center">
             <p className="font-semibold text-ash-grey-800">No foods found</p>
             <p className="mt-1 text-sm text-ash-grey-500">Try a different search or add a new food entry.</p>
-            <Button variant="primary" size="sm" className="mt-4" onClick={openAddModal}>
-              + Add food
+            <Button variant="primary" size="sm" className="mt-4" icon={<PlusIcon />} onClick={openAddModal}>
+              Add food
             </Button>
           </div>
         )}
-      </Card>
+      </DashboardPanel>
 
       <Modal
         open={modalOpen}
@@ -780,7 +836,7 @@ export function NutritionDbPage() {
             <Button
               variant="primary"
               size="sm"
-              onClick={() => saveMutation.mutate()}
+              onClick={() => void handleSave()}
               disabled={!form.name.trim() || saveMutation.isPending || imageMutation.isPending}>
               {saveMutation.isPending ? 'Saving…' : editing ? 'Save changes' : 'Save to database'}
             </Button>
@@ -797,6 +853,32 @@ export function NutritionDbPage() {
           onClearPhoto={() => setPendingImage(null)}
         />
       </Modal>
+
+      <Modal
+        open={Boolean(compositionFood)}
+        onClose={() => setCompositionFood(null)}
+        title={compositionFood ? compositionFood.name : 'Composition'}
+        description={
+          compositionFood
+            ? [
+                compositionFood.foodCode ? `Code ${compositionFood.foodCode}` : null,
+                compositionFood.foodGroupName ?? compositionFood.category,
+                compositionFood.sourceVersion ?? compositionFood.source ?? null,
+              ]
+                .filter(Boolean)
+                .join(' · ') || 'Per 100g TFCT composition'
+            : undefined
+        }
+        size="xl"
+        footer={
+          <Button variant="outline" size="sm" onClick={() => setCompositionFood(null)}>
+            Close
+          </Button>
+        }>
+        <TfctCompositionGrid composition={compositionFood?.composition} />
+      </Modal>
+
+      {confirmDialog}
     </div>
   );
 }
