@@ -1,18 +1,35 @@
 import { Authorized, Controller, CurrentUser, Get, Post, QueryParam } from "routing-controllers";
 import type { User } from "../users/user.entity";
 import { consumerService } from "../consumers/consumer.service";
-import { reportsService } from "./reports.service";
+import { reportsService, type ReportRangeInput } from "./reports.service";
+import type { ReportPeriod } from "./report-snapshot.entity";
 
 @Controller("/reports")
 export class ReportsController {
   @Authorized(["admin"])
   @Post("/generate")
-  async generate(@QueryParam("period") period?: "weekly" | "monthly") {
-    const p = period ?? "weekly";
-    const platform = await reportsService.generatePlatformSnapshot(p);
-    const consumers = await reportsService.generateAllConsumerSnapshots(p);
-    const coaches = await reportsService.generateAllCoachSnapshots(p);
-    return { platform, consumerCount: consumers.length, coachCount: coaches.length };
+  async generate(
+    @QueryParam("period") period?: ReportPeriod,
+    @QueryParam("from") from?: string,
+    @QueryParam("to") to?: string,
+  ) {
+    const range: ReportRangeInput = {
+      period: from || to ? period ?? "custom" : period ?? "weekly",
+      from,
+      to,
+    };
+    // Admin reports are date-range platform snapshots only (coach/consumer snapshots stay on the scheduler).
+    const platform = await reportsService.generatePlatformSnapshot(range);
+    return {
+      platform: {
+        id: platform.id,
+        period: platform.period,
+        periodStart: platform.periodStart,
+        periodEnd: platform.periodEnd,
+        metrics: platform.metrics,
+        createdAt: platform.createdAt.toISOString(),
+      },
+    };
   }
 
   @Authorized(["admin"])

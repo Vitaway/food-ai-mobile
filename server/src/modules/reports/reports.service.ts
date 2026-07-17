@@ -1,5 +1,6 @@
+import { BadRequestError } from "routing-controllers";
 import { AppDataSource } from "../../config/database";
-import { ReportSnapshot } from "./report-snapshot.entity";
+import { ReportSnapshot, type ReportPeriod } from "./report-snapshot.entity";
 import { mealsRepository } from "../meals/meals.repository";
 import { usersRepository } from "../users/users.repository";
 import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.repository";
@@ -10,7 +11,16 @@ import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 const reportsRepo = AppDataSource.getRepository(ReportSnapshot);
 const healthScoreRepo = AppDataSource.getRepository(ConsumerDailyHealthScore);
 
-function range(period: "weekly" | "monthly") {
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_RANGE_DAYS = 366;
+
+export type ReportRangeInput = {
+  period?: ReportPeriod;
+  from?: string;
+  to?: string;
+};
+
+function rollingRange(period: "weekly" | "monthly") {
   const end = new Date();
   const start = new Date(end);
   start.setDate(end.getDate() - (period === "weekly" ? 6 : 29));
@@ -18,6 +28,46 @@ function range(period: "weekly" | "monthly") {
     start: start.toISOString().slice(0, 10),
     end: end.toISOString().slice(0, 10),
   };
+}
+
+function daysInclusive(start: string, end: string): number {
+  const startMs = Date.parse(`${start}T00:00:00.000Z`);
+  const endMs = Date.parse(`${end}T00:00:00.000Z`);
+  return Math.floor((endMs - startMs) / 86_400_000) + 1;
+}
+
+export function resolveReportRange(input: ReportRangeInput = {}): {
+  start: string;
+  end: string;
+  period: ReportPeriod;
+} {
+  const { from, to, period } = input;
+
+  if (from || to || period === "custom") {
+    if (!from || !to) {
+      throw new BadRequestError("Both from and to dates are required (YYYY-MM-DD)");
+    }
+    if (!DATE_RE.test(from) || !DATE_RE.test(to)) {
+      throw new BadRequestError("Dates must be YYYY-MM-DD");
+    }
+    if (from > to) {
+      throw new BadRequestError("from must be on or before to");
+    }
+    if (daysInclusive(from, to) > MAX_RANGE_DAYS) {
+      throw new BadRequestError(`Date range cannot exceed ${MAX_RANGE_DAYS} days`);
+    }
+    const labeled =
+      period === "weekly" || period === "monthly" || period === "custom" ? period : "custom";
+    return { start: from, end: to, period: labeled };
+  }
+
+  const p = period === "monthly" ? "monthly" : "weekly";
+  const { start, end } = rollingRange(p);
+  return { start, end, period: p };
+}
+
+function range(period: "weekly" | "monthly") {
+  return rollingRange(period);
 }
 
 export const periodRange = range;
@@ -36,20 +86,36 @@ function mealsInRange(
   });
 }
 
+function pct(part: number, whole: number): number {
+  if (whole <= 0) return 0;
+  return Math.round((part / whole) * 100);
+}
+
 export const reportsService = {
   periodRange: range,
+  resolveReportRange,
 
-  async generatePlatformSnapshot(period: "weekly" | "monthly") {
-    const { start, end } = range(period);
+  async generatePlatformSnapshot(input: ReportRangeInput | "weekly" | "monthly" = "weekly") {
+    const rangeInput: ReportRangeInput = typeof input === "string" ? { period: input } : input;
+    const { start, end, period } = resolveReportRange(rangeInput);
     const meals = await mealsRepository.findAllMeals();
     const consumers = await mealsRepository.findAllConsumers();
     const coaches = await usersRepository.countByRole("coach");
     const periodMeals = mealsInRange(meals, start, end);
+    const approvedMeals = periodMeals.filter((meal) => meal.status === "approved").length;
+    const inReviewMeals = periodMeals.filter((meal) => meal.status === "in_review").length;
+    const rejectedMeals = periodMeals.filter((meal) => meal.status === "rejected").length;
+    const daysInPeriod = daysInclusive(start, end);
+    const uniqueClientsLogging = new Set(periodMeals.map((m) => m.clientId)).size;
     const metrics = {
       period,
       mealCount: periodMeals.length,
-      approvedMeals: periodMeals.filter((meal) => meal.status === "approved").length,
-      inReviewMeals: periodMeals.filter((meal) => meal.status === "in_review").length,
+      approvedMeals,
+      inReviewMeals,
+      rejectedMeals,
+      approvalRatePct: pct(approvedMeals, periodMeals.length),
+      daysInPeriod,
+      avgMealsPerDay: daysInPeriod > 0 ? Number((periodMeals.length / daysInPeriod).toFixed(1)) : 0,
       clientAdherencePct:
         consumers.length > 0
           ? Math.round(
@@ -62,7 +128,8 @@ export const reportsService = {
       consumers: consumers.length,
       platformUsage: {
         totalMealsLogged: periodMeals.length,
-        uniqueClientsLogging: new Set(periodMeals.map((m) => m.clientId)).size,
+        uniqueClientsLogging,
+        activeClientSharePct: pct(uniqueClientsLogging, consumers.length),
       },
     };
     const snapshot = reportsRepo.create({
@@ -77,8 +144,12 @@ export const reportsService = {
     return snapshot;
   },
 
-  async generateConsumerSnapshot(clientId: string, period: "weekly" | "monthly") {
-    const { start, end } = range(period);
+  async generateConsumerSnapshot(
+    clientId: string,
+    input: ReportRangeInput | "weekly" | "monthly" = "weekly",
+  ) {
+    const rangeInput: ReportRangeInput = typeof input === "string" ? { period: input } : input;
+    const { start, end, period } = resolveReportRange(rangeInput);
     const consumer = (await mealsRepository.findAllConsumers()).find((c) => c.id === clientId);
     if (!consumer) return null;
 
@@ -92,8 +163,8 @@ export const reportsService = {
     const healthScores = await healthScoreRepo.find({
       where: { clientId },
       order: { date: "DESC" },
-      take: period === "weekly" ? 7 : 30,
     });
+    const periodHealthScores = healthScores.filter((row) => row.date >= start && row.date <= end);
 
     const metrics = {
       period,
@@ -107,7 +178,7 @@ export const reportsService = {
         mealsLogged: approved.length,
         streakDays: dashboard.streakDays,
       },
-      healthScoreTrend: healthScores.map((row) => ({
+      healthScoreTrend: periodHealthScores.map((row) => ({
         date: row.date,
         totalScore: Number(row.totalScore),
         nutrientScore: Number(row.nutrientScore),
@@ -132,18 +203,22 @@ export const reportsService = {
     return snapshot;
   },
 
-  async generateAllConsumerSnapshots(period: "weekly" | "monthly") {
+  async generateAllConsumerSnapshots(input: ReportRangeInput | "weekly" | "monthly" = "weekly") {
     const consumers = await mealsRepository.findAllConsumers();
     const results = [];
     for (const consumer of consumers) {
-      const snapshot = await this.generateConsumerSnapshot(consumer.id, period);
+      const snapshot = await this.generateConsumerSnapshot(consumer.id, input);
       if (snapshot) results.push(snapshot);
     }
     return results;
   },
 
-  async generateCoachSnapshot(coachUserId: string, period: "weekly" | "monthly") {
-    const { start, end } = range(period);
+  async generateCoachSnapshot(
+    coachUserId: string,
+    input: ReportRangeInput | "weekly" | "monthly" = "weekly",
+  ) {
+    const rangeInput: ReportRangeInput = typeof input === "string" ? { period: input } : input;
+    const { start, end, period } = resolveReportRange(rangeInput);
     const profile = await coachProfilesRepository.findByUserId(coachUserId);
     const meals = await mealsRepository.findAllMeals();
     const periodMeals = mealsInRange(meals, start, end);
@@ -152,7 +227,8 @@ export const reportsService = {
     const metrics = {
       period,
       coachActivity: {
-        reviewsCompleted: reviews.filter((r) => r.action === "approve" || r.action === "reject").length,
+        reviewsCompleted: reviews.filter((r) => r.action === "approve" || r.action === "reject")
+          .length,
         mealsInQueue: periodMeals.filter((m) => m.status === "in_review").length,
         mealsApproved: periodMeals.filter((m) => m.status === "approved").length,
       },
@@ -171,11 +247,11 @@ export const reportsService = {
     return snapshot;
   },
 
-  async generateAllCoachSnapshots(period: "weekly" | "monthly") {
+  async generateAllCoachSnapshots(input: ReportRangeInput | "weekly" | "monthly" = "weekly") {
     const coaches = await usersRepository.findByRole("coach");
     const results = [];
     for (const coach of coaches) {
-      results.push(await this.generateCoachSnapshot(coach.id, period));
+      results.push(await this.generateCoachSnapshot(coach.id, input));
     }
     return results;
   },
