@@ -1,7 +1,7 @@
 import "reflect-metadata";
 import bcrypt from "bcryptjs";
 import { AppDataSource } from "../config/database";
-import { env } from "../config/env";
+import { env, isProduction } from "../config/env";
 import { logger } from "../config/logger";
 import type { UserRole } from "../middlewares/auth.middleware";
 import { usersRepository } from "../modules/users/users.repository";
@@ -69,21 +69,30 @@ async function ensureCoachProfile(
 async function clearOperationalDemoData() {
   await AppDataSource.query(`DELETE FROM meal_submissions`);
   await AppDataSource.query(`DELETE FROM consumer_profiles`);
-  logger.info("Cleared meal submissions and consumer profiles");
+  logger.warn("Wiped meal submissions and consumer profiles (--wipe-demo)");
 }
 
 async function seed() {
   const usersOnly = process.argv.includes("--users-only");
+  const wipeDemo = process.argv.includes("--wipe-demo");
 
   if (!AppDataSource.isInitialized) {
     await AppDataSource.initialize();
   }
   await AppDataSource.runMigrations();
 
-  if (usersOnly) {
-    logger.info("Users-only seed — keeping meals and consumer profiles");
-  } else {
+  if (wipeDemo) {
+    if (isProduction) {
+      logger.error("Refusing --wipe-demo in production. Aborting.");
+      process.exit(1);
+    }
     await clearOperationalDemoData();
+  } else if (!usersOnly) {
+    logger.info(
+      "Keeping existing meals and consumer profiles (pass --wipe-demo only on local/dev to clear them)",
+    );
+  } else {
+    logger.info("Users-only seed — keeping meals and consumer profiles");
   }
 
   const coach = await upsertSeedUser({
