@@ -97,8 +97,8 @@ export function AppShell() {
       onLogout={() => void logout()}
       sidebarStat={
         stats ? (
-          <div className="rounded-2xl border border-ash-grey-100 bg-white px-3 py-2.5 text-xs text-ash-grey-600 shadow-sm">
-            <span className="font-medium text-ash-grey-900">{stats.inReview}</span> meals in review
+          <div className="rounded-xl bg-blue-spruce-700/60 px-3 py-2.5 text-xs text-white/70">
+            <span className="font-semibold text-white">{stats.inReview}</span> meals in review
           </div>
         ) : null
       }
