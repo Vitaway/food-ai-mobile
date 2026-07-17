@@ -15,9 +15,9 @@ export function RegisterPage() {
         </Button>
       }
       footer={
-        <p className="text-center text-sm text-white/75">
+        <p>
           Already have an account?{' '}
-          <Link to={AUTH_ROUTES.login} className="font-semibold text-white hover:underline">
+          <Link to={AUTH_ROUTES.login} className="font-semibold text-blue-spruce-700 hover:underline">
             Sign in
           </Link>
         </p>

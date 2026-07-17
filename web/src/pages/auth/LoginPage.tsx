@@ -11,8 +11,9 @@ export function LoginPage() {
 
   return (
     <AuthLayout
-      title="Sign in"
-      subtitle="Sign in with your Vitaway account. You'll land on the right experience for your role."
+      title="Welcome back"
+      subtitle="Sign in to your coach or clinic dashboard."
+      brandLine="AI estimates in seconds. A real coach reviews every entry before it counts."
       actions={
         <Button
           type="submit"
@@ -25,14 +26,14 @@ export function LoginPage() {
         </Button>
       }
       footer={
-        <p className="text-center text-sm text-white/75">
+        <p>
           New here?{' '}
-          <Link to="/register" className="font-semibold text-white hover:underline">
-            Download the app to create an account
+          <Link to="/register" className="font-semibold text-blue-spruce-700 hover:underline">
+            Download the app
           </Link>
           {' · '}
           Coach?{' '}
-          <Link to="/for-coaches" className="font-semibold text-white hover:underline">
+          <Link to="/for-coaches" className="font-semibold text-blue-spruce-700 hover:underline">
             Learn about coaching
           </Link>
         </p>

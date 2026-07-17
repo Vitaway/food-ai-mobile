@@ -49,8 +49,11 @@ function jwtExpiresAt(token: string, fallbackMs: number): number {
 }
 
 function mapRole(role: string): UserRole {
-  if (role === 'admin') return 'admin';
+  if (role === 'admin' || role === 'super_admin' || role === 'organization_admin') {
+    return 'admin';
+  }
   if (role === 'consumer') return 'consumer';
+  // coach, nutrition_coach, data_entry_staff → coach shell
   return 'coach';
 }
 

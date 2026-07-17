@@ -30,7 +30,7 @@ export function LoginForm({ login, toast }: LoginFormProps) {
   }
 
   return (
-    <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-5">
+    <form id={FORM_ID} onSubmit={handleSubmit} className="space-y-4">
       <TextField
         label="Email"
         type="email"
@@ -53,7 +53,7 @@ export function LoginForm({ login, toast }: LoginFormProps) {
         placeholder="Enter your password"
       />
 
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 pt-0.5">
         <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ash-grey-600">
           <input
             type="checkbox"
