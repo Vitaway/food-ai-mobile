@@ -1,4 +1,13 @@
-import { IsArray, IsBoolean, IsNumber, IsObject, IsOptional, IsString, MaxLength, Min } from "class-validator";
+import {
+  IsArray,
+  IsBoolean,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  Min,
+} from "class-validator";
 
 export class UpsertNutritionServingDto {
   @IsString()
@@ -41,10 +50,55 @@ export class CreateNutritionFoodDto {
   @IsObject()
   micronutrients?: Record<string, number>;
 
+  /** Full TFCT snake_case composition (optional; merges with macros/micros). */
+  @IsOptional()
+  @IsObject()
+  composition?: Record<string, number>;
+
   @IsOptional()
   @IsString()
   @MaxLength(64)
   barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  sourceType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  applicableCountries?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameSw?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameRw?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameLocalOther?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  foodGroupName?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  packageSizeG?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  labelSource?: string;
 
   @IsOptional()
   @IsArray()
@@ -80,9 +134,57 @@ export class UpdateNutritionFoodDto {
   micronutrients?: Record<string, number>;
 
   @IsOptional()
+  @IsObject()
+  composition?: Record<string, number>;
+
+  @IsOptional()
   @IsString()
   @MaxLength(64)
   barcode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  sourceType?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  applicableCountries?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameSw?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameRw?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  nameLocalOther?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  foodGroupName?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  packageSizeG?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  labelSource?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  imageConfirmed?: boolean;
 
   @IsOptional()
   @IsArray()
