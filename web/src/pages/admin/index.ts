@@ -7,3 +7,4 @@ export { AdminReportsPage } from './ReportsPage';
 export { AdminReferralsPage } from './ReferralsPage';
 export { AdminFoodDbPage } from './FoodDbPage';
 export { AdminModulesPage } from './ModulesPage';
+export { AdminAssessmentsPage } from './AssessmentsPage';

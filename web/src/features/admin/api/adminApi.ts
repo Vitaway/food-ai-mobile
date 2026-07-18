@@ -77,6 +77,21 @@ export type CreateCoachPayload = {
   bio?: string;
 };
 
+export type AdminClinicalAssessmentRow = {
+  clientId: string;
+  displayName: string;
+  status: 'incomplete' | 'draft' | 'confirmed';
+  risk: 'low' | 'medium' | 'high';
+  assignedCoach: string | null;
+  targetStatus: 'unavailable' | 'provisional' | 'confirmed';
+  safetyFlags: string[];
+  updatedAt: string | null;
+};
+
+export async function fetchAdminClinicalAssessments(): Promise<AdminClinicalAssessmentRow[]> {
+  return apiRequest('/admin/clinical-assessments');
+}
+
 export type AuditLogEntry = {
   id: string;
   action: string;

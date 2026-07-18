@@ -20,6 +20,7 @@ import {
   AdminReferralsPage,
   AdminFoodDbPage,
   AdminModulesPage,
+  AdminAssessmentsPage,
 } from '@/pages/admin';
 import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/pages/auth';
 import {
@@ -148,6 +149,7 @@ function App() {
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="food-db" element={<AdminFoodDbPage />} />
           <Route path="modules" element={<AdminModulesPage />} />
+          <Route path="assessments" element={<AdminAssessmentsPage />} />
           <Route path="messages" element={<MessagesPage />} />
           <Route path="messages/:id" element={<MessagesPage />} />
           <Route path="profile" element={<ProfilePage />} />

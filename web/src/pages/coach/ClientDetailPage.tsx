@@ -1,13 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { ClientPanel } from '@/components/coach/ClientPanel';
 import { ClientCoachingInsightsPanel } from '@/components/coach/ClientCoachingInsightsPanel';
 import { CoachMessagesPanel } from '@/components/coach/CoachMessagesPanel';
+import { ClinicalAssessmentPanel } from '@/components/coach/ClinicalAssessmentPanel';
 import { BanIcon, PlusIcon, PrintIcon } from '@/components/icons/ActionIcons';
 import { Button } from '@/components/ui/Button';
 import { StatusBadge } from '@/components/ui/Badge';
 import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
+import { Pagination } from '@/components/ui/Pagination';
 import { KpiStrip } from '@/components/ui/KpiStrip';
 import { FilterChip } from '@/components/ui/StatusPill';
 import {
@@ -23,6 +25,8 @@ import { getApiErrorMessage } from '@/lib/apiErrors';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { MealSubmission } from '@/types';
 
+const MEALS_PAGE_SIZE = 10;
+
 export function ClientDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -34,7 +38,11 @@ export function ClientDetailPage() {
   const { data: coachProfile } = useCoachProfile();
   const toast = useToast();
   const printRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<'overview' | 'meals' | 'messages'>('overview');
+  const [tab, setTab] = useState<'overview' | 'assessment' | 'meals' | 'messages'>('overview');
+  const [mealSearch, setMealSearch] = useState('');
+  const [mealStatus, setMealStatus] = useState('all');
+  const [mealType, setMealType] = useState('all');
+  const [mealPage, setMealPage] = useState(1);
 
   function handlePrint() {
     if (!printRef.current) return;
@@ -118,6 +126,42 @@ export function ClientDetailPage() {
     [],
   );
 
+  const meals = data?.meals ?? [];
+  const mealTypes = useMemo(
+    () => [...new Set(meals.map((meal) => meal.mealType))].sort(),
+    [meals],
+  );
+  const filteredMeals = useMemo(() => {
+    const query = mealSearch.trim().toLowerCase();
+    return [...meals]
+      .filter((meal) => {
+        if (mealStatus !== 'all' && meal.status !== mealStatus) return false;
+        if (mealType !== 'all' && meal.mealType !== mealType) return false;
+        if (!query) return true;
+        return (
+          (meal.mealName ?? '').toLowerCase().includes(query) ||
+          formatMealType(meal.mealType).toLowerCase().includes(query)
+        );
+      })
+      .sort(
+        (left, right) =>
+          new Date(right.submittedAt).getTime() - new Date(left.submittedAt).getTime(),
+      );
+  }, [meals, mealSearch, mealStatus, mealType]);
+  const paginatedMeals = useMemo(
+    () =>
+      filteredMeals.slice(
+        (mealPage - 1) * MEALS_PAGE_SIZE,
+        mealPage * MEALS_PAGE_SIZE,
+      ),
+    [filteredMeals, mealPage],
+  );
+
+  useEffect(() => {
+    const lastPage = Math.max(1, Math.ceil(filteredMeals.length / MEALS_PAGE_SIZE));
+    if (mealPage > lastPage) setMealPage(lastPage);
+  }, [filteredMeals.length, mealPage]);
+
   if (isLoading) return <p className="text-ash-grey-500">Loading client…</p>;
 
   if (isError || !data) {
@@ -131,7 +175,7 @@ export function ClientDetailPage() {
     );
   }
 
-  const { client, meals, assignedCoachIds } = data;
+  const { client, assignedCoachIds } = data;
   const isOnCaseload = coachProfile?.id
     ? assignedCoachIds.includes(coachProfile.id)
     : assignedCoachIds.length > 0;
@@ -173,6 +217,7 @@ export function ClientDetailPage() {
         {(
           [
             { id: 'overview' as const, label: 'Overview' },
+            { id: 'assessment' as const, label: 'Clinical assessment' },
             { id: 'meals' as const, label: 'Meals' },
             { id: 'messages' as const, label: 'Messages' },
           ] as const
@@ -218,9 +263,77 @@ export function ClientDetailPage() {
 
         {tab === 'meals' ? (
           <DashboardPanel title="Meal history">
+            <div className="flex flex-wrap items-end gap-3 border-b border-ash-grey-100 px-3 py-3">
+              <label className="min-w-[220px] flex-1">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
+                  Search
+                </span>
+                <input
+                  type="search"
+                  value={mealSearch}
+                  onChange={(event) => {
+                    setMealSearch(event.target.value);
+                    setMealPage(1);
+                  }}
+                  placeholder="Search meal name or type"
+                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100"
+                />
+              </label>
+              <label className="min-w-[160px]">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
+                  Status
+                </span>
+                <select
+                  value={mealStatus}
+                  onChange={(event) => {
+                    setMealStatus(event.target.value);
+                    setMealPage(1);
+                  }}
+                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100">
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="analyzing">Analyzing</option>
+                  <option value="in_review">In review</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+              </label>
+              <label className="min-w-[160px]">
+                <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
+                  Meal type
+                </span>
+                <select
+                  value={mealType}
+                  onChange={(event) => {
+                    setMealType(event.target.value);
+                    setMealPage(1);
+                  }}
+                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100">
+                  <option value="all">All meal types</option>
+                  {mealTypes.map((type) => (
+                    <option key={type} value={type}>
+                      {formatMealType(type)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {mealSearch || mealStatus !== 'all' || mealType !== 'all' ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setMealSearch('');
+                    setMealStatus('all');
+                    setMealType('all');
+                    setMealPage(1);
+                  }}>
+                  Clear filters
+                </Button>
+              ) : null}
+            </div>
             <DataTable
               columns={mealColumns}
-              rows={meals}
+              rows={paginatedMeals}
               rowKey={(m) => m.id}
               onRowClick={(meal) =>
                 navigate(
@@ -229,11 +342,23 @@ export function ClientDetailPage() {
                     : `/coach/history/${meal.id}`,
                 )
               }
-              emptyTitle="No meals yet"
-              emptyDescription="Submitted meals for this patient will appear here."
+              emptyTitle={meals.length ? 'No meals match these filters' : 'No meals yet'}
+              emptyDescription={
+                meals.length
+                  ? 'Try changing or clearing the meal filters.'
+                  : 'Submitted meals for this patient will appear here.'
+              }
+            />
+            <Pagination
+              page={mealPage}
+              pageSize={MEALS_PAGE_SIZE}
+              total={filteredMeals.length}
+              onPageChange={setMealPage}
             />
           </DashboardPanel>
         ) : null}
+
+        {tab === 'assessment' && id ? <ClinicalAssessmentPanel clientId={id} /> : null}
       </div>
 
       {tab === 'messages' && id ? <CoachMessagesPanel clientId={id} /> : null}

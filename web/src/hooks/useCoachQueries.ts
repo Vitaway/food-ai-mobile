@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   assignClient,
+  confirmClinicalAssessment,
   unassignClient,
   createReviewTask,
   fetchClientById,
   fetchClientSummary,
+  fetchClinicalAssessment,
   fetchClients,
   fetchCoachOperations,
   fetchPastReviews,
@@ -18,6 +20,7 @@ import {
   fetchTeamStats,
   reviewMeal,
   saveReviewDraft,
+  saveClinicalAssessment,
   sendMessage,
   type QueueQuery,
 } from '@/api/coachApi';
@@ -33,6 +36,7 @@ export const coachKeys = {
   clients: (cohortId?: string) => [...coachKeys.all, 'clients', cohortId] as const,
   client: (id: string) => [...coachKeys.all, 'client', id] as const,
   clientSummary: (id: string) => [...coachKeys.all, 'client-summary', id] as const,
+  clinicalAssessment: (id: string) => [...coachKeys.all, 'clinical-assessment', id] as const,
   cohorts: () => [...coachKeys.all, 'cohorts'] as const,
   team: () => [...coachKeys.all, 'team'] as const,
   messages: (clientId: string) => [...coachKeys.all, 'messages', clientId] as const,
@@ -107,6 +111,40 @@ export function useCoachClientSummary(clientId: string | null) {
     queryKey: coachKeys.clientSummary(clientId ?? ''),
     queryFn: () => fetchClientSummary(clientId!),
     enabled: isAuthenticated && Boolean(clientId),
+  });
+}
+
+export function useClinicalAssessment(clientId: string | null) {
+  const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  return useQuery({
+    queryKey: coachKeys.clinicalAssessment(clientId ?? ''),
+    queryFn: () => fetchClinicalAssessment(clientId!),
+    enabled: isAuthenticated && Boolean(clientId),
+  });
+}
+
+export function useSaveClinicalAssessment(clientId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: import('@/api/coachApi').ClinicalAssessmentData) =>
+      saveClinicalAssessment(clientId, payload),
+    onSuccess: (assessment) => {
+      qc.setQueryData(coachKeys.clinicalAssessment(clientId), assessment);
+      void qc.invalidateQueries({ queryKey: coachKeys.client(clientId) });
+    },
+  });
+}
+
+export function useConfirmClinicalAssessment(clientId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { allowProtectedWeightLoss?: boolean; confirmationNote?: string }) =>
+      confirmClinicalAssessment(clientId, payload),
+    onSuccess: (assessment) => {
+      qc.setQueryData(coachKeys.clinicalAssessment(clientId), assessment);
+      void qc.invalidateQueries({ queryKey: coachKeys.client(clientId) });
+      void qc.invalidateQueries({ queryKey: coachKeys.clientSummary(clientId) });
+    },
   });
 }
 
@@ -212,8 +250,9 @@ export function useSaveReviewDraft() {
       note?: string;
       trainingNote?: string;
     }) => saveReviewDraft(mealId, { ...payload, items: payload.items ?? [] }),
-    onSuccess: (_data, vars) => {
-      void qc.invalidateQueries({ queryKey: coachKeys.reviewDraft(vars.mealId) });
+    onSuccess: (data, vars) => {
+      // Update cache in place — do NOT invalidate/refetch (that was resetting the live editor).
+      qc.setQueryData(coachKeys.reviewDraft(vars.mealId), data);
     },
   });
 }
