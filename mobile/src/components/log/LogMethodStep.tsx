@@ -57,7 +57,7 @@ const METHODS: Array<{
   {
     id: 'past',
     title: 'Repeat a meal',
-    subtitle: 'Log something you ate before',
+    subtitle: 'Pick a past meal and log it again',
     icon: 'time-outline',
     tintClass: 'bg-cinnamon-wood-50',
     iconColor: semanticColors.accentOrange,
