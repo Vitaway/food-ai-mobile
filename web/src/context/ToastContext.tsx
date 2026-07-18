@@ -10,19 +10,23 @@ import {
 
 import type { ToastItem, ToastType } from '@/components/ui/ToastCard';
 import { ToastHost } from '@/components/ui/ToastHost';
+import { playIncomingNotificationSound } from '@/lib/notificationSound';
 
 type ToastInput = {
   type: ToastType;
   title?: string;
   message: string;
   durationMs?: number;
+  sound?: boolean;
 };
 
 type ToastContextValue = {
   show: (toast: ToastInput) => string;
-  success: (message: string, title?: string) => string;
-  error: (message: string, title?: string) => string;
-  info: (message: string, title?: string) => string;
+  success: (message: string, title?: string, opts?: { sound?: boolean }) => string;
+  error: (message: string, title?: string, opts?: { sound?: boolean }) => string;
+  info: (message: string, title?: string, opts?: { sound?: boolean }) => string;
+  /** Incoming live event — toast + sound. */
+  incoming: (message: string, title?: string, type?: ToastType) => string;
   dismiss: (id: string) => void;
 };
 
@@ -49,9 +53,10 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const show = useCallback(
-    ({ type, title, message, durationMs = 6200 }: ToastInput) => {
+    ({ type, title, message, durationMs = 6200, sound = false }: ToastInput) => {
       const id = nextToastId();
       setToasts((current) => [...current, { id, type, title, message }].slice(-4));
+      if (sound) playIncomingNotificationSound();
 
       const timer = setTimeout(() => dismiss(id), durationMs);
       timersRef.current.set(id, timer);
@@ -63,9 +68,13 @@ export function ToastProvider({ children }: PropsWithChildren) {
   const value = useMemo<ToastContextValue>(
     () => ({
       show,
-      success: (message, title) => show({ type: 'success', message, title }),
-      error: (message, title) => show({ type: 'error', message, title, durationMs: 7200 }),
-      info: (message, title) => show({ type: 'info', message, title }),
+      success: (message, title, opts) =>
+        show({ type: 'success', message, title, sound: opts?.sound }),
+      error: (message, title, opts) =>
+        show({ type: 'error', message, title, durationMs: 7200, sound: opts?.sound }),
+      info: (message, title, opts) => show({ type: 'info', message, title, sound: opts?.sound }),
+      incoming: (message, title, type = 'info') =>
+        show({ type, message, title, sound: true, durationMs: 7000 }),
       dismiss,
     }),
     [dismiss, show],

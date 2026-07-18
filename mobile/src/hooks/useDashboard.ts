@@ -90,11 +90,11 @@ export function useDashboard(selectedDate = todayKey()) {
 
   return useMemo(() => {
     const targets = profile?.macroTargets ?? {
-      calories: 2100,
-      proteinG: 140,
-      carbsG: 220,
-      fatG: 70,
-      fiberG: 30,
+      calories: 0,
+      proteinG: 0,
+      carbsG: 0,
+      fatG: 0,
+      fiberG: 0,
     };
 
     const dayMealsAll = meals
@@ -133,7 +133,7 @@ export function useDashboard(selectedDate = todayKey()) {
             fiberG: Math.round(macrosConsumed.fiberG),
           },
       waterMl,
-      waterTargetMl: useRemote ? remoteDashboard.waterTargetMl : (profile?.waterTargetMl ?? 2450),
+      waterTargetMl: useRemote ? remoteDashboard.waterTargetMl : (profile?.waterTargetMl ?? 0),
       healthScore: useRemote ? remoteDashboard.healthScore : 0,
       healthScoreBreakdown: useRemote ? remoteDashboard.healthScoreBreakdown : undefined,
       streakDays: useRemote ? remoteDashboard.streakDays : computeStreak(meals),

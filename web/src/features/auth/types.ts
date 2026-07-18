@@ -20,6 +20,15 @@ export type LoginCredentials = {
   email: string;
   password: string;
   rememberMe?: boolean;
+  mfaCode?: string;
+  challengeToken?: string;
+};
+
+export type MfaChallenge = {
+  mfaRequired: true;
+  challengeToken: string;
+  email: string;
+  debugCode?: string;
 };
 
 export type RegisterCredentials = {

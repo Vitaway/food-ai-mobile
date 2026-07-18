@@ -279,12 +279,18 @@ export function toMealSubmission(
 }
 
 export function mealSubmissionToAnalysisPreview(meal: MealSubmission): MealAnalysisPreview {
-  if (!meal.mealName || !meal.items || !meal.totalNutrition) {
+  if (!meal.items?.length || !meal.totalNutrition) {
     throw new Error('Meal is missing analysis fields');
   }
 
+  const mealName =
+    meal.mealName?.trim() ||
+    meal.textInput?.trim() ||
+    meal.items.map((item) => item.label).join(', ') ||
+    'Repeated meal';
+
   return {
-    mealName: meal.mealName,
+    mealName,
     items: meal.items,
     totalNutrition: meal.totalNutrition,
     totalWeightG: meal.items.reduce((sum, item) => sum + item.estimatedWeightG, 0),
@@ -293,5 +299,20 @@ export function mealSubmissionToAnalysisPreview(meal: MealSubmission): MealAnaly
     healthFlag: meal.healthFlag ?? 'yellow',
     healthMessage: meal.healthMessage ?? 'Analysis complete.',
     plateDiameterCm: meal.plateDiameterCm ?? null,
+  };
+}
+
+/** Clone a past meal into a fresh analysis preview for re-logging. */
+export function analysisPreviewFromPastMeal(meal: MealSubmission): MealAnalysisPreview {
+  const preview = mealSubmissionToAnalysisPreview(meal);
+  return {
+    ...preview,
+    items: preview.items.map((item) => ({
+      ...item,
+      id: createId('item'),
+      nutrition: { ...item.nutrition },
+    })),
+    totalNutrition: { ...preview.totalNutrition },
+    petals: preview.petals.map((petal) => ({ ...petal })),
   };
 }

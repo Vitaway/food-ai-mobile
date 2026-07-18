@@ -45,6 +45,7 @@ export interface UserProfile {
   displayName?: string;
   email?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
   age: number;
   sex: UserSex;
   heightCm: number;
@@ -60,6 +61,19 @@ export interface UserProfile {
   bmr: number;
   tdee: number;
   waterTargetMl: number;
+  clinicalAssessmentStatus?: 'incomplete' | 'draft' | 'confirmed';
+  targetStatus?: 'unavailable' | 'provisional' | 'confirmed';
+  requiresCoachConfirmation?: boolean;
+  nutritionCalculation?: {
+    nceVersion: string;
+    population: string;
+    equationUsed: string;
+    goalAdjustmentKcal: number;
+    bmi: number;
+    safetyFlags: string[];
+    warnings: string[];
+    calculatedAt: string;
+  };
   onboardingComplete: boolean;
   createdAt: string;
   updatedAt: string;
@@ -156,6 +170,7 @@ export interface DailyDashboard {
   healthScore: number;
   healthScoreBreakdown?: {
     nutrientScore: number;
+    nutrientDataCoverage?: number;
     macroScore: number;
     calorieScore: number;
     consistencyScore: number;

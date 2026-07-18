@@ -70,8 +70,8 @@ export const smartAlertsService = {
       for (let i = 0; i < 5; i++) {
         const day = daysAgoKey(i);
         const dashboard = computeDashboard(client.profile, client.dashboard, meals, byMealId, day);
-        const target = Number((client.profile.macroTargets as Record<string, number> | undefined)?.proteinG ?? 120);
-        if (dashboard.macrosConsumed.proteinG < target * 0.7) lowProteinStreak += 1;
+        const target = Number((client.profile.macroTargets as Record<string, number> | undefined)?.proteinG ?? 0);
+        if (target > 0 && dashboard.macrosConsumed.proteinG < target * 0.7) lowProteinStreak += 1;
         else break;
       }
       if (lowProteinStreak >= 5) {
@@ -111,8 +111,8 @@ export const smartAlertsService = {
       }
 
       const waterToday = Number(client.dashboard.waterMl ?? 0);
-      const waterTarget = Number(client.profile.waterTargetMl ?? 2000);
-      if (waterToday > 0 && waterToday < waterTarget * 0.4) {
+      const waterTarget = Number(client.profile.waterTargetMl ?? 0);
+      if (waterTarget > 0 && waterToday < waterTarget * 0.4) {
         alerts.push({
           id: `water-${client.id}`,
           severity: "info",

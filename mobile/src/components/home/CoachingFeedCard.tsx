@@ -1,10 +1,12 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { Text } from '@/components/ui/Text';
 import { fetchCoachingFeed, type CoachingFeedItem } from '@/services/remote/consumerApi';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
+import { useProfile } from '@/context/ProfileContext';
 
 const TYPE_STYLES: Record<
   CoachingFeedItem['type'],
@@ -19,25 +21,29 @@ const TYPE_STYLES: Record<
 
 export function CoachingFeedCard() {
   const { push } = useNavigateOnce();
+  const { profile } = useProfile();
   const [data, setData] = useState<CoachingFeedItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    let active = true;
-    void fetchCoachingFeed()
-      .then((items) => {
-        if (active) setData(items);
-      })
-      .catch(() => {
-        if (active) setData([]);
-      })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      setIsLoading(true);
+      void fetchCoachingFeed()
+        .then((items) => {
+          if (active) setData(items);
+        })
+        .catch(() => {
+          if (active) setData([]);
+        })
+        .finally(() => {
+          if (active) setIsLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [profile?.macroTargets?.proteinG, profile?.waterTargetMl, profile?.updatedAt]),
+  );
 
   if (isLoading) {
     return (

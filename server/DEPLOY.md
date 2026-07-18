@@ -71,7 +71,7 @@ git pull
 docker compose -p server down 2>/dev/null || true
 docker compose down
 
-# First deploy or after password change:
+# DANGER — only on a brand-new empty VPS. This DESTROYS the database:
 # docker volume rm mirafood_mirafood_pg_data mirafood_mirafood_redis_data
 
 docker compose build --no-cache
@@ -88,9 +88,15 @@ MiraFood API listening on http://0.0.0.0:3011
 
 ```bash
 curl http://127.0.0.1:3011/api/v1/health/ready
-docker compose exec api npm run seed         # first time / refresh seed users
-docker compose exec api npm run import:tfct  # optional: TFCT food composition (also runs inside seed)
+
+# Safe: upsert seed logins only (does NOT delete meals / patients)
+docker compose exec api npm run seed:users
+
+# Optional food catalog import (does NOT delete users / meals)
+docker compose exec api npm run import:tfct
 ```
+
+**Never** run `npm run seed` with `--wipe-demo` in production. Plain `seed` no longer wipes data; older images did wipe meals + consumer profiles — use `seed:users` going forward.
 
 Production scripts use `node dist/...` (no `tsx` in the image).
 

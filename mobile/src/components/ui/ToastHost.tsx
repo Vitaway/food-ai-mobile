@@ -16,7 +16,7 @@ export function ToastHost({ toasts, onDismiss }: ToastHostProps) {
   return (
     <View
       pointerEvents="box-none"
-      style={[styles.host, { top: insets.top + 10, right: 12 }]}>
+      style={[styles.host, { top: insets.top + 8, paddingHorizontal: 12 }]}>
       {toasts.map((toast) => (
         <ToastCard key={toast.id} toast={toast} onDismiss={onDismiss} />
       ))}
@@ -27,8 +27,11 @@ export function ToastHost({ toasts, onDismiss }: ToastHostProps) {
 const styles = StyleSheet.create({
   host: {
     position: 'absolute',
-    zIndex: 9999,
-    alignItems: 'flex-end',
+    left: 0,
+    right: 0,
+    zIndex: 99999,
+    elevation: 99999,
+    alignItems: 'stretch',
     gap: 10,
   },
 });

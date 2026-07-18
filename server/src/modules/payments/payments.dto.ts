@@ -7,11 +7,6 @@ export class CreateCheckoutDto {
 
   @IsOptional()
   @IsString()
-  @MaxLength(24)
-  subscriptionType?: "individual" | "corporate" | "family";
-
-  @IsOptional()
-  @IsString()
   @MaxLength(64)
   organizationId?: string;
 
@@ -20,14 +15,23 @@ export class CreateCheckoutDto {
   @MaxLength(160)
   organizationName?: string;
 
+  /** @deprecated Ignored — server plan catalog owns pricing. */
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  amount!: number;
+  amount?: number;
 
+  /** @deprecated Ignored — server plan catalog owns currency. */
   @IsOptional()
   @IsString()
   @MaxLength(3)
   currency?: string;
+
+  /** @deprecated Ignored — derived from planCode. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(24)
+  subscriptionType?: "individual" | "corporate" | "family";
 }
 
 export class IremboWebhookDto {

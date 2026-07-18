@@ -26,6 +26,7 @@ export const ADMIN_ROUTES = {
   referrals: '/admin/referrals',
   foodDb: '/admin/food-db',
   modules: '/admin/modules',
+  assessments: '/admin/assessments',
   messages: '/admin/messages',
   profile: '/admin/profile',
   system: '/admin/system',

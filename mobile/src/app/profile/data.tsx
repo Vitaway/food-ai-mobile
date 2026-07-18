@@ -1,14 +1,16 @@
 import * as Linking from 'expo-linking';
 import { useRouter, type Href } from 'expo-router';
-import { Alert, ScrollView, View } from 'react-native';
+import { Alert, ScrollView, Share, View } from 'react-native';
 
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constants/site';
 import { useProfileBack } from '@/hooks/useProfileBack';
+import { useAuth } from '@/context/AuthContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useToast } from '@/context/ToastContext';
 
 function openLegalUrl(url: string) {
   void Linking.openURL(url);
@@ -17,11 +19,13 @@ function openLegalUrl(url: string) {
 export default function DataPrivacyScreen() {
   const router = useRouter();
   const handleBack = useProfileBack();
-  const { resetNutritionData, deleteAccount } = useProfile();
+  const toast = useToast();
+  const { logout } = useAuth();
+  const { resetNutritionData, deleteAccount, exportData } = useProfile();
   const { clearAllMeals } = useMeals();
 
   const handleResetData = () => {
-    Alert.alert('Reset nutrition data?', 'Meals and hydration logs will be cleared.', [
+    Alert.alert('Reset nutrition data?', 'Meals and hydration logs will be cleared on this device.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Reset',
@@ -34,28 +38,50 @@ export default function DataPrivacyScreen() {
     ]);
   };
 
+  const handleExport = async () => {
+    try {
+      const payload = await exportData();
+      await Share.share({
+        message: JSON.stringify(payload, null, 2),
+        title: 'MiraFood data export',
+      });
+      toast.success('Export ready');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Export failed');
+    }
+  };
+
   const handleDeleteAccount = () => {
-    Alert.alert('Delete account?', 'All data on this device will be removed.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: () => {
-          Alert.alert('Delete everything?', undefined, [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Delete',
-              style: 'destructive',
-              onPress: async () => {
-                await deleteAccount();
-                await clearAllMeals();
-                router.replace('/onboarding' as Href);
+    Alert.alert(
+      'Delete account?',
+      'This permanently deletes your MiraFood account and server data. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert('Delete everything on the server?', undefined, [
+              { text: 'Cancel', style: 'cancel' },
+              {
+                text: 'Delete forever',
+                style: 'destructive',
+                onPress: async () => {
+                  try {
+                    await deleteAccount();
+                    await clearAllMeals();
+                    await logout();
+                    router.replace('/auth/login' as Href);
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : 'Delete failed');
+                  }
+                },
               },
-            },
-          ]);
+            ]);
+          },
         },
-      },
-    ]);
+      ],
+    );
   };
 
   return (
@@ -85,6 +111,13 @@ export default function DataPrivacyScreen() {
           </View>
 
           <View className="overflow-hidden rounded-2xl border border-ash-grey-100 bg-white">
+            <ProfileMenuRow
+              icon="download-outline"
+              title="Export my data"
+              subtitle="Download a copy of your profile and meals"
+              onPress={() => void handleExport()}
+            />
+            <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow icon="refresh-outline" title="Reset nutrition data" onPress={handleResetData} />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow

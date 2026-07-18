@@ -67,6 +67,29 @@ export function formatMealType(type: string) {
     .join(' ');
 }
 
+/** Placeholder / notification strings that should never be shown as a meal title. */
+const BAD_MEAL_NAME =
+  /meal\s*photo\s*submitted|submitted\s*for\s*coach\s*review|^meal\s*photo$|^untitled$/i;
+
+export function isUsableMealName(name?: string | null): name is string {
+  const trimmed = name?.trim() ?? '';
+  if (trimmed.length < 2) return false;
+  return !BAD_MEAL_NAME.test(trimmed);
+}
+
+/** Prefer a real dish name; fall back to meal type (e.g. Mid Morning Snack). */
+export function resolveCoachMealTitle(opts: {
+  mealName?: string | null;
+  aiMealName?: string | null;
+  mealType?: string | null;
+  fallback?: string;
+}) {
+  if (isUsableMealName(opts.aiMealName)) return opts.aiMealName.trim();
+  if (isUsableMealName(opts.mealName)) return opts.mealName.trim();
+  if (opts.mealType) return formatMealType(opts.mealType);
+  return opts.fallback ?? 'Meal';
+}
+
 export function formatGoal(goal?: string | null) {
   if (!goal) return '—';
   return goal.replace(/_/g, ' ');

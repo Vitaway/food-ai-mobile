@@ -2,6 +2,7 @@ import { DataSource } from "typeorm";
 import { env } from "./env";
 import { User } from "../modules/users/user.entity";
 import { UserSession } from "../modules/auth/user-session.entity";
+import { PasswordResetOtp } from "../modules/auth/password-reset-otp.entity";
 import { CoachProfile } from "../modules/coaches/coach-profile.entity";
 import { ConsumerProfile } from "../modules/meals/consumer-profile.entity";
 import { MealSubmission } from "../modules/meals/meal-submission.entity";
@@ -26,6 +27,8 @@ import { PaymentTransaction } from "../modules/payments/payment-transaction.enti
 import { ReportSnapshot } from "../modules/reports/report-snapshot.entity";
 import { FamilySubscriptionMember } from "../modules/payments/family-subscription-member.entity";
 import { Organization } from "../modules/payments/organization.entity";
+import { ConsumerClinicalAssessment } from "../modules/consumers/clinical-assessment.entity";
+import { ConsumerWaterLog } from "../modules/consumers/water-log.entity";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -33,6 +36,7 @@ export const AppDataSource = new DataSource({
   entities: [
     User,
     UserSession,
+    PasswordResetOtp,
     CoachProfile,
     ConsumerProfile,
     MealSubmission,
@@ -58,6 +62,8 @@ export const AppDataSource = new DataSource({
     OrganizationModuleEntitlement,
     UserNotification,
     UserPushToken,
+    ConsumerClinicalAssessment,
+    ConsumerWaterLog,
   ],
   migrations: [
     env.NODE_ENV === "production" ? "dist/migrations/*.js" : "src/migrations/*.ts",

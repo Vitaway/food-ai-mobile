@@ -32,6 +32,17 @@ function streakThroughYesterday(meals: MealSubmission[], now = new Date()) {
   return streak;
 }
 
+/** Stable timestamp for when this nudge window opened today (not "now" on every rebuild). */
+function windowCreatedAt(now: Date, hour: number, minute = 0) {
+  const stamp = new Date(now);
+  stamp.setHours(hour, minute, 0, 0);
+  if (stamp.getTime() > now.getTime()) {
+    // Window started yesterday relative to clock edge cases — clamp to now-1m
+    return new Date(now.getTime() - 60_000).toISOString();
+  }
+  return stamp.toISOString();
+}
+
 export function buildLocalNudges({
   meals,
   waterMl,
@@ -51,7 +62,6 @@ export function buildLocalNudges({
   const today = todayKey();
   const approvedToday = approvedOnDate(meals, today);
   const nudges: LocalNudge[] = [];
-  const createdAt = now.toISOString();
 
   if (settings.categories.meals) {
     const hasBreakfast = approvedToday.some((m) => m.mealType === 'breakfast');
@@ -65,7 +75,7 @@ export function buildLocalNudges({
         category: 'meals',
         title: 'Breakfast check-in',
         message: "You haven't logged breakfast yet. A quick log keeps your day on track.",
-        createdAt,
+        createdAt: windowCreatedAt(now, 10),
       });
     }
 
@@ -76,7 +86,7 @@ export function buildLocalNudges({
         category: 'meals',
         title: 'Lunch reminder',
         message: 'No lunch logged yet. Logging now helps your macro totals stay accurate.',
-        createdAt,
+        createdAt: windowCreatedAt(now, 14),
       });
     }
 
@@ -87,7 +97,7 @@ export function buildLocalNudges({
         category: 'meals',
         title: 'Dinner window',
         message: "It's evening and dinner isn't logged. Capture it before the day ends.",
-        createdAt,
+        createdAt: windowCreatedAt(now, 19),
       });
     }
   }
@@ -101,7 +111,7 @@ export function buildLocalNudges({
         category: 'hydration',
         title: 'Hydration nudge',
         message: `You're at about ${waterPct}% of today's water goal. Log a glass from your health profile.`,
-        createdAt,
+        createdAt: windowCreatedAt(now, 12),
       });
     }
   }
@@ -116,7 +126,7 @@ export function buildLocalNudges({
         category: 'streak',
         title: 'Streak at risk',
         message: `You're on a ${streak}-day streak. Log any meal today to keep it going.`,
-        createdAt,
+        createdAt: windowCreatedAt(now, 17),
       });
     }
   }

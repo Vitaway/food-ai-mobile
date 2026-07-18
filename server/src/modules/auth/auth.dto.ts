@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, MinLength, MaxLength } from "class-validator";
+import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 export class LoginDto {
   @IsEmail()
@@ -39,14 +39,36 @@ export class ForgotPasswordDto {
   email!: string;
 }
 
-export class ResetPasswordDto {
+export class VerifyResetCodeDto {
+  @IsEmail()
+  email!: string;
+
   @IsString()
-  @MinLength(20)
-  @MaxLength(512)
-  token!: string;
+  @Matches(/^\d{6}$/, { message: "Code must be a 6-digit number" })
+  code!: string;
+}
+
+export class ResetPasswordDto {
+  @IsEmail()
+  email!: string;
+
+  @IsString()
+  @Matches(/^\d{6}$/, { message: "Code must be a 6-digit number" })
+  code!: string;
 
   @IsString()
   @MinLength(8)
   @MaxLength(128)
   password!: string;
 }
+
+export class VerifyMfaDto {
+  @IsString()
+  @MinLength(20)
+  challengeToken!: string;
+
+  @IsString()
+  @Matches(/^\d{6}$/, { message: "Code must be a 6-digit number" })
+  code!: string;
+}
+

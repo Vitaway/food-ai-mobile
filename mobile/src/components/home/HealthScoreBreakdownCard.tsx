@@ -4,13 +4,16 @@ import { Text } from '@/components/ui/Text';
 
 type Breakdown = {
   nutrientScore: number;
+  nutrientDataCoverage?: number;
   macroScore: number;
   calorieScore: number;
   consistencyScore: number;
   varietyScore: number;
 };
 
-const ROWS: Array<{ key: keyof Breakdown; label: string; weight: string }> = [
+type ScoreKey = Exclude<keyof Breakdown, 'nutrientDataCoverage'>;
+
+const ROWS: Array<{ key: ScoreKey; label: string; weight: string }> = [
   { key: 'nutrientScore', label: 'Nutrient adequacy', weight: '30%' },
   { key: 'macroScore', label: 'Macro balance', weight: '25%' },
   { key: 'calorieScore', label: 'Calorie balance', weight: '20%' },
@@ -43,6 +46,12 @@ export function HealthScoreBreakdownCard({
           <Text className="mt-0.5 text-xs text-neutral-500">{breakdown[row.key]}/100</Text>
         </View>
       ))}
+      {breakdown.nutrientDataCoverage != null ? (
+        <Text className="mt-2 text-xs leading-5 text-neutral-500">
+          Nutrient data coverage: {breakdown.nutrientDataCoverage}%. Missing micronutrient data lowers
+          confidence instead of being treated as perfect intake.
+        </Text>
+      ) : null}
     </View>
   );
 }

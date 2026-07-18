@@ -21,6 +21,8 @@ import {
   ChangeCoachPasswordDto,
   SendCoachMessageDto,
   AssignClientDto,
+  SaveClinicalAssessmentDto,
+  ConfirmClinicalAssessmentDto,
 } from "./coach.dto";
 import { coachService } from "./coach.service";
 import { coachMealsService } from "../meals/coach-meals.service";
@@ -29,6 +31,7 @@ import { smartAlertsService } from "./smart-alerts.service";
 import { coachingFeedService } from "../consumers/coaching-feed.service";
 import { CreateReviewTaskDto, ReviewMealDto, SaveReviewDraftDto } from "../meals/meals.dto";
 import { platformMetricsService } from "../admin/platform-metrics.service";
+import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -120,6 +123,32 @@ export class CoachController {
   @Get("/clients/:id")
   client(@CurrentUser() user: User, @Param("id") id: string) {
     return coachMealsService.getClientById(id, user.id);
+  }
+
+  @Authorized(["coach"])
+  @Get("/clients/:id/clinical-assessment")
+  clinicalAssessment(@CurrentUser() user: User, @Param("id") id: string) {
+    return clinicalAssessmentService.get(id, user.id);
+  }
+
+  @Authorized(["coach"])
+  @Patch("/clients/:id/clinical-assessment")
+  saveClinicalAssessment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: SaveClinicalAssessmentDto,
+  ) {
+    return clinicalAssessmentService.saveDraft(id, user.id, dto);
+  }
+
+  @Authorized(["coach"])
+  @Post("/clients/:id/clinical-assessment/confirm")
+  confirmClinicalAssessment(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: ConfirmClinicalAssessmentDto,
+  ) {
+    return clinicalAssessmentService.confirm(id, user.id, dto);
   }
 
   @Authorized(["coach"])

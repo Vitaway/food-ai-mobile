@@ -45,13 +45,17 @@ export const coachingFeedService = {
     const dashboard = computeDashboard(profileRow.profile, profileRow.dashboard, meals, byMealId, todayKey());
     const items: CoachingFeedItem[] = [];
 
-    const proteinTarget = Number(
-      (profileRow.profile.macroTargets as { proteinG?: number } | undefined)?.proteinG ?? 120,
-    );
-    const fiberTarget = Number(
-      (profileRow.profile.macroTargets as { fiberG?: number } | undefined)?.fiberG ?? 25,
-    );
-    const waterTarget = Number(profileRow.profile.waterTargetMl ?? 2000);
+    const macros = profileRow.profile.macroTargets as
+      | { proteinG?: number; fiberG?: number }
+      | undefined;
+    const proteinTarget =
+      typeof macros?.proteinG === "number" && macros.proteinG > 0 ? macros.proteinG : null;
+    const fiberTarget =
+      typeof macros?.fiberG === "number" && macros.fiberG > 0 ? macros.fiberG : null;
+    const waterTarget =
+      typeof profileRow.profile.waterTargetMl === "number" && profileRow.profile.waterTargetMl > 0
+        ? Number(profileRow.profile.waterTargetMl)
+        : null;
 
     if (dashboard.streakDays >= 3) {
       items.push({
@@ -65,7 +69,7 @@ export const coachingFeedService = {
       });
     }
 
-    if (dashboard.macrosConsumed.proteinG < proteinTarget * 0.7) {
+    if (proteinTarget != null && dashboard.macrosConsumed.proteinG < proteinTarget * 0.7) {
       items.push({
         id: "protein-low",
         type: "tip",
@@ -77,7 +81,7 @@ export const coachingFeedService = {
       });
     }
 
-    if (dashboard.macrosConsumed.fiberG < fiberTarget * 0.6) {
+    if (fiberTarget != null && dashboard.macrosConsumed.fiberG < fiberTarget * 0.6) {
       items.push({
         id: "fiber-low",
         type: "tip",
@@ -89,7 +93,7 @@ export const coachingFeedService = {
       });
     }
 
-    if (dashboard.waterMl < waterTarget * 0.45) {
+    if (waterTarget != null && dashboard.waterMl < waterTarget * 0.45) {
       items.push({
         id: "hydration",
         type: "reminder",
@@ -97,7 +101,7 @@ export const coachingFeedService = {
         body: `You've logged ${dashboard.waterMl} ml of your ${waterTarget} ml water goal today.`,
         priority: 75,
         actionLabel: "Log water",
-        actionRoute: "/(tabs)",
+        actionRoute: "/water",
       });
     }
 
@@ -181,7 +185,7 @@ export const coachingFeedService = {
         id: "nutrients",
         type: "tip",
         title: "Micronutrient boost",
-        body: "Your nutrient adequacy score is low. Colorful vegetables and fortified staples can help.",
+        body: "Today's nutrient adequacy score is low based on logged meals so far. Colorful vegetables and fortified staples can help.",
         priority: 72,
         actionLabel: "Health insights",
         actionRoute: "/profile/health",
@@ -218,9 +222,9 @@ export const coachingFeedService = {
     }
 
     const proteinTarget = Number(
-      (consumer.profile.macroTargets as { proteinG?: number } | undefined)?.proteinG ?? 120,
+      (consumer.profile.macroTargets as { proteinG?: number } | undefined)?.proteinG ?? 0,
     );
-    if (dashboard.macrosConsumed.proteinG < proteinTarget * 0.7) {
+    if (proteinTarget > 0 && dashboard.macrosConsumed.proteinG < proteinTarget * 0.7) {
       items.push({
         id: "protein",
         type: "tip",

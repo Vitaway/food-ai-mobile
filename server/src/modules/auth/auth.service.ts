@@ -5,14 +5,33 @@ import {
   BadRequestError,
   NotFoundError,
 } from "routing-controllers";
-import {
-  signAuthToken,
-  signPasswordResetToken,
-  verifyPasswordResetToken,
-} from "../../middlewares/auth.middleware";
+import { signAuthToken } from "../../middlewares/auth.middleware";
+import jwt from "jsonwebtoken";
 import { usersRepository } from "../users/users.repository";
 import { authRepository } from "./auth.repository";
-import type { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from "./auth.dto";
+import type {
+  LoginDto,
+  RegisterDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyResetCodeDto,
+  VerifyMfaDto,
+} from "./auth.dto";
+import {
+  createPasswordResetOtp,
+  findLatestOpenOtp,
+  generateOtpCode,
+  incrementOtpAttempts,
+  invalidateOpenOtps,
+  markOtpConsumed,
+  OTP_MAX_ATTEMPTS,
+  OTP_RESEND_COOLDOWN_MS,
+  otpFingerprint,
+  purgeExpiredOtps,
+  recentlyIssuedOtp,
+  verifyOtpCode,
+} from "./password-reset-otp.util";
+import type { PasswordResetOtp } from "./password-reset-otp.entity";
 import { env } from "../../config/env";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
@@ -23,6 +42,7 @@ import { logger } from "../../config/logger";
 import { emailService } from "../../services/email.service";
 import { generateReferralCode } from "../../utils/referral-code";
 import { notificationsService } from "../notifications/notifications.service";
+import { adminAuditService } from "../admin/admin-audit.service";
 
 export interface AuthUserDto {
   id: string;
@@ -45,6 +65,30 @@ export interface LoginResult {
     patientId: string;
     onboardingComplete: boolean;
   };
+}
+
+export type MfaChallengeResult = {
+  mfaRequired: true;
+  challengeToken: string;
+  email: string;
+  /** Present only outside production when email delivery may be unavailable. */
+  debugCode?: string;
+};
+
+function isStaffRole(role: string) {
+  return role !== "consumer";
+}
+
+function signMfaChallengeToken(userId: string): string {
+  return jwt.sign({ sub: userId, purpose: "mfa" }, env.JWT_SECRET, { expiresIn: "10m" });
+}
+
+function verifyMfaChallengeToken(token: string): { sub: string } {
+  const payload = jwt.verify(token, env.JWT_SECRET) as { sub?: string; purpose?: string };
+  if (!payload.sub || payload.purpose !== "mfa") {
+    throw new UnauthorizedError("Invalid or expired verification challenge");
+  }
+  return { sub: payload.sub };
 }
 
 function toAuthUser(
@@ -76,6 +120,36 @@ async function createSession(userId: string, req?: Request) {
   });
   await authRepository.save(session);
   return session;
+}
+
+async function assertValidResetOtp(emailRaw: string, codeRaw: string): Promise<PasswordResetOtp> {
+  const email = emailRaw.toLowerCase().trim();
+  const code = codeRaw.trim();
+  const otp = await findLatestOpenOtp(email);
+
+  if (!otp) {
+    throw new BadRequestError("Invalid or expired code. Request a new one.");
+  }
+
+  if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+    throw new BadRequestError("Too many incorrect attempts. Request a new code.");
+  }
+
+  const matches = await verifyOtpCode(code, otp.codeHash);
+  if (!matches) {
+    await incrementOtpAttempts(otp);
+    const remaining = OTP_MAX_ATTEMPTS - otp.attempts;
+    if (remaining <= 0) {
+      throw new BadRequestError("Too many incorrect attempts. Request a new code.");
+    }
+    throw new BadRequestError(
+      remaining === 1
+        ? "Incorrect code. 1 attempt remaining."
+        : `Incorrect code. ${remaining} attempts remaining.`,
+    );
+  }
+
+  return otp;
 }
 
 async function attachRoleContext(
@@ -205,7 +279,7 @@ export const authService = {
     return result;
   },
 
-  async login(dto: LoginDto, req?: Request): Promise<LoginResult> {
+  async login(dto: LoginDto, req?: Request): Promise<LoginResult | MfaChallengeResult> {
     const email = dto.email.toLowerCase().trim();
     const user = await usersRepository.findByEmail(email);
     if (!user?.passwordHash) {
@@ -218,6 +292,55 @@ export const authService = {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedError("Invalid email or password");
+    }
+
+    if (env.MFA_REQUIRED_FOR_STAFF && isStaffRole(user.role)) {
+      void purgeExpiredOtps().catch(() => undefined);
+      const recent = await recentlyIssuedOtp(user.id);
+      if (recent) {
+        const waitSec = Math.ceil(
+          (recent.createdAt.getTime() + OTP_RESEND_COOLDOWN_MS - Date.now()) / 1000,
+        );
+        throw new BadRequestError(
+          `Please wait ${Math.max(waitSec, 1)} seconds before requesting another code.`,
+        );
+      }
+
+      const code = generateOtpCode();
+      await createPasswordResetOtp({
+        userId: user.id,
+        email: user.email,
+        code,
+      });
+
+      let debugCode: string | undefined;
+      try {
+        await emailService.sendStaffLoginOtpEmail(user.email, {
+          code,
+          firstName: user.displayName?.trim().split(/\s+/)[0] || null,
+        });
+      } catch (err) {
+        logger.error({ err, email: user.email }, "Failed to send staff MFA email");
+        if (env.NODE_ENV !== "production") {
+          debugCode = code;
+          logger.warn({ email: user.email, debugCode: code }, "MFA debug code (dev only)");
+        } else {
+          throw new BadRequestError("Unable to send verification code. Try again shortly.");
+        }
+      }
+
+      await adminAuditService.log(user.id, "auth.mfa_challenge_issued", {
+        targetType: "user",
+        targetId: user.id,
+        req,
+      });
+
+      return {
+        mfaRequired: true,
+        challengeToken: signMfaChallengeToken(user.id),
+        email: user.email,
+        ...(debugCode ? { debugCode } : {}),
+      };
     }
 
     const session = await createSession(user.id, req);
@@ -235,44 +358,117 @@ export const authService = {
     return attachRoleContext(user, result);
   },
 
+  async verifyMfa(dto: VerifyMfaDto, req?: Request): Promise<LoginResult> {
+    const { sub: userId } = verifyMfaChallengeToken(dto.challengeToken.trim());
+    const user = await usersRepository.findById(userId);
+    if (!user?.passwordHash || !user.isActive) {
+      throw new UnauthorizedError("Invalid or expired verification challenge");
+    }
+
+    const otp = await findLatestOpenOtp(user.email);
+    if (!otp) {
+      throw new BadRequestError("Verification code expired. Sign in again.");
+    }
+    if (otp.attempts >= OTP_MAX_ATTEMPTS) {
+      throw new BadRequestError("Too many attempts. Sign in again.");
+    }
+
+    const ok = await verifyOtpCode(dto.code.trim(), otp.codeHash);
+    if (!ok) {
+      await incrementOtpAttempts(otp);
+      throw new UnauthorizedError("Invalid verification code");
+    }
+
+    await markOtpConsumed(otp);
+    await invalidateOpenOtps(user.id);
+
+    const session = await createSession(user.id, req);
+    const token = signAuthToken({
+      sub: user.id,
+      sid: session.id,
+      role: user.role,
+    });
+
+    await adminAuditService.log(user.id, "auth.mfa_verified", {
+      targetType: "user",
+      targetId: user.id,
+      req,
+      meta: { fingerprint: otpFingerprint(dto.code.trim()) },
+    });
+
+    return attachRoleContext(user, {
+      token,
+      user: toAuthUser(user),
+    });
+  },
+
   async forgotPassword(dto: ForgotPasswordDto): Promise<{ ok: true }> {
     const email = dto.email.toLowerCase().trim();
+    void purgeExpiredOtps().catch(() => undefined);
+
     const user = await usersRepository.findByEmail(email);
+    // Always succeed to avoid account enumeration.
     if (!user?.passwordHash || !user.isActive) {
       return { ok: true };
     }
 
-    const token = signPasswordResetToken(user.id);
-    const resetUrl = `${env.APP_URL.replace(/\/$/, "")}/forgot-password?token=${encodeURIComponent(token)}`;
-    const mobileResetUrl = `${env.MOBILE_APP_SCHEME}://auth/reset-password?token=${encodeURIComponent(token)}`;
+    const recent = await recentlyIssuedOtp(user.id);
+    if (recent) {
+      const waitSec = Math.ceil(
+        (recent.createdAt.getTime() + OTP_RESEND_COOLDOWN_MS - Date.now()) / 1000,
+      );
+      throw new BadRequestError(
+        `Please wait ${Math.max(waitSec, 1)} seconds before requesting another code.`,
+      );
+    }
+
+    const code = generateOtpCode();
+    const firstName = user.displayName?.trim().split(/\s+/)[0] || null;
+
+    await createPasswordResetOtp({
+      userId: user.id,
+      email: user.email,
+      code,
+    });
 
     try {
-      await emailService.sendPasswordResetEmail(user.email, resetUrl, mobileResetUrl);
+      await emailService.sendPasswordResetOtpEmail(user.email, {
+        code,
+        firstName,
+      });
     } catch (err) {
-      logger.error({ err, email: user.email }, "Failed to send password reset email");
-      if (env.NODE_ENV === "production") {
-        throw new BadRequestError("Could not send reset email. Try again later.");
-      }
+      await invalidateOpenOtps(user.id);
+      logger.error({ err, email: user.email }, "Failed to send password reset OTP email");
+      throw new BadRequestError("Could not send reset email. Try again later.");
     }
+
+    logger.info(
+      { email: user.email, otpFp: otpFingerprint(code) },
+      "Password reset OTP issued",
+    );
 
     return { ok: true };
   },
 
-  async resetPassword(dto: ResetPasswordDto): Promise<{ ok: true }> {
-    let userId: string;
-    try {
-      userId = verifyPasswordResetToken(dto.token);
-    } catch {
-      throw new BadRequestError("Invalid or expired reset link. Request a new one.");
-    }
+  async verifyResetCode(dto: VerifyResetCodeDto): Promise<{ ok: true }> {
+    await assertValidResetOtp(dto.email, dto.code);
+    return { ok: true };
+  },
 
-    const user = await usersRepository.findById(userId);
+  async resetPassword(dto: ResetPasswordDto): Promise<{ ok: true }> {
+    const otp = await assertValidResetOtp(dto.email, dto.code);
+    const user = await usersRepository.findById(otp.userId);
     if (!user?.passwordHash || !user.isActive) {
-      throw new BadRequestError("Invalid or expired reset link. Request a new one.");
+      throw new BadRequestError("Invalid or expired code. Request a new one.");
     }
 
     user.passwordHash = await bcrypt.hash(dto.password, 10);
     await usersRepository.save(user);
+    await markOtpConsumed(otp);
+    await invalidateOpenOtps(user.id);
+    const revoked = await authRepository.revokeAllForUser(user.id);
+    logger.info({ userId: user.id, revokedSessions: revoked }, "Password reset completed");
+
     return { ok: true };
   },
 

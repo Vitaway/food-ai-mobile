@@ -74,6 +74,10 @@ export interface DetectedFoodItem {
   servingAmount?: number;
   servingGramsEquivalent?: number;
   foodSource?: 'ai' | 'nutrition_db' | 'manual';
+  /** Linked nutrition_foods row when foodSource is nutrition_db. */
+  nutritionFoodId?: string;
+  /** Per-100g macros from DB — used to rescale weight accurately. */
+  nutritionPer100g?: NutritionFacts;
   emoji?: string;
   nutrition: NutritionFacts;
 }
@@ -89,6 +93,7 @@ export interface UserProfile {
   displayName?: string;
   email?: string;
   avatarUrl?: string;
+  dateOfBirth?: string;
   age: number;
   sex: string | null;
   heightCm: number;
@@ -146,6 +151,11 @@ export interface MealSubmission {
   complexity?: 'low' | 'medium' | 'high';
   classificationLabel?: string;
   hasAllergies?: boolean;
+  clientHasAllergies?: boolean;
+  allergenMatch?: boolean;
+  possibleAllergenMatch?: boolean;
+  matchedAllergens?: string[];
+  possibleAllergens?: string[];
 }
 
 export interface CoachClient {
@@ -159,6 +169,7 @@ export interface CoachClient {
   adherenceTrend?: 'improving' | 'stable' | 'declining';
   openFlags?: number;
   hasAllergies?: boolean;
+  clientHasAllergies?: boolean;
 }
 
 export interface CoachClientDetail {

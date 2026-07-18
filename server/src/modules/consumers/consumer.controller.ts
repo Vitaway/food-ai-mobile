@@ -4,6 +4,7 @@ import {
   Body,
   Controller,
   CurrentUser,
+  Delete,
   Get,
   Param,
   Patch,
@@ -21,6 +22,7 @@ import { paymentsService } from "../payments/payments.service";
 import { reportsService } from "../reports/reports.service";
 import { familySubscriptionService } from "../payments/family.service";
 import { coachingFeedService } from "./coaching-feed.service";
+import { accountLifecycleService } from "./account-lifecycle.service";
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -160,14 +162,20 @@ export class ConsumerController {
   }
 
   @Authorized(["consumer"])
-  @Post("/subscription/family/activate")
-  activateFamily(@CurrentUser() user: User) {
-    return familySubscriptionService.createFamilyPlan(user.id);
-  }
-
-  @Authorized(["consumer"])
   @Post("/subscription/family/members")
   addFamilyMember(@CurrentUser() user: User, @Body() body: { email: string }) {
     return familySubscriptionService.addFamilyMember(user.id, body.email);
+  }
+
+  @Authorized(["consumer"])
+  @Get("/data-export")
+  exportData(@CurrentUser() user: User) {
+    return accountLifecycleService.exportForUser(user.id);
+  }
+
+  @Authorized(["consumer"])
+  @Delete("/account")
+  deleteAccount(@CurrentUser() user: User) {
+    return accountLifecycleService.deleteForUser(user.id);
   }
 }

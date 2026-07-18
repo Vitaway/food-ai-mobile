@@ -5,6 +5,7 @@ import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useOptionalNotificationSocket } from '@/context/NotificationContext';
 import { useToast } from '@/context/ToastContext';
+import { claimIncomingToast } from '@/services/local/incomingNotificationToasts';
 import { isExpoNotificationsAvailable, loadExpoNotifications } from '@/services/push/expoNotifications';
 import {
   clearPushTokenFromServer,
@@ -90,8 +91,19 @@ export function PushNotificationSetup() {
       received = Notifications.addNotificationReceivedListener((notification) => {
         const title = notification.request.content.title ?? 'MiraFood';
         const body = notification.request.content.body ?? '';
+        const data = (notification.request.content.data ?? {}) as Record<string, unknown>;
+        const notificationId =
+          typeof data.notificationId === 'string'
+            ? data.notificationId
+            : typeof data.id === 'string'
+              ? data.id
+              : null;
+
         if (body) {
-          toastRef.current.info(body, title);
+          const claimId = notificationId ?? `push:${title}:${body}`;
+          if (claimIncomingToast(claimId)) {
+            toastRef.current.incoming(body, title, 'info');
+          }
         }
         void notificationSocket?.refreshServerNotifications(true);
       });

@@ -15,6 +15,17 @@ export class AuthRepository {
   findById(id: string) {
     return this.repo.findOne({ where: { id } });
   }
+
+  async revokeAllForUser(userId: string): Promise<number> {
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(UserSession)
+      .set({ revokedAt: new Date() })
+      .where("user_id = :userId", { userId })
+      .andWhere("revoked_at IS NULL")
+      .execute();
+    return result.affected ?? 0;
+  }
 }
 
 export const authRepository = new AuthRepository();

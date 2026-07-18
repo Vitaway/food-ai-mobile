@@ -7,6 +7,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import { LogAnalyzingStep, type MealAnalyzePhase } from '@/components/log/LogAnalyzingStep';
 import { LogBarcodeStep } from '@/components/log/LogBarcodeStep';
 import { LogMethodStep, type LogMethodId } from '@/components/log/LogMethodStep';
+import { canRepeatMeal, LogPastMealsStep } from '@/components/log/LogPastMealsStep';
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
 import { LogScreenShell } from '@/components/log/LogScreenShell';
@@ -19,26 +20,30 @@ import { useMeals } from '@/context/MealsContext';
 import { useToast } from '@/context/ToastContext';
 import { services } from '@/services';
 import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
-import type { MealAnalysisPreview } from '@/types';
+import type { MealAnalysisPreview, MealSubmission } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 import {
   consumeLogMealTypeIntent,
   consumeLogMethodIntent,
 } from '@/utils/logIntent';
-import { createCoachReviewStub } from '@/services/local/mealAnalysis';
+import {
+  analysisPreviewFromPastMeal,
+  createCoachReviewStub,
+} from '@/services/local/mealAnalysis';
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
   type ImageCaptureMetadata,
 } from '@/utils/imageCaptureMetadata';
 
-type FlowStep = LogStep | 'text' | 'barcode';
+type FlowStep = LogStep | 'text' | 'barcode' | 'past';
 
 const STEP_TITLES: Record<FlowStep, string> = {
   method: 'Log meal',
   text: 'Describe',
   barcode: 'Barcode',
+  past: 'Repeat',
   scan: 'Photo',
   analyzing: 'AI analysis',
   results: 'Review & submit',
@@ -75,6 +80,7 @@ export default function LogMealScreen() {
   const [plateDetectionError, setPlateDetectionError] = useState<string | null>(null);
   const [analyzePhase, setAnalyzePhase] = useState<MealAnalyzePhase | null>(null);
   const [fromBarcode, setFromBarcode] = useState(false);
+  const [fromPastMeal, setFromPastMeal] = useState(false);
 
   const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
   const stepTitle = STEP_TITLES[step];
@@ -107,6 +113,8 @@ export default function LogMealScreen() {
     setAnalysis(null);
     setAnalyzing(false);
     setSaving(false);
+    setFromBarcode(false);
+    setFromPastMeal(false);
     resetPlateDetection();
     handledIntentRef.current = false;
   }, [resolveInitialMealType, resetPlateDetection]);
@@ -321,18 +329,31 @@ export default function LogMealScreen() {
         return;
       }
 
-      const past = meals.find((meal) => meal.status === 'approved');
-      if (!past) {
-        toast.info('Log a meal first, then you can repeat it here.');
-        return;
-      }
-      setSelectedMealType(past.mealType);
-      setImageUri(past.imageUrl ?? null);
-      setTextInput(past.textInput ?? past.mealName ?? '');
-      setMealDescription('');
-      setStep('text');
+      setFromBarcode(false);
+      setFromPastMeal(false);
+      setStep('past');
     },
-    [analyzing, meals, openPhotoFlow, saving, toast],
+    [analyzing, openPhotoFlow, saving],
+  );
+
+  const handleSelectPastMeal = useCallback(
+    (meal: MealSubmission) => {
+      if (analyzing || saving || !canRepeatMeal(meal)) return;
+      try {
+        const preview = analysisPreviewFromPastMeal(meal);
+        setFromBarcode(false);
+        setFromPastMeal(true);
+        setSelectedMealType(meal.mealType);
+        setImageUri(meal.imageUrl ?? null);
+        setTextInput(meal.textInput ?? meal.mealName ?? preview.mealName);
+        setMealDescription(meal.note ?? '');
+        setAnalysis(preview);
+        setStep('results');
+      } catch {
+        toast.error('Could not load that meal. Try another one.');
+      }
+    },
+    [analyzing, saving, toast],
   );
 
   const applyNavigationIntents = useCallback(() => {
@@ -414,12 +435,24 @@ export default function LogMealScreen() {
   ]);
 
   const handleBack = useCallback(() => {
-    if (step === 'text' || step === 'scan' || step === 'barcode') setStep('method');
-    else if (step === 'results') {
-      if (fromBarcode) setStep('barcode');
-      else setStep(imageUri ? 'scan' : 'text');
+    if (step === 'text' || step === 'scan' || step === 'barcode' || step === 'past') {
+      setStep('method');
+      return;
     }
-  }, [fromBarcode, imageUri, step]);
+    if (step === 'results') {
+      if (fromPastMeal) {
+        setAnalysis(null);
+        setFromPastMeal(false);
+        setStep('past');
+        return;
+      }
+      if (fromBarcode) {
+        setStep('barcode');
+        return;
+      }
+      setStep(imageUri ? 'scan' : 'text');
+    }
+  }, [fromBarcode, fromPastMeal, imageUri, step]);
 
   const showBack = step !== 'method' && step !== 'analyzing';
   const useScroll =
@@ -428,7 +461,8 @@ export default function LogMealScreen() {
     step === 'analyzing' ||
     step === 'scan' ||
     step === 'text' ||
-    step === 'barcode';
+    step === 'barcode' ||
+    step === 'past';
   const keyboardAvoid = step === 'text' || step === 'scan';
 
   const footer = useMemo(() => {
@@ -467,12 +501,22 @@ export default function LogMealScreen() {
           onBack={() => setStep('method')}
           onFound={(nextAnalysis) => {
             setFromBarcode(true);
+            setFromPastMeal(false);
             setImageUri(null);
             setTextInput('');
             setMealDescription('');
             setAnalysis(nextAnalysis);
             setStep('results');
           }}
+        />
+      );
+    }
+    if (step === 'past') {
+      return (
+        <LogPastMealsStep
+          meals={meals}
+          loading={analyzing || saving}
+          onSelect={handleSelectPastMeal}
         />
       );
     }
@@ -521,8 +565,10 @@ export default function LogMealScreen() {
     containerType,
     handleMethodSelect,
     handleRetakePhoto,
+    handleSelectPastMeal,
     imageUri,
     mealDescription,
+    meals,
     plateDetected,
     plateDetectionError,
     plateDiameterCm,

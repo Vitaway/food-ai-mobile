@@ -16,9 +16,11 @@ import {
   fetchConsumerProfile,
   updateConsumerProfile,
   uploadConsumerAvatar,
+  deleteAccountRemote,
+  exportAccountData,
 } from '@/services/remote/consumerApi';
 import { clearAllLocalData, clearNutritionData, clearProfileData } from '@/services/local/storage';
-import type { ActivityLevel, HealthGoal, UserProfile, UserSex } from '@/types';
+import type { ActivityLevel, HealthGoal, MacroTargets, UserProfile, UserSex } from '@/types';
 import { createId } from '@/utils/dates';
 import { resolveOnboardingComplete } from '@/utils/onboardingStatus';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
@@ -43,6 +45,7 @@ type ProfileContextValue = {
   updateHealthProfile: (draft: Omit<ProfileDraft, 'displayName' | 'avatarUrl' | 'email'>) => Promise<UserProfile>;
   resetNutritionData: () => Promise<void>;
   deleteAccount: () => Promise<void>;
+  exportData: () => Promise<Record<string, unknown>>;
   refreshProfile: () => Promise<void>;
 };
 
@@ -83,10 +86,12 @@ function normalizeRemoteProfile(
     displayName: raw.displayName,
     email: raw.email,
     avatarUrl: raw.avatarUrl,
-    age: raw.age ?? existing?.age ?? 30,
+    dateOfBirth: raw.dateOfBirth ?? existing?.dateOfBirth,
+    // Never invent body metrics for authenticated users — incomplete profiles stay incomplete.
+    age: typeof raw.age === 'number' ? raw.age : existing?.age ?? 0,
     sex: (raw.sex ?? existing?.sex ?? null) as UserSex,
-    heightCm: raw.heightCm ?? existing?.heightCm ?? 170,
-    weightKg: raw.weightKg ?? existing?.weightKg ?? 70,
+    heightCm: typeof raw.heightCm === 'number' ? raw.heightCm : existing?.heightCm ?? 0,
+    weightKg: typeof raw.weightKg === 'number' ? raw.weightKg : existing?.weightKg ?? 0,
     goal: (raw.goal ?? existing?.goal ?? 'maintain_weight') as HealthGoal,
     activityLevel: (raw.activityLevel ?? existing?.activityLevel ?? 'moderately_active') as ActivityLevel,
     dietaryPreferences: raw.dietaryPreferences ?? existing?.dietaryPreferences ?? [],
@@ -96,9 +101,25 @@ function normalizeRemoteProfile(
     allergies: raw.allergies ?? existing?.allergies ?? [],
   };
 
-  const { bmr, tdee, macroTargets } = raw.macroTargets
-    ? { bmr: raw.bmr ?? 0, tdee: raw.tdee ?? 0, macroTargets: raw.macroTargets }
-    : defaultMacroDraft(draft);
+  const hasServerTargets =
+    typeof raw.bmr === 'number' &&
+    raw.bmr > 0 &&
+    Boolean(raw.macroTargets) &&
+    Number((raw.macroTargets as MacroTargets | undefined)?.calories ?? 0) > 0;
+
+  const { bmr, tdee, macroTargets } = hasServerTargets
+    ? {
+        bmr: raw.bmr ?? 0,
+        tdee: raw.tdee ?? 0,
+        macroTargets: raw.macroTargets as MacroTargets,
+      }
+    : draft.age > 0 && draft.heightCm > 0 && draft.weightKg > 0
+      ? defaultMacroDraft(draft)
+      : {
+          bmr: 0,
+          tdee: 0,
+          macroTargets: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0 },
+        };
 
   const now = new Date().toISOString();
   return {
@@ -107,7 +128,18 @@ function normalizeRemoteProfile(
     macroTargets,
     bmr,
     tdee,
-    waterTargetMl: raw.waterTargetMl ?? calculateWaterTargetMl(draft.weightKg),
+    waterTargetMl:
+      typeof raw.waterTargetMl === 'number' && raw.waterTargetMl > 0
+        ? raw.waterTargetMl
+        : draft.weightKg > 0
+          ? calculateWaterTargetMl(draft.weightKg)
+          : 0,
+    clinicalAssessmentStatus:
+      raw.clinicalAssessmentStatus ?? existing?.clinicalAssessmentStatus ?? 'incomplete',
+    targetStatus: raw.targetStatus ?? existing?.targetStatus ?? 'provisional',
+    requiresCoachConfirmation:
+      raw.requiresCoachConfirmation ?? existing?.requiresCoachConfirmation ?? true,
+    nutritionCalculation: raw.nutritionCalculation ?? existing?.nutritionCalculation,
     onboardingComplete: resolveOnboardingComplete(raw),
     createdAt: raw.createdAt ?? existing?.createdAt ?? now,
     updatedAt: raw.updatedAt ?? now,
@@ -278,12 +310,13 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   }, [isAuthenticated, userId, session?.user.patientId, session?.onboardingComplete, markOnboardingComplete, syncProfileFromRemote]);
 
   const persistRemoteProfile = useCallback(
-    async (next: UserProfile, avatarOverride?: string) => {
-      if (!isApiConfigured() || !isAuthenticated) return;
+    async (next: UserProfile, avatarOverride?: string): Promise<UserProfile | null> => {
+      if (!isApiConfigured() || !isAuthenticated) return null;
 
       const avatarUrl = avatarOverride ?? next.avatarUrl;
-      const payload: Partial<UserProfile> & { onboardingComplete?: boolean } = {
+      const payload: Partial<UserProfile> = {
         displayName: next.displayName,
+        dateOfBirth: next.dateOfBirth,
         age: next.age,
         sex: next.sex,
         heightCm: next.heightCm,
@@ -295,16 +328,12 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         targetWeightKg: next.targetWeightKg,
         goalPace: next.goalPace,
         mealsPerDay: next.mealsPerDay,
-        macroTargets: next.macroTargets,
-        bmr: next.bmr,
-        tdee: next.tdee,
-        waterTargetMl: next.waterTargetMl,
-        onboardingComplete: next.onboardingComplete,
       };
       if (avatarUrl?.startsWith('http')) {
         payload.avatarUrl = avatarUrl;
       }
-      await updateConsumerProfile(payload);
+      const remote = await updateConsumerProfile(payload);
+      return normalizeRemoteProfile(remote.patientId, remote.profile, next);
     },
     [isAuthenticated],
   );
@@ -343,11 +372,12 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         }
       }
 
-      const next = buildProfile({ ...draft, avatarUrl }, profile, patientId);
+      const localPreview = buildProfile({ ...draft, avatarUrl }, profile, patientId);
+      let next = localPreview;
 
       if (isApiConfigured() && isAuthenticated) {
         // Onboarding completion is server-authoritative for authenticated users.
-        await persistRemoteProfile(next, avatarUrl);
+        next = (await persistRemoteProfile(localPreview, avatarUrl)) ?? localPreview;
       }
 
       await services.profileRepository.saveProfile(next);
@@ -401,9 +431,19 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   }, []);
 
   const deleteAccount = useCallback(async () => {
+    if (isApiConfigured() && isAuthenticated) {
+      await deleteAccountRemote();
+    }
     await clearAllLocalData();
     setProfile(null);
-  }, []);
+  }, [isAuthenticated]);
+
+  const exportData = useCallback(async () => {
+    if (!isApiConfigured() || !isAuthenticated) {
+      throw new Error('Sign in to export your data');
+    }
+    return exportAccountData();
+  }, [isAuthenticated]);
 
   const value = useMemo(
     () => ({
@@ -422,6 +462,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       updateHealthProfile,
       resetNutritionData,
       deleteAccount,
+      exportData,
       refreshProfile,
     }),
     [
@@ -437,6 +478,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       updateHealthProfile,
       resetNutritionData,
       deleteAccount,
+      exportData,
       refreshProfile,
     ],
   );

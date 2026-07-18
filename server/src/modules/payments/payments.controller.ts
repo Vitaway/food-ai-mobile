@@ -6,6 +6,11 @@ import { paymentsService } from "./payments.service";
 
 @Controller("/payments")
 export class PaymentsController {
+  @Get("/plans")
+  plans() {
+    return paymentsService.listPlans();
+  }
+
   @Authorized(["consumer", "coach", "admin"])
   @Get("/subscription")
   mySubscription(@CurrentUser() user: User) {

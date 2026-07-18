@@ -11,7 +11,10 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
   const flagged = meal.fraudCheckResult === 'flag';
   const lowConfidence = (meal.confidenceAvg ?? 1) < 0.8;
   const allergies = client.profile.allergies ?? [];
-  const hasAllergies = meal.hasAllergies || allergies.length > 0;
+  const allergenConflict = meal.allergenMatch === true;
+  const possibleAllergen = meal.possibleAllergenMatch === true;
+  const allergiesOnFile =
+    !allergenConflict && !possibleAllergen && (meal.clientHasAllergies || allergies.length > 0);
 
   return (
     <Link to={`/coach/queue/${meal.id}`}>
@@ -63,9 +66,22 @@ export function QueueCard({ item }: { item: CoachQueueItem }) {
                     {meal.complexity}
                   </span>
                 ) : null}
-                {hasAllergies ? (
+                {allergenConflict ? (
                   <span className="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
-                    Allergies
+                    Allergen match
+                    {meal.matchedAllergens?.length
+                      ? `: ${meal.matchedAllergens.slice(0, 2).join(', ')}`
+                      : ''}
+                  </span>
+                ) : null}
+                {possibleAllergen ? (
+                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                    May contain allergen
+                  </span>
+                ) : null}
+                {allergiesOnFile ? (
+                  <span className="rounded-full bg-ash-grey-100 px-2.5 py-1 text-xs font-semibold text-ash-grey-700">
+                    Allergies on file
                   </span>
                 ) : null}
                 {meal.manualReviewRequired ? (

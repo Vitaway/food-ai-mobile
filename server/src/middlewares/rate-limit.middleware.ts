@@ -31,3 +31,25 @@ export const visionDetectRateLimit = rateLimit({
   legacyHeaders: false,
   message: { success: false, error: "Too many vision requests. Try again later." },
 });
+
+export const authForgotPasswordRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 8,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Too many password reset requests. Try again in a few minutes.",
+  },
+});
+
+export const authResetPasswordRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Too many password reset attempts. Try again in a few minutes.",
+  },
+});

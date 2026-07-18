@@ -154,6 +154,101 @@ export async function fetchClientSummary(id: string): Promise<CoachWeeklySummary
   return apiRequest<CoachWeeklySummary>(`/coach/clients/${id}/summary`);
 }
 
+export type ClinicalAssessmentData = {
+  verifiedDateOfBirth?: string;
+  verifiedAge?: number;
+  verifiedSex?: 'male' | 'female' | 'other' | 'prefer_not_to_say';
+  verifiedHeightCm?: number;
+  verifiedWeightKg?: number;
+  pregnant?: boolean;
+  trimester?: 1 | 2 | 3 | null;
+  numberOfBabies?: 1 | 2 | null;
+  prePregnancyWeightKg?: number | null;
+  lactating?: boolean;
+  conditions?: string[];
+  conditionDetails?: Record<string, unknown>;
+  fluidRestriction?: boolean;
+  occupation?: string;
+  exercise?: Record<string, unknown>;
+  smoking?: Record<string, unknown>;
+  alcohol?: Record<string, unknown>;
+  sleepHours?: number;
+  stressLevel?: 'low' | 'moderate' | 'high';
+  coachNotes?: string;
+};
+
+export type ClinicalTargetSnapshot = {
+  nceVersion: string;
+  population: string;
+  equationUsed: string;
+  targetStatus: 'provisional' | 'confirmed';
+  requiresCoachConfirmation: boolean;
+  bmr: number;
+  tdee: number;
+  calorieTarget: number;
+  goalAdjustmentKcal: number;
+  macroTargets: {
+    calories: number;
+    proteinG: number;
+    carbsG: number;
+    fatG: number;
+    fiberG: number;
+  };
+  waterTargetMl: number;
+  bmi: number;
+  safetyFlags: string[];
+  warnings: string[];
+};
+
+export type ClinicalAssessment = {
+  clientId: string;
+  status: 'incomplete' | 'draft' | 'confirmed';
+  data: ClinicalAssessmentData;
+  targetSnapshot: ClinicalTargetSnapshot | null;
+  lastEditedBy: string | null;
+  confirmedBy: string | null;
+  confirmedAt: string | null;
+  updatedAt: string | null;
+  patientBasics: {
+    age: number | null;
+    dateOfBirth: string | null;
+    sex: string | null;
+    heightCm: number | null;
+    weightKg: number | null;
+    goal: string | null;
+    goalPace: string | null;
+    targetWeightKg: number | null;
+    activityLevel: string | null;
+    mealsPerDay: number | null;
+    dietaryPreferences: string[];
+    allergies: string[];
+  };
+};
+
+export async function fetchClinicalAssessment(clientId: string): Promise<ClinicalAssessment> {
+  return apiRequest(`/coach/clients/${clientId}/clinical-assessment`);
+}
+
+export async function saveClinicalAssessment(
+  clientId: string,
+  payload: ClinicalAssessmentData,
+): Promise<ClinicalAssessment> {
+  return apiRequest(`/coach/clients/${clientId}/clinical-assessment`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function confirmClinicalAssessment(
+  clientId: string,
+  payload: { allowProtectedWeightLoss?: boolean; confirmationNote?: string },
+): Promise<ClinicalAssessment> {
+  return apiRequest(`/coach/clients/${clientId}/clinical-assessment/confirm`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function assignClient(clientId: string): Promise<void> {
   await apiRequest('/coach/assignments', {
     method: 'POST',
@@ -247,6 +342,19 @@ export type CoachReportSnapshot = {
 
 export async function fetchCoachReports(): Promise<CoachReportSnapshot[]> {
   return apiRequest<CoachReportSnapshot[]>('/reports/coach');
+}
+
+export async function generateCoachReport(input: {
+  period: 'weekly' | 'monthly' | 'custom';
+  from?: string;
+  to?: string;
+}): Promise<CoachReportSnapshot> {
+  const query = new URLSearchParams({ period: input.period });
+  if (input.from) query.set('from', input.from);
+  if (input.to) query.set('to', input.to);
+  return apiRequest<CoachReportSnapshot>(`/reports/coach/generate?${query.toString()}`, {
+    method: 'POST',
+  });
 }
 
 export type CoachingInsight = {

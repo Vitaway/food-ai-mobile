@@ -108,7 +108,7 @@ export function useNotificationUnreadCount() {
     const nudgeUnread = buildLocalNudges({
       meals,
       waterMl,
-      waterTargetMl: profile.waterTargetMl ?? 2450,
+      waterTargetMl: profile.waterTargetMl ?? 0,
       settings,
     }).filter((nudge) => !readKeys.has(nudge.readKey)).length;
 
@@ -164,7 +164,7 @@ export function useAppNotifications() {
   }, [refreshContext]);
 
   const items = useMemo(() => {
-    const waterTarget = profile?.waterTargetMl ?? 2450;
+    const waterTarget = profile?.waterTargetMl ?? 0;
 
     const nudgeItems: AppNotification[] = profile
       ? buildLocalNudges({
@@ -198,7 +198,13 @@ export function useAppNotifications() {
         }))
       : mealNotifications(meals, readKeys);
 
-    const merged = [...nudgeItems, ...serverItems].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    // Real events (reviews, system, referrals) above local nudges when times are close.
+    const kindRank = (kind: AppNotification['kind']) => (kind === 'nudge' ? 1 : 0);
+    const merged = [...nudgeItems, ...serverItems].sort((a, b) => {
+      const byTime = b.createdAt.localeCompare(a.createdAt);
+      if (byTime !== 0) return byTime;
+      return kindRank(a.kind) - kindRank(b.kind);
+    });
 
     return merged.map((item) => ({
       ...item,

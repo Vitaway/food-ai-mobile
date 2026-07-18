@@ -66,6 +66,10 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
   if (!food?.nutritionPer100g) return item;
 
   const defaultServing = food.servings.find((s) => s.isDefault) ?? food.servings[0];
+  const gramsPerDisplayUnit =
+    defaultServing && defaultServing.amount > 0
+      ? defaultServing.gramsEquivalent / defaultServing.amount
+      : undefined;
   const nutrition = nutritionFromPer100g(food.nutritionPer100g as Record<string, number>, item.estimatedWeightG);
   const micronutrients = micronutrientsFromPer100g(
     (food.micronutrients ?? {}) as Record<string, number>,
@@ -79,10 +83,12 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
     micronutrients,
     servingUnit: defaultServing?.unit ?? "g",
     servingAmount:
-      defaultServing && defaultServing.gramsEquivalent > 0
-        ? Math.round((item.estimatedWeightG / defaultServing.gramsEquivalent) * 10) / 10
+      gramsPerDisplayUnit && gramsPerDisplayUnit > 0
+        ? Math.round((item.estimatedWeightG / gramsPerDisplayUnit) * 10) / 10
         : item.estimatedWeightG,
-    servingGramsEquivalent: defaultServing?.gramsEquivalent,
+    // Item fields consistently store grams per one display unit. DB serving
+    // profiles store grams for their declared amount (e.g. 250 ml = 250 g).
+    servingGramsEquivalent: gramsPerDisplayUnit,
   };
 }
 

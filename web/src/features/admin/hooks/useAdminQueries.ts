@@ -3,6 +3,7 @@ import {
   createCoach,
   fetchAdminCoaches,
   fetchAdminCoachRoster,
+  fetchAdminClinicalAssessments,
   fetchAdminConsumers,
   fetchAdminMetrics,
   fetchAdminOperations,
@@ -31,6 +32,7 @@ export const adminKeys = {
   roster: () => [...adminKeys.all, 'roster'] as const,
   pendingFoods: () => [...adminKeys.all, 'pending-foods'] as const,
   modules: () => [...adminKeys.all, 'modules'] as const,
+  clinicalAssessments: () => [...adminKeys.all, 'clinical-assessments'] as const,
 };
 
 export function useAdminMetrics() {
@@ -52,6 +54,13 @@ export function useAdminConsumers() {
   return useQuery({
     queryKey: adminKeys.consumers(),
     queryFn: fetchAdminConsumers,
+  });
+}
+
+export function useAdminClinicalAssessments() {
+  return useQuery({
+    queryKey: adminKeys.clinicalAssessments(),
+    queryFn: fetchAdminClinicalAssessments,
   });
 }
 

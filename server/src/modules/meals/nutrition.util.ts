@@ -88,6 +88,14 @@ export function scaleItemNutrition(
       sugarG: n.sugarG != null ? round1(n.sugarG * ratio) : undefined,
       sodiumMg: n.sodiumMg != null ? Math.round(n.sodiumMg * ratio) : undefined,
     },
+    micronutrients: item.micronutrients
+      ? Object.fromEntries(
+          Object.entries(item.micronutrients).map(([key, value]) => [
+            key,
+            round1(value * ratio),
+          ]),
+        )
+      : undefined,
   };
 }
 

@@ -12,10 +12,31 @@ import { backfillOnboardingComplete, resolveOnboardingComplete } from "./onboard
 import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.repository";
 import { mealToConsumerDto } from "../meals/meal-effective.util";
 import { annotateManualReviewFallback } from "../meals/ai-fallback.util";
-import { normalizeMealItems } from "../meals/nutrition.util";
+import { normalizeMealItems, asDetectedItems } from "../meals/nutrition.util";
+import { assessMealAllergens } from "../meals/allergen-match.util";
+import { assertConsumerSubscription } from "../../middlewares/entitlements";
 import { AppDataSource } from "../../config/database";
 import { ConsumerDailyHealthScore } from "./daily-health-score.entity";
 import { ensureConsumerProfileForUser } from "./ensure-consumer-profile.util";
+import { clinicalAssessmentsRepository } from "./clinical-assessments.repository";
+import {
+  calculateTargetsForProfile,
+  profileWithCalculatedTargets,
+} from "./profile-targets.util";
+import { waterLogsRepository } from "./water-logs.repository";
+import { ageFromDateOfBirth, isValidDateOfBirth } from "./date-of-birth.util";
+
+const CALCULATION_FIELDS = new Set([
+  "age",
+  "dateOfBirth",
+  "sex",
+  "heightCm",
+  "weightKg",
+  "goal",
+  "activityLevel",
+  "targetWeightKg",
+  "goalPace",
+]);
 
 async function syncUserFields(userId: string, fields: { displayName?: string; avatarUrl?: string | null }) {
   const user = await usersRepository.findById(userId);
@@ -74,6 +95,18 @@ export const consumerService = {
 
   async getProfile(userId: string) {
     const row = await this.requireProfileForUser(userId);
+    if (isValidDateOfBirth(row.profile.dateOfBirth)) {
+      const currentAge = ageFromDateOfBirth(row.profile.dateOfBirth);
+      if (row.profile.age !== currentAge) {
+        const assessment = await clinicalAssessmentsRepository.findByClientId(row.id);
+        const status = assessment?.status ?? "incomplete";
+        const source = { ...row.profile, age: currentAge };
+        const calculation = calculateTargetsForProfile(source, assessment?.data ?? {}, status);
+        row.profile = profileWithCalculatedTargets(source, calculation, status);
+        row.profile.onboardingComplete = resolveOnboardingComplete(row.profile);
+        await consumerProfilesRepository.save(row);
+      }
+    }
     const profile = await backfillOnboardingComplete(row.profile, async (next) => {
       row.profile = next;
       await consumerProfilesRepository.save(row);
@@ -92,13 +125,65 @@ export const consumerService = {
 
   async updateProfile(userId: string, dto: UpdateConsumerProfileDto) {
     const row = await this.requireProfileForUser(userId);
-    const nextProfile = { ...row.profile, ...dto };
+    // Clinical outputs are server-owned. Older mobile clients may still send
+    // these properties; deliberately ignore them and recalculate below.
+    const patientFields: Record<string, unknown> = {};
+    const editableFields: Array<keyof UpdateConsumerProfileDto> = [
+      "displayName",
+      "avatarUrl",
+      "age",
+      "dateOfBirth",
+      "sex",
+      "heightCm",
+      "weightKg",
+      "goal",
+      "activityLevel",
+      "dietaryPreferences",
+      "allergies",
+      "targetWeightKg",
+      "goalPace",
+      "mealsPerDay",
+    ];
+    for (const key of editableFields) {
+      if (dto[key] !== undefined) patientFields[key] = dto[key];
+    }
+    let nextProfile = { ...row.profile, ...patientFields };
+    if (dto.dateOfBirth !== undefined) {
+      if (!isValidDateOfBirth(dto.dateOfBirth)) {
+        throw new BadRequestError("dateOfBirth must be a valid past date in YYYY-MM-DD format");
+      }
+      const age = ageFromDateOfBirth(dto.dateOfBirth);
+      if (age < 13 || age > 120) {
+        throw new BadRequestError("Patient must be between 13 and 120 years old");
+      }
+      nextProfile.age = age;
+    }
     if (dto.displayName !== undefined) {
       nextProfile.displayName = dto.displayName;
     }
     if (dto.avatarUrl !== undefined) {
       nextProfile.avatarUrl = dto.avatarUrl;
     }
+    const assessment = await clinicalAssessmentsRepository.findByClientId(row.id);
+    const calculationChanged = Object.keys(patientFields).some((key) => CALCULATION_FIELDS.has(key));
+    let assessmentStatus = assessment?.status ?? "incomplete";
+    if (assessment?.status === "confirmed" && calculationChanged) {
+      assessment.status = "draft";
+      assessment.confirmedBy = null;
+      assessment.confirmedAt = null;
+      assessmentStatus = "draft";
+    }
+
+    const calculation = calculateTargetsForProfile(
+      nextProfile,
+      assessment?.data ?? {},
+      assessmentStatus,
+    );
+    if (assessment && calculationChanged) {
+      assessment.targetSnapshot = calculation as unknown as Record<string, unknown> | null;
+      await clinicalAssessmentsRepository.save(assessment);
+    }
+    nextProfile = profileWithCalculatedTargets(nextProfile, calculation, assessmentStatus);
     nextProfile.onboardingComplete = resolveOnboardingComplete(nextProfile);
     row.profile = nextProfile;
     await consumerProfilesRepository.save(row);
@@ -148,7 +233,14 @@ export const consumerService = {
     const meals = await mealsRepository.findMealsByClientId(row.id);
     const reviews = await mealCoachReviewsRepository.findByMealIds(meals.map((m) => m.id));
     const byMealId = new Map(reviews.map((r) => [r.mealId, r]));
-    const dashboard = computeDashboard(row.profile, row.dashboard, meals, byMealId, targetDate);
+    const waterMl = await waterLogsRepository.totalForDate(row.id, targetDate);
+    const dashboard = computeDashboard(
+      row.profile,
+      { ...row.dashboard, waterMl },
+      meals,
+      byMealId,
+      targetDate,
+    );
     const repo = AppDataSource.getRepository(ConsumerDailyHealthScore);
     await repo.upsert(
       {
@@ -195,12 +287,17 @@ export const consumerService = {
     mimeType?: string,
     req?: import("express").Request,
   ) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const status = dto.status === "approved" ? "in_review" : dto.status;
     const data = annotateManualReviewFallback({ ...dto.data });
     if (Array.isArray(data.items)) {
       data.items = normalizeMealItems(data.items);
     }
+    data.allergenAssessment = assessMealAllergens(
+      row.profile?.allergies,
+      asDetectedItems(data.items),
+    );
 
     const storedUrl = data.imageUrl;
     if (
@@ -241,7 +338,17 @@ export const consumerService = {
         mealName,
         status,
       });
-      broadcastCoachQueueToAll({ type: "queue_updated", mealId: dto.id });
+      const profileName =
+        typeof row.profile?.displayName === "string" ? row.profile.displayName.trim() : "";
+      const clientName = profileName ? profileName.split(/\s+/)[0] : "Patient";
+      broadcastCoachQueueToAll({
+        type: "queue_updated",
+        reason: "submitted",
+        mealId: dto.id,
+        mealName: mealName ?? dto.mealType ?? "Meal",
+        mealType: dto.mealType,
+        clientName,
+      });
     }
 
     return meal;
@@ -259,16 +366,20 @@ export const consumerService = {
     }
 
     const row = await this.requireProfileForUser(userId);
-    const current = Number(row.dashboard.waterMl ?? 0);
+    const current = await waterLogsRepository.totalForDate(row.id, date);
     const next = Math.max(0, current + amountMl);
+    const appliedMl = next - current;
+    if (appliedMl !== 0) {
+      await waterLogsRepository.save(waterLogsRepository.create(row.id, date, appliedMl));
+    }
     row.dashboard = { ...row.dashboard, waterMl: next };
     await consumerProfilesRepository.save(row);
 
     return {
       date,
       waterMl: next,
-      waterTargetMl: Number(row.profile.waterTargetMl ?? 2000),
-      addedMl: amountMl,
+      waterTargetMl: Number(row.profile.waterTargetMl ?? 0),
+      addedMl: appliedMl,
     };
   },
 

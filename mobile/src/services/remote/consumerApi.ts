@@ -143,16 +143,33 @@ export type CheckoutResponse = {
 
 export async function createConsumerCheckout(payload: {
   planCode: string;
-  amount: number;
-  subscriptionType?: 'individual' | 'corporate' | 'family';
   organizationId?: string;
   organizationName?: string;
+  /** @deprecated ignored by server */
+  amount?: number;
+  subscriptionType?: 'individual' | 'corporate' | 'family';
   currency?: string;
 }): Promise<CheckoutResponse> {
   return apiRequest<CheckoutResponse>('/payments/checkout', {
     method: 'POST',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      planCode: payload.planCode,
+      organizationId: payload.organizationId,
+      organizationName: payload.organizationName,
+    }),
   });
+}
+
+export type SubscriptionPlan = {
+  code: string;
+  label: string;
+  amount: number;
+  currency: string;
+  subscriptionType: 'individual' | 'corporate' | 'family';
+};
+
+export async function fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+  return apiRequest<SubscriptionPlan[]>('/payments/plans');
 }
 
 export async function fetchFamilySubscription() {
@@ -428,6 +445,16 @@ export type CoachingFeedItem = {
 
 export async function fetchCoachingFeed(): Promise<CoachingFeedItem[]> {
   return apiRequest<CoachingFeedItem[]>('/consumer/coaching-feed');
+}
+
+export async function exportAccountData() {
+  return apiRequest<Record<string, unknown>>('/consumer/data-export');
+}
+
+export async function deleteAccountRemote() {
+  return apiRequest<{ ok: boolean; deletedAt: string }>('/consumer/account', {
+    method: 'DELETE',
+  });
 }
 
 export type LogWaterResponse = {

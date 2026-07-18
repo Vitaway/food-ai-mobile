@@ -46,30 +46,16 @@ export const familySubscriptionService = {
   },
 
   async createFamilyPlan(userId: string, planCode = "family_monthly") {
-    let subscription = await subscriptionRepo.findOne({
-      where: { userId, subscriptionType: "family" },
-      order: { createdAt: "DESC" },
-    });
-    if (!subscription) {
-      subscription = subscriptionRepo.create({
-        userId,
-        organizationId: null,
-        planCode,
-        subscriptionType: "family",
-        status: "active",
-        renewsOn: null,
-        trialEndsOn: null,
-        metadata: { source: "manual_activation" },
-      });
-      await subscriptionRepo.save(subscription);
-    }
-    const existing = await memberRepo.findOne({ where: { subscriptionId: subscription.id, userId } });
+    throw new BadRequestError(
+      "Family plans activate after successful checkout payment. Use POST /payments/checkout with planCode family_monthly.",
+    );
+  },
+
+  async ensurePayerMembership(subscriptionId: string, userId: string) {
+    const existing = await memberRepo.findOne({ where: { subscriptionId, userId } });
     if (!existing) {
-      await memberRepo.save(
-        memberRepo.create({ subscriptionId: subscription.id, userId, role: "payer" }),
-      );
+      await memberRepo.save(memberRepo.create({ subscriptionId, userId, role: "payer" }));
     }
-    return this.packSubscription(subscription);
   },
 
   async addFamilyMember(payerUserId: string, memberEmail: string) {

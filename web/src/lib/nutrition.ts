@@ -4,7 +4,27 @@ function round1(n: number) {
   return Math.round(n * 10) / 10;
 }
 
+export function nutritionFromPer100g(per100g: NutritionFacts, weightG: number): NutritionFacts {
+  const factor = Math.max(0, weightG) / 100;
+  return {
+    caloriesKcal: Math.round((per100g.caloriesKcal ?? 0) * factor),
+    proteinG: round1((per100g.proteinG ?? 0) * factor),
+    carbsG: round1((per100g.carbsG ?? 0) * factor),
+    fatG: round1((per100g.fatG ?? 0) * factor),
+    fiberG: round1((per100g.fiberG ?? 0) * factor),
+    sugarG: per100g.sugarG != null ? round1(per100g.sugarG * factor) : undefined,
+    sodiumMg: per100g.sodiumMg != null ? Math.round(per100g.sodiumMg * factor) : undefined,
+  };
+}
+
 export function scaleItemNutrition(item: DetectedFoodItem, newWeightG: number): DetectedFoodItem {
+  if (item.nutritionPer100g) {
+    return {
+      ...item,
+      estimatedWeightG: newWeightG,
+      nutrition: nutritionFromPer100g(item.nutritionPer100g, newWeightG),
+    };
+  }
   const oldWeight = item.estimatedWeightG > 0 ? item.estimatedWeightG : 1;
   const ratio = newWeightG / oldWeight;
   const n = item.nutrition;
@@ -47,12 +67,13 @@ export function sumNutrition(items: DetectedFoodItem[]): NutritionFacts {
   };
 }
 
-export function newIngredient(label = 'Ingredient'): DetectedFoodItem {
+export function newIngredient(label = ''): DetectedFoodItem {
   return {
     id: `coach_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     label,
     confidence: 1,
     estimatedWeightG: 100,
+    foodSource: 'manual',
     emoji: '🍽️',
     nutrition: {
       caloriesKcal: 0,

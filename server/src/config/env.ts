@@ -65,6 +65,15 @@ export const env = {
   PLATE_GEOMETRY_DISTANCE_WEIGHT: Number(process.env.PLATE_GEOMETRY_DISTANCE_WEIGHT ?? 0.72),
   AUTO_RUN_MIGRATIONS: process.env.AUTO_RUN_MIGRATIONS !== "false",
   TYPEORM_QUERY_LOG: process.env.TYPEORM_QUERY_LOG === "true",
+  /** When true, consumers without any subscription row are blocked. Cancelled/past_due always blocked. */
+  ENFORCE_SUBSCRIPTIONS: process.env.ENFORCE_SUBSCRIPTIONS === "true",
+  /** When true, coach clinical/coaching routes require org module entitlements. */
+  ENFORCE_ORG_MODULES: process.env.ENFORCE_ORG_MODULES === "true",
+  /** Require email OTP after password for coach/admin roles. Defaults on in production. */
+  MFA_REQUIRED_FOR_STAFF:
+    process.env.MFA_REQUIRED_FOR_STAFF === "true" ||
+    (process.env.MFA_REQUIRED_FOR_STAFF !== "false" && process.env.NODE_ENV === "production"),
+  ENABLE_LEGACY_PLATES_DETECT: process.env.ENABLE_LEGACY_PLATES_DETECT === "true",
   EXPO_ACCESS_TOKEN: process.env.EXPO_ACCESS_TOKEN ?? "",
   SEED_COACH_EMAIL: process.env.SEED_COACH_EMAIL ?? "coach@vitaway.org",
   SEED_COACH_PASSWORD: process.env.SEED_COACH_PASSWORD ?? "Test@123",

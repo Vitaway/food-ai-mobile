@@ -63,8 +63,9 @@ Password for all seed users: `Test@123` (override via `SEED_*_PASSWORD` env vars
 | POST | `/api/v1/vision/plates/detect` | No | Plate/bowl vision (multipart) |
 | POST | `/api/v1/vision/meals/analyze` | Consumer | AI meal analysis from photo |
 | POST | `/api/v1/vision/meals/analyze-text` | Consumer | AI meal analysis from description |
-| POST | `/api/v1/auth/forgot-password` | No | Send password reset email |
-| POST | `/api/v1/auth/reset-password` | No | Set new password with token |
+| POST | `/api/v1/auth/forgot-password` | No | Email a 6-digit password reset OTP |
+| POST | `/api/v1/auth/verify-reset-code` | No | Validate OTP before setting password |
+| POST | `/api/v1/auth/reset-password` | No | Set new password with email + OTP |
 
 ## Environment
 
@@ -74,9 +75,9 @@ See `.env.example`. Required for vision: `OPENROUTER_API_KEY` (regular `sk-or-�
 
 - `npm run dev` — watch mode
 - `npm run build` / `npm start` — production
-- `npm run seed` — dashboard users + coach/consumer profiles + nutrition foods
-- `npm run seed:users` — upsert seed users only (keep meals)
-- `npm run import:tfct` — import TFCT food composition into nutrition DB
+- `npm run seed` / `seed:users` — upsert dashboard users + nutrition foods (**keeps** meals/patients)
+- `npm run seed:dev -- --wipe-demo` — local only; clears meals + consumer profiles (blocked in production)
+- `npm run import:tfct` — import TFCT food composition into nutrition DB (foods only)
 - `npm run migration:run` — apply migrations manually
 
 ## Stack

@@ -1,4 +1,5 @@
 import { getApiV1Url } from '@/constants/api';
+import { getApiAuthToken } from '@/lib/apiClient';
 import type {
   PlateDetectionInput,
   PlateDetectionResult,
@@ -42,7 +43,12 @@ function normalizeResult(body: Record<string, unknown>): PlateDetectionResult {
 }
 
 export const apiPlateDetectionService: PlateDetectionService = {
-  async detectPlate({ imageUri, metadata }) {
+  async detectPlate({ imageUri, metadata }: PlateDetectionInput) {
+    const token = getApiAuthToken();
+    if (!token) {
+      throw new Error('Sign in to detect plate size');
+    }
+
     const upload = await prepareImageForUpload(imageUri);
     const formData = new FormData();
 
@@ -56,6 +62,9 @@ export const apiPlateDetectionService: PlateDetectionService = {
 
     const response = await fetch(getApiV1Url('/vision/plates/detect'), {
       method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
 
