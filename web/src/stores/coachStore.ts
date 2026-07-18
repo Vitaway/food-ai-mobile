@@ -75,9 +75,18 @@ export const useCoachStore = create<CoachUiState>((set, get) => ({
       return {
         reviewDraft: {
           ...state.reviewDraft,
-          items: state.reviewDraft.items.map((item) =>
-            item.id === itemId ? { ...item, ...patch } : item,
-          ),
+          items: state.reviewDraft.items.map((item) => {
+            if (item.id !== itemId) return item;
+            const next = { ...item, ...patch };
+            // Allow clearing DB linkage when switching to manual
+            if ('nutritionFoodId' in patch && patch.nutritionFoodId === undefined) {
+              delete next.nutritionFoodId;
+            }
+            if ('nutritionPer100g' in patch && patch.nutritionPer100g === undefined) {
+              delete next.nutritionPer100g;
+            }
+            return next;
+          }),
         },
       };
     }),

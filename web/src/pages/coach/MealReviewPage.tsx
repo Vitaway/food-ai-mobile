@@ -1,13 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CoachMessagesPanel } from '@/components/coach/CoachMessagesPanel';
 import { ReviewTasksPanel } from '@/components/coach/ReviewTasksPanel';
-import { ClientPanel } from '@/components/coach/ClientPanel';
 import { MealReviewPanel } from '@/components/coach/MealReviewPanel';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
-import { DashboardPanel } from '@/components/ui/DashboardPanel';
-import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { StatusPill } from '@/components/ui/StatusPill';
 import {
   useAssignClient,
@@ -23,16 +20,27 @@ import { useCoachStore } from '@/stores/coachStore';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { useCoachProfile } from '@/hooks/useCoachProfile';
-import { formatMealType, formatRelativeTime } from '@/lib/utils';
+import {
+  formatMealType,
+  formatRelativeTime,
+  isUsableMealName,
+  resolveCoachMealTitle,
+} from '@/lib/utils';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import type { MealSubmission } from '@/types';
+import type { DetectedFoodItem } from '@/types';
+
+function sanitizeSeedItems(items: DetectedFoodItem[]): DetectedFoodItem[] {
+  return items.map((item) =>
+    isUsableMealName(item.label) ? item : { ...item, label: 'Ingredient' },
+  );
+}
 
 export function MealReviewPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { data: item, isLoading, isError } = useCoachMeal(id ?? null);
-  const { data: persistedDraft } = useReviewDraft(id ?? null);
+  const { data: persistedDraft, isFetched: draftFetched } = useReviewDraft(id ?? null);
   const cohortId = useCoachStore((s) => s.cohortId);
   const queueSearch = useCoachStore((s) => s.queueSearch);
   const queueSort = useCoachStore((s) => s.queueSort);
@@ -42,7 +50,7 @@ export function MealReviewPage() {
     sort: queueSort,
   });
   const reviewMutation = useReviewMeal();
-  const saveDraftMutation = useSaveReviewDraft();
+  const { mutate: saveDraft } = useSaveReviewDraft();
   const createTaskMutation = useCreateReviewTask();
   const assignMutation = useAssignClient();
   const toast = useToast();
@@ -52,41 +60,85 @@ export function MealReviewPage() {
   const reviewDraft = useCoachStore((s) => s.reviewDraft);
   const [taskModal, setTaskModal] = useState<'second_opinion' | 'escalation' | null>(null);
   const [taskNote, setTaskNote] = useState('');
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  /** Seed local editor once per meal — never reset from refetches / autosave. */
+  const initializedMealIdRef = useRef<string | null>(null);
 
   const { data: coachProfile } = useCoachProfile();
   const { data: clientDetail } = useCoachClient(item?.client.patientId ?? null);
 
+  // Clear editor when leaving this meal route
   useEffect(() => {
-    if (!item?.meal) return;
-    const seedItems = item.meal.aiAnalysis?.items ?? item.meal.items ?? [];
-    startReviewDraft(item.meal.id, item.meal.aiAnalysis?.mealName ?? item.meal.mealName ?? '', seedItems);
-    return () => clearReviewDraft();
-  }, [item?.meal?.id, clearReviewDraft, startReviewDraft, item?.meal]);
+    return () => {
+      initializedMealIdRef.current = null;
+      clearReviewDraft();
+    };
+  }, [id, clearReviewDraft]);
 
+  // One-time init: wait for server draft fetch, then hydrate or seed from AI
   useEffect(() => {
-    if (!persistedDraft || !item?.meal || persistedDraft.mealId !== item.meal.id) return;
-    hydrateReviewDraft({
-      mealId: persistedDraft.mealId,
-      mealName: persistedDraft.mealName ?? item.meal.mealName ?? '',
-      items: persistedDraft.items,
-      note: persistedDraft.note ?? '',
-      trainingNote: persistedDraft.trainingNote ?? '',
-    });
-  }, [persistedDraft, item?.meal, hydrateReviewDraft]);
+    if (!id || !item?.meal || !draftFetched) return;
+    if (initializedMealIdRef.current === id) return;
+    initializedMealIdRef.current = id;
 
-  useEffect(() => {
-    if (!reviewDraft || !id) return;
-    const timer = window.setTimeout(() => {
-      void saveDraftMutation.mutate({
-        mealId: id,
-        mealName: reviewDraft.mealName,
-        items: reviewDraft.items,
-        note: reviewDraft.note,
-        trainingNote: reviewDraft.trainingNote,
+    if (persistedDraft?.mealId === id) {
+      const title = isUsableMealName(persistedDraft.mealName)
+        ? persistedDraft.mealName.trim()
+        : resolveCoachMealTitle({
+            mealName: item.meal.mealName,
+            aiMealName: item.meal.aiAnalysis?.mealName,
+            mealType: item.meal.mealType,
+          });
+      hydrateReviewDraft({
+        mealId: persistedDraft.mealId,
+        mealName: title,
+        items: sanitizeSeedItems(persistedDraft.items ?? []),
+        note: persistedDraft.note ?? '',
+        trainingNote: persistedDraft.trainingNote ?? '',
       });
+      return;
+    }
+
+    const seedItems = sanitizeSeedItems(item.meal.aiAnalysis?.items ?? item.meal.items ?? []);
+    const title = resolveCoachMealTitle({
+      mealName: item.meal.mealName,
+      aiMealName: item.meal.aiAnalysis?.mealName,
+      mealType: item.meal.mealType,
+    });
+    startReviewDraft(item.meal.id, title, seedItems);
+  }, [
+    id,
+    item?.meal,
+    draftFetched,
+    persistedDraft,
+    hydrateReviewDraft,
+    startReviewDraft,
+  ]);
+
+  // Debounced autosave — only when the local draft changes (not on mutation status)
+  useEffect(() => {
+    if (!reviewDraft || !id || reviewDraft.mealId !== id) return;
+    if (initializedMealIdRef.current !== id) return;
+
+    setDraftStatus('idle');
+    const timer = window.setTimeout(() => {
+      setDraftStatus('saving');
+      saveDraft(
+        {
+          mealId: id,
+          mealName: reviewDraft.mealName,
+          items: reviewDraft.items,
+          note: reviewDraft.note,
+          trainingNote: reviewDraft.trainingNote,
+        },
+        {
+          onSuccess: () => setDraftStatus('saved'),
+          onError: () => setDraftStatus('idle'),
+        },
+      );
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [id, reviewDraft, saveDraftMutation]);
+  }, [id, reviewDraft, saveDraft]);
 
   async function submitReview(action: 'approve' | 'reject', andNext = false) {
     if (!item || !reviewDraft) return;
@@ -211,28 +263,14 @@ export function MealReviewPage() {
     allergies.length ? 'Client allergies on file' : null,
   ].filter(Boolean) as string[];
 
-  const recentColumns: DataTableColumn<MealSubmission>[] = [
-    {
-      key: 'meal',
-      header: 'Meal',
-      cell: (m) => <span className="font-medium text-ash-grey-900">{m.mealName ?? 'Meal'}</span>,
-    },
-    {
-      key: 'when',
-      header: 'When',
-      cell: (m) => (
-        <span className="text-xs text-ash-grey-500">{formatRelativeTime(m.submittedAt)}</span>
-      ),
-    },
-    {
-      key: 'status',
-      header: 'Status',
-      cell: (m) => <StatusBadge status={m.status} />,
-    },
-  ];
+  const pageTitle = resolveCoachMealTitle({
+    mealName: reviewDraft?.mealName || meal.mealName,
+    aiMealName: meal.aiAnalysis?.mealName,
+    mealType: meal.mealType,
+  });
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {allergies.length ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p className="font-semibold">Allergy alert</p>
@@ -241,7 +279,7 @@ export function MealReviewPage() {
       ) : null}
 
       {riskFlags.length ? (
-        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-cinnamon-wood-200 bg-cinnamon-wood-50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-cinnamon-wood-200 bg-cinnamon-wood-50 px-4 py-2.5">
           <span className="text-[11px] font-semibold uppercase tracking-wide text-cinnamon-wood-700">
             Risk
           </span>
@@ -257,21 +295,10 @@ export function MealReviewPage() {
         <Link to="/coach/queue" className="text-sm font-semibold text-blue-spruce-600 hover:underline">
           ← Queue
         </Link>
-        {!isOnCaseload ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => void handleAssign()}
-            disabled={assignMutation.isPending}>
-            Add to my caseload
-          </Button>
-        ) : null}
-        <Button variant="outline" size="sm" onClick={() => setTaskModal('second_opinion')}>
-          Request second opinion
-        </Button>
-        <Button variant="outline" size="sm" onClick={() => setTaskModal('escalation')}>
-          Escalate
-        </Button>
+        <h1 className="text-lg font-semibold tracking-tight text-ash-grey-900">{pageTitle}</h1>
+        <span className="text-sm text-ash-grey-500">
+          {formatMealType(meal.mealType)} · {formatRelativeTime(meal.submittedAt)}
+        </span>
         <StatusBadge status={meal.status} />
         <FlagBadge flagged={meal.fraudCheckResult === 'flag'} />
         {meal.slaLevel === 'critical' ? (
@@ -283,44 +310,41 @@ export function MealReviewPage() {
               : `Waiting ${meal.waitingMinutes}m`}
           </StatusPill>
         ) : null}
-        <span className="text-sm text-ash-grey-500">
-          {formatMealType(meal.mealType)} · {formatRelativeTime(meal.submittedAt)}
-        </span>
-        {saveDraftMutation.isPending ? (
-          <span className="text-xs text-ash-grey-400">Saving draft…</span>
-        ) : saveDraftMutation.isSuccess ? (
-          <span className="text-xs text-shamrock-600">Draft saved</span>
-        ) : null}
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          {!isOnCaseload ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => void handleAssign()}
+              disabled={assignMutation.isPending}>
+              Add to caseload
+            </Button>
+          ) : null}
+          <Button variant="outline" size="sm" onClick={() => setTaskModal('second_opinion')}>
+            Second opinion
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => setTaskModal('escalation')}>
+            Escalate
+          </Button>
+          {draftStatus === 'saving' ? (
+            <span className="text-xs text-ash-grey-400">Saving…</span>
+          ) : draftStatus === 'saved' ? (
+            <span className="text-xs text-shamrock-600">Draft saved</span>
+          ) : null}
+        </div>
       </div>
 
-      <div className="grid gap-5 xl:grid-cols-[1fr_320px]">
-        <MealReviewPanel
-          item={mealItem}
-          onApprove={() => void submitReview('approve')}
-          onApproveNext={() => void submitReview('approve', true)}
-          onReject={() => void submitReview('reject')}
-          isSubmitting={reviewMutation.isPending}
-        />
-        <div className="space-y-4">
-          <ClientPanel client={mealItem.client} showPreferences />
-          {mealItem.recentMeals?.length ? (
-            <DashboardPanel title="Recent meals">
-              <DataTable
-                columns={recentColumns}
-                rows={mealItem.recentMeals}
-                rowKey={(m) => m.id}
-                onRowClick={(m) =>
-                  navigate(
-                    m.status === 'in_review' ? `/coach/queue/${m.id}` : `/coach/history/${m.id}`,
-                  )
-                }
-                emptyTitle="No recent meals"
-              />
-            </DashboardPanel>
-          ) : null}
-          <ReviewTasksPanel mealId={meal.id} />
-          <CoachMessagesPanel clientId={mealItem.client.patientId} mealId={meal.id} />
-        </div>
+      <MealReviewPanel
+        item={mealItem}
+        onApprove={() => void submitReview('approve')}
+        onApproveNext={() => void submitReview('approve', true)}
+        onReject={() => void submitReview('reject')}
+        isSubmitting={reviewMutation.isPending}
+      />
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <ReviewTasksPanel mealId={meal.id} />
+        <CoachMessagesPanel clientId={mealItem.client.patientId} mealId={meal.id} />
       </div>
 
       {taskModal ? (
