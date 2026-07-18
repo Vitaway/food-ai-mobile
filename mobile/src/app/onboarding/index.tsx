@@ -9,7 +9,8 @@ import { HealthGoalPicker } from '@/components/onboarding/HealthGoalPicker';
 import { MealsPerDayPicker } from '@/components/onboarding/MealsPerDayPicker';
 import { OnboardingPlanSummary } from '@/components/onboarding/OnboardingPlanSummary';
 import { OnboardingStepHero } from '@/components/onboarding/OnboardingStepHero';
-import { AgeStepper, MetricStepper } from '@/components/onboarding/MetricStepper';
+import { MetricStepper } from '@/components/onboarding/MetricStepper';
+import { DateOfBirthInput } from '@/components/onboarding/DateOfBirthInput';
 import { OnboardingNavButton, OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { OnboardingRequiredBanner } from '@/components/onboarding/OnboardingRequiredBanner';
 import { SexSelector } from '@/components/onboarding/SexSelector';
@@ -42,6 +43,7 @@ import {
   type OnboardingStep,
 } from '@/utils/onboardingResume';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
+import { ageFromDateOfBirth, isValidDateOfBirth } from '@/utils/dateOfBirth';
 
 const STEPS = ONBOARDING_STEPS;
 
@@ -54,7 +56,7 @@ export default function OnboardingScreen() {
   const [hasSetInitialStep, setHasSetInitialStep] = useState(false);
   const [displayName, setDisplayName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState<string | undefined>();
-  const [age, setAge] = useState(28);
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [sex, setSex] = useState<UserSex>(null);
   const [heightCm, setHeightCm] = useState(168);
   const [weightKg, setWeightKg] = useState(65);
@@ -78,7 +80,7 @@ export default function OnboardingScreen() {
     if (!profile) return;
     setDisplayName(profile.displayName ?? session?.user.displayName ?? '');
     setAvatarUrl(profile.avatarUrl);
-    setAge(profile.age);
+    setDateOfBirth(profile.dateOfBirth ?? '');
     setSex(profile.sex);
     setHeightCm(profile.heightCm);
     setWeightKg(profile.weightKg);
@@ -131,6 +133,8 @@ export default function OnboardingScreen() {
 
   const step = STEPS[stepIndex];
   const isLastStep = step === 'summary';
+  const hasValidDateOfBirth = isValidDateOfBirth(dateOfBirth);
+  const age = hasValidDateOfBirth ? ageFromDateOfBirth(dateOfBirth) : profile?.age ?? 28;
 
   const preview = useMemo(() => {
     const { bmr, tdee, macroTargets } = calculateMacroTargets(
@@ -175,6 +179,7 @@ export default function OnboardingScreen() {
       await saveProfile({
         displayName: displayName.trim() || session?.user.displayName,
         avatarUrl,
+        dateOfBirth,
         age,
         sex,
         heightCm,
@@ -209,7 +214,7 @@ export default function OnboardingScreen() {
     },
     profile: {
       title: 'Tell us about you',
-      description: 'Your age helps us personalize calorie and macro targets.',
+      description: 'Your birth date keeps age-based nutrition calculations accurate over time.',
     },
     sex: {
       title: 'How do you identify?',
@@ -293,7 +298,7 @@ export default function OnboardingScreen() {
               <Text className="mt-1 font-sans-semibold text-lg text-blue-spruce-900">{displayName}</Text>
             </OnboardingCard>
           ) : null}
-          <AgeStepper value={age} onChange={setAge} />
+          <DateOfBirthInput value={dateOfBirth} onChange={setDateOfBirth} />
         </View>
       );
     }
@@ -510,7 +515,11 @@ export default function OnboardingScreen() {
           isLastStep ? (
             <OnboardingNavButton label="Get started" variant="finish" onPress={handleFinish} loading={saving} />
           ) : (
-            <OnboardingNavButton label={step === 'intro' ? 'Get started' : 'Next'} onPress={goNext} />
+            <OnboardingNavButton
+              label={step === 'intro' ? 'Get started' : 'Next'}
+              onPress={goNext}
+              disabled={step === 'profile' && !hasValidDateOfBirth}
+            />
           )
         }>
         {renderStepContent()}

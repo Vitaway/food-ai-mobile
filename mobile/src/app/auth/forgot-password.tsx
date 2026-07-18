@@ -15,19 +15,21 @@ export default function ForgotPasswordScreen() {
   const toast = useToast();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
 
   const handleSubmit = async () => {
     setLoading(true);
     try {
       await requestPasswordReset(email);
-      setSent(true);
       toast.success(
-        `If an account exists for ${email.trim()}, we sent reset instructions.`,
+        `If an account exists for ${email.trim()}, we sent a 6-digit code.`,
         'Check your inbox',
       );
+      router.push({
+        pathname: '/auth/reset-password',
+        params: { email: email.trim() },
+      } as Href);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Unable to send reset link'), 'Reset unavailable');
+      toast.error(getApiErrorMessage(err, 'Unable to send reset code'), 'Reset unavailable');
     } finally {
       setLoading(false);
     }
@@ -37,16 +39,14 @@ export default function ForgotPasswordScreen() {
     <AuthScreenShell
       title="Reset password"
       actions={
-        sent ? null : (
-          <Button
-            label={loading ? 'Sending…' : 'Send reset link'}
-            onPress={handleSubmit}
-            disabled={loading || !email.trim()}
-            fullWidth
-            size="lg"
-            variant="primary"
-          />
-        )
+        <Button
+          label={loading ? 'Sending…' : 'Send reset code'}
+          onPress={() => void handleSubmit()}
+          disabled={loading || !email.trim()}
+          fullWidth
+          size="lg"
+          variant="primary"
+        />
       }
       footer={
         <Pressable onPress={() => router.replace('/auth/login' as Href)}>
@@ -55,28 +55,18 @@ export default function ForgotPasswordScreen() {
           </Text>
         </Pressable>
       }>
-      {sent ? (
-        <View className="rounded-2xl border border-shamrock-200 bg-shamrock-50 px-5 py-5">
-          <Text className="font-sans-medium text-base text-shamrock-900">Check your inbox</Text>
-          <Text className="mt-2 text-sm leading-6 text-shamrock-800">
-            If an account exists for {email.trim()}, we sent password reset instructions. Open the link in
-            the email on this phone to reset your password in the app.
-          </Text>
-        </View>
-      ) : (
-        <View className="gap-4">
-          <FieldInput
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="you@vitaway.org"
-            hint="We'll send a reset link if this email is registered."
-          />
-        </View>
-      )}
+      <View className="gap-4">
+        <FieldInput
+          label="Email"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          placeholder="you@vitaway.org"
+          hint="We'll email a one-time code. Enter it in the app — no link needed."
+        />
+      </View>
     </AuthScreenShell>
   );
 }

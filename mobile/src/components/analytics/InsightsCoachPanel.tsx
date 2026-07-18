@@ -66,7 +66,8 @@ export function InsightsCoachPanel({ snapshot, tips, swaps, showSwaps, onLogMeal
       </View>
 
       <View className="gap-3">
-        <Text className="font-sans-semibold text-base text-neutral-900">Coach insights</Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">Logging insights</Text>
+        <Text className="mt-1 text-sm text-neutral-500">Based on your approved meals this period</Text>
         {tips.map((tip) => (
           <View key={tip.id} className={`flex-row gap-3 rounded-2xl border p-4 ${TONE_BG[tip.tone]}`}>
             <Ionicons name={TONE_ICON[tip.tone]} size={22} color={semanticColors.primary} />
@@ -89,7 +90,10 @@ export function InsightsCoachPanel({ snapshot, tips, swaps, showSwaps, onLogMeal
 
       {showSwaps && swaps.length > 0 ? (
         <View className="gap-3">
-          <Text className="font-sans-semibold text-base text-neutral-900">Meal ideas for you</Text>
+          <Text className="font-sans-semibold text-base text-neutral-900">General meal ideas</Text>
+          <Text className="text-sm text-neutral-500">
+            Suggested by goal and preferences — not a personal meal plan
+          </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 pr-1">
             {swaps.map((swap) => (
               <View

@@ -108,7 +108,14 @@ export default function HealthProfileScreen() {
         { label: 'Goal', value: formatHealthGoal(profile.goal), step: 'goals' },
         { label: 'Activity', value: formatActivityLevel(profile.activityLevel), step: 'activity' },
         { label: 'Sex', value: formatUserSex(profile.sex), step: 'about' },
-        { label: 'Age', value: `${profile.age}`, step: 'about' },
+        {
+          label: 'Date of birth',
+          value: profile.dateOfBirth
+            ? new Date(`${profile.dateOfBirth}T00:00:00`).toLocaleDateString()
+            : 'Not provided',
+          step: 'about',
+        },
+        { label: 'Age (calculated)', value: `${profile.age}`, step: 'about' },
         { label: 'Height', value: `${profile.heightCm} cm`, step: 'body' },
         { label: 'Weight', value: `${profile.weightKg} kg`, step: 'body' },
         { label: 'Meals / day', value: `${profile.mealsPerDay ?? 3}`, step: 'habits' },

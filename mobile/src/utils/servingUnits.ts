@@ -82,7 +82,13 @@ export function applyServingUnitToItem(
   gramsEquivalent?: number,
 ): DetectedFoodItem {
   const normalized = normalizeServingUnit(unit);
-  const perUnitGrams = gramsEquivalent ?? item.servingGramsEquivalent ?? DEFAULT_GRAMS_PER_UNIT[normalized];
+  const previousUnit = normalizeServingUnit(item.servingUnit ?? 'g');
+  const unitChanged = previousUnit !== normalized;
+  const perUnitGrams =
+    gramsEquivalent ??
+    (unitChanged
+      ? DEFAULT_GRAMS_PER_UNIT[normalized]
+      : item.servingGramsEquivalent ?? DEFAULT_GRAMS_PER_UNIT[normalized]);
   const newWeight = gramsForServing(normalized, amount, perUnitGrams);
   const baseWeight = item.estimatedWeightG > 0 ? item.estimatedWeightG : newWeight;
   const factor = baseWeight > 0 ? newWeight / baseWeight : 1;
@@ -94,6 +100,14 @@ export function applyServingUnitToItem(
     servingGramsEquivalent: perUnitGrams,
     estimatedWeightG: newWeight,
     nutrition: scaleNutrition(item.nutrition, factor),
+    micronutrients: item.micronutrients
+      ? Object.fromEntries(
+          Object.entries(item.micronutrients).map(([key, value]) => [
+            key,
+            Math.round(value * factor * 10) / 10,
+          ]),
+        )
+      : undefined,
   };
 }
 

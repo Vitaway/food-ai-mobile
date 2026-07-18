@@ -10,19 +10,40 @@ import {
   createConsumerCheckout,
   fetchConsumerSubscription,
   fetchFamilySubscription,
+  fetchSubscriptionPlans,
   type ConsumerSubscription,
+  type SubscriptionPlan,
 } from '@/services/remote/consumerApi';
 
-const PLANS = [
-  { code: 'individual_monthly', label: 'Individual', amount: 15000, type: 'individual' as const },
-  { code: 'corporate_monthly', label: 'Corporate', amount: 50000, type: 'corporate' as const },
-  { code: 'family_monthly', label: 'Family (up to 6)', amount: 35000, type: 'family' as const },
+const FALLBACK_PLANS: SubscriptionPlan[] = [
+  {
+    code: 'individual_monthly',
+    label: 'Individual',
+    amount: 15000,
+    currency: 'RWF',
+    subscriptionType: 'individual',
+  },
+  {
+    code: 'corporate_monthly',
+    label: 'Corporate',
+    amount: 50000,
+    currency: 'RWF',
+    subscriptionType: 'corporate',
+  },
+  {
+    code: 'family_monthly',
+    label: 'Family (up to 6)',
+    amount: 35000,
+    currency: 'RWF',
+    subscriptionType: 'family',
+  },
 ];
 
 export default function SubscriptionScreen() {
   const handleBack = useProfileBack();
   const toast = useToast();
   const [data, setData] = useState<ConsumerSubscription | null>(null);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>(FALLBACK_PLANS);
   const [isLoading, setIsLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [organizationName, setOrganizationName] = useState('');
@@ -33,10 +54,15 @@ export default function SubscriptionScreen() {
 
   const load = () => {
     setIsLoading(true);
-    void Promise.all([fetchConsumerSubscription(), fetchFamilySubscription()])
-      .then(([sub, familyPlan]) => {
+    void Promise.all([
+      fetchConsumerSubscription(),
+      fetchFamilySubscription(),
+      fetchSubscriptionPlans().catch(() => FALLBACK_PLANS),
+    ])
+      .then(([sub, familyPlan, planList]) => {
         setData(sub);
         setFamily(familyPlan);
+        if (planList.length) setPlans(planList);
       })
       .catch(() => setError('Unable to load subscription details.'))
       .finally(() => setIsLoading(false));
@@ -46,21 +72,14 @@ export default function SubscriptionScreen() {
     load();
   }, []);
 
-  const startCheckout = async (plan: (typeof PLANS)[number]) => {
+  const startCheckout = async (plan: SubscriptionPlan) => {
     setCheckingOut(true);
     try {
       const checkout = await createConsumerCheckout({
         planCode: plan.code,
-        amount: plan.amount,
-        subscriptionType: plan.type,
-        currency: 'RWF',
-        organizationName: plan.type === 'corporate' ? organizationName.trim() || undefined : undefined,
+        organizationName:
+          plan.subscriptionType === 'corporate' ? organizationName.trim() || undefined : undefined,
       });
-      if (plan.type === 'family') {
-        toast.success('Family plan activated');
-        load();
-        return;
-      }
       if (!checkout.checkoutUrl) {
         toast.error('Checkout URL not available yet');
         return;
@@ -104,7 +123,7 @@ export default function SubscriptionScreen() {
               className="rounded-xl border border-ash-grey-200 px-3 py-2 text-sm"
             />
 
-            {PLANS.map((plan) => (
+            {plans.map((plan) => (
               <Pressable
                 key={plan.code}
                 onPress={() => void startCheckout(plan)}
@@ -112,7 +131,7 @@ export default function SubscriptionScreen() {
                 className="rounded-2xl border border-blue-spruce-100 bg-blue-spruce-50 p-4">
                 <Text className="font-sans-semibold text-blue-spruce-800">{plan.label}</Text>
                 <Text className="mt-1 text-sm text-blue-spruce-700">
-                  {plan.amount.toLocaleString()} RWF / month
+                  {plan.amount.toLocaleString()} {plan.currency} / month
                 </Text>
               </Pressable>
             ))}

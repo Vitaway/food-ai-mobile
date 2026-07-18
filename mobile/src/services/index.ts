@@ -27,7 +27,11 @@ function resolveMealAnalysisService(): MealAnalysisService {
 function resolvePlateDetectionService(): PlateDetectionService {
   if (isApiConfigured()) return apiPlateDetectionService;
   if (USE_OFFLINE_DEV_FALLBACKS) return mockPlateDetectionService;
-  return mockPlateDetectionService;
+  return {
+    async detectPlate() {
+      throw new Error(PRODUCTION_API_MESSAGE);
+    },
+  };
 }
 
 const mealAnalysis = resolveMealAnalysisService();

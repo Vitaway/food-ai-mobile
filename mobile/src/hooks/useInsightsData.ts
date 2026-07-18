@@ -100,16 +100,16 @@ export function useInsightsData(period: 7 | 30) {
   const targets = useMemo(
     () =>
       profile?.macroTargets ?? {
-        calories: 2100,
-        proteinG: 140,
-        carbsG: 220,
-        fatG: 70,
-        fiberG: 30,
+        calories: 0,
+        proteinG: 0,
+        carbsG: 0,
+        fatG: 0,
+        fiberG: 0,
       },
     [profile?.macroTargets],
   );
 
-  const waterTarget = profile?.waterTargetMl ?? 2450;
+  const waterTarget = profile?.waterTargetMl ?? 0;
 
   const snapshot = useMemo(
     () =>

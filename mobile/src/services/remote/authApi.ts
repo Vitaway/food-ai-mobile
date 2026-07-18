@@ -67,9 +67,24 @@ export async function requestPasswordReset(email: string): Promise<void> {
   });
 }
 
-export async function resetPasswordWithToken(token: string, password: string): Promise<void> {
+export async function verifyResetCode(email: string, code: string): Promise<void> {
+  await apiRequest<{ ok: boolean }>('/auth/verify-reset-code', {
+    method: 'POST',
+    body: JSON.stringify({ email: email.trim(), code: code.trim() }),
+  });
+}
+
+export async function resetPasswordWithOtp(
+  email: string,
+  code: string,
+  password: string,
+): Promise<void> {
   await apiRequest<{ ok: boolean }>('/auth/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ token, password }),
+    body: JSON.stringify({
+      email: email.trim(),
+      code: code.trim(),
+      password,
+    }),
   });
 }

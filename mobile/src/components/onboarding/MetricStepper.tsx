@@ -139,17 +139,3 @@ export function MetricStepper({
     </View>
   );
 }
-
-export function AgeStepper(props: Omit<MetricStepperProps, 'label' | 'decimals' | 'min' | 'max' | 'step' | 'maxLength'>) {
-  return (
-    <MetricStepper
-      label="Your age"
-      min={13}
-      max={100}
-      step={1}
-      decimals={0}
-      maxLength={3}
-      {...props}
-    />
-  );
-}

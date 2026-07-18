@@ -7,7 +7,8 @@ import { MealsPerDayPicker } from '@/components/onboarding/MealsPerDayPicker';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { EditHealthActionBar } from '@/components/profile/EditHealthActionBar';
 import { OnboardingPlanSummary } from '@/components/onboarding/OnboardingPlanSummary';
-import { AgeStepper, MetricStepper } from '@/components/onboarding/MetricStepper';
+import { MetricStepper } from '@/components/onboarding/MetricStepper';
+import { DateOfBirthInput } from '@/components/onboarding/DateOfBirthInput';
 import { SexSelector } from '@/components/onboarding/SexSelector';
 import {
   onboardingOptionCard,
@@ -28,6 +29,7 @@ import { useToast } from '@/context/ToastContext';
 import type { ActivityLevel, GoalPace, HealthGoal, UserSex } from '@/types';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
+import { ageFromDateOfBirth, isValidDateOfBirth } from '@/utils/dateOfBirth';
 
 const STEPS = ['about', 'body', 'goals', 'activity', 'habits', 'diet', 'review'] as const;
 type EditStep = (typeof STEPS)[number];
@@ -35,7 +37,7 @@ type EditStep = (typeof STEPS)[number];
 const STEP_META: Record<EditStep, { title: string; description: string }> = {
   about: {
     title: 'About you',
-    description: 'Your age and sex help personalize calorie and macro targets.',
+    description: 'Add your date of birth and sex. Age is calculated automatically for calorie and macro targets.',
   },
   body: {
     title: 'Body metrics',
@@ -70,7 +72,7 @@ export default function EditHealthProfileScreen() {
   const { profile, updateHealthProfile } = useProfile();
 
   const [stepIndex, setStepIndex] = useState(0);
-  const [age, setAge] = useState(28);
+  const [dateOfBirth, setDateOfBirth] = useState('');
   const [sex, setSex] = useState<UserSex>(null);
   const [heightCm, setHeightCm] = useState(168);
   const [weightKg, setWeightKg] = useState(65);
@@ -94,7 +96,7 @@ export default function EditHealthProfileScreen() {
 
   useEffect(() => {
     if (!profile) return;
-    setAge(profile.age);
+    setDateOfBirth(profile.dateOfBirth ?? '');
     setSex(profile.sex);
     setHeightCm(profile.heightCm);
     setWeightKg(profile.weightKg);
@@ -106,6 +108,9 @@ export default function EditHealthProfileScreen() {
     setDietaryPreferences(profile.dietaryPreferences);
     setAllergies(profile.allergies ?? []);
   }, [profile]);
+
+  const hasValidDateOfBirth = isValidDateOfBirth(dateOfBirth);
+  const age = hasValidDateOfBirth ? ageFromDateOfBirth(dateOfBirth) : profile?.age ?? 28;
 
   const preview = useMemo(() => {
     const { bmr, tdee, macroTargets } = calculateMacroTargets(
@@ -132,6 +137,10 @@ export default function EditHealthProfileScreen() {
   };
 
   const goNext = () => {
+    if (step === 'about' && !hasValidDateOfBirth) {
+      Alert.alert('Date of birth required', 'Enter a valid date of birth before continuing.');
+      return;
+    }
     if (stepIndex < STEPS.length - 1) {
       setStepIndex((value) => value + 1);
     }
@@ -147,9 +156,14 @@ export default function EditHealthProfileScreen() {
 
   const handleSave = async (options?: { andClose?: boolean }): Promise<boolean> => {
     if (saving) return false;
+    if (!hasValidDateOfBirth) {
+      Alert.alert('Date of birth required', 'Enter a valid date of birth before saving.');
+      return false;
+    }
     setSaving(true);
     try {
       await updateHealthProfile({
+        dateOfBirth,
         age,
         sex,
         heightCm,
@@ -191,7 +205,7 @@ export default function EditHealthProfileScreen() {
     if (step === 'about') {
       return (
         <View className="gap-4">
-          <AgeStepper value={age} onChange={setAge} />
+          <DateOfBirthInput value={dateOfBirth} onChange={setDateOfBirth} />
           <SexSelector value={sex} onChange={setSex} />
         </View>
       );
