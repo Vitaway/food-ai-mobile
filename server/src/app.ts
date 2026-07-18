@@ -14,7 +14,13 @@ import {
   createAuthorizationChecker,
   createCurrentUserChecker,
 } from "./middlewares/auth.middleware";
-import { authLoginRateLimit, authRegisterRateLimit, visionDetectRateLimit } from "./middlewares/rate-limit.middleware";
+import {
+  authForgotPasswordRateLimit,
+  authLoginRateLimit,
+  authRegisterRateLimit,
+  authResetPasswordRateLimit,
+  visionDetectRateLimit,
+} from "./middlewares/rate-limit.middleware";
 import { errorResponse } from "./utils/response";
 import legacyRoutes from "./routes/legacy.routes";
 
@@ -54,7 +60,14 @@ app.use(
 );
 app.use(cors(corsOptions));
 app.use(compression());
-app.use(express.json({ limit: "2mb" }));
+app.use(
+  express.json({
+    limit: "2mb",
+    verify: (req, _res, buf) => {
+      (req as express.Request & { rawBody?: string }).rawBody = buf.toString("utf8");
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 const uploadsRoot = path.join(process.cwd(), "uploads");
@@ -62,6 +75,9 @@ app.use("/uploads", express.static(uploadsRoot, { maxAge: "7d", fallthrough: fal
 
 app.use("/api/v1/auth/login", authLoginRateLimit);
 app.use("/api/v1/auth/register", authRegisterRateLimit);
+app.use("/api/v1/auth/forgot-password", authForgotPasswordRateLimit);
+app.use("/api/v1/auth/verify-reset-code", authResetPasswordRateLimit);
+app.use("/api/v1/auth/reset-password", authResetPasswordRateLimit);
 app.use("/api/v1/vision/plates/detect", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze-text", visionDetectRateLimit);

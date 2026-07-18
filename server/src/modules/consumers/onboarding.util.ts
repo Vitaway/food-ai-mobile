@@ -3,7 +3,6 @@ type ConsumerProfileJson = Record<string, unknown>;
 /** True when the stored health profile clearly finished setup (even if the flag was never saved). */
 export function deriveOnboardingComplete(profile: ConsumerProfileJson | null | undefined): boolean {
   if (!profile || typeof profile !== "object") return false;
-  if (profile.onboardingComplete === true) return true;
 
   const age = profile.age;
   const heightCm = profile.heightCm;
@@ -12,6 +11,7 @@ export function deriveOnboardingComplete(profile: ConsumerProfileJson | null | u
   const activityLevel = profile.activityLevel;
   const bmr = profile.bmr;
   const macros = profile.macroTargets as { calories?: unknown; caloriesKcal?: unknown } | undefined;
+  const calculation = profile.nutritionCalculation as { nceVersion?: unknown } | undefined;
 
   const hasHealthBasics =
     typeof age === "number" &&
@@ -32,7 +32,11 @@ export function deriveOnboardingComplete(profile: ConsumerProfileJson | null | u
         ? macros.caloriesKcal
         : 0;
 
-  const hasComputedTargets = typeof bmr === "number" && bmr > 0 && calories > 0;
+  const hasComputedTargets =
+    typeof bmr === "number" &&
+    bmr > 0 &&
+    calories > 0 &&
+    typeof calculation?.nceVersion === "string";
 
   return hasHealthBasics && hasComputedTargets;
 }

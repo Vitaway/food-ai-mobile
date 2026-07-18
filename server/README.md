@@ -63,8 +63,9 @@ Password for all seed users: `Test@123` (override via `SEED_*_PASSWORD` env vars
 | POST | `/api/v1/vision/plates/detect` | No | Plate/bowl vision (multipart) |
 | POST | `/api/v1/vision/meals/analyze` | Consumer | AI meal analysis from photo |
 | POST | `/api/v1/vision/meals/analyze-text` | Consumer | AI meal analysis from description |
-| POST | `/api/v1/auth/forgot-password` | No | Send password reset email |
-| POST | `/api/v1/auth/reset-password` | No | Set new password with token |
+| POST | `/api/v1/auth/forgot-password` | No | Email a 6-digit password reset OTP |
+| POST | `/api/v1/auth/verify-reset-code` | No | Validate OTP before setting password |
+| POST | `/api/v1/auth/reset-password` | No | Set new password with email + OTP |
 
 ## Environment
 

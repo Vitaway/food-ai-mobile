@@ -37,15 +37,36 @@ export function computeNutrientAdequacyScore(
   fiberTargetG: number,
   mealItems: DetectedFoodItem[],
 ): number {
-  const parts: number[] = [ratioScore(fiberG, fiberTargetG)];
+  return computeNutrientAdequacy(fiberG, fiberTargetG, mealItems).score;
+}
 
+export function computeNutrientAdequacy(
+  fiberG: number,
+  fiberTargetG: number,
+  mealItems: DetectedFoodItem[],
+) {
+  const parts: number[] = [ratioScore(fiberG, fiberTargetG)];
   const consumed = aggregateMicronutrientsFromItems(mealItems);
+  let availableNutrients = 1; // Fiber is present in every normalized nutrition record.
+
   for (const [key, target] of Object.entries(DAILY_MICRONUTRIENT_TARGETS)) {
-    if ((consumed[key] ?? 0) > 0) {
+    if (Object.prototype.hasOwnProperty.call(consumed, key)) {
+      availableNutrients += 1;
       parts.push(ratioScore(consumed[key] ?? 0, target));
     }
   }
 
-  if (parts.length === 1 && fiberG <= 0) return 0;
-  return boundedScore(parts.reduce((sum, score) => sum + score, 0) / parts.length);
+  const totalNutrients = 1 + Object.keys(DAILY_MICRONUTRIENT_TARGETS).length;
+  const dataCoverage = availableNutrients / totalNutrients;
+  const measuredScore =
+    parts.length && !(parts.length === 1 && fiberG <= 0)
+      ? boundedScore(parts.reduce((sum, score) => sum + score, 0) / parts.length)
+      : 0;
+
+  // Missing micronutrient data must not silently look like perfect adequacy.
+  // Keep half the measured score and earn the remainder through data coverage.
+  return {
+    score: boundedScore(measuredScore * (0.5 + dataCoverage * 0.5)),
+    dataCoverage: Math.round(dataCoverage * 100),
+  };
 }

@@ -1,18 +1,18 @@
 import type { MealSubmission } from "../meals/meal-submission.entity";
 import type { MealCoachReview } from "../meals/meal-coach-review.entity";
 import { asDetectedItems, sumNutrition, type DetectedFoodItem } from "../meals/nutrition.util";
-import { computeNutrientAdequacyScore } from "./nutrient-score.util";
+import { computeNutrientAdequacy } from "./nutrient-score.util";
 
 export function todayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 const DEFAULT_MACRO_TARGETS = {
-  calories: 2000,
-  proteinG: 120,
-  carbsG: 200,
-  fatG: 65,
-  fiberG: 25,
+  calories: 0,
+  proteinG: 0,
+  carbsG: 0,
+  fatG: 0,
+  fiberG: 0,
 };
 
 function itemsForApprovedMeal(
@@ -83,14 +83,15 @@ export function computeDashboard(
   }
 
   const waterMl = Number(dashboardCache.waterMl ?? 0);
-  const waterTargetMl = Number(profile.waterTargetMl ?? 2000);
+  const waterTargetMl = Number(profile.waterTargetMl ?? 0);
   const calorieTarget = Number(macroTargets.calories ?? DEFAULT_MACRO_TARGETS.calories);
   const mealConsistencyTarget = Math.max(1, Number(profile.mealsPerDay ?? 3));
-  const nutrientScore = computeNutrientAdequacyScore(
+  const nutrientAdequacy = computeNutrientAdequacy(
     fiberG,
     Number(macroTargets.fiberG ?? DEFAULT_MACRO_TARGETS.fiberG),
     allItems,
   );
+  const nutrientScore = nutrientAdequacy.score;
   const macroParts = [
     ratioScore(proteinG, Number(macroTargets.proteinG ?? DEFAULT_MACRO_TARGETS.proteinG)),
     ratioScore(carbsG, Number(macroTargets.carbsG ?? DEFAULT_MACRO_TARGETS.carbsG)),
@@ -99,10 +100,18 @@ export function computeDashboard(
   const macroScore = boundedScore(macroParts.reduce((sum, score) => sum + score, 0) / macroParts.length);
   const calorieScore = ratioScore(caloriesConsumed, calorieTarget);
   const consistencyScore = boundedScore((approvedToday.length / mealConsistencyTarget) * 100);
-  const distinctMeals = new Set(
-    approvedToday.map((meal) => String((meal.data.mealName as string | undefined) ?? meal.mealType).toLowerCase()),
+  const distinctFoods = new Set(
+    allItems
+      .map((item) => item.label.trim().toLowerCase())
+      .filter(Boolean),
   ).size;
-  const varietyScore = boundedScore((distinctMeals / Math.max(3, mealConsistencyTarget)) * 100);
+  const distinctMeals = new Set(
+    approvedToday.map((meal) =>
+      String((meal.data.mealName as string | undefined) ?? meal.mealType).toLowerCase(),
+    ),
+  ).size;
+  const varietyCount = distinctFoods || distinctMeals;
+  const varietyScore = boundedScore((varietyCount / 5) * 100);
   const healthScore = Math.round(
     nutrientScore * 0.3 +
       macroScore * 0.25 +
@@ -126,6 +135,7 @@ export function computeDashboard(
     healthScore,
     healthScoreBreakdown: {
       nutrientScore: Math.round(nutrientScore),
+      nutrientDataCoverage: nutrientAdequacy.dataCoverage,
       macroScore: Math.round(macroScore),
       calorieScore: Math.round(calorieScore),
       consistencyScore: Math.round(consistencyScore),
