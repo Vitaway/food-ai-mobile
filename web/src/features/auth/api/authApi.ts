@@ -4,6 +4,7 @@ import type {
   AuthSession,
   ForgotPasswordPayload,
   LoginCredentials,
+  MfaChallenge,
   RegisterCredentials,
   UserRole,
 } from '@/features/auth/types';
@@ -84,16 +85,32 @@ function toAuthError(error: unknown): never {
   throw new AuthError('Something went wrong. Please try again.');
 }
 
-export async function login(credentials: LoginCredentials): Promise<AuthSession> {
+export async function login(
+  credentials: LoginCredentials,
+): Promise<AuthSession | MfaChallenge> {
   try {
-    const data = await apiRequest<AuthResponse>('/auth/login', {
+    if (credentials.challengeToken && credentials.mfaCode) {
+      const data = await apiRequest<AuthResponse>('/auth/mfa/verify', {
+        method: 'POST',
+        body: JSON.stringify({
+          challengeToken: credentials.challengeToken,
+          code: credentials.mfaCode.trim(),
+        }),
+      });
+      return mapAuthResponse(data, credentials.rememberMe);
+    }
+
+    const data = await apiRequest<AuthResponse | MfaChallenge>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({
         email: credentials.email.trim(),
         password: credentials.password,
       }),
     });
-    return mapAuthResponse(data, credentials.rememberMe);
+    if (data && typeof data === 'object' && 'mfaRequired' in data && data.mfaRequired) {
+      return data;
+    }
+    return mapAuthResponse(data as AuthResponse, credentials.rememberMe);
   } catch (error) {
     toAuthError(error);
   }
@@ -131,10 +148,25 @@ export async function requestPasswordReset(payload: ForgotPasswordPayload): Prom
   });
 }
 
-export async function resetPasswordWithToken(token: string, password: string): Promise<void> {
+export async function verifyResetCode(email: string, code: string): Promise<void> {
+  await apiRequest<{ ok: boolean }>('/auth/verify-reset-code', {
+    method: 'POST',
+    body: JSON.stringify({ email: email.trim(), code: code.trim() }),
+  });
+}
+
+export async function resetPasswordWithOtp(
+  email: string,
+  code: string,
+  password: string,
+): Promise<void> {
   await apiRequest<{ ok: boolean }>('/auth/reset-password', {
     method: 'POST',
-    body: JSON.stringify({ token, password }),
+    body: JSON.stringify({
+      email: email.trim(),
+      code: code.trim(),
+      password,
+    }),
   });
 }
 

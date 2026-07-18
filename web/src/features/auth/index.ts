@@ -14,7 +14,16 @@ export {
   ADMIN_ROUTES,
   CONSUMER_ROUTES,
 } from './constants';
-export { AuthError, login, register, loginCoach, logoutCoach, requestPasswordReset } from './api/authApi';
+export {
+  AuthError,
+  login,
+  register,
+  loginCoach,
+  logoutCoach,
+  requestPasswordReset,
+  verifyResetCode,
+  resetPasswordWithOtp,
+} from './api/authApi';
 export { useAuth } from './hooks/useAuth';
 export { useLogin, getLoginErrorMessage } from './hooks/useLogin';
 export { useRegister, getRegisterErrorMessage } from './hooks/useRegister';
