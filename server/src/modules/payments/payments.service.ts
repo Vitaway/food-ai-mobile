@@ -1,5 +1,4 @@
-import { createHmac, timingSafeEqual } from "crypto";
-import { randomUUID } from "crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "crypto";
 import { BadRequestError, ForbiddenError, NotFoundError } from "routing-controllers";
 import { AppDataSource } from "../../config/database";
 import { env } from "../../config/env";
@@ -7,6 +6,8 @@ import { Subscription } from "./subscription.entity";
 import { PaymentTransaction } from "./payment-transaction.entity";
 import type { CreateCheckoutDto, IremboWebhookDto } from "./payments.dto";
 import { familySubscriptionService } from "./family.service";
+import { getPlanByCode, listPublicPlans } from "./plan-catalog";
+import { adminAuditService } from "../admin/admin-audit.service";
 
 const subscriptionsRepo = AppDataSource.getRepository(Subscription);
 const transactionsRepo = AppDataSource.getRepository(PaymentTransaction);
@@ -26,6 +27,10 @@ export function verifyIremboWebhookSignature(rawBody: string, signatureHeader?: 
 }
 
 export const paymentsService = {
+  listPlans() {
+    return listPublicPlans();
+  },
+
   async getMySubscription(userId: string) {
     const sub = await subscriptionsRepo.findOne({
       where: { userId },
@@ -44,43 +49,36 @@ export const paymentsService = {
   },
 
   async createCheckout(userId: string, dto: CreateCheckoutDto) {
-    if (dto.amount <= 0) throw new BadRequestError("amount must be greater than 0");
+    const plan = getPlanByCode(dto.planCode);
+    if (!plan) throw new BadRequestError("Unknown plan code");
 
     let organizationId = dto.organizationId ?? null;
-    if (dto.subscriptionType === "corporate" && dto.organizationName?.trim() && !organizationId) {
+    if (plan.subscriptionType === "corporate" && dto.organizationName?.trim() && !organizationId) {
       const org = await familySubscriptionService.createOrganization(dto.organizationName.trim());
       organizationId = org.id;
     }
 
-    if (dto.subscriptionType === "family") {
-      const family = await familySubscriptionService.createFamilyPlan(userId, dto.planCode);
-      return {
-        externalRef: `FAMILY-${family.id.slice(0, 8).toUpperCase()}`,
-        amount: dto.amount,
-        currency: dto.currency ?? "RWF",
-        checkoutUrl: "",
-        status: family.status,
-        subscriptionId: family.id,
-        activated: true,
-      };
-    }
-
-    let subscription = await subscriptionsRepo.findOne({ where: { userId }, order: { createdAt: "DESC" } });
+    let subscription = await subscriptionsRepo.findOne({
+      where: { userId },
+      order: { createdAt: "DESC" },
+    });
     if (!subscription) {
       subscription = subscriptionsRepo.create({
         userId,
-        organizationId: dto.subscriptionType === "corporate" ? organizationId : null,
-        planCode: dto.planCode,
-        subscriptionType: dto.subscriptionType ?? "individual",
+        organizationId: plan.subscriptionType === "corporate" ? organizationId : null,
+        planCode: plan.code,
+        subscriptionType: plan.subscriptionType,
         status: "trialing",
         metadata: {},
       });
       await subscriptionsRepo.save(subscription);
     } else {
-      subscription.planCode = dto.planCode;
-      if (dto.subscriptionType) subscription.subscriptionType = dto.subscriptionType;
-      if (dto.organizationId) subscription.organizationId = dto.organizationId;
+      subscription.planCode = plan.code;
+      subscription.subscriptionType = plan.subscriptionType;
       if (organizationId) subscription.organizationId = organizationId;
+      if (subscription.status === "cancelled" || subscription.status === "past_due") {
+        subscription.status = "trialing";
+      }
       await subscriptionsRepo.save(subscription);
     }
 
@@ -89,10 +87,10 @@ export const paymentsService = {
       subscriptionId: subscription.id,
       provider: "irembopay",
       externalRef,
-      currency: dto.currency ?? "RWF",
-      amount: dto.amount.toFixed(2),
+      currency: plan.currency,
+      amount: plan.amount.toFixed(2),
       status: "pending",
-      payload: { planCode: dto.planCode, userId },
+      payload: { planCode: plan.code, userId, amount: plan.amount },
     });
     await transactionsRepo.save(tx);
 
@@ -100,13 +98,22 @@ export const paymentsService = {
       ? `${env.iremboPay.checkoutBaseUrl}/${externalRef}?merchant=${env.iremboPay.merchantId}`
       : `${env.iremboPay.checkoutBaseUrl}/${externalRef}`;
 
+    await adminAuditService.log(userId, "subscription.checkout_created", {
+      targetType: "subscription",
+      targetId: subscription.id,
+      meta: { planCode: plan.code, externalRef },
+    });
+
     return {
       externalRef,
-      amount: Number(tx.amount),
-      currency: tx.currency,
+      amount: plan.amount,
+      currency: plan.currency,
       checkoutUrl,
       status: tx.status,
       subscriptionId: subscription.id,
+      planCode: plan.code,
+      subscriptionType: plan.subscriptionType,
+      activated: false,
     };
   },
 
@@ -133,15 +140,31 @@ export const paymentsService = {
       if (subscription) {
         if (dto.status === "succeeded") {
           subscription.status = "active";
+          const plan = getPlanByCode(subscription.planCode);
           const next = new Date();
-          next.setDate(next.getDate() + 30);
+          next.setDate(next.getDate() + (plan?.intervalDays ?? 30));
           subscription.renewsOn = next.toISOString().slice(0, 10);
+          await subscriptionsRepo.save(subscription);
+          if (subscription.subscriptionType === "family" && subscription.userId) {
+            await familySubscriptionService.ensurePayerMembership(
+              subscription.id,
+              subscription.userId,
+            );
+          }
+          if (subscription.userId) {
+            await adminAuditService.log(subscription.userId, "subscription.activated", {
+              targetType: "subscription",
+              targetId: subscription.id,
+              meta: { planCode: subscription.planCode, externalRef: dto.externalRef },
+            });
+          }
         } else if (dto.status === "failed") {
           subscription.status = "past_due";
+          await subscriptionsRepo.save(subscription);
         } else if (dto.status === "cancelled") {
           subscription.status = "cancelled";
+          await subscriptionsRepo.save(subscription);
         }
-        await subscriptionsRepo.save(subscription);
       }
     }
     return { ok: true };

@@ -60,4 +60,27 @@ export class ReportsController {
     }
     return existing;
   }
+
+  @Authorized(["coach"])
+  @Post("/coach/generate")
+  async generateCoachReport(
+    @CurrentUser() user: User,
+    @QueryParam("period") period?: ReportPeriod,
+    @QueryParam("from") from?: string,
+    @QueryParam("to") to?: string,
+  ) {
+    const snapshot = await reportsService.generateCoachSnapshot(user.id, {
+      period: from || to ? period ?? "custom" : period ?? "weekly",
+      from,
+      to,
+    });
+    return {
+      id: snapshot.id,
+      period: snapshot.period,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      metrics: snapshot.metrics,
+      createdAt: snapshot.createdAt.toISOString(),
+    };
+  }
 }

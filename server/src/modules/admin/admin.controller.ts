@@ -17,6 +17,7 @@ import { platformMetricsService } from "./platform-metrics.service";
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
 import { CreateCoachDto, SetUserActiveDto, SetUserRoleDto, SetOrganizationModulesDto, EnsureOrganizationModulesDto } from "./admin.dto";
 import { moduleEntitlementsService } from "./module-entitlements.service";
+import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
 
 @Controller("/admin")
 export class AdminController {
@@ -134,6 +135,12 @@ export class AdminController {
   @Get("/modules/catalog")
   moduleCatalog() {
     return { catalog: moduleEntitlementsService.catalog() };
+  }
+
+  @Authorized(["admin"])
+  @Get("/clinical-assessments")
+  clinicalAssessments() {
+    return clinicalAssessmentService.listWorkflow();
   }
 
   @Authorized(["admin"])

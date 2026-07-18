@@ -7,6 +7,7 @@ import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.reposito
 import { computeDashboard } from "../consumers/dashboard.util";
 import { ConsumerDailyHealthScore } from "../consumers/daily-health-score.entity";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
+import { resolveCoachCaseloadIds } from "../meals/coach-scope.util";
 
 const reportsRepo = AppDataSource.getRepository(ReportSnapshot);
 const healthScoreRepo = AppDataSource.getRepository(ConsumerDailyHealthScore);
@@ -222,15 +223,40 @@ export const reportsService = {
     const profile = await coachProfilesRepository.findByUserId(coachUserId);
     const meals = await mealsRepository.findAllMeals();
     const periodMeals = mealsInRange(meals, start, end);
-    const reviews = await mealCoachReviewsRepository.findByMealIds(periodMeals.map((m) => m.id));
+    const coachReviews = await mealCoachReviewsRepository.findByCoachId(coachUserId);
+    const reviews = coachReviews.filter((review) => {
+      const day = review.reviewedAt.toISOString().slice(0, 10);
+      return day >= start && day <= end;
+    });
+    const mealsById = new Map(meals.map((meal) => [meal.id, meal]));
+    const caseloadIds = await resolveCoachCaseloadIds(coachUserId);
+    const caseloadMeals = periodMeals.filter((meal) => caseloadIds.has(meal.clientId));
+    const reviewedClientIds = new Set(
+      reviews
+        .map((review) => mealsById.get(review.mealId)?.clientId)
+        .filter((clientId): clientId is string => Boolean(clientId)),
+    );
+    const durations = reviews
+      .map((review) => review.reviewDurationSeconds)
+      .filter((duration): duration is number => typeof duration === "number" && duration >= 0);
 
     const metrics = {
       period,
       coachActivity: {
-        reviewsCompleted: reviews.filter((r) => r.action === "approve" || r.action === "reject")
-          .length,
-        mealsInQueue: periodMeals.filter((m) => m.status === "in_review").length,
-        mealsApproved: periodMeals.filter((m) => m.status === "approved").length,
+        reviewsCompleted: reviews.length,
+        mealsInQueue: caseloadMeals.filter((meal) => meal.status === "in_review").length,
+        mealsApproved: reviews.filter((review) => review.action === "approve").length,
+        mealsRejected: reviews.filter((review) => review.action === "reject").length,
+        uniquePatientsReviewed: reviewedClientIds.size,
+        averageReviewMinutes:
+          durations.length > 0
+            ? Number(
+                (durations.reduce((sum, duration) => sum + duration, 0) / durations.length / 60).toFixed(
+                  1,
+                ),
+              )
+            : 0,
+        caseloadSize: caseloadIds.size,
       },
       organization: profile?.organization ?? null,
     };

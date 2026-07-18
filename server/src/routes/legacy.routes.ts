@@ -4,6 +4,7 @@ import { BadRequestError } from "routing-controllers";
 import { healthService } from "../modules/health/health.service";
 import { visionService } from "../modules/vision/vision.service";
 import { visionDetectRateLimit } from "../middlewares/rate-limit.middleware";
+import { env } from "../config/env";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -27,6 +28,13 @@ legacyRoutes.post(
   upload.single("image"),
   async (req, res, next) => {
     try {
+      if (!env.ENABLE_LEGACY_PLATES_DETECT) {
+        res.status(401).json({
+          success: false,
+          error: "Legacy plate detection is disabled. Use authenticated POST /api/v1/vision/plates/detect",
+        });
+        return;
+      }
       const file = req.file;
       if (!file) {
         throw new BadRequestError("Missing image file (field name: image)");

@@ -3,6 +3,7 @@ import {
   BadRequestError,
   Body,
   Controller,
+  CurrentUser,
   Post,
   Req,
   UseBefore,
@@ -11,6 +12,8 @@ import type { Request } from "express";
 import multer from "multer";
 import { AnalyzeMealTextDto } from "./vision.dto";
 import { visionService } from "./vision.service";
+import type { User } from "../users/user.entity";
+import { assertConsumerSubscription } from "../../middlewares/entitlements";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -25,9 +28,11 @@ function parseOptionalNumber(value: unknown): number | null {
 
 @Controller("/vision")
 export class VisionController {
+  @Authorized(["consumer"])
   @Post("/plates/detect")
   @UseBefore(upload.single("image"))
-  async detectPlate(@Req() req: Request) {
+  async detectPlate(@CurrentUser() user: User, @Req() req: Request) {
+    await assertConsumerSubscription(user.id);
     const file = req.file;
     if (!file) {
       throw new BadRequestError("Missing image file (field name: image)");
@@ -39,7 +44,8 @@ export class VisionController {
   @Authorized(["consumer"])
   @Post("/meals/analyze")
   @UseBefore(upload.single("image"))
-  async analyzeMealImage(@Req() req: Request) {
+  async analyzeMealImage(@CurrentUser() user: User, @Req() req: Request) {
+    await assertConsumerSubscription(user.id);
     const file = req.file;
     if (!file) {
       throw new BadRequestError("Missing image file (field name: image)");
@@ -57,7 +63,8 @@ export class VisionController {
 
   @Authorized(["consumer"])
   @Post("/meals/analyze-text")
-  async analyzeMealText(@Body() dto: AnalyzeMealTextDto) {
+  async analyzeMealText(@CurrentUser() user: User, @Body() dto: AnalyzeMealTextDto) {
+    await assertConsumerSubscription(user.id);
     return visionService.analyzeMealFromText(dto.text, dto.plateDiameterCm ?? null);
   }
 }

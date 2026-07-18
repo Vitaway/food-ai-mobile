@@ -8,7 +8,7 @@ export type NutritionFoodRow = {
   nutritionPer100g: Record<string, number>;
   micronutrients: Record<string, number>;
   composition?: Record<string, number>;
-  servings: Array<{ unit: string; gramsEquivalent: number; isDefault: boolean }>;
+  servings: Array<{ unit: string; amount: number; gramsEquivalent: number; isDefault: boolean }>;
 };
 
 function normalizeLabel(value: string) {

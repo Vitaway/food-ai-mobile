@@ -15,8 +15,11 @@ import { usersRepository } from "../users/users.repository";
 import { emailService } from "../../services/email.service";
 import { broadcastCoachQueueToAll } from "../../services/coach-realtime.service";
 import { logger } from "../../config/logger";
+import { adminAuditService } from "../admin/admin-audit.service";
+import { assertCoachModule } from "../../middlewares/entitlements";
 import { computeDashboard } from "../consumers/dashboard.util";
 import { asDetectedItems, normalizeMealItems, sumNutrition } from "./nutrition.util";
+import { assessMealAllergens } from "./allergen-match.util";
 import {
   mealToCoachDto,
   waitingMinutes,
@@ -80,6 +83,7 @@ function toClientDto(
     adherenceTrend: extras?.adherenceTrend ?? "stable",
     openFlags: extras?.openFlags ?? 0,
     hasAllergies: allergies.length > 0,
+    clientHasAllergies: allergies.length > 0,
   };
 }
 
@@ -241,6 +245,9 @@ export const coachMealsService = {
       const allergies = Array.isArray(consumer.profile.allergies)
         ? (consumer.profile.allergies as string[])
         : [];
+      const allergenAssessment =
+        (meal.data.allergenAssessment as ReturnType<typeof assessMealAllergens> | undefined) ??
+        assessMealAllergens(allergies, asDetectedItems(review?.items ?? meal.data.items));
       items.push({
         meal: {
           ...mealToCoachDto(meal, review),
@@ -249,7 +256,12 @@ export const coachMealsService = {
           slaMinutesRemaining: slaMinutesRemaining(meal.submittedAt),
           complexity: deriveMealComplexity(meal),
           classificationLabel: deriveClassificationLabel(meal),
-          hasAllergies: allergies.length > 0,
+          hasAllergies: allergenAssessment.allergenMatch || allergenAssessment.possibleAllergenMatch,
+          clientHasAllergies: allergies.length > 0,
+          allergenMatch: allergenAssessment.allergenMatch,
+          possibleAllergenMatch: allergenAssessment.possibleAllergenMatch,
+          matchedAllergens: allergenAssessment.matchedAllergens,
+          possibleAllergens: allergenAssessment.possibleAllergens,
         },
         client: toClientDto(consumer, mealsByClient.get(consumer.id) ?? [], reviewsByMealId),
       });
@@ -531,10 +543,10 @@ export const coachMealsService = {
         fatG: Math.round(fatG),
       },
       targets: {
-        calories: macroTargets.calories ?? 2000,
-        proteinG: macroTargets.proteinG ?? 120,
-        carbsG: macroTargets.carbsG ?? 200,
-        fatG: macroTargets.fatG ?? 65,
+        calories: macroTargets.calories ?? 0,
+        proteinG: macroTargets.proteinG ?? 0,
+        carbsG: macroTargets.carbsG ?? 0,
+        fatG: macroTargets.fatG ?? 0,
       },
       adherenceRate:
         approvedCount + rejectedCount > 0
@@ -544,6 +556,7 @@ export const coachMealsService = {
   },
 
   async reviewMeal(mealId: string, coachId: string, dto: ReviewMealDto) {
+    await assertCoachModule(coachId, "coaching");
     const meal = await mealsRepository.findMealById(mealId);
     if (!meal) throw new NotFoundError("Meal not found");
     await ensureCoachCanAccessClient(coachId, meal.clientId);
@@ -563,6 +576,12 @@ export const coachMealsService = {
       Math.round((reviewedAt.getTime() - meal.submittedAt.getTime()) / 1000),
     );
 
+    const consumerForAllergen = await consumerProfilesRepository.findById(meal.clientId);
+    const allergenAssessment = assessMealAllergens(
+      consumerForAllergen?.profile?.allergies,
+      items,
+    );
+    meal.data = { ...meal.data, allergenAssessment };
     meal.status = dto.action === "approve" ? "approved" : "rejected";
     await mealsRepository.saveMeal(meal);
 
@@ -581,7 +600,17 @@ export const coachMealsService = {
 
     await coachReviewDraftsRepository.delete(mealId, coachId);
 
-    const consumer = await consumerProfilesRepository.findById(meal.clientId);
+    await adminAuditService.log(coachId, `meal.review.${dto.action}`, {
+      targetType: "meal",
+      targetId: mealId,
+      meta: {
+        clientId: meal.clientId,
+        allergenMatch: allergenAssessment.allergenMatch,
+        possibleAllergenMatch: allergenAssessment.possibleAllergenMatch,
+      },
+    });
+
+    const consumer = consumerForAllergen;
     if (consumer?.userId) {
       const mealName = review.mealName ?? (meal.data.mealName as string | undefined);
       void notificationsService.notifyMealStatus(consumer.userId, {
@@ -611,7 +640,7 @@ export const coachMealsService = {
       }
     }
 
-    broadcastCoachQueueToAll({ type: "queue_updated", mealId });
+    broadcastCoachQueueToAll({ type: "queue_updated", reason: "reviewed", mealId });
 
     return mealToCoachDto(meal, review);
   },
