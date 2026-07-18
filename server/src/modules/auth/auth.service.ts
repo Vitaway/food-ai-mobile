@@ -294,7 +294,9 @@ export const authService = {
       throw new UnauthorizedError("Invalid email or password");
     }
 
-    if (env.MFA_REQUIRED_FOR_STAFF && isStaffRole(user.role)) {
+    // Seed accounts are treated as pre-verified so demo/ops logins skip email OTP.
+    const isSeedUser = user.registrationSource === "seed";
+    if (env.MFA_REQUIRED_FOR_STAFF && isStaffRole(user.role) && !isSeedUser) {
       void purgeExpiredOtps().catch(() => undefined);
       const recent = await recentlyIssuedOtp(user.id);
       if (recent) {
