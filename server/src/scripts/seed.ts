@@ -26,6 +26,7 @@ async function upsertSeedUser(opts: {
       displayName: opts.displayName,
       avatarUrl: null,
       isActive: true,
+      registrationSource: "seed",
     });
     await usersRepository.save(user);
     logger.info({ email, role: opts.role }, "Created seed user");
@@ -36,6 +37,7 @@ async function upsertSeedUser(opts: {
   user.role = opts.role;
   user.isActive = true;
   user.displayName = opts.displayName;
+  user.registrationSource = "seed";
   await usersRepository.save(user);
   logger.info({ email, role: opts.role }, "Updated seed user");
   return user;
