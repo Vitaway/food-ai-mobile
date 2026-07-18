@@ -1,3 +1,4 @@
+import { LiveToastBridge } from '@/components/notifications/LiveToastBridge';
 import { NotificationMealSync } from '@/components/notifications/NotificationEffects';
 import { PushNotificationSetup } from '@/components/notifications/PushNotificationSetup';
 import { AuthProvider } from '@/context/AuthContext';
@@ -26,6 +27,7 @@ export function AppProviders({ children }: PropsWithChildren) {
                     <MealsProvider>
                       <NotificationMealSync />
                       <PushNotificationSetup />
+                      <LiveToastBridge />
                       <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
                     </MealsProvider>
                   </ProfileProvider>

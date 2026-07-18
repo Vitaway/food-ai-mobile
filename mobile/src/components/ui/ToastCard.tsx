@@ -99,8 +99,7 @@ const styles = StyleSheet.create({
     borderColor: INK,
     borderRadius: 2,
     backgroundColor: '#ffffff',
-    minWidth: 280,
-    maxWidth: 340,
+    width: '100%',
   },
   accentBar: {
     width: 4,
