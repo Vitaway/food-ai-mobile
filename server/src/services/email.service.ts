@@ -8,6 +8,7 @@ import {
   renderCredentialsBlock,
   renderEmailButton,
   renderInfoCallout,
+  renderOtpCodeBlock,
   renderPatientIdBlock,
   renderSecondaryLink,
   renderVitawayEmailHtml,
@@ -234,40 +235,85 @@ export class EmailService {
     });
   }
 
-  async sendPasswordResetEmail(
+  async sendPasswordResetOtpEmail(
     to: string,
-    resetUrl: string,
-    mobileResetUrl?: string,
+    opts: { code: string; firstName?: string | null },
   ): Promise<void> {
     const appUrl = env.APP_URL.replace(/\/$/, "");
-    const mobileLinkBlock = mobileResetUrl
-      ? `
-        ${renderEmailButton("Reset in the MiraFood app", mobileResetUrl)}
-        ${renderSecondaryLink("Mobile app link:", mobileResetUrl)}
-      `
-      : "";
+    const firstName = opts.firstName?.trim() || "";
+    const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+    const code = opts.code.trim();
 
     await this.sendBrandedEmail({
       to,
-      subject: "Reset your MiraFood password",
-      title: "Password reset",
-      preheader: "This link expires in one hour.",
+      subject: `${code} is your MiraFood reset code`,
+      title: "Your reset code",
+      preheader: `Use ${code} in MiraFood within 10 minutes to choose a new password.`,
       appUrl,
       bodyHtml: `
-        <p style="${vitawayParagraphStyle()}">We received a request to reset the password for your MiraFood account.</p>
-        ${renderEmailButton("Reset password on web", resetUrl)}
-        ${mobileLinkBlock}
-        ${renderInfoCallout("Didn't request this?", "You can ignore this email. Your password will stay the same.", "blue")}
-        ${renderSecondaryLink("Or copy this web link:", resetUrl)}
-        <p style="${vitawayParagraphStyle("margin:0;font-size:14px;")}">This link expires in 1 hour.</p>
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">${greeting}</p>
+        <p style="${vitawayParagraphStyle()}">Someone asked to reset the password for this MiraFood account. Enter the code below in the app or on the web — no link needed.</p>
+        ${renderOtpCodeBlock(code)}
+        ${renderInfoCallout(
+          "How to finish",
+          "Open MiraFood → enter this 6-digit code → choose a new password. The code expires in 10 minutes and can only be used once.",
+          "green",
+        )}
+        ${renderInfoCallout(
+          "Didn't request this?",
+          "You can ignore this email. Your password will stay the same, and the code will expire on its own.",
+          "blue",
+        )}
+        <p style="${vitawayParagraphStyle("margin:0;font-size:14px;")}">For your security, never share this code with anyone. MiraFood staff will never ask for it.</p>
       `,
       textParagraphs: [
-        "Reset your MiraFood password:",
-        resetUrl,
-        ...(mobileResetUrl ? ["", "Open in the MiraFood app:", mobileResetUrl] : []),
+        greeting,
         "",
-        "This link expires in 1 hour.",
-        "If you didn't request a reset, ignore this email.",
+        "Use this code in MiraFood to reset your password:",
+        "",
+        code,
+        "",
+        "It expires in 10 minutes and can only be used once.",
+        "Enter it in the app or on the web — no reset link required.",
+        "",
+        "If you didn't request this, ignore this email. Your password will stay the same.",
+        "Never share this code with anyone.",
+      ],
+    });
+  }
+
+  async sendStaffLoginOtpEmail(
+    to: string,
+    opts: { code: string; firstName?: string | null },
+  ): Promise<void> {
+    const appUrl = env.APP_URL.replace(/\/$/, "");
+    const firstName = opts.firstName?.trim() || "";
+    const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+    const code = opts.code.trim();
+
+    await this.sendBrandedEmail({
+      to,
+      subject: `${code} is your MiraFood sign-in code`,
+      title: "Verify it’s you",
+      preheader: `Use ${code} to finish signing in to MiraFood. Expires in 10 minutes.`,
+      appUrl,
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">${greeting}</p>
+        <p style="${vitawayParagraphStyle()}">Enter this code to finish signing in to the coach or admin dashboard.</p>
+        ${renderOtpCodeBlock(code)}
+        ${renderInfoCallout(
+          "Security",
+          "This code expires in 10 minutes and can only be used once. Never share it with anyone.",
+          "green",
+        )}
+      `,
+      textParagraphs: [
+        greeting,
+        "",
+        "Your MiraFood sign-in code:",
+        code,
+        "",
+        "Expires in 10 minutes. Never share this code.",
       ],
     });
   }

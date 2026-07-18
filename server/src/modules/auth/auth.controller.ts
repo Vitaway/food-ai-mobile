@@ -8,7 +8,14 @@ import {
 } from "routing-controllers";
 import type { Request } from "express";
 import { authService } from "./auth.service";
-import { LoginDto, RegisterDto, ForgotPasswordDto, ResetPasswordDto } from "./auth.dto";
+import {
+  LoginDto,
+  RegisterDto,
+  ForgotPasswordDto,
+  ResetPasswordDto,
+  VerifyResetCodeDto,
+  VerifyMfaDto,
+} from "./auth.dto";
 import type { User } from "../users/user.entity";
 
 @Controller("/auth")
@@ -23,9 +30,19 @@ export class AuthController {
     return authService.login(dto, req);
   }
 
+  @Post("/mfa/verify")
+  verifyMfa(@Body() dto: VerifyMfaDto, @Req() req: Request) {
+    return authService.verifyMfa(dto, req);
+  }
+
   @Post("/forgot-password")
   forgotPassword(@Body() dto: ForgotPasswordDto) {
     return authService.forgotPassword(dto);
+  }
+
+  @Post("/verify-reset-code")
+  verifyResetCode(@Body() dto: VerifyResetCodeDto) {
+    return authService.verifyResetCode(dto);
   }
 
   @Post("/reset-password")

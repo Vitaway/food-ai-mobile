@@ -170,3 +170,20 @@ export function renderCredentialsBlock(rows: Array<{ label: string; value: strin
 export function renderSecondaryLink(label: string, href: string) {
   return `<p style="margin:0 0 12px;font-size:14px;line-height:1.6;color:${EMAIL_BRAND.ash600};font-family:${EMAIL_FONT_FAMILY};">${label} <a href="${href}" style="color:${EMAIL_BRAND.blueSpruce600};text-decoration:underline;">${href}</a></p>`;
 }
+
+/** Large spaced OTP digits for password reset emails. */
+export function renderOtpCodeBlock(code: string) {
+  const digits = code.replace(/\D/g, "").slice(0, 6).split("");
+  const cells = digits
+    .map(
+      (digit) => `<td align="center" style="padding:0 4px;font-family:${EMAIL_FONT_FAMILY};">
+<div style="width:42px;height:52px;line-height:52px;border-radius:12px;background:${EMAIL_BRAND.blueSpruce50};border:1px solid ${EMAIL_BRAND.ash200};font-family:ui-monospace,Menlo,Consolas,monospace;font-size:24px;font-weight:600;letter-spacing:0.04em;color:${EMAIL_BRAND.blueSpruce600};">${digit}</div>
+</td>`,
+    )
+    .join("");
+
+  return `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:8px auto 20px;">
+<tr>${cells}</tr>
+</table>
+<p style="margin:0 0 16px;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:18px;letter-spacing:0.35em;color:${EMAIL_BRAND.ash900};">${code}</p>`;
+}
