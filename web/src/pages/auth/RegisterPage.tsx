@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { AppStoreBadgesLight } from '@/components/marketing/AppStoreBadges';
-import { Button } from '@/components/ui/Button';
 import { AuthLayout } from '@/features/auth/components/AuthLayout';
 import { AUTH_ROUTES } from '@/features/auth/constants';
 
@@ -9,11 +8,6 @@ export function RegisterPage() {
     <AuthLayout
       title="Create your account"
       subtitle="New MiraFood accounts are set up on mobile — download the app to register and get your Vitaway patient file ID."
-      actions={
-        <Button to="/download" variant="primary" size="lg" fullWidth>
-          Go to download page
-        </Button>
-      }
       footer={
         <p>
           Already have an account?{' '}

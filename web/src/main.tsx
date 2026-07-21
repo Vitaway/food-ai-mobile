@@ -32,7 +32,6 @@ import {
 import { ConsumerRoute } from '@/features/consumer/components/ConsumerRoute';
 import { ConsumerShell } from '@/features/consumer/components/ConsumerShell';
 import { HomePage } from '@/pages/marketing/HomePage';
-import { FeaturesPage } from '@/pages/marketing/FeaturesPage';
 import { ForCoachesPage } from '@/pages/marketing/ForCoachesPage';
 import { ForPatientsPage } from '@/pages/marketing/ForPatientsPage';
 import { ForClinicsPage } from '@/pages/marketing/ForClinicsPage';
@@ -41,7 +40,6 @@ import { PrivacyPage } from '@/pages/marketing/PrivacyPage';
 import { TermsPage } from '@/pages/marketing/TermsPage';
 import { SupportPage } from '@/pages/marketing/SupportPage';
 import { DeleteAccountPage } from '@/pages/marketing/DeleteAccountPage';
-import { DownloadPage } from '@/pages/marketing/DownloadPage';
 import { LegalPage } from '@/pages/marketing/LegalPage';
 import { CookiePolicyPage } from '@/pages/marketing/CookiePolicyPage';
 import { MedicalDisclaimerPage } from '@/pages/marketing/MedicalDisclaimerPage';
@@ -64,8 +62,8 @@ function App() {
         {/* Public marketing site */}
         <Route element={<MarketingShell />}>
           <Route index element={<HomePage />} />
-          <Route path="features" element={<FeaturesPage />} />
-          <Route path="download" element={<DownloadPage />} />
+          <Route path="features" element={<Navigate to="/" replace />} />
+          <Route path="download" element={<Navigate to="/" replace />} />
           <Route path="for-coaches" element={<ForCoachesPage />} />
           <Route path="for-patients" element={<ForPatientsPage />} />
           <Route path="for-clinics" element={<ForClinicsPage />} />

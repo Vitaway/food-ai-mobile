@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { AppStoreBadgesLight } from '@/components/marketing/AppStoreBadges';
+import { APP_STORE_URL, AppStoreBadgesLight } from '@/components/marketing/AppStoreBadges';
 import { AppScreenshot } from '@/components/marketing/AppScreenshot';
 import { AudienceQASection } from '@/components/marketing/AudienceQASection';
 import { MarketingPageHero } from '@/components/marketing/MarketingPageHero';
@@ -58,7 +58,7 @@ export function ForPatientsPage() {
                 </li>
               </ul>
               <div className="mt-8 flex flex-wrap gap-4">
-                <Button to="/download" variant="primary" size="md">
+                <Button href={APP_STORE_URL} target="_blank" variant="primary" size="md">
                   Download the app
                 </Button>
                 <Button to="/clinical-evidence" variant="outline" size="md">
