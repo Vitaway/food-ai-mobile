@@ -44,6 +44,7 @@ export const accountLifecycleService = {
         id: user.id,
         email: user.email,
         displayName: user.displayName,
+        phone: user.phone,
         role: user.role,
         createdAt: user.createdAt?.toISOString?.() ?? null,
       },

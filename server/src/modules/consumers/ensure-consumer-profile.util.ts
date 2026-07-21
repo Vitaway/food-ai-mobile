@@ -1,7 +1,9 @@
 import { ForbiddenError, NotFoundError } from "routing-controllers";
 import { generatePatientId } from "../../utils/patient-id";
+import { logger } from "../../config/logger";
 import { usersRepository } from "../users/users.repository";
 import { consumerProfilesRepository } from "./consumer-profiles.repository";
+import { autoAssignCoachForClient } from "../coaches/coach-auto-assign.util";
 import type { ConsumerProfile } from "../meals/consumer-profile.entity";
 
 /** Returns an existing consumer profile or creates a minimal one for consumer-role users. */
@@ -13,7 +15,7 @@ export async function ensureConsumerProfileForUser(userId: string): Promise<Cons
   if (!user) {
     throw new NotFoundError("User not found");
   }
-  if (user.role !== "consumer") {
+  if (user.role !== "consumer" && user.role !== "organization_admin") {
     throw new ForbiddenError("Consumer profile not found");
   }
 
@@ -39,5 +41,11 @@ export async function ensureConsumerProfileForUser(userId: string): Promise<Cons
     },
   });
 
-  return consumerProfilesRepository.save(profile);
+  const saved = await consumerProfilesRepository.save(profile);
+  try {
+    await autoAssignCoachForClient(saved.id, user);
+  } catch (err) {
+    logger.warn({ err, clientId: saved.id }, "Auto-assign coach failed for new patient");
+  }
+  return saved;
 }

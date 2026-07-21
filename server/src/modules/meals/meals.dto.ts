@@ -47,4 +47,19 @@ export class CreateReviewTaskDto {
 
   @IsOptional()
   notifyUser?: boolean;
+
+  /** Optional teammate to assign / DM (coach or admin user id). */
+  @IsOptional()
+  @IsString()
+  assigneeUserId?: string;
+
+  /**
+   * Where to notify:
+   * - team: organization team chat only
+   * - assignee: direct message to assigneeUserId
+   * - both: DM assignee and post to team chat
+   */
+  @IsOptional()
+  @IsIn(["team", "assignee", "both"])
+  notifyChannel?: "team" | "assignee" | "both";
 }

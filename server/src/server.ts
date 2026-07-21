@@ -10,6 +10,7 @@ import { attachCoachQueueWebSocket } from "./services/coach-realtime.service";
 import { attachChatWebSocket } from "./services/chat-realtime.service";
 import { seedNutritionFoods } from "./modules/nutrition-db/nutrition-seed.util";
 import { startReportScheduler } from "./services/report-scheduler.service";
+import { startQueueEscalationScheduler } from "./services/queue-escalation.service";
 
 async function bootstrap() {
   redisService.connect();
@@ -26,6 +27,7 @@ async function bootstrap() {
 
   await seedNutritionFoods();
   startReportScheduler();
+  startQueueEscalationScheduler();
 
   const server = http.createServer(app);
   attachNotificationWebSocket(server);

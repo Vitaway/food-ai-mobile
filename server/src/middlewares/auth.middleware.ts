@@ -17,10 +17,11 @@ export type UserRole =
   | "data_entry_staff";
 
 function expandedRoles(role: string): string[] {
-  if (role === "admin") return ["admin", "super_admin", "organization_admin"];
+  if (role === "admin") return ["admin", "super_admin"];
   if (role === "coach") return ["coach", "nutrition_coach"];
   if (role === "data_entry_staff") return ["data_entry_staff"];
-  if (role === "organization_admin") return ["organization_admin", "admin"];
+  // Org admins are NOT platform admins — they must be authorized explicitly.
+  if (role === "organization_admin") return ["organization_admin"];
   if (role === "super_admin") return ["super_admin", "admin"];
   if (role === "nutrition_coach") return ["nutrition_coach", "coach"];
   return [role];

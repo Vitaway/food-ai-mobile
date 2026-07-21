@@ -25,6 +25,11 @@ export class UpdateConsumerProfileDto {
   avatarUrl?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  phone?: string | null;
+
+  @IsOptional()
   @IsInt()
   @Min(13)
   @Max(120)

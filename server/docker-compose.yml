@@ -66,6 +66,8 @@ services:
       NODE_ENV: production
       PORT: 3011
       AUTO_RUN_MIGRATIONS: "true"
+      # Local compose still uses NODE_ENV=production; keep seed coach/admin OTP-free via auth seed exemption.
+      # Set MFA_REQUIRED_FOR_STAFF=true in .env only when you want OTP for non-seed staff.
     volumes:
       - mirafood_uploads:/app/uploads
     # LAN-accessible for Expo Go / physical devices on the same Wi‑Fi (postgres/redis stay loopback-only).

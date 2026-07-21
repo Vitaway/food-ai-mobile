@@ -249,6 +249,18 @@ export class CoachController {
   }
 
   @Authorized(["coach"])
+  @Post("/meals/:id/pick")
+  pickMeal(@CurrentUser() user: User, @Param("id") id: string) {
+    return coachMealsService.pickMeal(id, user.id);
+  }
+
+  @Authorized(["coach"])
+  @Delete("/meals/:id/pick")
+  releaseMealPick(@CurrentUser() user: User, @Param("id") id: string) {
+    return coachMealsService.releaseMealPick(id, user.id);
+  }
+
+  @Authorized(["coach"])
   @Post("/meals/:id/review")
   review(
     @CurrentUser() user: User,
