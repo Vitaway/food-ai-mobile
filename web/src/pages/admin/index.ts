@@ -1,6 +1,7 @@
 export { AdminOverviewPage } from './OverviewPage';
 export { AdminCoachesPage } from './CoachesPage';
 export { AdminUsersPage } from './UsersPage';
+export { AdminUserDetailPage } from './UserDetailPage';
 export { AdminSystemPage } from './SystemPage';
 export { AdminPaymentsPage } from './PaymentsPage';
 export { AdminReportsPage } from './ReportsPage';
@@ -8,3 +9,4 @@ export { AdminReferralsPage } from './ReferralsPage';
 export { AdminFoodDbPage } from './FoodDbPage';
 export { AdminModulesPage } from './ModulesPage';
 export { AdminAssessmentsPage } from './AssessmentsPage';
+export { AdminOrganizationsPage } from './OrganizationsPage';

@@ -40,7 +40,10 @@ export function ReviewTasksPanel({ mealId }: { mealId: string }) {
               <StatusPill tone={task.status === 'open' ? 'warn' : 'good'}>{task.status}</StatusPill>
             </div>
             {task.note ? <p className="mt-1 text-ash-grey-700">{task.note}</p> : null}
-            <p className="mt-1 text-xs text-ash-grey-500">{formatRelativeTime(task.createdAt)}</p>
+            <p className="mt-1 text-xs text-ash-grey-500">
+              {formatRelativeTime(task.createdAt)}
+              {task.assigneeCoachId || task.assigneeUserId ? ' · Assigned to a teammate' : ' · Team chat'}
+            </p>
           </div>
         ))}
         <p className="text-xs text-ash-grey-500">

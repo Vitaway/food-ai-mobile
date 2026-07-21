@@ -142,6 +142,22 @@ export async function fetchMealById(id: string): Promise<CoachMealDetail | null>
   return apiRequest<CoachMealDetail | null>(`/coach/meals/${id}`);
 }
 
+export async function pickMeal(mealId: string) {
+  return apiRequest<{
+    mealId: string;
+    queuePickedByCoachId?: string;
+    queuePickedByCoachName?: string;
+    queuePickedAt?: string;
+    queueIsPicked?: boolean;
+  }>(`/coach/meals/${mealId}/pick`, { method: 'POST' });
+}
+
+export async function releaseMealPick(mealId: string) {
+  return apiRequest<{ mealId: string; queueIsPicked?: boolean }>(`/coach/meals/${mealId}/pick`, {
+    method: 'DELETE',
+  });
+}
+
 export async function fetchClients(cohortId?: string): Promise<CoachClient[]> {
   return apiRequest<CoachClient[]>(`/coach/clients${cohortQuery(cohortId)}`);
 }
@@ -175,6 +191,14 @@ export type ClinicalAssessmentData = {
   sleepHours?: number;
   stressLevel?: 'low' | 'moderate' | 'high';
   coachNotes?: string;
+  /** Coach corrections to patient onboarding (also written to consumer profile). */
+  goal?: string;
+  goalPace?: 'slow' | 'moderate' | 'aggressive';
+  targetWeightKg?: number | null;
+  activityLevel?: string;
+  mealsPerDay?: number | null;
+  dietaryPreferences?: string[];
+  allergies?: string[];
 };
 
 export type ClinicalTargetSnapshot = {
@@ -323,7 +347,13 @@ export async function fetchReviewTasks(mealId: string): Promise<import('@/types'
 
 export async function createReviewTask(
   mealId: string,
-  payload: { type: 'second_opinion' | 'escalation'; note?: string; notifyUser?: boolean },
+  payload: {
+    type: 'second_opinion' | 'escalation';
+    note?: string;
+    notifyUser?: boolean;
+    assigneeUserId?: string;
+    notifyChannel?: 'team' | 'assignee' | 'both';
+  },
 ) {
   return apiRequest(`/coach/meals/${mealId}/review-tasks`, {
     method: 'POST',

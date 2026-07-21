@@ -5,8 +5,11 @@ export type AuthUser = {
   email: string;
   displayName: string;
   role: UserRole;
+  /** Raw server role before shell mapping (e.g. organization_admin). */
+  accountRole?: string;
   avatarUrl?: string;
   patientId?: string;
+  organizationId?: string | null;
 };
 
 export type AuthSession = {

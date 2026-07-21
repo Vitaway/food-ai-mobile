@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   createCoach,
+  createAdminUser,
   fetchAdminCoaches,
   fetchAdminCoachRoster,
   fetchAdminClinicalAssessments,
@@ -9,6 +10,17 @@ import {
   fetchAdminOperations,
   fetchAdminSystem,
   fetchAdminUsers,
+  fetchAdminUserDetail,
+  setAdminClientCoaches,
+  fetchAdminPatientView,
+  fetchAdminPatientSummary,
+  fetchAdminClinicalAssessment,
+  saveAdminClinicalAssessment,
+  confirmAdminClinicalAssessment,
+  updateAdminUser,
+  adminResetUserPassword,
+  updateAdminConsumerProfile,
+  updateAdminCoachProfile,
   fetchAuditLogs,
   fetchPendingNutritionFoods,
   approveNutritionFood,
@@ -18,7 +30,15 @@ import {
   fetchModuleEntitlements,
   setModuleEntitlements,
   ensureModuleAccount,
+  fetchOrganizations,
+  fetchOrganization,
+  createOrganization,
+  updateOrganization,
   type CreateCoachPayload,
+  type CreateAdminUserPayload,
+  type SetUserRolePayload,
+  type CreateOrganizationPayload,
+  type UpdateOrganizationPayload,
 } from '@/features/admin/api/adminApi';
 
 export const adminKeys = {
@@ -33,6 +53,13 @@ export const adminKeys = {
   pendingFoods: () => [...adminKeys.all, 'pending-foods'] as const,
   modules: () => [...adminKeys.all, 'modules'] as const,
   clinicalAssessments: () => [...adminKeys.all, 'clinical-assessments'] as const,
+  users: () => [...adminKeys.all, 'users'] as const,
+  user: (id: string) => [...adminKeys.all, 'users', id] as const,
+  patient: (id: string) => [...adminKeys.all, 'users', id, 'patient'] as const,
+  patientSummary: (id: string) => [...adminKeys.all, 'users', id, 'patient-summary'] as const,
+  adminClinicalAssessment: (id: string) => [...adminKeys.all, 'users', id, 'clinical-assessment'] as const,
+  organizations: () => [...adminKeys.all, 'organizations'] as const,
+  organization: (id: string) => [...adminKeys.all, 'organizations', id] as const,
 };
 
 export function useAdminMetrics() {
@@ -66,8 +93,144 @@ export function useAdminClinicalAssessments() {
 
 export function useAdminUsers() {
   return useQuery({
-    queryKey: [...adminKeys.all, 'users'] as const,
+    queryKey: adminKeys.users(),
     queryFn: fetchAdminUsers,
+  });
+}
+
+export function useAdminUserDetail(userId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.user(userId ?? ''),
+    queryFn: () => fetchAdminUserDetail(userId!),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useSetAdminClientCoaches(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (coachUserIds: string[]) => setAdminClientCoaches(userId, coachUserIds),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.user(userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.patient(userId) });
+    },
+  });
+}
+
+export function useAdminPatientView(userId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.patient(userId ?? ''),
+    queryFn: () => fetchAdminPatientView(userId!),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useAdminPatientSummary(userId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.patientSummary(userId ?? ''),
+    queryFn: () => fetchAdminPatientSummary(userId!),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useAdminClinicalAssessment(userId: string | null) {
+  return useQuery({
+    queryKey: adminKeys.adminClinicalAssessment(userId ?? ''),
+    queryFn: () => fetchAdminClinicalAssessment(userId!),
+    enabled: Boolean(userId),
+  });
+}
+
+export function useSaveAdminClinicalAssessment(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: import('@/api/coachApi').ClinicalAssessmentData) =>
+      saveAdminClinicalAssessment(userId, payload),
+    onSuccess: (assessment) => {
+      qc.setQueryData(adminKeys.adminClinicalAssessment(userId), assessment);
+      void qc.invalidateQueries({ queryKey: adminKeys.patient(userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.user(userId) });
+    },
+  });
+}
+
+export function useConfirmAdminClinicalAssessment(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { confirmationNote?: string; allowProtectedWeightLoss?: boolean }) =>
+      confirmAdminClinicalAssessment(userId, payload),
+    onSuccess: (assessment) => {
+      qc.setQueryData(adminKeys.adminClinicalAssessment(userId), assessment);
+      void qc.invalidateQueries({ queryKey: adminKeys.patient(userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.user(userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.clinicalAssessments() });
+    },
+  });
+}
+
+export function useUpdateAdminUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, payload }: { userId: string; payload: import('@/features/admin/api/adminApi').UpdateAdminUserPayload }) =>
+      updateAdminUser(userId, payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.users() });
+      void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+    },
+  });
+}
+
+export function useAdminResetPassword() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      password,
+      sendEmail,
+    }: {
+      userId: string;
+      password?: string;
+      sendEmail?: boolean;
+    }) => adminResetUserPassword(userId, { password, sendEmail }),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+    },
+  });
+}
+
+export function useUpdateAdminConsumerProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: import('@/features/admin/api/adminApi').UpdateConsumerProfileAdminPayload;
+    }) => updateAdminConsumerProfile(userId, payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+    },
+  });
+}
+
+export function useUpdateAdminCoachProfile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      userId,
+      payload,
+    }: {
+      userId: string;
+      payload: import('@/features/admin/api/adminApi').UpdateCoachProfileAdminPayload;
+    }) => updateAdminCoachProfile(userId, payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+    },
   });
 }
 
@@ -139,8 +302,24 @@ export function useCreateCoach() {
     mutationFn: (payload: CreateCoachPayload) => createCoach(payload),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+      void qc.invalidateQueries({ queryKey: adminKeys.users() });
       void qc.invalidateQueries({ queryKey: adminKeys.metrics() });
       void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+    },
+  });
+}
+
+export function useCreateAdminUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateAdminUserPayload) => createAdminUser(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.users() });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+      void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+      void qc.invalidateQueries({ queryKey: adminKeys.metrics() });
+      void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+      void qc.invalidateQueries({ queryKey: adminKeys.modules() });
     },
   });
 }
@@ -152,7 +331,7 @@ export function useSetUserActive() {
       setUserActive(userId, isActive),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
-      void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
+      void qc.invalidateQueries({ queryKey: adminKeys.users() });
     },
   });
 }
@@ -160,10 +339,14 @@ export function useSetUserActive() {
 export function useSetUserRole() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ userId, role }: { userId: string; role: string }) => setUserRole(userId, role),
-    onSuccess: () => {
+    mutationFn: ({ userId, ...payload }: SetUserRolePayload & { userId: string }) =>
+      setUserRole(userId, payload),
+    onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'users'] });
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+      void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.modules() });
     },
   });
 }
@@ -194,6 +377,44 @@ export function useEnsureModuleAccount() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: adminKeys.modules() });
       void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+    },
+  });
+}
+
+export function useOrganizations() {
+  return useQuery({
+    queryKey: adminKeys.organizations(),
+    queryFn: fetchOrganizations,
+  });
+}
+
+export function useOrganization(id: string | null) {
+  return useQuery({
+    queryKey: adminKeys.organization(id ?? ''),
+    queryFn: () => fetchOrganization(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: CreateOrganizationPayload) => createOrganization(payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
+      void qc.invalidateQueries({ queryKey: adminKeys.modules() });
+    },
+  });
+}
+
+export function useUpdateOrganization() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateOrganizationPayload }) =>
+      updateOrganization(id, payload),
+    onSuccess: (_data, vars) => {
+      void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
+      void qc.invalidateQueries({ queryKey: adminKeys.organization(vars.id) });
     },
   });
 }

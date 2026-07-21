@@ -1,15 +1,20 @@
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/features/auth';
-import { ADMIN_ROUTES, AUTH_ROUTES } from '@/features/auth/constants';
+import { ADMIN_ROUTES, AUTH_ROUTES, CONSUMER_ROUTES } from '@/features/auth/constants';
 import { useAdminMetrics } from '@/features/admin/hooks/useAdminQueries';
 import { useChatUnreadCount } from '@/hooks/useChatQueries';
 import { useChatRealtime } from '@/hooks/useChatRealtime';
 import { DashboardSidebarLayout, type SidebarNavItem } from '@/components/layout/DashboardSidebarLayout';
+import {
+  selectIsOrganizationAdmin,
+  selectIsPlatformAdmin,
+  useAuthStore,
+} from '@/features/auth/stores/authStore';
 
-const navRoutes = [
+const platformNavRoutes = [
   { to: ADMIN_ROUTES.dashboard, label: 'Overview', end: true },
   { to: ADMIN_ROUTES.users, label: 'Users & roles', end: false },
-  { to: ADMIN_ROUTES.coaches, label: 'Coaches', end: false },
+  { to: ADMIN_ROUTES.organizations, label: 'Organizations', end: false },
   { to: ADMIN_ROUTES.assessments, label: 'Clinical assessments', end: false },
   { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
   { to: ADMIN_ROUTES.foodDb, label: 'Food database', end: false },
@@ -18,6 +23,16 @@ const navRoutes = [
   { to: ADMIN_ROUTES.reports, label: 'Reports', end: false },
   { to: ADMIN_ROUTES.referrals, label: 'Referrals', end: false },
   { to: ADMIN_ROUTES.system, label: 'Audit & system', end: false },
+];
+
+const orgAdminNavRoutes = [
+  { to: ADMIN_ROUTES.dashboard, label: 'Overview', end: true },
+  { to: ADMIN_ROUTES.users, label: 'Members', end: false },
+  { to: ADMIN_ROUTES.organizations, label: 'My organization', end: false },
+  { to: ADMIN_ROUTES.assessments, label: 'Clinical assessments', end: false },
+  { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
+  { to: ADMIN_ROUTES.reports, label: 'Reports', end: false },
+  { to: ADMIN_ROUTES.referrals, label: 'Referrals', end: false },
 ];
 
 function NavIcon({ label }: { label: string }) {
@@ -39,7 +54,7 @@ function NavIcon({ label }: { label: string }) {
       </svg>
     );
   }
-  if (label === 'Coaches' || label === 'Users & roles') {
+  if (label === 'Users & roles') {
     return (
       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4 shrink-0" aria-hidden>
         <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -71,31 +86,47 @@ export function AdminShell() {
   const { data: metrics } = useAdminMetrics();
   const { data: chatUnread } = useChatUnreadCount();
   const { user, logout } = useAuth();
+  const isOrgAdmin = useAuthStore(selectIsOrganizationAdmin);
+  const isPlatformAdmin = useAuthStore(selectIsPlatformAdmin);
   const unreadCount = chatUnread?.count ?? 0;
+  const navRoutes = isOrgAdmin ? orgAdminNavRoutes : platformNavRoutes;
 
-  const nav: SidebarNavItem[] = navRoutes.map((item) => ({
-    ...item,
-    icon: <NavIcon label={item.label} />,
-    badge:
-      item.to === ADMIN_ROUTES.coaches && metrics?.coaches ? (
-        <NavCountBadge count={metrics.coaches} />
-      ) : item.to === ADMIN_ROUTES.messages && unreadCount ? (
-        <NavCountBadge count={unreadCount} />
-      ) : undefined,
-  }));
+  const nav: SidebarNavItem[] = [
+    ...navRoutes.map((item) => ({
+      ...item,
+      icon: <NavIcon label={item.label} />,
+      badge:
+        item.to === ADMIN_ROUTES.users && metrics?.coaches ? (
+          <NavCountBadge count={metrics.coaches} />
+        ) : item.to === ADMIN_ROUTES.messages && unreadCount ? (
+          <NavCountBadge count={unreadCount} />
+        ) : undefined,
+    })),
+    ...(isOrgAdmin && user?.patientId
+      ? [
+          {
+            to: CONSUMER_ROUTES.dashboard,
+            label: 'My patient account',
+            end: false,
+            icon: <NavIcon label="Overview" />,
+          } satisfies SidebarNavItem,
+        ]
+      : []),
+  ];
 
   return (
     <DashboardSidebarLayout
-      brandSubtitle="Platform admin"
+      brandSubtitle={isOrgAdmin ? 'Organization admin' : 'Platform admin'}
       nav={nav}
       immersivePrefixes={[ADMIN_ROUTES.messages]}
       userDisplayName={user?.displayName ?? 'Admin'}
-      userRole="Platform administrator"
+      userRole={isOrgAdmin ? 'Organization administrator' : 'Platform administrator'}
       userAvatarUrl={user?.avatarUrl}
       profileTo={ADMIN_ROUTES.profile}
+      settingsTo={`${ADMIN_ROUTES.profile}?tab=security`}
       onLogout={() => void logout()}
       sidebarStat={
-        metrics ? (
+        metrics && isPlatformAdmin ? (
           <div className="rounded-xl bg-blue-spruce-700/60 px-3 py-2.5 text-xs text-white/70">
             <span className="font-semibold text-white">{metrics.meals.inReview}</span> meals in review
           </div>

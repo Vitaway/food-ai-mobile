@@ -47,6 +47,18 @@ export function useCoachQueueRealtime() {
       try {
         const payload = JSON.parse(String(event.data)) as QueuePayload;
         if (payload.type !== 'queue_updated') return;
+
+        if (payload.reason === 'escalated') {
+          const client = payload.clientName?.trim() || 'A patient';
+          const meal = payload.mealName?.trim() || 'a meal';
+          toastRef.current.incoming(
+            `${client} · ${meal} has been waiting 5+ minutes with no pickup.`,
+            'Review needs pickup',
+            'info',
+          );
+          return;
+        }
+
         if (payload.reason !== 'submitted') return;
         if (payload.mealId && !claimMealToast(payload.mealId)) return;
 

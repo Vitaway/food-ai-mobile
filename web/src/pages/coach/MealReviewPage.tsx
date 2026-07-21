@@ -3,6 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { CoachMessagesPanel } from '@/components/coach/CoachMessagesPanel';
 import { ReviewTasksPanel } from '@/components/coach/ReviewTasksPanel';
 import { MealReviewPanel } from '@/components/coach/MealReviewPanel';
+import { ApproveMealModal } from '@/components/coach/ApproveMealModal';
+import { SecondOpinionModal } from '@/components/coach/SecondOpinionModal';
 import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { StatusPill } from '@/components/ui/StatusPill';
@@ -12,6 +14,8 @@ import {
   useCoachMeal,
   useCoachQueue,
   useCreateReviewTask,
+  usePickMeal,
+  useReleaseMealPick,
   useReviewDraft,
   useReviewMeal,
   useSaveReviewDraft,
@@ -53,24 +57,41 @@ export function MealReviewPage() {
   const { mutate: saveDraft } = useSaveReviewDraft();
   const createTaskMutation = useCreateReviewTask();
   const assignMutation = useAssignClient();
+  const pickMutation = usePickMeal();
+  const releaseMutation = useReleaseMealPick();
   const toast = useToast();
   const startReviewDraft = useCoachStore((s) => s.startReviewDraft);
   const hydrateReviewDraft = useCoachStore((s) => s.hydrateReviewDraft);
   const clearReviewDraft = useCoachStore((s) => s.clearReviewDraft);
   const reviewDraft = useCoachStore((s) => s.reviewDraft);
-  const [taskModal, setTaskModal] = useState<'second_opinion' | 'escalation' | null>(null);
-  const [taskNote, setTaskNote] = useState('');
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [approveModal, setApproveModal] = useState<'single' | 'next' | null>(null);
   const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   /** Seed local editor once per meal — never reset from refetches / autosave. */
   const initializedMealIdRef = useRef<string | null>(null);
+  const autoPickAttemptedRef = useRef<string | null>(null);
 
   const { data: coachProfile } = useCoachProfile();
   const { data: clientDetail } = useCoachClient(item?.client.patientId ?? null);
+
+  useEffect(() => {
+    if (!id || !item || item.meal.status !== 'in_review') return;
+    if (autoPickAttemptedRef.current === id) return;
+    const meal = item.meal;
+    const isMine = coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id;
+    if (meal.queueIsPicked && isMine) return;
+    if (meal.queuePickedByCoachId && meal.queuePickedByCoachId !== coachProfile?.id) return;
+    autoPickAttemptedRef.current = id;
+    void pickMutation.mutateAsync(id).catch(() => {
+      autoPickAttemptedRef.current = null;
+    });
+  }, [id, item, coachProfile?.id, pickMutation]);
 
   // Clear editor when leaving this meal route
   useEffect(() => {
     return () => {
       initializedMealIdRef.current = null;
+      autoPickAttemptedRef.current = null;
       clearReviewDraft();
     };
   }, [id, clearReviewDraft]);
@@ -142,35 +163,38 @@ export function MealReviewPage() {
 
   async function submitReview(action: 'approve' | 'reject', andNext = false) {
     if (!item || !reviewDraft) return;
-    const ok = await confirm(
-      action === 'approve'
-        ? {
-            title: andNext ? 'Approve and open next?' : 'Approve this meal?',
-            description: andNext
-              ? 'Your coach review will be saved and the client will see the approved nutrition. You’ll move to the next queue item.'
-              : 'Your coach review will be saved and the client will see the approved nutrition.',
-            confirmLabel: andNext ? 'Approve & next' : 'Approve meal',
-            tone: 'primary',
-          }
-        : {
-            title: 'Reject this meal?',
-            description:
-              'The client will be asked to resubmit. Your training note (if any) is kept for model improvement.',
-            confirmLabel: 'Reject meal',
-            tone: 'danger',
-          },
-    );
+
+    if (action === 'approve') {
+      setApproveModal(andNext ? 'next' : 'single');
+      return;
+    }
+
+    const ok = await confirm({
+      title: 'Reject this meal?',
+      description:
+        'The client will be asked to resubmit. Your training note (if any) is kept for model improvement.',
+      confirmLabel: 'Reject meal',
+      tone: 'danger',
+    });
     if (!ok) return;
+    await finalizeReview('reject', false);
+  }
+
+  async function finalizeReview(action: 'approve' | 'reject', andNext: boolean) {
+    if (!item) return;
+    const draft = useCoachStore.getState().reviewDraft;
+    if (!draft || draft.mealId !== item.meal.id) return;
 
     try {
       await reviewMutation.mutateAsync({
         mealId: item.meal.id,
         action,
-        note: reviewDraft.note || undefined,
-        trainingNote: reviewDraft.trainingNote || undefined,
-        mealName: reviewDraft.mealName,
-        items: reviewDraft.items,
+        note: draft.note || undefined,
+        trainingNote: draft.trainingNote || undefined,
+        mealName: draft.mealName,
+        items: draft.items,
       });
+      setApproveModal(null);
       toast.success(
         action === 'approve' ? 'Meal approved — coach review saved.' : 'Meal returned to the client.',
         action === 'approve' ? 'Approved' : 'Rejected',
@@ -189,32 +213,35 @@ export function MealReviewPage() {
     }
   }
 
-  async function handleCreateTask() {
-    if (!item || !taskModal) return;
-    const ok = await confirm({
-      title: taskModal === 'second_opinion' ? 'Request second opinion?' : 'Escalate this review?',
-      description:
-        taskModal === 'second_opinion'
-          ? 'Another coach will see this request and it will post to the team chat when possible.'
-          : 'This escalation will be logged for follow-up and posted to the team chat when possible.',
-      confirmLabel: 'Submit request',
-      tone: 'primary',
-    });
-    if (!ok) return;
+  async function handleSecondOpinion(payload: {
+    destination: 'coach' | 'admin' | 'team';
+    assigneeUserId?: string;
+    note: string;
+  }) {
+    if (!item) return;
+    const type = payload.destination === 'admin' ? 'escalation' : 'second_opinion';
+    const notifyChannel =
+      payload.destination === 'team' ? 'team' : payload.destination === 'coach' ? 'assignee' : 'both';
+
     try {
       await createTaskMutation.mutateAsync({
         mealId: item.meal.id,
-        type: taskModal,
-        note: taskNote || undefined,
-        notifyUser: taskModal === 'escalation',
+        type,
+        note: payload.note || undefined,
+        notifyUser: payload.destination === 'admin',
+        assigneeUserId: payload.assigneeUserId,
+        notifyChannel,
       });
-      toast.success(
-        taskModal === 'second_opinion' ? 'Second opinion requested.' : 'Escalation logged.',
-      );
-      setTaskModal(null);
-      setTaskNote('');
+      const success =
+        payload.destination === 'team'
+          ? 'Posted to team chat.'
+          : payload.destination === 'admin'
+            ? 'Admin asked for a second look.'
+            : 'Coach asked for a second opinion.';
+      toast.success(success, 'Second opinion');
+      setTaskModalOpen(false);
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not create task'));
+      toast.error(getApiErrorMessage(err, 'Could not send second opinion request'));
     }
   }
 
@@ -252,6 +279,10 @@ export function MealReviewPage() {
   }
 
   const { meal, client } = mealItem;
+  const isMyPick = Boolean(coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id);
+  const pickedByOther = Boolean(
+    meal.queueIsPicked && meal.queuePickedByCoachId && !isMyPick,
+  );
   const allergies = client.profile.allergies ?? [];
   const isOnCaseload = Boolean(
     coachProfile?.id && clientDetail?.assignedCoachIds.includes(coachProfile.id),
@@ -271,6 +302,16 @@ export function MealReviewPage() {
 
   return (
     <div className="space-y-4">
+      {pickedByOther ? (
+        <div className="rounded-xl border border-cinnamon-wood-200 bg-cinnamon-wood-50 px-4 py-3 text-sm text-cinnamon-wood-900">
+          <p className="font-semibold">Another coach is working on this review</p>
+          <p className="mt-1">
+            {meal.queuePickedByCoachName ?? 'A teammate'} picked this meal first. Release from their
+            session or wait until they finish.
+          </p>
+        </div>
+      ) : null}
+
       {allergies.length ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p className="font-semibold">Allergy alert</p>
@@ -311,6 +352,20 @@ export function MealReviewPage() {
           </StatusPill>
         ) : null}
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {isMyPick ? (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={releaseMutation.isPending}
+              onClick={() =>
+                void releaseMutation.mutateAsync(meal.id).then(() => {
+                  toast.success('Review released.');
+                  navigate('/coach/queue');
+                })
+              }>
+              Release pick
+            </Button>
+          ) : null}
           {!isOnCaseload ? (
             <Button
               variant="outline"
@@ -320,11 +375,12 @@ export function MealReviewPage() {
               Add to caseload
             </Button>
           ) : null}
-          <Button variant="outline" size="sm" onClick={() => setTaskModal('second_opinion')}>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => setTaskModalOpen(true)}
+            disabled={createTaskMutation.isPending}>
             Second opinion
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => setTaskModal('escalation')}>
-            Escalate
           </Button>
           {draftStatus === 'saving' ? (
             <span className="text-xs text-ash-grey-400">Saving…</span>
@@ -340,6 +396,7 @@ export function MealReviewPage() {
         onApproveNext={() => void submitReview('approve', true)}
         onReject={() => void submitReview('reject')}
         isSubmitting={reviewMutation.isPending}
+        disabled={pickedByOther}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -347,37 +404,21 @@ export function MealReviewPage() {
         <CoachMessagesPanel clientId={mealItem.client.patientId} mealId={meal.id} />
       </div>
 
-      {taskModal ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-ash-grey-200 bg-white p-6 shadow-xl">
-            <h3 className="text-lg font-semibold text-ash-grey-900">
-              {taskModal === 'second_opinion' ? 'Request second opinion' : 'Escalate review'}
-            </h3>
-            <p className="mt-1 text-sm text-ash-grey-500">
-              {taskModal === 'second_opinion'
-                ? 'Flag this meal for another coach. Your note appears here and in the team chat.'
-                : 'Log an escalation for admin or senior coach follow-up. Posted to the team chat when possible.'}
-            </p>
-            <textarea
-              className="mt-4 min-h-24 w-full rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400"
-              placeholder="Optional note for the team…"
-              value={taskNote}
-              onChange={(e) => setTaskNote(e.target.value)}
-            />
-            <div className="mt-4 flex justify-end gap-2">
-              <Button variant="outline" size="sm" onClick={() => setTaskModal(null)}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={createTaskMutation.isPending}
-                onClick={() => void handleCreateTask()}>
-                Submit
-              </Button>
-            </div>
-          </div>
-        </div>
+      <SecondOpinionModal
+        open={taskModalOpen}
+        loading={createTaskMutation.isPending}
+        onClose={() => setTaskModalOpen(false)}
+        onSubmit={(payload) => void handleSecondOpinion(payload)}
+      />
+
+      {approveModal ? (
+        <ApproveMealModal
+          open
+          andNext={approveModal === 'next'}
+          loading={reviewMutation.isPending}
+          onCancel={() => setApproveModal(null)}
+          onConfirm={() => void finalizeReview('approve', approveModal === 'next')}
+        />
       ) : null}
 
       {confirmDialog}

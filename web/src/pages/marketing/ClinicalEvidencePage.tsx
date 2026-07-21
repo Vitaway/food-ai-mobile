@@ -66,8 +66,8 @@ export function ClinicalEvidencePage() {
           <div className="mt-8 rounded-2xl border border-blue-spruce-200 bg-blue-spruce-50 p-6">
             <p className="text-sm leading-relaxed text-blue-spruce-900">
               <strong>Interested in a research partnership?</strong> Contact{' '}
-              <a href="mailto:hello@vitaway.org" className="underline underline-offset-2">
-                hello@vitaway.org
+              <a href="mailto:support@vitaway.org" className="underline underline-offset-2">
+                support@vitaway.org
               </a>{' '}
               to discuss pilots and data collection protocols.
             </p>

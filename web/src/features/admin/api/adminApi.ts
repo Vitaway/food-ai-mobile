@@ -61,10 +61,12 @@ export type AdminCoach = {
 export type AdminConsumer = {
   id: string;
   patientId: string;
+  userId: string | null;
   displayName: string;
   email: string | null;
   goal: string | null;
   healthScore: number | null;
+  membershipTier: 'standard' | 'pro';
   memberSince: string;
 };
 
@@ -75,6 +77,42 @@ export type CreateCoachPayload = {
   title?: string;
   organization?: string;
   bio?: string;
+};
+
+export type CreateAdminUserPayload = {
+  email: string;
+  password?: string;
+  displayName: string;
+  role:
+    | 'consumer'
+    | 'coach'
+    | 'nutrition_coach'
+    | 'organization_admin'
+    | 'data_entry_staff'
+    | 'admin';
+  membershipTier?: 'standard' | 'pro';
+  registrationSource?: 'individual' | 'company' | 'institution' | 'referral' | 'admin_created';
+  sendInviteEmail?: boolean;
+  organization?: string;
+  organizationId?: string;
+  title?: string;
+  bio?: string;
+  goal?: string;
+  allergies?: string[];
+};
+
+export type CreateAdminUserResult = {
+  user: AdminUserRow & {
+    avatarUrl: string | null;
+    referralCode: string | null;
+    referredByUserId: string | null;
+    updatedAt: string;
+  };
+  patientId: string | null;
+  consumerProfile: { id: string; patientId: string } | null;
+  coachProfile: AdminCoach['profile'];
+  emailSent: boolean;
+  temporaryPassword?: string;
 };
 
 export type AdminClinicalAssessmentRow = {
@@ -123,6 +161,13 @@ export async function createCoach(payload: CreateCoachPayload): Promise<AdminCoa
   });
 }
 
+export async function createAdminUser(payload: CreateAdminUserPayload): Promise<CreateAdminUserResult> {
+  return apiRequest<CreateAdminUserResult>('/admin/users', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function fetchAdminConsumers(): Promise<AdminConsumer[]> {
   return apiRequest<AdminConsumer[]>('/admin/consumers');
 }
@@ -131,14 +176,219 @@ export type AdminUserRow = {
   id: string;
   email: string;
   displayName: string;
+  phone: string | null;
   role: string;
   isActive: boolean;
+  membershipTier: 'standard' | 'pro';
   registrationSource: string | null;
   createdAt: string;
+  patientId: string | null;
+  goal: string | null;
+  healthScore: number | null;
+  organizationId?: string | null;
+  organization: string | null;
+  title: string | null;
+};
+
+export type SetUserRolePayload = {
+  role:
+    | 'consumer'
+    | 'coach'
+    | 'nutrition_coach'
+    | 'organization_admin'
+    | 'data_entry_staff'
+    | 'admin';
+  organization?: string;
+  organizationId?: string;
+  title?: string;
+};
+
+export type AdminUserDetail = {
+  user: AdminUserRow & {
+    avatarUrl: string | null;
+    referralCode: string | null;
+    referredByUserId: string | null;
+    organizationId?: string | null;
+    updatedAt: string;
+  };
+  organization?: {
+    id: string;
+    name: string;
+    status: string;
+  } | null;
+  consumerProfile: {
+    id: string;
+    patientId: string;
+    profile: Record<string, unknown>;
+    dashboard: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  coachProfile: {
+    id: string;
+    title: string | null;
+    organization: string | null;
+    bio: string | null;
+    phone: string | null;
+    timezone: string | null;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  subscription: {
+    id: string;
+    planCode: string;
+    subscriptionType: string;
+    status: string;
+    renewsOn: string | null;
+    trialEndsOn: string | null;
+    createdAt: string;
+  } | null;
+  stats: {
+    referralCount: number;
+    meals: {
+      total: number;
+      inReview: number;
+      approved: number;
+      rejected: number;
+      analyzing: number;
+    };
+  };
+  assignedCoachIds: string[];
+  recentMeals: Array<{
+    id: string;
+    clientId: string;
+    status: string;
+    mealType: string;
+    mealName: string;
+    submittedAt: string;
+    calories: number;
+  }>;
+};
+
+export type UpdateAdminUserPayload = {
+  displayName?: string;
+  email?: string;
+  phone?: string | null;
+  isActive?: boolean;
+  role?: string;
+  membershipTier?: 'standard' | 'pro';
+  organization?: string;
+  organizationId?: string;
+  title?: string;
+};
+
+export type UpdateConsumerProfileAdminPayload = {
+  displayName?: string;
+  goal?: string;
+  goalPace?: string;
+  allergies?: string[];
+  notes?: string;
+};
+
+export type UpdateCoachProfileAdminPayload = {
+  title?: string;
+  organization?: string;
+  bio?: string;
+  phone?: string;
+  timezone?: string;
 };
 
 export async function fetchAdminUsers(): Promise<AdminUserRow[]> {
   return apiRequest<AdminUserRow[]>('/admin/users');
+}
+
+export async function fetchAdminUserDetail(userId: string): Promise<AdminUserDetail> {
+  return apiRequest<AdminUserDetail>(`/admin/users/${userId}`);
+}
+
+export async function setAdminClientCoaches(userId: string, coachUserIds: string[]) {
+  return apiRequest<{ clientId: string; assignedCoachIds: string[] }>(
+    `/admin/users/${userId}/coaches`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({ coachUserIds }),
+    },
+  );
+}
+
+export async function updateAdminUser(userId: string, payload: UpdateAdminUserPayload) {
+  return apiRequest(`/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function adminResetUserPassword(
+  userId: string,
+  payload?: { password?: string; sendEmail?: boolean },
+) {
+  return apiRequest<{ ok: boolean; emailSent: boolean; temporaryPassword?: string }>(
+    `/admin/users/${userId}/reset-password`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload ?? { sendEmail: true }),
+    },
+  );
+}
+
+export async function fetchAdminPatientView(userId: string) {
+  return apiRequest<import('@/types').CoachClientDetail>(`/admin/users/${userId}/patient`);
+}
+
+export async function fetchAdminPatientSummary(userId: string) {
+  return apiRequest<import('@/types').CoachWeeklySummary>(`/admin/users/${userId}/patient/summary`);
+}
+
+export async function fetchAdminPatientCoachingInsights(userId: string) {
+  return apiRequest<Array<{ id: string; title: string; body: string }>>(
+    `/admin/users/${userId}/patient/coaching-insights`,
+  );
+}
+
+export async function fetchAdminClinicalAssessment(userId: string) {
+  return apiRequest<import('@/api/coachApi').ClinicalAssessment>(
+    `/admin/users/${userId}/clinical-assessment`,
+  );
+}
+
+export async function saveAdminClinicalAssessment(
+  userId: string,
+  payload: import('@/api/coachApi').ClinicalAssessmentData,
+) {
+  return apiRequest<import('@/api/coachApi').ClinicalAssessment>(
+    `/admin/users/${userId}/clinical-assessment`,
+    { method: 'PATCH', body: JSON.stringify(payload) },
+  );
+}
+
+export async function confirmAdminClinicalAssessment(
+  userId: string,
+  payload: { confirmationNote?: string; allowProtectedWeightLoss?: boolean },
+) {
+  return apiRequest<import('@/api/coachApi').ClinicalAssessment>(
+    `/admin/users/${userId}/clinical-assessment/confirm`,
+    { method: 'POST', body: JSON.stringify(payload) },
+  );
+}
+
+export async function updateAdminConsumerProfile(
+  userId: string,
+  payload: UpdateConsumerProfileAdminPayload,
+) {
+  return apiRequest(`/admin/users/${userId}/consumer-profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateAdminCoachProfile(
+  userId: string,
+  payload: UpdateCoachProfileAdminPayload,
+) {
+  return apiRequest(`/admin/users/${userId}/coach-profile`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function setUserActive(userId: string, isActive: boolean) {
@@ -166,10 +416,10 @@ export async function fetchAdminGrowth(days = 30): Promise<GrowthPoint[]> {
   return apiRequest<GrowthPoint[]>(`/admin/analytics/growth?days=${days}`);
 }
 
-export async function setUserRole(userId: string, role: string) {
+export async function setUserRole(userId: string, payload: SetUserRolePayload) {
   return apiRequest(`/admin/users/${userId}/role`, {
     method: 'PATCH',
-    body: JSON.stringify({ role }),
+    body: JSON.stringify(payload),
   });
 }
 
@@ -232,5 +482,68 @@ export async function ensureModuleAccount(organizationKey: string) {
   return apiRequest<ModuleEntitlementAccount>('/admin/modules/entitlements', {
     method: 'POST',
     body: JSON.stringify({ organizationKey }),
+  });
+}
+
+export type AdminOrganization = {
+  id: string;
+  name: string;
+  status: 'active' | 'inactive' | string;
+  contactEmail: string | null;
+  contactPhone: string | null;
+  notes: string | null;
+  memberCount: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminOrganizationDetail = AdminOrganization & {
+  members: Array<{
+    id: string;
+    email: string;
+    displayName: string;
+    role: string;
+    isActive: boolean;
+    patientId: string | null;
+    title: string | null;
+    createdAt: string;
+  }>;
+};
+
+export type CreateOrganizationPayload = {
+  name: string;
+  status?: 'active' | 'inactive';
+  contactEmail?: string;
+  contactPhone?: string;
+  notes?: string;
+};
+
+export type UpdateOrganizationPayload = {
+  name?: string;
+  status?: 'active' | 'inactive';
+  contactEmail?: string | null;
+  contactPhone?: string | null;
+  notes?: string | null;
+};
+
+export async function fetchOrganizations(): Promise<AdminOrganization[]> {
+  return apiRequest('/admin/organizations');
+}
+
+export async function fetchOrganization(id: string): Promise<AdminOrganizationDetail> {
+  return apiRequest(`/admin/organizations/${id}`);
+}
+
+export async function createOrganization(payload: CreateOrganizationPayload) {
+  return apiRequest<AdminOrganization>('/admin/organizations', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateOrganization(id: string, payload: UpdateOrganizationPayload) {
+  return apiRequest<AdminOrganization>(`/admin/organizations/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
   });
 }

@@ -15,6 +15,8 @@ import {
   fetchCohorts,
   fetchMealById,
   fetchMessages,
+  pickMeal,
+  releaseMealPick,
   fetchReviewDraft,
   fetchReviewTasks,
   fetchTeamStats,
@@ -196,6 +198,26 @@ export function useReviewMeal() {
   });
 }
 
+export function usePickMeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: pickMeal,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: coachKeys.all });
+    },
+  });
+}
+
+export function useReleaseMealPick() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: releaseMealPick,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: coachKeys.all });
+    },
+  });
+}
+
 export function useAssignClient() {
   const qc = useQueryClient();
   return useMutation({
@@ -277,6 +299,8 @@ export function useCreateReviewTask() {
       type: 'second_opinion' | 'escalation';
       note?: string;
       notifyUser?: boolean;
+      assigneeUserId?: string;
+      notifyChannel?: 'team' | 'assignee' | 'both';
     }) => createReviewTask(mealId, payload),
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: coachKeys.reviewTasks(vars.mealId) });

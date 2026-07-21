@@ -7,6 +7,9 @@ import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
 import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
+import { Select } from '@/components/ui/Select';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { KpiStrip } from '@/components/ui/KpiStrip';
 import { resolveMediaUrl } from '@/lib/mediaUrls';
 import { cn } from '@/lib/utils';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
@@ -256,16 +259,13 @@ function FoodForm({
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">Category</span>
-          <select
+          <Select
+            aria-label="Food category"
+            size="sm"
             value={form.category}
-            onChange={(e) => setForm({ ...form, category: e.target.value })}
-            className="w-full rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400">
-            {categories.map((item) => (
-              <option key={item} value={item}>
-                {item}
-              </option>
-            ))}
-          </select>
+            onChange={(value) => setForm({ ...form, category: value })}
+            options={categories.map((item) => ({ value: item, label: item }))}
+          />
         </label>
         <label className="block">
           <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">Brand</span>
@@ -350,16 +350,13 @@ function FoodForm({
           <div
             key={index}
             className="grid gap-2 rounded-2xl border border-ash-grey-100 bg-ash-grey-50/50 p-3 sm:grid-cols-5">
-            <select
+            <Select
+              aria-label={`Serving unit ${index + 1}`}
+              size="sm"
               value={serving.unit}
-              onChange={(e) => updateServing(index, { unit: e.target.value })}
-              className="rounded-lg border border-ash-grey-200 bg-white px-2 py-2 text-sm">
-              {servingUnits.map((unit) => (
-                <option key={unit} value={unit}>
-                  {unit}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => updateServing(index, { unit: value })}
+              options={servingUnits.map((unit) => ({ value: unit, label: unit }))}
+            />
             <input
               value={serving.amount}
               onChange={(e) => updateServing(index, { amount: e.target.value })}
@@ -592,6 +589,13 @@ export function NutritionDbPage() {
   const total = data?.total ?? 0;
   const currentPage = data?.page ?? page;
   const pageSize = data?.pageSize ?? NUTRITION_FOODS_PAGE_SIZE;
+  const foodStats = {
+    total,
+    approved: foods.filter((f) => f.approvalStatus === 'approved').length,
+    pending: foods.filter((f) => f.approvalStatus === 'pending').length,
+    rejected: foods.filter((f) => f.approvalStatus === 'rejected').length,
+    withPhoto: foods.filter((f) => Boolean(f.imageUrl)).length,
+  };
 
   useEffect(() => {
     if (!data) return;
@@ -636,24 +640,59 @@ export function NutritionDbPage() {
         }
       />
 
+      <KpiStrip
+        columns={5}
+        items={[
+          { label: 'Foods', value: foodStats.total, tone: 'info', caption: 'Matching filters' },
+          {
+            label: 'Approved',
+            value: foodStats.approved,
+            tone: 'success',
+            caption: 'On this page',
+          },
+          {
+            label: 'Pending',
+            value: foodStats.pending,
+            tone: 'accent',
+            warn: foodStats.pending > 0,
+            caption: 'Awaiting approval',
+          },
+          {
+            label: 'Rejected',
+            value: foodStats.rejected,
+            tone: 'warn',
+            warn: foodStats.rejected > 0,
+            caption: 'Needs rework',
+          },
+          {
+            label: 'With photo',
+            value: foodStats.withPhoto,
+            tone: 'default',
+            caption: 'On this page',
+          },
+        ]}
+      />
+
       <div className="flex flex-wrap items-center gap-2">
-        <input
+        <SearchInput
+          className="min-w-[12rem] flex-1 sm:max-w-xs"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onValueChange={setQ}
           placeholder="Search foods…"
-          className="min-w-[12rem] flex-1 rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400 sm:max-w-xs"
+          size="sm"
         />
-        <select
+        <Select
+          aria-label="Filter by category"
+          variant="filter"
+          size="sm"
+          className="w-full sm:w-48"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400">
-          <option value="">All categories</option>
-          {categories.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+          onChange={setCategory}
+          options={[
+            { value: '', label: 'All categories' },
+            ...categories.map((item) => ({ value: item, label: item })),
+          ]}
+        />
         <input
           value={barcodeLookup}
           onChange={(e) => setBarcodeLookup(e.target.value)}

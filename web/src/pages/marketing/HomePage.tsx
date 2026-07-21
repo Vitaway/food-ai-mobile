@@ -1,5 +1,5 @@
 import { PartnerLogosStrip } from '@/components/marketing/PartnerLogosStrip';
-import { APP_STORE_URL, AppStoreBadges } from '@/components/marketing/AppStoreBadges';
+import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
 import { AppScreenshot } from '@/components/marketing/AppScreenshot';
 import { DifferentiatorsSection } from '@/components/marketing/DifferentiatorsSection';
 import { HowItWorksSection } from '@/components/marketing/HowItWorksSection';
@@ -8,7 +8,6 @@ import { TestimonialsSection } from '@/components/marketing/TestimonialsSection'
 import { VerifiedMealPanel } from '@/components/marketing/VerifiedMealPanel';
 import { appImage } from '@/constants/appImages';
 import { MARKETING_HERO_IMAGE } from '@/constants/marketingImages';
-import { Button } from '@/components/ui/Button';
 
 export function HomePage() {
   return (
@@ -33,14 +32,6 @@ export function HomePage() {
                 estimates in seconds, and a real coach reviews every entry before it counts in your
                 diary.
               </p>
-              <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-                <Button href={APP_STORE_URL} target="_blank" variant="primary" size="lg">
-                  Download the app
-                </Button>
-                <Button to="/clinical-evidence" variant="outline-light" size="lg">
-                  Our approach
-                </Button>
-              </div>
               <div className="mt-8">
                 <AppStoreBadges />
               </div>

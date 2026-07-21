@@ -14,6 +14,7 @@ import {
   AdminOverviewPage,
   AdminCoachesPage,
   AdminUsersPage,
+  AdminUserDetailPage,
   AdminSystemPage,
   AdminPaymentsPage,
   AdminReportsPage,
@@ -21,6 +22,7 @@ import {
   AdminFoodDbPage,
   AdminModulesPage,
   AdminAssessmentsPage,
+  AdminOrganizationsPage,
 } from '@/pages/admin';
 import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/pages/auth';
 import {
@@ -143,6 +145,9 @@ function App() {
           <Route index element={<AdminOverviewPage />} />
           <Route path="coaches" element={<AdminCoachesPage />} />
           <Route path="users" element={<AdminUsersPage />} />
+          <Route path="users/:id" element={<AdminUserDetailPage />} />
+          <Route path="organizations" element={<AdminOrganizationsPage />} />
+          <Route path="organizations/:id" element={<AdminOrganizationsPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
           <Route path="food-db" element={<AdminFoodDbPage />} />

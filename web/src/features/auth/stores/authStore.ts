@@ -44,6 +44,22 @@ export function selectIsAdmin(state: AuthState): boolean {
   return isSessionValid(state.session) && state.session!.user.role === 'admin';
 }
 
+export function selectIsOrganizationAdmin(state: AuthState): boolean {
+  return (
+    isSessionValid(state.session) &&
+    state.session!.user.accountRole === 'organization_admin'
+  );
+}
+
+export function selectIsPlatformAdmin(state: AuthState): boolean {
+  if (!isSessionValid(state.session)) return false;
+  const accountRole = state.session!.user.accountRole;
+  return (
+    state.session!.user.role === 'admin' &&
+    accountRole !== 'organization_admin'
+  );
+}
+
 export function selectIsConsumer(state: AuthState): boolean {
   return isSessionValid(state.session) && state.session!.user.role === 'consumer';
 }

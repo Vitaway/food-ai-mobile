@@ -4,6 +4,7 @@ import { ChatThread } from '@/components/chat/ChatThread';
 import { NewChatModal } from '@/components/chat/NewChatModal';
 import { TeamMembersModal } from '@/components/chat/TeamMembersModal';
 import { Button } from '@/components/ui/Button';
+import { SearchInput } from '@/components/ui/SearchInput';
 import type { ChatConversation } from '@/api/chatApi';
 import {
   useChatConversation,
@@ -281,25 +282,12 @@ export function MessagesPage() {
         </header>
 
         <div className="shrink-0 border-b border-ash-grey-100 px-3 py-2">
-          <div className="relative">
-            <svg
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ash-grey-400"
-              aria-hidden>
-              <path
-                fillRule="evenodd"
-                d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search or start new chat"
-              className="w-full rounded-lg bg-[#f0f2f5] py-2 pl-9 pr-3 text-sm outline-none placeholder:text-ash-grey-400 focus:bg-white focus:ring-1 focus:ring-blue-spruce-300"
-            />
-          </div>
+          <SearchInput
+            value={search}
+            onValueChange={setSearch}
+            placeholder="Search or start new chat"
+            size="sm"
+          />
           <div className="mt-2 flex gap-1">
             {(['all', 'patients', 'team'] as const).map((tab) => (
               <button

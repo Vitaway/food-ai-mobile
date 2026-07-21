@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ChatContact } from '@/api/chatApi';
 import { Modal } from '@/components/ui/Modal';
+import { SearchInput } from '@/components/ui/SearchInput';
 import {
   useChatContacts,
   useEnsureDirectConversation,
@@ -98,26 +99,14 @@ export function NewChatModal({ open, onClose, onOpenConversation }: NewChatModal
       title="New chat"
       description="Select anyone in the platform to start a conversation."
       size="md">
-      <div className="relative mb-4">
-        <svg
-          viewBox="0 0 20 20"
-          fill="currentColor"
-          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ash-grey-400"
-          aria-hidden>
-          <path
-            fillRule="evenodd"
-            d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
-            clipRule="evenodd"
-          />
-        </svg>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by name, email, or role"
-          autoFocus
-          className="w-full rounded-xl border border-ash-grey-200 py-2.5 pl-9 pr-3 text-sm outline-none placeholder:text-ash-grey-400 focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100"
-        />
-      </div>
+      <SearchInput
+        className="mb-4"
+        value={search}
+        onValueChange={setSearch}
+        placeholder="Search by name, email, or role"
+        autoFocus
+        size="sm"
+      />
 
       <div className="-mx-2 max-h-[min(420px,50vh)] overflow-y-auto">
         {isLoading ? (
