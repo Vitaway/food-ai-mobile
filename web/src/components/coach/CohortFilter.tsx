@@ -1,5 +1,6 @@
 import { useCoachCohorts } from '@/hooks/useCoachQueries';
 import { useCoachStore } from '@/stores/coachStore';
+import { Select } from '@/components/ui/Select';
 
 export function CohortFilter() {
   const { data: cohorts } = useCoachCohorts();
@@ -9,16 +10,20 @@ export function CohortFilter() {
   if (!cohorts?.length) return null;
 
   return (
-    <select
-      className="rounded-2xl border border-ash-grey-200 bg-white px-4 py-2 text-sm outline-none focus:border-blue-spruce-400"
+    <Select
+      aria-label="Filter by cohort"
+      variant="filter"
+      size="sm"
+      className="w-full sm:w-48"
       value={cohortId ?? ''}
-      onChange={(e) => setCohortId(e.target.value || null)}>
-      <option value="">All cohorts</option>
-      {cohorts.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.name} ({c.memberCount})
-        </option>
-      ))}
-    </select>
+      onChange={(value) => setCohortId(value || null)}
+      options={[
+        { value: '', label: 'All cohorts' },
+        ...cohorts.map((c) => ({
+          value: c.id,
+          label: `${c.name} (${c.memberCount})`,
+        })),
+      ]}
+    />
   );
 }

@@ -172,6 +172,6 @@ export const supportFaqsExtra = [
   },
   {
     q: 'How do clinics partner with Vitaway?',
-    a: 'Email hello@vitaway.org or use the contact form on our For clinics page. We support pilot programs and coach onboarding.',
+    a: 'Email support@vitaway.org or use the contact form on our For clinics page. We support pilot programs and coach onboarding.',
   },
 ] as const;

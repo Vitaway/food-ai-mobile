@@ -13,8 +13,19 @@ import {
   profileWithCalculatedTargets,
 } from "./profile-targets.util";
 import { isValidDateOfBirth } from "./date-of-birth.util";
+import { sanitizeClinicalAssessmentData } from "./clinical-assessment.sanitize";
 import { adminAuditService } from "../admin/admin-audit.service";
 import { assertCoachModule } from "../../middlewares/entitlements";
+
+const PROFILE_BASIC_KEYS = [
+  "goal",
+  "goalPace",
+  "targetWeightKg",
+  "activityLevel",
+  "mealsPerDay",
+  "dietaryPreferences",
+  "allergies",
+] as const;
 
 function assessmentDto(
   row: Awaited<ReturnType<typeof clinicalAssessmentsRepository.findByClientId>>,
@@ -135,6 +146,10 @@ export const clinicalAssessmentService = {
 
   async get(clientId: string, coachUserId: string) {
     await ensureCoachCanAccessClient(coachUserId, clientId);
+    return this.getByClientId(clientId);
+  },
+
+  async getByClientId(clientId: string) {
     const profile = await consumerProfilesRepository.findById(clientId);
     if (!profile) throw new NotFoundError("Patient not found");
     const assessment = await clinicalAssessmentsRepository.findByClientId(clientId);
@@ -159,6 +174,10 @@ export const clinicalAssessmentService = {
 
   async saveDraft(clientId: string, coachUserId: string, dto: SaveClinicalAssessmentDto) {
     await ensureCoachCanAccessClient(coachUserId, clientId);
+    return this.saveDraftByClientId(clientId, coachUserId, dto);
+  },
+
+  async saveDraftByClientId(clientId: string, editorUserId: string, dto: SaveClinicalAssessmentDto) {
     const profile = await consumerProfilesRepository.findById(clientId);
     if (!profile) throw new NotFoundError("Patient not found");
 
@@ -172,13 +191,32 @@ export const clinicalAssessmentService = {
       });
     }
     assessment.status = "draft";
-    assessment.data = { ...assessment.data, ...dto };
-    if (dto.verifiedDateOfBirth) {
-      delete assessment.data.verifiedAge;
+
+    const dtoRecord = dto as unknown as Record<string, unknown>;
+    const assessmentPatch: Record<string, unknown> = { ...dtoRecord };
+    for (const key of PROFILE_BASIC_KEYS) {
+      delete assessmentPatch[key];
     }
-    assessment.lastEditedBy = coachUserId;
+
+    const merged = sanitizeClinicalAssessmentData({
+      ...(assessment.data ?? {}),
+      ...assessmentPatch,
+    });
+    if (dto.verifiedDateOfBirth) {
+      delete merged.verifiedAge;
+    }
+    assessment.data = merged;
+    assessment.lastEditedBy = editorUserId;
     assessment.confirmedBy = null;
     assessment.confirmedAt = null;
+
+    const nextProfile = { ...profile.profile };
+    for (const key of PROFILE_BASIC_KEYS) {
+      if (key in dtoRecord && dtoRecord[key] !== undefined) {
+        nextProfile[key] = dtoRecord[key];
+      }
+    }
+    profile.profile = nextProfile;
 
     const calculation = calculateTargetsForProfile(profile.profile, assessment.data, "draft");
     assessment.targetSnapshot = calculation as unknown as Record<string, unknown> | null;
@@ -187,7 +225,7 @@ export const clinicalAssessmentService = {
     profile.profile = profileWithCalculatedTargets(profile.profile, calculation, "draft");
     await consumerProfilesRepository.save(profile);
 
-    return this.get(clientId, coachUserId);
+    return this.getByClientId(clientId);
   },
 
   async confirm(
@@ -197,12 +235,21 @@ export const clinicalAssessmentService = {
   ) {
     await ensureCoachCanAccessClient(coachUserId, clientId);
     await assertCoachModule(coachUserId, "clinical");
+    return this.confirmByClientId(clientId, coachUserId, dto);
+  },
+
+  async confirmByClientId(
+    clientId: string,
+    editorUserId: string,
+    dto: ConfirmClinicalAssessmentDto,
+  ) {
     const profile = await consumerProfilesRepository.findById(clientId);
     if (!profile) throw new NotFoundError("Patient not found");
     const assessment = await clinicalAssessmentsRepository.findByClientId(clientId);
     if (!assessment) throw new BadRequestError("Save the clinical assessment before confirming it.");
 
     validateForConfirmation(profile.profile, assessment.data);
+    assessment.data = sanitizeClinicalAssessmentData(assessment.data ?? {});
     const calculation = calculateTargetsForProfile(
       profile.profile,
       assessment.data,
@@ -217,15 +264,15 @@ export const clinicalAssessmentService = {
       confirmationNote: dto.confirmationNote ?? null,
       allowProtectedWeightLoss: dto.allowProtectedWeightLoss === true,
     };
-    assessment.lastEditedBy = coachUserId;
-    assessment.confirmedBy = coachUserId;
+    assessment.lastEditedBy = editorUserId;
+    assessment.confirmedBy = editorUserId;
     assessment.confirmedAt = new Date();
     await clinicalAssessmentsRepository.save(assessment);
 
     profile.profile = profileWithCalculatedTargets(profile.profile, calculation, "confirmed");
     await consumerProfilesRepository.save(profile);
 
-    await adminAuditService.log(coachUserId, "clinical_assessment.confirm", {
+    await adminAuditService.log(editorUserId, "clinical_assessment.confirm", {
       targetType: "consumer",
       targetId: clientId,
       meta: {
@@ -235,6 +282,6 @@ export const clinicalAssessmentService = {
       },
     });
 
-    return this.get(clientId, coachUserId);
+    return this.getByClientId(clientId);
   },
 };

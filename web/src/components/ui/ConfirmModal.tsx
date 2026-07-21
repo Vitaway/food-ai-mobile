@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 
@@ -11,6 +12,7 @@ type ConfirmModalProps = {
   cancelLabel?: string;
   tone?: ConfirmTone;
   loading?: boolean;
+  children?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 };
@@ -24,6 +26,7 @@ export function ConfirmModal({
   cancelLabel = 'Cancel',
   tone = 'primary',
   loading = false,
+  children,
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
@@ -46,9 +49,11 @@ export function ConfirmModal({
           </Button>
         </div>
       }>
-      <p className="text-sm text-ash-grey-600">
-        This step needs your confirmation so we don’t apply a change by accident.
-      </p>
+      {children ?? (
+        <p className="text-sm text-ash-grey-600">
+          This step needs your confirmation so we don’t apply a change by accident.
+        </p>
+      )}
     </Modal>
   );
 }

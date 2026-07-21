@@ -32,7 +32,7 @@ import {
   verifyOtpCode,
 } from "./password-reset-otp.util";
 import type { PasswordResetOtp } from "./password-reset-otp.entity";
-import { env } from "../../config/env";
+import { env, isSeedLoginEmail } from "../../config/env";
 import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
 import { resolveOnboardingComplete } from "../consumers/onboarding.util";
@@ -51,6 +51,7 @@ export interface AuthUserDto {
   displayName: string;
   avatarUrl: string | null;
   patientId?: string;
+  organizationId?: string | null;
 }
  
 export interface LoginResult {
@@ -98,6 +99,7 @@ function toAuthUser(
     role: string;
     displayName: string;
     avatarUrl: string | null;
+    organizationId?: string | null;
   },
   patientId?: string,
 ): AuthUserDto {
@@ -107,6 +109,7 @@ function toAuthUser(
     role: user.role,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    organizationId: user.organizationId ?? null,
     ...(patientId ? { patientId } : {}),
   };
 }
@@ -168,7 +171,7 @@ async function attachRoleContext(
     return result;
   }
 
-  if (user.role === "consumer") {
+  if (user.role === "consumer" || user.role === "organization_admin") {
     const profile = await ensureConsumerProfileForUser(user.id);
     result.user.patientId = profile.id;
     result.consumerProfile = {
@@ -294,8 +297,9 @@ export const authService = {
       throw new UnauthorizedError("Invalid email or password");
     }
 
-    // Seed accounts are treated as pre-verified so demo/ops logins skip email OTP.
-    const isSeedUser = user.registrationSource === "seed";
+    // Seed/demo accounts (coach@, admin@, …) skip email OTP even when MFA is on.
+    const isSeedUser =
+      user.registrationSource === "seed" || isSeedLoginEmail(user.email);
     if (env.MFA_REQUIRED_FOR_STAFF && isStaffRole(user.role) && !isSeedUser) {
       void purgeExpiredOtps().catch(() => undefined);
       const recent = await recentlyIssuedOtp(user.id);

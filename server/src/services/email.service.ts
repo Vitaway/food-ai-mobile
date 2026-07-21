@@ -190,6 +190,58 @@ export class EmailService {
     });
   }
 
+  async sendStaffInviteEmail(
+    to: string,
+    opts: {
+      displayName: string;
+      temporaryPassword: string;
+      role: string;
+      organization?: string | null;
+    },
+  ): Promise<void> {
+    const appUrl = env.APP_URL.replace(/\/$/, "");
+    const loginUrl = `${appUrl}/login`;
+    const firstName = opts.displayName.trim().split(/\s+/)[0] || "there";
+    const roleLabels: Record<string, string> = {
+      admin: "platform administrator",
+      organization_admin: "organization administrator",
+      data_entry_staff: "data entry staff member",
+    };
+    const roleLabel = roleLabels[opts.role] ?? "team member";
+    const orgLine = opts.organization
+      ? ` for <strong>${opts.organization}</strong>`
+      : "";
+
+    await this.sendBrandedEmail({
+      to,
+      subject: "Your MiraFood account is ready",
+      title: "Account created",
+      preheader: `You have been added as a ${roleLabel} on MiraFood.`,
+      appUrl,
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">Hi ${firstName},</p>
+        <p style="${vitawayParagraphStyle()}">An administrator created your MiraFood account as a ${roleLabel}${orgLine}. Sign in with the credentials below to get started.</p>
+        ${renderCredentialsBlock([
+          { label: "Email", value: to },
+          { label: "Temporary password", value: opts.temporaryPassword },
+        ])}
+        ${renderInfoCallout("Security", "Change your password after your first sign-in. Do not share these credentials.", "orange")}
+        ${renderEmailButton("Sign in to MiraFood", loginUrl)}
+        ${renderSecondaryLink("Sign-in page:", loginUrl)}
+      `,
+      textParagraphs: [
+        `Hi ${firstName},`,
+        "",
+        `Your MiraFood ${roleLabel} account is ready${opts.organization ? ` for ${opts.organization}` : ""}.`,
+        "",
+        `Email: ${to}`,
+        `Temporary password: ${opts.temporaryPassword}`,
+        "",
+        `Sign in: ${loginUrl}`,
+      ],
+    });
+  }
+
   async sendMealStatusEmail(
     to: string,
     opts: {
@@ -232,6 +284,45 @@ export class EmailService {
         "",
         `${appUrl}/app/meals`,
       ].filter(Boolean),
+    });
+  }
+
+  async sendAdminPasswordResetEmail(
+    to: string,
+    opts: { displayName: string; temporaryPassword: string },
+  ): Promise<void> {
+    const appUrl = env.APP_URL.replace(/\/$/, "");
+    const loginUrl = `${appUrl}/login`;
+    const firstName = opts.displayName.trim().split(/\s+/)[0] || "there";
+
+    await this.sendBrandedEmail({
+      to,
+      subject: "Your MiraFood password was reset",
+      title: "New temporary password",
+      preheader: "An administrator reset your password. Sign in and choose something new when you can.",
+      appUrl,
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">Hi ${firstName},</p>
+        <p style="${vitawayParagraphStyle()}">A platform administrator reset the password for your MiraFood account. Use the temporary password below to sign in, then update it from your profile when you're ready.</p>
+        ${renderCredentialsBlock([
+          { label: "Email", value: to },
+          { label: "Temporary password", value: opts.temporaryPassword },
+        ])}
+        ${renderInfoCallout("Security", "If you did not expect this change, contact your Vitaway admin immediately and change this password after signing in.", "orange")}
+        ${renderEmailButton("Sign in to MiraFood", loginUrl)}
+      `,
+      textParagraphs: [
+        `Hi ${firstName},`,
+        "",
+        "A platform administrator reset your MiraFood password.",
+        "",
+        `Email: ${to}`,
+        `Temporary password: ${opts.temporaryPassword}`,
+        "",
+        `Sign in: ${loginUrl}`,
+        "",
+        "If you did not expect this, contact your Vitaway admin right away.",
+      ],
     });
   }
 

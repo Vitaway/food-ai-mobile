@@ -25,6 +25,7 @@ type AuthResponse = {
     displayName: string;
     avatarUrl: string | null;
     patientId?: string;
+    organizationId?: string | null;
   };
   coachProfile?: {
     id: string;
@@ -67,8 +68,10 @@ function mapAuthResponse(data: AuthResponse, rememberMe?: boolean): AuthSession 
       email: data.user.email,
       displayName: data.user.displayName,
       role: mapRole(data.user.role),
+      accountRole: data.user.role,
       avatarUrl: data.user.avatarUrl ?? undefined,
       patientId: data.user.patientId ?? data.consumerProfile?.patientId,
+      organizationId: data.user.organizationId ?? null,
     },
     expiresAt: jwtExpiresAt(data.token, ttl),
     onboardingComplete: data.consumerProfile?.onboardingComplete,

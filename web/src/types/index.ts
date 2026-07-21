@@ -107,6 +107,8 @@ export interface UserProfile {
   tdee: number;
   waterTargetMl: number;
   onboardingComplete: boolean;
+  adminNotes?: string;
+  goalPace?: string;
 }
 
 export interface DailyDashboard {
@@ -156,6 +158,13 @@ export interface MealSubmission {
   possibleAllergenMatch?: boolean;
   matchedAllergens?: string[];
   possibleAllergens?: string[];
+  isProPriority?: boolean;
+  queuePickedByCoachId?: string;
+  queuePickedByCoachName?: string;
+  queuePickedAt?: string;
+  queueEscalatedAt?: string;
+  queueIsPicked?: boolean;
+  queueNeedsPickup?: boolean;
 }
 
 export interface CoachClient {
@@ -170,6 +179,7 @@ export interface CoachClient {
   openFlags?: number;
   hasAllergies?: boolean;
   clientHasAllergies?: boolean;
+  membershipTier?: 'standard' | 'pro';
 }
 
 export interface CoachClientDetail {
@@ -282,6 +292,8 @@ export interface MealReviewTask {
   status: 'open' | 'resolved';
   note?: string | null;
   notifyUser?: boolean;
+  assigneeUserId?: string | null;
+  assigneeCoachId?: string | null;
   createdAt: string;
 }
 

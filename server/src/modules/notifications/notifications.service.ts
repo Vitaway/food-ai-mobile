@@ -124,7 +124,7 @@ export const notificationsService = {
     const messages: Record<string, { title: string; message: string }> = {
       in_review: {
         title: mealName,
-        message: "Your meal was submitted and is waiting for coach review.",
+        message: "Your meal was logged and is being reviewed.",
       },
       approved: {
         title: mealName,

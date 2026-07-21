@@ -1,101 +1,155 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Card, CardBody } from '@/components/ui/Card';
-import { DashboardPageHeader, DashboardSectionTitle } from '@/components/layout/DashboardPageHeader';
-import { ADMIN_ROUTES } from '@/features/auth/constants';
-import { useAdminMetrics, useAuditLogs, useAdminOperations } from '@/features/admin/hooks/useAdminQueries';
 import { AdminGrowthChart } from '@/components/admin/AdminGrowthChart';
+import { DashboardPanel } from '@/components/ui/DashboardPanel';
+import { KpiStrip } from '@/components/ui/KpiStrip';
+import { Button } from '@/components/ui/Button';
+import { ADMIN_ROUTES } from '@/features/auth/constants';
+import { useAuth } from '@/features/auth';
+import {
+  useAdminMetrics,
+  useAuditLogs,
+  useAdminOperations,
+} from '@/features/admin/hooks/useAdminQueries';
 import { fetchAdminGrowth } from '@/features/admin/api/adminApi';
 import { cn } from '@/lib/utils';
 
-function MetricCard({
-  label,
-  value,
-  hint,
-}: {
-  label: string;
-  value: string | number;
-  hint?: string;
-  accent?: 'green' | 'orange' | 'blue';
-}) {
-  return (
-    <Card className="overflow-hidden">
-      <CardBody className="p-6">
-        <p className="text-sm text-ash-grey-500">{label}</p>
-        <p className="mt-2 text-3xl tracking-tight text-ash-grey-900">{value}</p>
-        {hint ? <p className="mt-1 text-xs text-ash-grey-400">{hint}</p> : null}
-      </CardBody>
-    </Card>
-  );
+function greetingForNow(date = new Date()) {
+  const hour = date.getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function firstName(displayName?: string | null) {
+  const trimmed = displayName?.trim();
+  if (!trimmed) return 'Admin';
+  return trimmed.split(/\s+/)[0] ?? 'Admin';
 }
 
 export function AdminOverviewPage() {
+  const { user } = useAuth();
   const { data: metrics, isLoading } = useAdminMetrics();
   const { data: ops, isLoading: opsLoading } = useAdminOperations();
   const { data: audit } = useAuditLogs();
-  const { data: growth } = useQuery({ queryKey: ['admin', 'growth'], queryFn: () => fetchAdminGrowth(30) });
+  const { data: growth } = useQuery({
+    queryKey: ['admin', 'growth'],
+    queryFn: () => fetchAdminGrowth(30),
+  });
+
+  const name = firstName(user?.displayName);
+  const inReview = metrics?.meals.inReview ?? ops?.mealsInReview ?? 0;
+  const summaryParts = [
+    inReview > 0
+      ? `${inReview} meal${inReview === 1 ? '' : 's'} in review`
+      : 'review pipeline clear',
+    metrics?.vision.ok ? 'vision online' : 'vision needs attention',
+  ];
 
   return (
     <div className="space-y-6">
-      <DashboardPageHeader title="Overview" />
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="min-w-0">
+          <h1 className="font-sans text-3xl font-semibold tracking-tight text-ash-grey-900 sm:text-4xl">
+            {greetingForNow()}, {name}
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ash-grey-600 sm:text-base">
+            Platform pulse: {summaryParts.join(' · ')}.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button to={ADMIN_ROUTES.users} variant="outline" size="md">
+            Users & roles
+          </Button>
+          <Button to={ADMIN_ROUTES.system} variant="primary" size="md">
+            System health
+          </Button>
+        </div>
+      </div>
 
       {isLoading ? (
         <p className="text-ash-grey-500">Loading metrics…</p>
       ) : metrics ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Coaches" value={metrics.coaches} accent="blue" />
-          <MetricCard label="Consumers" value={metrics.consumers} accent="green" />
-          <MetricCard
-            label="Meals in review"
-            value={metrics.meals.inReview}
-            hint={`${metrics.meals.analyzing} analyzing`}
-            accent="orange"
-          />
-          <MetricCard
-            label="Vision API"
-            value={metrics.vision.ok ? 'Online' : 'Check config'}
-            hint={metrics.vision.model}
-            accent={metrics.vision.ok ? 'green' : 'orange'}
-          />
-        </div>
+        <KpiStrip
+          columns={4}
+          items={[
+            {
+              label: 'Coaches',
+              value: metrics.coaches,
+              tone: 'info',
+              caption: 'Active coaching seats',
+            },
+            {
+              label: 'Consumers',
+              value: metrics.consumers,
+              tone: 'success',
+              caption: 'Patients on platform',
+            },
+            {
+              label: 'In review',
+              value: metrics.meals.inReview,
+              tone: 'accent',
+              warn: metrics.meals.inReview > 0,
+              caption: `${metrics.meals.analyzing} analyzing`,
+            },
+            {
+              label: 'Vision API',
+              value: metrics.vision.ok ? 'Online' : 'Check',
+              tone: metrics.vision.ok ? 'success' : 'warn',
+              warn: !metrics.vision.ok,
+              caption: metrics.vision.model,
+            },
+          ]}
+        />
       ) : null}
 
-      {opsLoading ? (
-        <p className="text-ash-grey-500">Loading operations metrics…</p>
-      ) : ops ? (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label="Auto-approval rate"
-              value={`${ops.autoApprovalRate}%`}
-              hint="Approved without coach edits"
-              accent="green"
-            />
-            <MetricCard
-              label="Correction rate"
-              value={`${ops.correctionRate}%`}
-              hint="Coach changed AI nutrition"
-              accent="orange"
-            />
-            <MetricCard
-              label="Avg turnaround"
-              value={`${ops.avgTurnaroundHours}h`}
-              hint={`SLA target ${ops.slaTargetHours}h`}
-              accent="blue"
-            />
-            <MetricCard
-              label="Meals in review"
-              value={ops.mealsInReview}
-              hint={`${ops.consumers} active consumers`}
-              accent="orange"
-            />
-          </div>
+      {!opsLoading && ops ? (
+        <KpiStrip
+          columns={4}
+          items={[
+            {
+              label: 'Auto-approval',
+              value: `${ops.autoApprovalRate}%`,
+              tone: 'success',
+              caption: 'Approved without edits',
+            },
+            {
+              label: 'Correction rate',
+              value: `${ops.correctionRate}%`,
+              tone: 'accent',
+              caption: 'Coach changed AI nutrition',
+            },
+            {
+              label: 'Avg turnaround',
+              value: `${ops.avgTurnaroundHours}h`,
+              tone: 'info',
+              caption: `SLA target ${ops.slaTargetHours}h`,
+            },
+            {
+              label: 'Active consumers',
+              value: ops.consumers,
+              tone: 'default',
+              caption: `${ops.mealsInReview} meals waiting`,
+            },
+          ]}
+        />
+      ) : null}
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardBody>
-                <DashboardSectionTitle title="Coach utilization" />
-                <ul className="mt-4 space-y-3">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(18rem,0.9fr)] xl:items-start">
+        <div className="min-w-0 space-y-5">
+          {growth?.length ? (
+            <div className="rounded-[1.75rem] border border-ash-grey-100 bg-white/95 p-5 shadow-[0_12px_32px_rgba(2,52,89,0.06)]">
+              <AdminGrowthChart points={growth} />
+            </div>
+          ) : null}
+
+          {!opsLoading && ops ? (
+            <div className="grid gap-5 lg:grid-cols-2">
+              <DashboardPanel
+                className="rounded-[1.75rem] border-ash-grey-100 shadow-[0_12px_32px_rgba(2,52,89,0.06)]"
+                title="Coach utilization"
+                bodyClassName="px-4 py-4 sm:px-5">
+                <ul className="space-y-3">
                   {ops.coachUtilization.map((coach) => (
                     <li key={coach.coachId}>
                       <div className="mb-1 flex items-center justify-between text-sm">
@@ -104,7 +158,7 @@ export function AdminOverviewPage() {
                           {coach.queueCount} queued · {coach.utilization}%
                         </span>
                       </div>
-                      <div className="h-2 overflow-hidden rounded-full bg-ash-grey-100">
+                      <div className="h-2.5 overflow-hidden rounded-full bg-ash-grey-100">
                         <div
                           className={cn(
                             'h-full rounded-full',
@@ -119,88 +173,84 @@ export function AdminOverviewPage() {
                       </div>
                     </li>
                   ))}
+                  {!ops.coachUtilization.length ? (
+                    <p className="text-sm text-ash-grey-500">No coach utilization data yet.</p>
+                  ) : null}
                 </ul>
-              </CardBody>
-            </Card>
+              </DashboardPanel>
 
-            <Card>
-              <CardBody>
-                <DashboardSectionTitle title="Auto-approval trend" />
-                <ul className="mt-4 space-y-3">
+              <DashboardPanel
+                className="rounded-[1.75rem] border-ash-grey-100 shadow-[0_12px_32px_rgba(2,52,89,0.06)]"
+                title="Auto-approval trend"
+                bodyClassName="px-4 py-4 sm:px-5">
+                <ul className="space-y-3">
                   {ops.autoApprovalTrend.map((week) => (
                     <li key={week.label} className="flex items-center justify-between text-sm">
                       <span className="text-ash-grey-600">{week.label}</span>
                       <span className="font-semibold text-ash-grey-900">
-                        {week.rate}% <span className="font-normal text-ash-grey-400">({week.approved} meals)</span>
+                        {week.rate}%{' '}
+                        <span className="font-normal text-ash-grey-400">({week.approved} meals)</span>
                       </span>
                     </li>
                   ))}
+                  {!ops.autoApprovalTrend.length ? (
+                    <p className="text-sm text-ash-grey-500">No trend data yet.</p>
+                  ) : null}
                 </ul>
-              </CardBody>
-            </Card>
-          </div>
-        </>
-      ) : null}
+              </DashboardPanel>
+            </div>
+          ) : null}
 
-      {metrics?.payments || metrics?.reports || metrics?.totalUsers ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard label="Total users" value={metrics.totalUsers ?? 0} accent="blue" />
-          <MetricCard label="Active this week" value={metrics.activeUsersWeek ?? 0} accent="green" />
-          <MetricCard label="New registrations (7d)" value={metrics.newRegistrationsWeek ?? 0} accent="green" />
-          <MetricCard
-            label="Referral signups"
-            value={metrics.userSources?.referral ?? 0}
-            hint={`${metrics.userSources?.individual ?? 0} individual · ${metrics.userSources?.company ?? 0} company`}
-            accent="blue"
-          />
+          {metrics?.payments || metrics?.reports ? (
+            <KpiStrip
+              columns={5}
+              items={[
+                {
+                  label: 'Revenue',
+                  value: metrics.payments?.revenue ?? 0,
+                  tone: 'success',
+                },
+                {
+                  label: 'Subscriptions',
+                  value: metrics.payments?.activeSubscriptions ?? 0,
+                  tone: 'info',
+                },
+                {
+                  label: 'Pending pay',
+                  value: metrics.payments?.pendingPayments ?? 0,
+                  tone: 'accent',
+                  warn: (metrics.payments?.pendingPayments ?? 0) > 0,
+                },
+                {
+                  label: 'Failed pay',
+                  value: metrics.payments?.failedPayments ?? 0,
+                  tone: 'warn',
+                  warn: (metrics.payments?.failedPayments ?? 0) > 0,
+                },
+                {
+                  label: 'Report snaps',
+                  value: metrics.reports?.totalSnapshots ?? 0,
+                  tone: 'default',
+                },
+              ]}
+            />
+          ) : null}
         </div>
-      ) : null}
 
-      {growth?.length ? <AdminGrowthChart points={growth} /> : null}
-
-      {metrics?.payments || metrics?.reports ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MetricCard
-            label="Revenue"
-            value={metrics.payments?.revenue ?? 0}
-            accent="green"
-          />
-          <MetricCard
-            label="Active subscriptions"
-            value={metrics.payments?.activeSubscriptions ?? 0}
-            accent="green"
-          />
-          <MetricCard
-            label="Pending payments"
-            value={metrics.payments?.pendingPayments ?? 0}
-            accent="orange"
-          />
-          <MetricCard
-            label="Failed payments"
-            value={metrics.payments?.failedPayments ?? 0}
-            accent="orange"
-          />
-          <MetricCard
-            label="Report snapshots"
-            value={metrics.reports?.totalSnapshots ?? 0}
-            accent="blue"
-          />
-        </div>
-      ) : null}
-
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardBody>
-            <DashboardSectionTitle title="Meal pipeline" />
-            {metrics ? (
-              <dl className="mt-4 space-y-3 text-sm">
+        <aside className="space-y-5 xl:sticky xl:top-6">
+          {metrics ? (
+            <DashboardPanel
+              className="rounded-[1.75rem] border-ash-grey-100 shadow-[0_12px_32px_rgba(2,52,89,0.06)]"
+              title="Meal pipeline"
+              bodyClassName="px-4 py-4 sm:px-5">
+              <dl className="space-y-3 text-sm">
                 <div className="flex justify-between border-b border-ash-grey-100 pb-2">
                   <dt className="text-ash-grey-500">Total submissions</dt>
                   <dd className="font-semibold text-ash-grey-900">{metrics.meals.total}</dd>
                 </div>
                 <div className="flex justify-between border-b border-ash-grey-100 pb-2">
                   <dt className="text-ash-grey-500">In review</dt>
-                  <dd className="font-semibold text-cinnamon-wood-500">{metrics.meals.inReview}</dd>
+                  <dd className="font-semibold text-cinnamon-wood-600">{metrics.meals.inReview}</dd>
                 </div>
                 <div className="flex justify-between border-b border-ash-grey-100 pb-2">
                   <dt className="text-ash-grey-500">Analyzing</dt>
@@ -211,26 +261,46 @@ export function AdminOverviewPage() {
                   <dd className="font-semibold text-shamrock-600">{metrics.meals.approved}</dd>
                 </div>
               </dl>
-            ) : null}
-          </CardBody>
-        </Card>
+            </DashboardPanel>
+          ) : null}
 
-        <Card>
-          <CardBody>
-            <DashboardSectionTitle
-              title="Recent activity"
-              action={
-                <Link to={ADMIN_ROUTES.system} className="text-sm text-blue-spruce-600 hover:underline">
-                  System →
-                </Link>
-              }
-            />
+          {metrics?.totalUsers != null ? (
+            <DashboardPanel
+              className="rounded-[1.75rem] border-ash-grey-100 shadow-[0_12px_32px_rgba(2,52,89,0.06)]"
+              title="User growth"
+              bodyClassName="px-4 py-4 sm:px-5">
+              <dl className="space-y-3 text-sm">
+                <div className="flex justify-between border-b border-ash-grey-100 pb-2">
+                  <dt className="text-ash-grey-500">Total users</dt>
+                  <dd className="font-semibold text-ash-grey-900">{metrics.totalUsers ?? 0}</dd>
+                </div>
+                <div className="flex justify-between border-b border-ash-grey-100 pb-2">
+                  <dt className="text-ash-grey-500">Active this week</dt>
+                  <dd className="font-semibold text-shamrock-700">{metrics.activeUsersWeek ?? 0}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt className="text-ash-grey-500">New registrations (7d)</dt>
+                  <dd className="font-semibold text-blue-spruce-700">{metrics.newRegistrationsWeek ?? 0}</dd>
+                </div>
+              </dl>
+            </DashboardPanel>
+          ) : null}
+
+          <DashboardPanel
+            className="rounded-[1.75rem] border-ash-grey-100 shadow-[0_12px_32px_rgba(2,52,89,0.06)]"
+            title="Recent activity"
+            action={
+              <Link to={ADMIN_ROUTES.system} className="text-sm font-semibold text-blue-spruce-600 hover:underline">
+                System →
+              </Link>
+            }
+            bodyClassName="px-4 py-4 sm:px-5">
             {audit?.length ? (
               <ul className="space-y-3">
                 {audit.slice(0, 6).map((entry) => (
                   <li
                     key={entry.id}
-                    className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3 text-sm">
+                    className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50/80 px-4 py-3 text-sm">
                     <p className="font-medium text-ash-grey-900">{entry.action}</p>
                     <p className="mt-0.5 text-xs text-ash-grey-500">
                       {new Date(entry.createdAt).toLocaleString()}
@@ -242,8 +312,8 @@ export function AdminOverviewPage() {
             ) : (
               <p className="text-sm text-ash-grey-500">No admin actions logged yet.</p>
             )}
-          </CardBody>
-        </Card>
+          </DashboardPanel>
+        </aside>
       </div>
     </div>
   );

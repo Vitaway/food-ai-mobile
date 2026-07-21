@@ -12,6 +12,8 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { KpiStrip } from '@/components/ui/KpiStrip';
 import { FilterChip } from '@/components/ui/StatusPill';
+import { Select } from '@/components/ui/Select';
+import { SearchInput } from '@/components/ui/SearchInput';
 import {
   useAssignClient,
   useCoachClient,
@@ -268,54 +270,60 @@ export function ClientDetailPage() {
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
                   Search
                 </span>
-                <input
-                  type="search"
+                <SearchInput
                   value={mealSearch}
-                  onChange={(event) => {
-                    setMealSearch(event.target.value);
+                  onValueChange={(value) => {
+                    setMealSearch(value);
                     setMealPage(1);
                   }}
                   placeholder="Search meal name or type"
-                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100"
+                  size="sm"
                 />
               </label>
               <label className="min-w-[160px]">
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
                   Status
                 </span>
-                <select
+                <Select
+                  aria-label="Filter meals by status"
+                  variant="filter"
+                  size="sm"
                   value={mealStatus}
-                  onChange={(event) => {
-                    setMealStatus(event.target.value);
+                  onChange={(value) => {
+                    setMealStatus(value);
                     setMealPage(1);
                   }}
-                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100">
-                  <option value="all">All statuses</option>
-                  <option value="pending">Pending</option>
-                  <option value="analyzing">Analyzing</option>
-                  <option value="in_review">In review</option>
-                  <option value="approved">Approved</option>
-                  <option value="rejected">Rejected</option>
-                </select>
+                  options={[
+                    { value: 'all', label: 'All statuses' },
+                    { value: 'pending', label: 'Pending' },
+                    { value: 'analyzing', label: 'Analyzing' },
+                    { value: 'in_review', label: 'In review' },
+                    { value: 'approved', label: 'Approved' },
+                    { value: 'rejected', label: 'Rejected' },
+                  ]}
+                />
               </label>
               <label className="min-w-[160px]">
                 <span className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
                   Meal type
                 </span>
-                <select
+                <Select
+                  aria-label="Filter meals by type"
+                  variant="filter"
+                  size="sm"
                   value={mealType}
-                  onChange={(event) => {
-                    setMealType(event.target.value);
+                  onChange={(value) => {
+                    setMealType(value);
                     setMealPage(1);
                   }}
-                  className="w-full rounded-xl border border-ash-grey-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100">
-                  <option value="all">All meal types</option>
-                  {mealTypes.map((type) => (
-                    <option key={type} value={type}>
-                      {formatMealType(type)}
-                    </option>
-                  ))}
-                </select>
+                  options={[
+                    { value: 'all', label: 'All meal types' },
+                    ...mealTypes.map((type) => ({
+                      value: type,
+                      label: formatMealType(type),
+                    })),
+                  ]}
+                />
               </label>
               {mealSearch || mealStatus !== 'all' || mealType !== 'all' ? (
                 <Button

@@ -176,6 +176,47 @@ export class SaveClinicalAssessmentDto {
   @IsString()
   @MaxLength(4000)
   coachNotes?: string;
+
+  /** Coach may correct patient-submitted onboarding fields (stored on consumer profile). */
+  @IsOptional()
+  @IsIn(["lose_weight", "maintain_weight", "gain_muscle", "improve_quality"])
+  goal?: string;
+
+  @IsOptional()
+  @IsIn(["slow", "moderate", "aggressive"])
+  goalPace?: "slow" | "moderate" | "aggressive";
+
+  @IsOptional()
+  @IsNumber()
+  @Min(20)
+  @Max(400)
+  targetWeightKg?: number | null;
+
+  @IsOptional()
+  @IsIn([
+    "sedentary",
+    "lightly_active",
+    "moderately_active",
+    "very_active",
+    "extremely_active",
+  ])
+  activityLevel?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(8)
+  mealsPerDay?: number | null;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  dietaryPreferences?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allergies?: string[];
 }
 
 export class ConfirmClinicalAssessmentDto {

@@ -73,6 +73,9 @@ export function newIngredient(label = ''): DetectedFoodItem {
     label,
     confidence: 1,
     estimatedWeightG: 100,
+    servingUnit: 'g',
+    servingAmount: 100,
+    servingGramsEquivalent: 1,
     foodSource: 'manual',
     emoji: '🍽️',
     nutrition: {

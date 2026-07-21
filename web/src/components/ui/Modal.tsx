@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 
 type ModalProps = {
@@ -31,10 +32,10 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-end justify-center p-4 sm:items-center">
       <button
         type="button"
         aria-label="Close dialog"
@@ -77,6 +78,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
         {footer ? <div className="border-t border-ash-grey-100 bg-ash-grey-50 px-6 py-4">{footer}</div> : null}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

@@ -26,6 +26,12 @@ import {
   reviewToDto,
 } from "./meal-effective.util";
 import {
+  isQueuePicked,
+  queuePickFieldsForDto,
+  readQueuePick,
+  writeQueuePick,
+} from "./queue-pick.util";
+import {
   ensureCoachCanAccessClient,
   filterConsumersForCoach,
   filterMealsForCoach,
@@ -61,6 +67,7 @@ function toClientDto(
     unreadMessages?: number;
     adherenceTrend?: "improving" | "stable" | "declining";
     openFlags?: number;
+    membershipTier?: "standard" | "pro";
   },
 ) {
   const approvedMeals = meals.filter((m) => m.status === "approved");
@@ -84,6 +91,7 @@ function toClientDto(
     openFlags: extras?.openFlags ?? 0,
     hasAllergies: allergies.length > 0,
     clientHasAllergies: allergies.length > 0,
+    membershipTier: extras?.membershipTier ?? "standard",
   };
 }
 
@@ -213,7 +221,31 @@ export const coachMealsService = {
     }
 
     const sort = options.sort ?? "oldest";
+
+    const allConsumers = await mealsRepository.findAllConsumers();
+    const linkedUserIds = allConsumers.map((c) => c.userId).filter((id): id is string => Boolean(id));
+    const linkedUsers =
+      linkedUserIds.length > 0
+        ? await Promise.all(linkedUserIds.map((id) => usersRepository.findById(id)))
+        : [];
+    const tierByUserId = new Map<string, "standard" | "pro">(
+      linkedUsers.filter(Boolean).map((u) => [u!.id, u!.membershipTier === "pro" ? "pro" : "standard"] as const),
+    );
+    const tierByClientId = new Map<string, "standard" | "pro">();
+    for (const consumer of allConsumers) {
+      if (!consumer.userId) continue;
+      tierByClientId.set(consumer.id, tierByUserId.get(consumer.userId) ?? "standard");
+    }
+
     queue.sort((a, b) => {
+      const aEsc = a.data.queueEscalatedAt && !a.data.queuePickedAt ? 1 : 0;
+      const bEsc = b.data.queueEscalatedAt && !b.data.queuePickedAt ? 1 : 0;
+      if (bEsc !== aEsc) return bEsc - aEsc;
+
+      const aPro = tierByClientId.get(a.clientId) === "pro" ? 1 : 0;
+      const bPro = tierByClientId.get(b.clientId) === "pro" ? 1 : 0;
+      if (bPro !== aPro) return bPro - aPro;
+
       const aManual = a.data.manualReviewRequired === true ? 1 : 0;
       const bManual = b.data.manualReviewRequired === true ? 1 : 0;
       if (bManual !== aManual) return bManual - aManual;
@@ -251,6 +283,7 @@ export const coachMealsService = {
       items.push({
         meal: {
           ...mealToCoachDto(meal, review),
+          ...queuePickFieldsForDto(meal),
           waitingMinutes: waitingMinutes(meal.submittedAt),
           slaLevel: slaLevel(waitingMinutes(meal.submittedAt)),
           slaMinutesRemaining: slaMinutesRemaining(meal.submittedAt),
@@ -262,8 +295,11 @@ export const coachMealsService = {
           possibleAllergenMatch: allergenAssessment.possibleAllergenMatch,
           matchedAllergens: allergenAssessment.matchedAllergens,
           possibleAllergens: allergenAssessment.possibleAllergens,
+          isProPriority: tierByClientId.get(meal.clientId) === "pro",
         },
-        client: toClientDto(consumer, mealsByClient.get(consumer.id) ?? [], reviewsByMealId),
+        client: toClientDto(consumer, mealsByClient.get(consumer.id) ?? [], reviewsByMealId, {
+          membershipTier: tierByClientId.get(consumer.id) ?? "standard",
+        }),
       });
     }
     return items;
@@ -410,6 +446,7 @@ export const coachMealsService = {
     return {
       meal: {
         ...mealToCoachDto(meal, review),
+        ...queuePickFieldsForDto(meal),
         waitingMinutes: waitingMinutes(meal.submittedAt),
         slaLevel: slaLevel(waitingMinutes(meal.submittedAt)),
       },
@@ -467,6 +504,10 @@ export const coachMealsService = {
 
   async getClientById(clientId: string, coachUserId: string) {
     await ensureCoachCanAccessClient(coachUserId, clientId);
+    return this.getClientByIdUnchecked(clientId);
+  },
+
+  async getClientByIdUnchecked(clientId: string) {
     const [consumer, clientMeals] = await Promise.all([
       mealsRepository.findConsumerById(clientId),
       mealsRepository.findMealsByClientId(clientId),
@@ -490,6 +531,10 @@ export const coachMealsService = {
 
   async getClientWeeklySummary(clientId: string, coachUserId: string) {
     await ensureCoachCanAccessClient(coachUserId, clientId);
+    return this.getClientWeeklySummaryUnchecked(clientId);
+  },
+
+  async getClientWeeklySummaryUnchecked(clientId: string) {
     const consumer = await mealsRepository.findConsumerById(clientId);
     if (!consumer) throw new NotFoundError("Client not found");
 
@@ -561,6 +606,17 @@ export const coachMealsService = {
     if (!meal) throw new NotFoundError("Meal not found");
     await ensureCoachCanAccessClient(coachId, meal.clientId);
 
+    const pick = readQueuePick(meal);
+    if (pick.pickedByCoachId && pick.pickedByCoachId !== coachId) {
+      throw new ForbiddenError("Another coach is already working on this review");
+    }
+    if (!isQueuePicked(meal)) {
+      await this.pickMeal(mealId, coachId, { silent: true });
+      const refreshed = await mealsRepository.findMealById(mealId);
+      if (!refreshed) throw new NotFoundError("Meal not found");
+      Object.assign(meal, refreshed);
+    }
+
     const existingReview = await mealCoachReviewsRepository.findByMealId(mealId);
     if (existingReview) {
       throw new BadRequestError("This meal has already been reviewed");
@@ -583,6 +639,7 @@ export const coachMealsService = {
     );
     meal.data = { ...meal.data, allergenAssessment };
     meal.status = dto.action === "approve" ? "approved" : "rejected";
+    writeQueuePick(meal, null);
     await mealsRepository.saveMeal(meal);
 
     const review = await mealCoachReviewsRepository.save({
@@ -666,6 +723,106 @@ export const coachMealsService = {
       });
     }
     return result;
+  },
+
+  async pickMeal(
+    mealId: string,
+    coachUserId: string,
+    options: { silent?: boolean } = {},
+  ) {
+    await assertCoachModule(coachUserId, "coaching");
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    if (meal.status !== "in_review") {
+      throw new BadRequestError("Only meals awaiting review can be picked");
+    }
+    await ensureCoachCanAccessClient(coachUserId, meal.clientId);
+
+    const existing = readQueuePick(meal);
+    if (existing.pickedByCoachId && existing.pickedByCoachId !== coachUserId) {
+      throw new BadRequestError("Another coach is already working on this review");
+    }
+    if (existing.pickedByCoachId === coachUserId) {
+      return {
+        mealId,
+        ...queuePickFieldsForDto(meal),
+      };
+    }
+
+    const coach = await usersRepository.findById(coachUserId);
+    const pickedAt = new Date().toISOString();
+    writeQueuePick(meal, {
+      pickedByCoachId: coachUserId,
+      pickedByCoachName: coach?.displayName ?? "Coach",
+      pickedAt,
+    });
+    await mealsRepository.saveMeal(meal);
+
+    if (!options.silent) {
+      const consumer = await mealsRepository.findConsumerById(meal.clientId);
+      const clientName =
+        (typeof consumer?.profile?.displayName === "string" && consumer.profile.displayName) ||
+        meal.clientId;
+      const mealName =
+        (typeof meal.data.mealName === "string" && meal.data.mealName) || "Meal";
+      broadcastCoachQueueToAll({
+        type: "queue_updated",
+        reason: "picked",
+        mealId,
+        clientName,
+        mealName,
+        pickedByCoachId: coachUserId,
+        pickedByCoachName: coach?.displayName,
+      });
+    }
+
+    return {
+      mealId,
+      ...queuePickFieldsForDto(meal),
+    };
+  },
+
+  async releaseMealPick(mealId: string, coachUserId: string) {
+    await assertCoachModule(coachUserId, "coaching");
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    if (meal.status !== "in_review") {
+      throw new BadRequestError("Only in-review meals can be released");
+    }
+    await ensureCoachCanAccessClient(coachUserId, meal.clientId);
+
+    const existing = readQueuePick(meal);
+    if (!existing.pickedByCoachId) {
+      return { mealId, ...queuePickFieldsForDto(meal) };
+    }
+    if (existing.pickedByCoachId !== coachUserId) {
+      const actor = await usersRepository.findById(coachUserId);
+      if (actor?.role !== "admin") {
+        throw new ForbiddenError("Only the coach who picked this review can release it");
+      }
+    }
+
+    writeQueuePick(meal, null);
+    await mealsRepository.saveMeal(meal);
+
+    const consumer = await mealsRepository.findConsumerById(meal.clientId);
+    const clientName =
+      (typeof consumer?.profile?.displayName === "string" && consumer.profile.displayName) ||
+      meal.clientId;
+    const mealName =
+      (typeof meal.data.mealName === "string" && meal.data.mealName) || "Meal";
+    broadcastCoachQueueToAll({
+      type: "queue_updated",
+      reason: "released",
+      mealId,
+      clientName,
+      mealName,
+    });
+
+    return {
+      mealId,
+      ...queuePickFieldsForDto(meal),
+    };
   },
 
   async assignClient(coachUserId: string, clientId: string, assignedBy?: string) {
@@ -822,15 +979,42 @@ export const coachMealsService = {
   async createReviewTask(
     mealId: string,
     coachId: string,
-    dto: { type: "second_opinion" | "escalation"; note?: string; notifyUser?: boolean },
+    dto: {
+      type: "second_opinion" | "escalation";
+      note?: string;
+      notifyUser?: boolean;
+      assigneeUserId?: string;
+      notifyChannel?: "team" | "assignee" | "both";
+    },
   ) {
     await this.getMealById(mealId, coachId);
+    const assigneeUserId = dto.assigneeUserId?.trim() || null;
+    if (assigneeUserId) {
+      if (assigneeUserId === coachId) {
+        throw new BadRequestError("You cannot assign a second opinion to yourself");
+      }
+      const assignee = await usersRepository.findById(assigneeUserId);
+      if (!assignee?.isActive) throw new NotFoundError("Assignee not found");
+      if (assignee.role !== "coach" && assignee.role !== "admin") {
+        throw new BadRequestError("Assignee must be a coach or admin");
+      }
+    }
+
+    const notifyChannel =
+      dto.notifyChannel ??
+      (assigneeUserId ? "assignee" : "team");
+
+    if ((notifyChannel === "assignee" || notifyChannel === "both") && !assigneeUserId) {
+      throw new BadRequestError("assigneeUserId is required for assignee notifications");
+    }
+
     const task = await mealReviewTasksRepository.create({
       mealId,
       requesterCoachId: coachId,
+      assigneeCoachId: assigneeUserId,
       type: dto.type,
       note: dto.note?.trim() || null,
-      notifyUser: dto.notifyUser ?? false,
+      notifyUser: dto.notifyUser ?? dto.type === "escalation",
       status: "open",
     });
 
@@ -838,7 +1022,6 @@ export const coachMealsService = {
       const coach = await usersRepository.findById(coachId);
       const profile = await coachProfilesRepository.findByUserId(coachId);
       if (coach?.role === "coach" && profile?.organization?.trim()) {
-        const team = await chatService.ensureTeamChannel(coach);
         const meal = await mealsRepository.findMealById(mealId);
         const mealName =
           (typeof meal?.data?.mealName === "string" && meal.data.mealName) ||
@@ -852,10 +1035,21 @@ export const coachMealsService = {
         const body = dto.note?.trim()
           ? `${label} on “${mealName}”: ${dto.note.trim()}`
           : `${label} on “${mealName}”.`;
-        await chatService.sendMessage(coach, team.id, body, mealId);
+
+        if (notifyChannel === "team" || notifyChannel === "both") {
+          const team = await chatService.ensureTeamChannel(coach);
+          await chatService.sendMessage(coach, team.id, body, mealId);
+        }
+
+        if ((notifyChannel === "assignee" || notifyChannel === "both") && assigneeUserId) {
+          const direct = await chatService.ensureDirectConversation(coach, {
+            userId: assigneeUserId,
+          });
+          await chatService.sendMessage(coach, direct.id, body, mealId);
+        }
       }
     } catch (err) {
-      logger.warn({ err, mealId, coachId }, "Failed to mirror review task to team chat");
+      logger.warn({ err, mealId, coachId }, "Failed to mirror review task to chat");
     }
 
     return {
@@ -865,6 +1059,7 @@ export const coachMealsService = {
       status: task.status,
       note: task.note,
       notifyUser: task.notifyUser,
+      assigneeUserId: task.assigneeCoachId,
       createdAt: task.createdAt.toISOString(),
     };
   },

@@ -25,6 +25,7 @@ import {
 } from "./profile-targets.util";
 import { waterLogsRepository } from "./water-logs.repository";
 import { ageFromDateOfBirth, isValidDateOfBirth } from "./date-of-birth.util";
+import { normalizePhone } from "../../utils/phone.util";
 
 const CALCULATION_FIELDS = new Set([
   "age",
@@ -38,7 +39,10 @@ const CALCULATION_FIELDS = new Set([
   "goalPace",
 ]);
 
-async function syncUserFields(userId: string, fields: { displayName?: string; avatarUrl?: string | null }) {
+async function syncUserFields(
+  userId: string,
+  fields: { displayName?: string; avatarUrl?: string | null; phone?: string | null },
+) {
   const user = await usersRepository.findById(userId);
   if (!user) return;
 
@@ -49,6 +53,10 @@ async function syncUserFields(userId: string, fields: { displayName?: string; av
   }
   if (fields.avatarUrl !== undefined && fields.avatarUrl !== user.avatarUrl) {
     user.avatarUrl = fields.avatarUrl || null;
+    changed = true;
+  }
+  if (fields.phone !== undefined && fields.phone !== user.phone) {
+    user.phone = fields.phone;
     changed = true;
   }
   if (changed) {
@@ -111,11 +119,14 @@ export const consumerService = {
       row.profile = next;
       await consumerProfilesRepository.save(row);
     });
+    const user = await usersRepository.findById(userId);
     return {
       patientId: row.id,
       userId: row.userId,
       profile: {
         ...profile,
+        email: user?.email ?? profile.email,
+        phone: user?.phone ?? (typeof profile.phone === "string" ? profile.phone : null),
         onboardingComplete: resolveOnboardingComplete(profile),
       },
       memberSince: row.createdAt.toISOString(),
@@ -131,6 +142,7 @@ export const consumerService = {
     const editableFields: Array<keyof UpdateConsumerProfileDto> = [
       "displayName",
       "avatarUrl",
+      "phone",
       "age",
       "dateOfBirth",
       "sex",
@@ -164,6 +176,11 @@ export const consumerService = {
     if (dto.avatarUrl !== undefined) {
       nextProfile.avatarUrl = dto.avatarUrl;
     }
+    const normalizedPhone =
+      dto.phone !== undefined ? normalizePhone(dto.phone === "" ? null : dto.phone) : undefined;
+    if (normalizedPhone !== undefined) {
+      nextProfile.phone = normalizedPhone;
+    }
     const assessment = await clinicalAssessmentsRepository.findByClientId(row.id);
     const calculationChanged = Object.keys(patientFields).some((key) => CALCULATION_FIELDS.has(key));
     let assessmentStatus = assessment?.status ?? "incomplete";
@@ -191,6 +208,7 @@ export const consumerService = {
     await syncUserFields(userId, {
       displayName: dto.displayName,
       avatarUrl: dto.avatarUrl,
+      phone: normalizedPhone,
     });
 
     return this.getProfile(userId);

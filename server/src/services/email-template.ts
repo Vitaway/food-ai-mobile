@@ -95,7 +95,7 @@ ${bodyHtml}
 <tr>
 <td align="left" style="padding:24px 8px 0;${EMAIL_CELL_STYLE}font-size:13px;line-height:1.6;color:rgba(255,255,255,0.75);">
 <p style="margin:0;font-family:${EMAIL_FONT_FAMILY};">MiraFood · Coach-reviewed nutrition</p>
-<p style="margin:8px 0 0;font-family:${EMAIL_FONT_FAMILY};"><a href="mailto:hello@vitaway.org" style="color:${EMAIL_BRAND.white};text-decoration:underline;font-family:${EMAIL_FONT_FAMILY};">hello@vitaway.org</a></p>
+<p style="margin:8px 0 0;font-family:${EMAIL_FONT_FAMILY};"><a href="mailto:support@vitaway.org" style="color:${EMAIL_BRAND.white};text-decoration:underline;font-family:${EMAIL_FONT_FAMILY};">support@vitaway.org</a></p>
 </td>
 </tr>
 </table>
@@ -116,7 +116,7 @@ export function renderVitawayEmailText(title: string, paragraphs: string[]) {
     "",
     "—",
     "MiraFood · Coach-reviewed nutrition",
-    "hello@vitaway.org",
+    "support@vitaway.org",
   ].join("\n");
 }
 

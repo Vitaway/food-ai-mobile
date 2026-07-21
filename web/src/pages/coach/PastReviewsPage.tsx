@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
 import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/Badge';
-import { FilterChip, StatusPill } from '@/components/ui/StatusPill';
+import { StatusPill } from '@/components/ui/StatusPill';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { Select } from '@/components/ui/Select';
+import { KpiStrip } from '@/components/ui/KpiStrip';
 import { useCoachPastReviews } from '@/hooks/useCoachQueries';
 import {
   formatCoachPatientLabel,
@@ -12,6 +15,12 @@ import {
   formatRelativeTime,
 } from '@/lib/utils';
 import type { CoachPastReviewItem } from '@/types';
+
+const ACTION_FILTERS = [
+  { value: 'all', label: 'All reviews' },
+  { value: 'approve', label: 'Approved' },
+  { value: 'reject', label: 'Rejected' },
+] as const;
 
 export function PastReviewsPage() {
   const navigate = useNavigate();
@@ -22,6 +31,18 @@ export function PastReviewsPage() {
     action: action === 'all' ? undefined : action,
     limit: 50,
   });
+
+  const summary = useMemo(() => {
+    const list = reviews ?? [];
+    const approved = list.filter((item) => item.meal.status === 'approved').length;
+    const rejected = list.filter((item) => item.meal.status === 'rejected').length;
+    return {
+      total: list.length,
+      approved,
+      rejected,
+      approvalRate: list.length ? Math.round((approved / list.length) * 100) : 0,
+    };
+  }, [reviews]);
 
   const columns: DataTableColumn<CoachPastReviewItem>[] = [
     {
@@ -79,31 +100,43 @@ export function PastReviewsPage() {
     <div className="space-y-5">
       <DashboardPageHeader title="Review history" />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <input
-          type="search"
-          placeholder="Search patient ID or meal name…"
-          className="flex-1 rounded-xl border border-ash-grey-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
+      <KpiStrip
+        columns={4}
+        items={[
+          { label: 'Shown', value: summary.total, tone: 'info', caption: 'In this view' },
+          { label: 'Approved', value: summary.approved, tone: 'success', caption: 'Coach approved' },
+          {
+            label: 'Rejected',
+            value: summary.rejected,
+            tone: 'warn',
+            warn: summary.rejected > 0,
+            caption: 'Returned to client',
+          },
+          {
+            label: 'Approval rate',
+            value: `${summary.approvalRate}%`,
+            tone: 'accent',
+            caption: 'Of loaded results',
+          },
+        ]}
+      />
 
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            { id: 'all' as const, label: 'All reviews' },
-            { id: 'approve' as const, label: 'Approved' },
-            { id: 'reject' as const, label: 'Rejected' },
-          ] as const
-        ).map((f) => (
-          <FilterChip
-            key={f.id}
-            label={f.label}
-            active={action === f.id}
-            onClick={() => setAction(f.id)}
-          />
-        ))}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <SearchInput
+          className="min-w-0 flex-1"
+          placeholder="Search patient ID or meal name…"
+          value={search}
+          onValueChange={setSearch}
+        />
+        <Select
+          aria-label="Filter by outcome"
+          variant="filter"
+          size="sm"
+          className="w-full sm:w-48"
+          value={action}
+          onChange={(value) => setAction(value as typeof action)}
+          options={ACTION_FILTERS.map((f) => ({ value: f.value, label: f.label }))}
+        />
       </div>
 
       <DashboardPanel title="Recent decisions">

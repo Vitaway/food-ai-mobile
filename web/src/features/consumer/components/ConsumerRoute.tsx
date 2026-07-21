@@ -13,12 +13,13 @@ type ConsumerRouteProps = {
   children: React.ReactNode;
 };
 
-/** Consumer app — consumers only. */
+/** Consumer app — patients, and org admins using their dual patient identity. */
 export function ConsumerRoute({ children }: ConsumerRouteProps) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const isConsumer = useAuthStore(selectIsConsumer);
   const isCoach = useAuthStore(selectIsCoach);
   const isAdmin = useAuthStore(selectIsAdmin);
+  const user = useAuthStore((s) => (selectIsAuthenticated(s) ? s.session?.user : null));
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -29,11 +30,16 @@ export function ConsumerRoute({ children }: ConsumerRouteProps) {
     return <Navigate to={getDashboardPath('coach')} replace />;
   }
 
-  if (isAdmin) {
+  const isOrgAdminPatient =
+    isAdmin &&
+    user?.accountRole === 'organization_admin' &&
+    Boolean(user.patientId);
+
+  if (isAdmin && !isOrgAdminPatient) {
     return <Navigate to={getDashboardPath('admin')} replace />;
   }
 
-  if (!isConsumer) {
+  if (!isConsumer && !isOrgAdminPatient) {
     return <Navigate to={AUTH_ROUTES.login} replace />;
   }
 

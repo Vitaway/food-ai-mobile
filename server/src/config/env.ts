@@ -114,6 +114,20 @@ export const env = {
   },
 } as const;
 
+/** Seed/demo logins that skip staff email OTP (coach@ / admin@ etc.). */
+export function isSeedLoginEmail(email: string | null | undefined): boolean {
+  if (!email) return false;
+  const normalized = email.toLowerCase().trim();
+  const seedEmails = [
+    env.SEED_COACH_EMAIL,
+    env.SEED_ADMIN_EMAIL,
+    env.SEED_NUTRITION_COACH_EMAIL,
+    env.SEED_ORG_ADMIN_EMAIL,
+    env.SEED_DATA_ENTRY_EMAIL,
+  ].map((e) => e.toLowerCase().trim());
+  return seedEmails.includes(normalized);
+}
+
 export const isProduction = env.NODE_ENV === "production";
 
 const WEAK_SECRETS = new Set([

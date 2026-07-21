@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   Req,
   CurrentUser,
   QueryParam,
@@ -15,13 +16,32 @@ import type { User } from "../users/user.entity";
 import { adminService } from "./admin.service";
 import { platformMetricsService } from "./platform-metrics.service";
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
-import { CreateCoachDto, SetUserActiveDto, SetUserRoleDto, SetOrganizationModulesDto, EnsureOrganizationModulesDto } from "./admin.dto";
+import {
+  CreateCoachDto,
+  CreateAdminUserDto,
+  SetUserActiveDto,
+  SetUserRoleDto,
+  SetOrganizationModulesDto,
+  EnsureOrganizationModulesDto,
+  UpdateAdminUserDto,
+  AdminResetPasswordDto,
+  UpdateConsumerProfileAdminDto,
+  UpdateCoachProfileAdminDto,
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+  SetClientCoachesDto,
+} from "./admin.dto";
 import { moduleEntitlementsService } from "./module-entitlements.service";
+import { organizationsService } from "./organizations.service";
 import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
+import { adminPatientService } from "./admin-patient.service";
+import { ConfirmClinicalAssessmentDto, SaveClinicalAssessmentDto } from "../coaches/coach.dto";
+
+const ADMIN_OR_ORG = ["admin", "organization_admin"] as const;
 
 @Controller("/admin")
 export class AdminController {
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Get("/metrics")
   metrics() {
     return adminService.metrics();
@@ -57,35 +77,149 @@ export class AdminController {
     return nutritionDbService.rejectFood(id, admin.id);
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Get("/coaches")
   listCoaches() {
     return adminService.listCoaches();
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Post("/coaches")
   createCoach(
     @CurrentUser() admin: User,
     @Body() dto: CreateCoachDto,
     @Req() req: Request,
   ) {
-    return adminService.createCoach(admin.id, dto, req);
+    return adminService.createCoach(admin.id, admin, dto, req);
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Get("/consumers")
   listConsumers() {
     return adminService.listConsumers();
   }
 
-  @Authorized(["admin"])
-  @Get("/users")
-  listUsers() {
-    return adminService.listUsers();
+  @Authorized([...ADMIN_OR_ORG])
+  @Post("/users")
+  createUser(
+    @CurrentUser() admin: User,
+    @Body() dto: CreateAdminUserDto,
+    @Req() req: Request,
+  ) {
+    return adminService.createUser(admin.id, admin, dto, req);
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users/:id")
+  getUser(@CurrentUser() admin: User, @Param("id") id: string) {
+    return adminService.getUserDetail(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Patch("/users/:id")
+  updateUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateAdminUserDto,
+    @Req() req: Request,
+  ) {
+    return adminService.updateUser(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Post("/users/:id/reset-password")
+  resetUserPassword(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: AdminResetPasswordDto,
+    @Req() req: Request,
+  ) {
+    return adminService.resetUserPassword(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Patch("/users/:id/consumer-profile")
+  updateConsumerProfile(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateConsumerProfileAdminDto,
+    @Req() req: Request,
+  ) {
+    return adminService.updateConsumerProfile(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Patch("/users/:id/coach-profile")
+  updateCoachProfile(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateCoachProfileAdminDto,
+    @Req() req: Request,
+  ) {
+    return adminService.updateCoachProfileAdmin(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users/:id/patient")
+  getPatientView(@CurrentUser() admin: User, @Param("id") id: string) {
+    return adminPatientService.getPatientView(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Put("/users/:id/coaches")
+  setClientCoaches(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: SetClientCoachesDto,
+  ) {
+    return adminPatientService.setClientCoaches(admin, id, dto.coachUserIds);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users/:id/patient/summary")
+  getPatientSummary(@CurrentUser() admin: User, @Param("id") id: string) {
+    return adminPatientService.getWeeklySummary(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users/:id/patient/coaching-insights")
+  getPatientCoachingInsights(@CurrentUser() admin: User, @Param("id") id: string) {
+    return adminPatientService.getCoachingInsights(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users/:id/clinical-assessment")
+  getClinicalAssessment(@CurrentUser() admin: User, @Param("id") id: string) {
+    return adminPatientService.getClinicalAssessment(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Patch("/users/:id/clinical-assessment")
+  saveClinicalAssessment(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: SaveClinicalAssessmentDto,
+  ) {
+    return adminPatientService.saveClinicalAssessment(admin, id, admin.id, dto);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Post("/users/:id/clinical-assessment/confirm")
+  confirmClinicalAssessment(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: ConfirmClinicalAssessmentDto,
+  ) {
+    return adminPatientService.confirmClinicalAssessment(admin, id, admin.id, dto);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/users")
+  listUsers(@CurrentUser() admin: User) {
+    return adminService.listUsers(admin);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
   @Patch("/users/:id/active")
   setUserActive(
     @CurrentUser() admin: User,
@@ -93,7 +227,7 @@ export class AdminController {
     @Body() dto: SetUserActiveDto,
     @Req() req: Request,
   ) {
-    return adminService.setUserActive(admin.id, id, dto, req);
+    return adminService.setUserActive(admin.id, admin, id, dto, req);
   }
 
   @Authorized(["admin"])
@@ -108,7 +242,7 @@ export class AdminController {
     return adminService.auditLogs();
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Get("/referrals")
   referrals() {
     return adminService.referralStats();
@@ -120,7 +254,7 @@ export class AdminController {
     return adminService.growthSeries(days ?? 30);
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Patch("/users/:id/role")
   setUserRole(
     @CurrentUser() admin: User,
@@ -128,7 +262,40 @@ export class AdminController {
     @Body() dto: SetUserRoleDto,
     @Req() req: Request,
   ) {
-    return adminService.setUserRole(admin.id, id, dto, req);
+    return adminService.setUserRole(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/organizations")
+  listOrganizations(@CurrentUser() admin: User) {
+    return organizationsService.list(admin);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/organizations/:id")
+  getOrganization(@CurrentUser() admin: User, @Param("id") id: string) {
+    return organizationsService.get(admin, id);
+  }
+
+  @Authorized(["admin"])
+  @Post("/organizations")
+  createOrganization(
+    @CurrentUser() admin: User,
+    @Body() dto: CreateOrganizationDto,
+    @Req() req: Request,
+  ) {
+    return organizationsService.create(admin, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Patch("/organizations/:id")
+  updateOrganization(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateOrganizationDto,
+    @Req() req: Request,
+  ) {
+    return organizationsService.update(admin, id, dto, req);
   }
 
   @Authorized(["admin"])
@@ -137,7 +304,7 @@ export class AdminController {
     return { catalog: moduleEntitlementsService.catalog() };
   }
 
-  @Authorized(["admin"])
+  @Authorized([...ADMIN_OR_ORG])
   @Get("/clinical-assessments")
   clinicalAssessments() {
     return clinicalAssessmentService.listWorkflow();

@@ -27,7 +27,7 @@ export function mergedCalculationProfile(
   const derivedAge = isValidDateOfBirth(dateOfBirth)
     ? ageFromDateOfBirth(dateOfBirth)
     : numberOr(assessmentData.verifiedAge, profile.age);
-  return {
+  const merged: Record<string, unknown> = {
     ...profile,
     dateOfBirth,
     age: derivedAge,
@@ -36,6 +36,17 @@ export function mergedCalculationProfile(
     weightKg: numberOr(assessmentData.verifiedWeightKg, profile.weightKg),
     ...assessmentData,
   };
+  const sex = merged.sex;
+  const age = typeof merged.age === "number" ? merged.age : null;
+  const isFemaleAdult = sex === "female" && (age == null || age >= 18);
+  if (!isFemaleAdult) {
+    merged.pregnant = false;
+    merged.lactating = false;
+    merged.trimester = null;
+    merged.numberOfBabies = null;
+    merged.prePregnancyWeightKg = null;
+  }
+  return merged;
 }
 
 export function calculateTargetsForProfile(

@@ -113,6 +113,10 @@ export async function fetchNutritionServingUnits() {
   return apiRequest<string[]>('/nutrition-db/serving-units');
 }
 
+export async function fetchNutritionFood(id: string) {
+  return apiRequest<NutritionFood>(`/nutrition-db/foods/${encodeURIComponent(id)}`);
+}
+
 export async function lookupNutritionBarcode(code: string) {
   return apiRequest<NutritionFood | null>(`/nutrition-db/barcode/${encodeURIComponent(code.trim())}`);
 }

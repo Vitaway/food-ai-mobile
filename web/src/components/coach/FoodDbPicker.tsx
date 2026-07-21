@@ -6,6 +6,8 @@ import {
   fetchNutritionFoodsPage,
   type NutritionFood,
 } from '@/api/nutritionDbApi';
+import { Select } from '@/components/ui/Select';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { cn } from '@/lib/utils';
 
 type FoodDbPickerProps = {
@@ -61,6 +63,8 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
       const target = e.target as Node;
       if (inputRef.current?.contains(target)) return;
       if (menuRef.current?.contains(target)) return;
+      // Shared Select menus portal to document.body
+      if ((e.target as Element | null)?.closest?.('[data-vitaway-select-menu]')) return;
       setOpen(false);
       setSearch('');
       setCategory('');
@@ -127,18 +131,17 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
                   : `Browse the food database${total ? ` · ${total} foods` : ''}. Type a name to find faster.`}
               </p>
               {categories.length > 0 ? (
-                <select
-                  className="w-full rounded-md border border-ash-grey-200 bg-white px-2 py-1 text-xs outline-none focus:border-blue-spruce-400"
+                <Select
+                  aria-label="Filter foods by group"
+                  size="sm"
+                  variant="filter"
                   value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  onMouseDown={(e) => e.stopPropagation()}>
-                  <option value="">All groups</option>
-                  {categories.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCategory}
+                  options={[
+                    { value: '', label: 'All groups' },
+                    ...categories.map((name) => ({ value: name, label: name })),
+                  ]}
+                />
               ) : null}
               {valueLabel ? (
                 <p className="truncate text-[11px] text-ash-grey-400">
@@ -218,17 +221,18 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
 
   return (
     <div className={cn('relative min-w-[12rem]', className)}>
-      <input
+      <SearchInput
         ref={inputRef}
-        className="w-full min-w-0 rounded-md border border-ash-grey-200 bg-white px-2 py-1 text-sm outline-none focus:border-blue-spruce-400"
+        size="sm"
         value={displayValue}
         placeholder="Search or browse food database…"
         onFocus={openPicker}
-        onChange={(e) => {
-          setSearch(e.target.value);
+        onValueChange={(next) => {
+          setSearch(next);
           setOpen(true);
           updatePos();
         }}
+        clearable={false}
         aria-controls={listId}
         aria-expanded={open}
         role="combobox"

@@ -9,6 +9,8 @@ import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Modal } from '@/components/ui/Modal';
 import { Pagination } from '@/components/ui/Pagination';
 import { StatusPill } from '@/components/ui/StatusPill';
+import { Select } from '@/components/ui/Select';
+import { SearchInput } from '@/components/ui/SearchInput';
 import { resolveMediaUrl } from '@/lib/mediaUrls';
 import {
   fetchNutritionCategories,
@@ -217,41 +219,53 @@ export function AdminFoodDbPage() {
       <DashboardPageHeader title="Food database" />
 
       <div className="flex flex-wrap items-center gap-2">
-        <input
+        <SearchInput
+          className="min-w-[12rem] flex-1 sm:max-w-xs"
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onValueChange={setQ}
           placeholder="Search name, code, barcode…"
-          className="min-w-[12rem] flex-1 rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400 sm:max-w-xs"
+          size="sm"
         />
-        <select
+        <Select
+          aria-label="Filter by approval status"
+          variant="filter"
+          size="sm"
+          className="w-full sm:w-40"
           value={approval}
-          onChange={(e) => setApproval(e.target.value as ApprovalFilter)}
-          className="rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400">
-          <option value="all">All statuses</option>
-          <option value="approved">Approved</option>
-          <option value="pending">Pending</option>
-          <option value="rejected">Rejected</option>
-        </select>
-        <select
+          onChange={(value) => setApproval(value as ApprovalFilter)}
+          options={[
+            { value: 'all', label: 'All statuses' },
+            { value: 'approved', label: 'Approved' },
+            { value: 'pending', label: 'Pending' },
+            { value: 'rejected', label: 'Rejected' },
+          ]}
+        />
+        <Select
+          aria-label="Filter by source"
+          variant="filter"
+          size="sm"
+          className="w-full sm:w-40"
           value={sourceType}
-          onChange={(e) => setSourceType(e.target.value as SourceFilter)}
-          className="rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400">
-          <option value="">All sources</option>
-          <option value="TFCT">TFCT</option>
-          <option value="packaged">Packaged</option>
-          <option value="custom_local">Custom / local</option>
-        </select>
-        <select
+          onChange={(value) => setSourceType(value as SourceFilter)}
+          options={[
+            { value: '', label: 'All sources' },
+            { value: 'TFCT', label: 'TFCT' },
+            { value: 'packaged', label: 'Packaged' },
+            { value: 'custom_local', label: 'Custom / local' },
+          ]}
+        />
+        <Select
+          aria-label="Filter by food group"
+          variant="filter"
+          size="sm"
+          className="w-full sm:w-44"
           value={category}
-          onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400">
-          <option value="">All groups</option>
-          {categories.map((item) => (
-            <option key={item} value={item}>
-              {item}
-            </option>
-          ))}
-        </select>
+          onChange={setCategory}
+          options={[
+            { value: '', label: 'All groups' },
+            ...categories.map((item) => ({ value: item, label: item })),
+          ]}
+        />
       </div>
 
       <DashboardPanel

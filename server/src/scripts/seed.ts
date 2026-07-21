@@ -26,10 +26,11 @@ async function upsertSeedUser(opts: {
       displayName: opts.displayName,
       avatarUrl: null,
       isActive: true,
+      // Marks account as pre-verified — staff MFA / email OTP is skipped on login.
       registrationSource: "seed",
     });
     await usersRepository.save(user);
-    logger.info({ email, role: opts.role }, "Created seed user");
+    logger.info({ email, role: opts.role }, "Created seed user (OTP skipped)");
     return user;
   }
 
@@ -39,7 +40,7 @@ async function upsertSeedUser(opts: {
   user.displayName = opts.displayName;
   user.registrationSource = "seed";
   await usersRepository.save(user);
-  logger.info({ email, role: opts.role }, "Updated seed user");
+  logger.info({ email, role: opts.role }, "Updated seed user (OTP skipped)");
   return user;
 }
 
@@ -155,15 +156,15 @@ async function seed() {
   logger.info(
     {
       accounts: [
-        { role: "admin", email: env.SEED_ADMIN_EMAIL },
-        { role: "coach", email: env.SEED_COACH_EMAIL },
+        { role: "admin", email: env.SEED_ADMIN_EMAIL, mfa: "skipped (seed)" },
+        { role: "coach", email: env.SEED_COACH_EMAIL, mfa: "skipped (seed)" },
         { role: "consumer", email: env.SEED_CONSUMER_EMAIL },
-        { role: "nutrition_coach", email: env.SEED_NUTRITION_COACH_EMAIL },
-        { role: "organization_admin", email: env.SEED_ORG_ADMIN_EMAIL },
-        { role: "data_entry_staff", email: env.SEED_DATA_ENTRY_EMAIL },
+        { role: "nutrition_coach", email: env.SEED_NUTRITION_COACH_EMAIL, mfa: "skipped (seed)" },
+        { role: "organization_admin", email: env.SEED_ORG_ADMIN_EMAIL, mfa: "skipped (seed)" },
+        { role: "data_entry_staff", email: env.SEED_DATA_ENTRY_EMAIL, mfa: "skipped (seed)" },
       ],
     },
-    "Seed users ready (default password Test@123 unless overridden in env)",
+    "Seed users ready (default password Test@123 unless overridden in env). Staff seed logins skip email OTP.",
   );
 
   await AppDataSource.destroy();

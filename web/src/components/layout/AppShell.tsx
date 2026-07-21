@@ -87,13 +87,13 @@ export function AppShell() {
 
   return (
     <DashboardSidebarLayout
-      brandSubtitle="Coach dashboard"
       nav={nav}
       immersivePrefixes={['/coach/messages']}
       userDisplayName={displayName}
       userRole={profile?.jobTitle ?? 'Nutrition coach'}
       userAvatarUrl={profile?.avatarUrl}
       profileTo="/coach/profile"
+      settingsTo="/coach/profile?tab=security"
       onLogout={() => void logout()}
       sidebarStat={
         stats ? (
@@ -106,7 +106,7 @@ export function AppShell() {
         <footer className="mt-8 border-t border-ash-grey-200/80 py-6 text-center text-sm text-ash-grey-500">
           <p>MiraFood · Vitaway</p>
           <p className="mt-1">
-            <a href="mailto:hello@vitaway.org" className="hover:text-blue-spruce-600">
+            <a href="mailto:support@vitaway.org" className="hover:text-blue-spruce-600">
               Support
             </a>
             {' · '}

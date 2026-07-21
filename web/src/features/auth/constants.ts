@@ -19,8 +19,11 @@ export const COACH_ROUTES = {
 
 export const ADMIN_ROUTES = {
   dashboard: '/admin',
-  coaches: '/admin/coaches',
   users: '/admin/users',
+  usersCoaches: '/admin/users?type=coach',
+  userDetail: (id: string) => `/admin/users/${id}`,
+  organizations: '/admin/organizations',
+  organizationDetail: (id: string) => `/admin/organizations/${id}`,
   payments: '/admin/payments',
   reports: '/admin/reports',
   referrals: '/admin/referrals',
