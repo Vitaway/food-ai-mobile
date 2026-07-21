@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { SelectField, TextAreaField, TextField } from '@/components/ui/Field';
+import { CONTACT_EMAIL } from '@/constants/contact';
 
 const TOPICS = [
   'Clinic or hospital partnership',
@@ -37,7 +38,7 @@ export function ContactFormCard({
       .filter(Boolean)
       .join('\n');
 
-    window.location.href = `mailto:hello@vitaway.org?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   }
 
   return (
@@ -80,7 +81,7 @@ export function ContactFormCard({
           Send message
         </button>
         <p className="text-xs text-ash-grey-500">
-          Opens your email app addressed to hello@vitaway.org
+          Opens your email app addressed to {CONTACT_EMAIL}
         </p>
       </form>
     </div>

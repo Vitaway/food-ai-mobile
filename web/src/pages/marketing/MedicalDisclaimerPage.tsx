@@ -50,8 +50,8 @@ export function MedicalDisclaimerPage() {
       <LegalSection title="Contact">
         <p>
           Questions:{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
-            support@vitaway.org
+          <a href="mailto:hello@vitaway.org" className="text-blue-spruce-600 underline">
+            hello@vitaway.org
           </a>
         </p>
       </LegalSection>

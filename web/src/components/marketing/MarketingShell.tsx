@@ -6,20 +6,16 @@ import { MarketingFooter } from '@/components/marketing/MarketingFooter';
 import { AppStoreBadges } from '@/components/marketing/AppStoreBadges';
 import { LoginIcon } from '@/components/icons/LoginIcon';
 import { Button } from '@/components/ui/Button';
-import { SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
+import { CONTACT_EMAIL, SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
 
 const mainNav = [
   { to: '/for-patients', label: 'Patients' },
   { to: '/for-coaches', label: 'Coaches' },
   { to: '/for-clinics', label: 'Clinics' },
-  { to: '/features', label: 'Features' },
-  { to: '/download', label: 'Get app' },
   { to: '/support', label: 'Support' },
 ];
 
 const NAV_BLUE_PATHS = [
-  '/features',
-  '/download',
   '/support',
   '/for-patients',
   '/for-coaches',
@@ -34,7 +30,6 @@ const NAV_BLUE_PATHS = [
 ];
 
 const HIDE_PRE_FOOTER_PATHS = [
-  '/download',
   '/support',
   '/for-patients',
   '/for-coaches',
@@ -86,7 +81,7 @@ export function MarketingShell() {
               Customer support
             </Link>
             <a
-              href="mailto:hello@vitaway.org"
+              href={`mailto:${CONTACT_EMAIL}`}
               className={cn(
                 'font-normal transition-colors',
                 navBlue ? 'hover:text-white' : 'hover:text-blue-spruce-600',
@@ -123,9 +118,9 @@ export function MarketingShell() {
 
       {/* Announcement */}
       {isHome ? (
-        <div className="bg-shamrock-600 px-4 py-2.5 text-center text-sm font-normal text-white">
+        <div className="bg-blue-spruce-600 px-4 py-2.5 text-center text-sm font-normal text-white">
           <span>Coach-verified nutrition for patients, coaches, and clinics — </span>
-          <Link to="/clinical-evidence" className="underline underline-offset-2 hover:text-shamrock-100">
+          <Link to="/clinical-evidence" className="underline underline-offset-2 hover:text-blue-spruce-100">
             See our clinical approach
           </Link>
         </div>
@@ -201,21 +196,16 @@ export function MarketingShell() {
         <Outlet />
       </main>
 
-      {/* Pre-footer CTA — hidden on download page */}
+      {/* Pre-footer CTA */}
       {!hidePreFooterCta ? (
         <section className="bg-blue-spruce-600 px-4 py-16 text-white sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl flex-col items-center gap-8 text-center lg:flex-row lg:justify-between lg:text-left">
             <div className="max-w-xl">
-              <h2 className="text-3xl tracking-tight sm:text-4xl">
-                Get started
-              </h2>
+              <h2 className="text-3xl tracking-tight sm:text-4xl">Get started</h2>
               <p className="mt-3 text-lg text-white/80">
                 Download MiraFood for iOS and Android. Snap meals, track macros, and get coach-verified
                 nutrition insights.
               </p>
-              <Button to="/download" variant="outline-light" size="md" className="mt-6">
-                Go to download page
-              </Button>
             </div>
             <AppStoreBadges className="items-center lg:items-end" />
           </div>

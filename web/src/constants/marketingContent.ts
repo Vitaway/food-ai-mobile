@@ -62,20 +62,26 @@ export const testimonials = [
   {
     quote:
       'I like that MiraFood is linked to my coach. The app shows me an AI estimate, but nothing hits my diary until someone reviews it — that builds real trust.',
+    name: 'Aline U.',
     role: 'MiraFood member',
     context: 'Patient',
+    image: '/marketing/testimonials/1.jpg',
   },
   {
     quote:
       'The review queue is clean and fast. I can see the photo, edit ingredients, and approve or reject in minutes — much quicker than a full dietary recall interview.',
+    name: 'Dr. Eric N.',
     role: 'Vitaway nutrition coach',
     context: 'Coach',
+    image: '/marketing/testimonials/2.jpg',
   },
   {
     quote:
       'Patient file IDs and a shared review workflow make it easy to scale coach support across a clinic without losing quality.',
+    name: 'Claire M.',
     role: 'Clinic operations lead',
     context: 'Partner',
+    image: '/marketing/testimonials/3.jpg',
   },
 ] as const;
 

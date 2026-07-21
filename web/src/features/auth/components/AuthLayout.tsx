@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { MiraFoodLogo } from '@/components/marketing/MiraFoodLogo';
+import { MARKETING_HERO_IMAGE } from '@/constants/marketingImages';
 
 type AuthLayoutProps = {
   title: string;
@@ -24,19 +25,14 @@ export function AuthLayout({
   return (
     <div className="flex min-h-screen flex-col lg:flex-row">
       {/* Brand panel */}
-      <aside className="relative flex shrink-0 flex-col justify-between overflow-hidden bg-blue-spruce-600 px-6 py-8 text-white sm:px-10 sm:py-10 lg:w-[44%] lg:min-h-screen lg:px-12 lg:py-14">
-        <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/20 via-white/5 to-transparent"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -right-24 -bottom-24 h-72 w-72 rounded-full bg-shamrock-500/20 blur-3xl"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute -left-16 top-1/3 h-56 w-56 rounded-full bg-cinnamon-wood-400/15 blur-3xl"
-          aria-hidden
-        />
+      <aside
+        className="relative flex shrink-0 flex-col justify-between overflow-hidden bg-blue-spruce-800 px-6 py-8 text-white sm:px-10 sm:py-10 lg:w-[44%] lg:min-h-screen lg:px-12 lg:py-14"
+        style={{
+          backgroundImage: `url('${MARKETING_HERO_IMAGE}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}>
+        <div className="absolute inset-0 bg-blue-spruce-950/60" aria-hidden />
 
         <div className="relative">
           <MiraFoodLogo variant="light" />
