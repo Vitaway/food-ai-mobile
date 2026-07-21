@@ -1,15 +1,16 @@
-import { AppStoreBadgesLight } from '@/components/marketing/AppStoreBadges';
-import { AppScreenshot } from '@/components/marketing/AppScreenshot';
+import { CONTACT_EMAIL, SUPPORT_PHONE_DISPLAY, SUPPORT_PHONE_TEL } from '@/constants/contact';
+import { Link } from 'react-router-dom';
+import { useState } from 'react';
+import { cn } from '@/lib/utils';
 import { ContactFormCard } from '@/components/marketing/ContactFormCard';
 import { MarketingPageHero } from '@/components/marketing/MarketingPageHero';
-import { appImage } from '@/constants/appImages';
+import { MARKETING_SUPPORT_FAQ_IMAGE } from '@/constants/marketingImages';
 import { supportFaqsExtra } from '@/constants/marketingContent';
-import { Link } from 'react-router-dom';
 
 const faqs = [
   {
     q: 'How do I download MiraFood?',
-    a: 'MiraFood is available on the Apple App Store and Google Play. Visit our download page or search "MiraFood Vitaway" in your store.',
+    a: 'MiraFood is available on the Apple App Store and Google Play. Search "MiraFood Vitaway" in your store to install the app.',
   },
   {
     q: 'How does coach review work?',
@@ -31,6 +32,8 @@ const faqs = [
 ];
 
 export function SupportPage() {
+  const [openIndex, setOpenIndex] = useState<number | null>(0);
+
   return (
     <div className="bg-ash-grey-50">
       <MarketingPageHero
@@ -46,34 +49,18 @@ export function SupportPage() {
             <h2 className="text-xl text-ash-grey-900">Other ways to reach us</h2>
             <dl className="mt-6 space-y-4 text-sm">
               <div>
-                <dt className="font-normal text-ash-grey-700">General support</dt>
+                <dt className="font-normal text-ash-grey-700">Email</dt>
                 <dd>
-                  <a href="mailto:support@vitaway.org" className="text-blue-spruce-600">
-                    support@vitaway.org
+                  <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-spruce-600">
+                    {CONTACT_EMAIL}
                   </a>
                 </dd>
               </div>
               <div>
-                <dt className="font-normal text-ash-grey-700">Privacy requests</dt>
+                <dt className="font-normal text-ash-grey-700">Phone</dt>
                 <dd>
-                  <a href="mailto:privacy@vitaway.org" className="text-blue-spruce-600">
-                    privacy@vitaway.org
-                  </a>
-                </dd>
-              </div>
-              <div>
-                <dt className="font-normal text-ash-grey-700">Legal</dt>
-                <dd>
-                  <a href="mailto:legal@vitaway.org" className="text-blue-spruce-600">
-                    legal@vitaway.org
-                  </a>
-                </dd>
-              </div>
-              <div>
-                <dt className="font-normal text-ash-grey-700">Business & partnerships</dt>
-                <dd>
-                  <a href="mailto:hello@vitaway.org" className="text-blue-spruce-600">
-                    hello@vitaway.org
+                  <a href={`tel:${SUPPORT_PHONE_TEL}`} className="text-blue-spruce-600">
+                    {SUPPORT_PHONE_DISPLAY}
                   </a>
                 </dd>
               </div>
@@ -93,61 +80,78 @@ export function SupportPage() {
         </div>
       </section>
 
-      <section className="border-t border-ash-grey-200 bg-white py-16">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-            <div>
-              <h2 className="text-xl text-ash-grey-900">Download the app</h2>
-              <p className="mt-3 text-sm text-ash-grey-600">
-                Get MiraFood on your phone to start logging meals and tracking your goals.
-              </p>
-              <div className="mt-6">
-                <AppStoreBadgesLight />
-              </div>
-              <Link to="/download" className="mt-4 inline-block text-sm text-blue-spruce-600 hover:underline">
-                Go to download page →
-              </Link>
-            </div>
-            <div className="flex justify-center">
-              <AppScreenshot {...appImage('home')} variant="light" size="md" />
-            </div>
-          </div>
-        </div>
-      </section>
+      <section
+        className="relative isolate overflow-hidden py-20 sm:py-28"
+        style={{
+          backgroundImage: `url('${MARKETING_SUPPORT_FAQ_IMAGE}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center top',
+        }}>
+        <div className="absolute inset-0 bg-ash-grey-950/45" aria-hidden />
+        <div className="absolute inset-0 bg-gradient-to-b from-ash-grey-950/25 via-transparent to-ash-grey-950/55" aria-hidden />
 
-      <section className="border-t border-ash-grey-200 bg-white py-16">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl text-ash-grey-900">Frequently asked questions</h2>
-          <div className="mt-8 space-y-6">
-            {faqs.map((item) => (
-              <div key={item.q} className="border-b border-ash-grey-100 pb-6">
-                <h3 className="text-ash-grey-900">{item.q}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ash-grey-600">{item.a}</p>
-              </div>
-            ))}
+        <div className="relative mx-auto max-w-5xl px-4 sm:px-6 lg:max-w-6xl lg:px-8">
+          <div className="rounded-[2rem] border border-white/20 bg-white/90 p-6 shadow-2xl backdrop-blur-md sm:rounded-[2.5rem] sm:p-10">
+            <h2 className="text-center text-3xl tracking-tight text-ash-grey-900 sm:text-4xl">
+              Frequently asked questions
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl text-center text-sm text-ash-grey-600">
+              Quick answers about downloading MiraFood, coach review, privacy, and your account.
+            </p>
+
+            <div className="mt-10 divide-y divide-ash-grey-200">
+              {faqs.map((item, i) => {
+                const open = openIndex === i;
+                return (
+                  <div key={item.q} className="py-4 first:pt-0 last:pb-0">
+                    <button
+                      type="button"
+                      onClick={() => setOpenIndex(open ? null : i)}
+                      className="flex w-full items-start justify-between gap-4 text-left"
+                      aria-expanded={open}>
+                      <span className="text-base text-ash-grey-900 sm:text-lg">{item.q}</span>
+                      <span
+                        className={cn(
+                          'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-ash-grey-100 text-ash-grey-800 transition-transform',
+                          open && 'rotate-45 bg-blue-spruce-600 text-white',
+                        )}
+                        aria-hidden>
+                        +
+                      </span>
+                    </button>
+                    <div
+                      className={cn(
+                        'grid transition-[grid-template-rows] duration-300 ease-out',
+                        open ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
+                      )}>
+                      <div className="overflow-hidden">
+                        <p className="pt-3 text-sm leading-relaxed text-ash-grey-600">{item.a}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="mt-8 text-center text-sm text-ash-grey-500">
+              See also:{' '}
+              <Link to="/legal" className="text-blue-spruce-600 hover:underline">
+                Legal hub
+              </Link>
+              {' · '}
+              <Link to="/privacy" className="text-blue-spruce-600 hover:underline">
+                Privacy
+              </Link>
+              {' · '}
+              <Link to="/terms" className="text-blue-spruce-600 hover:underline">
+                Terms
+              </Link>
+              {' · '}
+              <Link to="/delete-account" className="text-blue-spruce-600 hover:underline">
+                Delete account
+              </Link>
+            </p>
           </div>
-          <p className="mt-8 text-sm text-ash-grey-500">
-            See also:{' '}
-            <Link to="/legal" className="text-blue-spruce-600">
-              All legal & policy pages
-            </Link>
-            {' · '}
-            <Link to="/privacy" className="text-blue-spruce-600">
-              Privacy Policy
-            </Link>
-            {' · '}
-            <Link to="/terms" className="text-blue-spruce-600">
-              Terms of Service
-            </Link>
-            {' · '}
-            <Link to="/medical-disclaimer" className="text-blue-spruce-600">
-              Medical disclaimer
-            </Link>
-            {' · '}
-            <Link to="/delete-account" className="text-blue-spruce-600">
-              Delete account
-            </Link>
-          </p>
         </div>
       </section>
     </div>
