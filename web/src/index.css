@@ -111,6 +111,30 @@ textarea {
   letter-spacing: 0.03em;
 }
 
+/* Legal / policy prose — readable Figtree, not Sniglet 800 bold */
+.legal-prose {
+  font-family: var(--font-ui);
+  font-weight: 400;
+}
+
+.legal-prose h1,
+.legal-prose h2,
+.legal-prose h3,
+.legal-prose h4,
+.legal-prose h5,
+.legal-prose h6 {
+  font-family: var(--font-ui);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+
+.legal-prose strong,
+.legal-prose b {
+  font-family: var(--font-ui);
+  font-weight: 600;
+}
+
 /* Coach & admin dashboards — clean SaaS typography (sentence case) */
 .dashboard-shell {
   font-family: Figtree, ui-sans-serif, system-ui, sans-serif;
