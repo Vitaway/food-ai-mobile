@@ -1,16 +1,29 @@
+import { MARKETING_HERO_IMAGE } from '@/constants/marketingImages';
+
 type MarketingPageHeroProps = {
   title: string;
   description?: string;
   compact?: boolean;
+  /** Optional override for page-specific hero imagery */
+  backgroundImage?: string;
 };
 
-export function MarketingPageHero({ title, description, compact }: MarketingPageHeroProps) {
+export function MarketingPageHero({
+  title,
+  description,
+  compact,
+  backgroundImage = MARKETING_HERO_IMAGE,
+}: MarketingPageHeroProps) {
   return (
-    <section className="relative overflow-hidden bg-blue-spruce-600 text-white">
-      <div
-        className="pointer-events-none absolute inset-0 bg-gradient-to-br from-white/15 via-transparent to-transparent"
-        aria-hidden
-      />
+    <section
+      className="relative overflow-hidden bg-blue-spruce-800 text-white"
+      style={{
+        backgroundImage: `url('${backgroundImage}')`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}>
+      <div className="absolute inset-0 bg-blue-spruce-950/60" aria-hidden />
       <div
         className={`relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 ${
           compact ? 'py-14 sm:py-16' : 'py-16 sm:py-20 lg:py-24'
