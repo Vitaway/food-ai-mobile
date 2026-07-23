@@ -85,6 +85,36 @@ type EditableProps = {
   onRemove: (id: string) => void;
 };
 
+const WEIGHT_VOLUME_UNITS = new Set(['g', 'kg', 'ml', 'l']);
+
+function isWeightOrVolumeUnit(unit: string) {
+  return WEIGHT_VOLUME_UNITS.has(unit.trim().toLowerCase());
+}
+
+/** Initial amount + grams-per-1-unit from a Food DB serving profile. */
+function measureFromDbServing(serving: FoodServingOption | null, fallbackUnit = 'g') {
+  const unit = coerceServingUnit(serving?.unit ?? fallbackUnit);
+  if (!serving) {
+    const gramsPerOne = defaultGramsForUnit(unit);
+    return {
+      servingUnit: unit,
+      servingAmount: isWeightOrVolumeUnit(unit) ? 100 : 1,
+      servingGramsEquivalent: gramsPerOne,
+    };
+  }
+  const gramsPerOne = gramsPerUnit(serving);
+  // Weight/volume profiles are often "100 g = 100 g" — start at that portion.
+  // Countable units (piece, cup, bowl…) always start at 1 of that unit.
+  const servingAmount = isWeightOrVolumeUnit(unit)
+    ? Math.max(Number(serving.amount) || 0, 0.01)
+    : 1;
+  return {
+    servingUnit: unit,
+    servingAmount,
+    servingGramsEquivalent: gramsPerOne,
+  };
+}
+
 function applyFoodFromDb(food: NutritionFood): Partial<DetectedFoodItem> {
   const per100 = {
     caloriesKcal: food.nutritionPer100g.caloriesKcal ?? 0,
@@ -96,24 +126,20 @@ function applyFoodFromDb(food: NutritionFood): Partial<DetectedFoodItem> {
     sodiumMg: food.nutritionPer100g.sodiumMg,
   };
   const defaultServing = pickDefaultServing(food.servings);
-  const servingUnit = coerceServingUnit(defaultServing?.unit ?? 'g');
-  // Always start at 1 of the chosen unit — never auto-fill 100.
-  const measureAmount = 1;
-  const servingGramsEquivalent = defaultServing
-    ? gramsPerUnit(defaultServing)
-    : defaultGramsForUnit(servingUnit);
-  const grams = Math.round(measureAmount * servingGramsEquivalent * 100) / 100;
+  const measure = measureFromDbServing(defaultServing);
+  const grams =
+    Math.round(measure.servingAmount * measure.servingGramsEquivalent * 100) / 100;
 
   return {
     label: food.name,
     foodSource: 'nutrition_db',
     nutritionFoodId: food.id,
     nutritionPer100g: per100,
-    estimatedWeightG: grams > 0 ? grams : servingGramsEquivalent,
-    nutrition: nutritionFromPer100g(per100, grams > 0 ? grams : servingGramsEquivalent),
-    servingUnit,
-    servingAmount: measureAmount,
-    servingGramsEquivalent,
+    estimatedWeightG: grams,
+    nutrition: nutritionFromPer100g(per100, grams),
+    servingUnit: measure.servingUnit,
+    servingAmount: measure.servingAmount,
+    servingGramsEquivalent: measure.servingGramsEquivalent,
     confidence: 1,
   };
 }
@@ -191,36 +217,37 @@ function CoachIngredientRow({
   }
 
   function handleDbUnitChange(unit: string) {
-    const serving = dbServings.find((s) => s.unit === unit);
-    const perUnit = serving ? gramsPerUnit(serving) : defaultGramsForUnit(unit);
-    const previousUnit = (item.servingUnit ?? 'g').toLowerCase();
-    const nextUnit = unit.toLowerCase();
-    let servingAmount = item.servingAmount ?? 1;
-    if (nextUnit !== 'g' && (previousUnit === 'g' || servingAmount >= 100)) {
-      servingAmount = 1;
-    } else if (nextUnit === 'g' && previousUnit !== 'g') {
-      servingAmount = item.estimatedWeightG || 1;
-    }
+    const nextUnit = coerceServingUnit(unit);
+    const serving =
+      dbServings.find((s) => coerceServingUnit(s.unit) === nextUnit) ??
+      dbServings.find((s) => s.unit === unit) ??
+      null;
+    const measure = measureFromDbServing(
+      serving ? { ...serving, unit: nextUnit } : null,
+      nextUnit,
+    );
     commitServing({
-      servingAmount,
-      servingUnit: unit,
-      servingGramsEquivalent: perUnit,
+      servingAmount: measure.servingAmount,
+      servingUnit: measure.servingUnit,
+      servingGramsEquivalent: measure.servingGramsEquivalent,
     });
   }
 
   function handleManualUnitChange(unit: string) {
     const previousUnit = (item.servingUnit ?? 'g').toLowerCase();
-    const nextUnit = unit.toLowerCase();
+    const nextUnit = coerceServingUnit(unit);
     let servingAmount = item.servingAmount ?? 1;
-    if (nextUnit === 'g' && previousUnit !== 'g') {
-      servingAmount = item.estimatedWeightG || 1;
-    } else if (previousUnit === 'g' && nextUnit !== 'g') {
+    if (isWeightOrVolumeUnit(nextUnit) && !isWeightOrVolumeUnit(previousUnit)) {
+      servingAmount = item.estimatedWeightG || 100;
+    } else if (!isWeightOrVolumeUnit(nextUnit) && isWeightOrVolumeUnit(previousUnit)) {
+      servingAmount = 1;
+    } else if (!isWeightOrVolumeUnit(nextUnit)) {
       servingAmount = 1;
     }
     commitServing({
       servingAmount,
-      servingUnit: unit,
-      servingGramsEquivalent: defaultGramsForUnit(unit),
+      servingUnit: nextUnit,
+      servingGramsEquivalent: defaultGramsForUnit(nextUnit),
     });
   }
 
@@ -230,11 +257,22 @@ function CoachIngredientRow({
         ? dbServings
             .map((s) => ({ ...s, unit: coerceServingUnit(s.unit) }))
             .filter((s, idx, arr) => arr.findIndex((x) => x.unit === s.unit) === idx)
-            .map((s) => ({
-              value: s.unit,
-              label: s.unit === 'g' ? 'g' : `${servingUnitLabel(s.unit)} (${Math.round(gramsPerUnit(s))}g)`,
-            }))
-        : [{ value: coerceServingUnit(item.servingUnit), label: servingUnitLabel(item.servingUnit ?? 'g') }];
+            .map((s) => {
+              const per = Math.round(gramsPerUnit(s));
+              return {
+                value: s.unit,
+                label:
+                  s.unit === 'g' || s.unit === 'ml'
+                    ? `${servingUnitLabel(s.unit)} · ${per}g each`
+                    : `${servingUnitLabel(s.unit)} (${per}g)`,
+              };
+            })
+        : [
+            {
+              value: coerceServingUnit(item.servingUnit),
+              label: servingUnitLabel(item.servingUnit ?? 'g'),
+            },
+          ];
       const unit = coerceServingUnit(item.servingUnit ?? options[0]?.value ?? 'g');
       if (!options.some((o) => o.value === unit)) {
         return [{ value: unit, label: servingUnitLabel(unit) }, ...options];
