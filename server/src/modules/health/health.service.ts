@@ -1,17 +1,16 @@
 import { AppDataSource } from "../../config/database";
 import { redisService } from "../../services/redis.service";
 import { env } from "../../config/env";
-import { openRouterService } from "../ai/openrouter.service";
+import { claudeService } from "../ai/claude.service";
 
 export const healthService = {
   getStatus() {
-    const apiKeyStatus = openRouterService.getApiKeyStatus();
+    const apiKeyStatus = claudeService.getApiKeyStatus();
     return {
       ok: apiKeyStatus === "configured",
-      provider: "openrouter",
-      model: env.OPENROUTER_MODEL,
-      imageDetail: env.OPENROUTER_IMAGE_DETAIL,
-      temperature: env.OPENROUTER_TEMPERATURE,
+      provider: "anthropic",
+      model: env.ANTHROPIC_MODEL,
+      temperature: env.ANTHROPIC_TEMPERATURE,
       apiKeyStatus,
       timestamp: new Date().toISOString(),
     };

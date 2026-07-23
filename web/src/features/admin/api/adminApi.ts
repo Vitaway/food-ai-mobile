@@ -253,7 +253,7 @@ export type AdminUserDetail = {
       analyzing: number;
     };
   };
-  assignedCoachIds: string[];
+  assignedCoachIds?: string[];
   recentMeals: Array<{
     id: string;
     clientId: string;
@@ -329,6 +329,12 @@ export async function adminResetUserPassword(
       body: JSON.stringify(payload ?? { sendEmail: true }),
     },
   );
+}
+
+export async function deleteAdminUser(userId: string) {
+  return apiRequest<{ ok: boolean; deletedAt: string }>(`/admin/users/${userId}`, {
+    method: 'DELETE',
+  });
 }
 
 export async function fetchAdminPatientView(userId: string) {
@@ -526,12 +532,40 @@ export type UpdateOrganizationPayload = {
   notes?: string | null;
 };
 
+export type AdminOrganizationMetrics = {
+  organizationId: string;
+  organizationName: string;
+  members: {
+    total: number;
+    patients: number;
+    coaches: number;
+    orgAdmins: number;
+    active: number;
+  };
+  patients: {
+    total: number;
+    inactive: number;
+    unassigned: number;
+  };
+  meals: {
+    total: number;
+    inReview: number;
+    analyzing: number;
+    thisWeek: number;
+  };
+  timestamp: string;
+};
+
 export async function fetchOrganizations(): Promise<AdminOrganization[]> {
   return apiRequest('/admin/organizations');
 }
 
 export async function fetchOrganization(id: string): Promise<AdminOrganizationDetail> {
   return apiRequest(`/admin/organizations/${id}`);
+}
+
+export async function fetchOrganizationMetrics(id: string): Promise<AdminOrganizationMetrics> {
+  return apiRequest(`/admin/organizations/${id}/metrics`);
 }
 
 export async function createOrganization(payload: CreateOrganizationPayload) {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { ClientPanel } from '@/components/coach/ClientPanel';
 import { ClinicalAssessmentPanel } from '@/components/coach/ClinicalAssessmentPanel';
@@ -6,31 +7,36 @@ import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { DataTable, type DataTableColumn } from '@/components/ui/DataTable';
 import { Pagination } from '@/components/ui/Pagination';
 import { KpiStrip } from '@/components/ui/KpiStrip';
-import { FilterChip } from '@/components/ui/StatusPill';
+import { Tabs } from '@/components/ui/Tabs';
 import { StatusBadge } from '@/components/ui/Badge';
 import { Select } from '@/components/ui/Select';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Button } from '@/components/ui/Button';
-import { TextAreaField, TextField, FieldLabel } from '@/components/ui/Field';
+import { FieldLabel, TextAreaField, TextField } from '@/components/ui/Field';
+import { PhoneField } from '@/components/ui/PhoneField';
+import { StatusPill } from '@/components/ui/StatusPill';
 import {
   useAdminPatientSummary,
   useAdminPatientView,
+  useAdminResetPassword,
+  useAdminUserDetail,
+  useDeleteAdminUser,
+  useOrganizations,
   useSetAdminClientCoaches,
   useUpdateAdminConsumerProfile,
+  useUpdateAdminUser,
 } from '@/features/admin/hooks/useAdminQueries';
-import { fetchAdminCoaches } from '@/features/admin/api/adminApi';
-import { fetchAdminPatientCoachingInsights } from '@/features/admin/api/adminApi';
+import { fetchAdminCoaches, fetchAdminPatientCoachingInsights } from '@/features/admin/api/adminApi';
+import { ADMIN_ROUTES } from '@/features/auth/constants';
 import { formatMealType, formatRelativeTime } from '@/lib/utils';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
+import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { MealSubmission } from '@/types';
-import {
-  COMMON_ALLERGY_OPTIONS,
-  GOAL_PACE_OPTIONS,
-  HEALTH_GOAL_OPTIONS,
-} from '@/lib/clinicalAssessment';
 
 const MEALS_PAGE_SIZE = 10;
+
+type PatientTab = 'overview' | 'assessment' | 'meals' | 'notes' | 'settings';
 
 type AdminPatientProfileViewProps = {
   userId: string;
@@ -79,9 +85,7 @@ function CoachAssignmentPanel({
     setSelected(assignedCoachIds);
   }, [assignedCoachIds]);
 
-  const activeCoaches = coaches.filter(
-    (coach) => coach.isActive && (coach.profile || coach.id),
-  );
+  const activeCoaches = coaches.filter((coach) => coach.isActive);
 
   async function save() {
     try {
@@ -108,8 +112,8 @@ function CoachAssignmentPanel({
       }>
       <div className="space-y-3 px-3 py-3 sm:px-4">
         <p className="text-sm text-ash-grey-600">
-          Coaches assigned here receive this patient on their caseload and are notified for new
-          reviews. New patients are auto-assigned to the coach with the lightest caseload.
+          Coaches listed here get this patient on their caseload. New patients are auto-assigned to
+          the coach with the lightest caseload; you can override that here anytime.
         </p>
         {isLoading ? (
           <p className="text-sm text-ash-grey-500">Loading coaches…</p>
@@ -143,43 +147,344 @@ function CoachAssignmentPanel({
   );
 }
 
+function PatientSettingsTab({ userId }: { userId: string }) {
+  const navigate = useNavigate();
+  const toast = useToast();
+  const { confirm, dialog } = useConfirmDialog();
+  const { data, isLoading } = useAdminUserDetail(userId);
+  const { data: organizations } = useOrganizations();
+  const updateUser = useUpdateAdminUser();
+  const resetPassword = useAdminResetPassword();
+  const deleteUser = useDeleteAdminUser();
+
+  const user = data?.user;
+  const [draft, setDraft] = useState({
+    displayName: '',
+    email: '',
+    phone: '',
+    membershipTier: 'standard' as 'standard' | 'pro',
+    organizationId: '',
+  });
+
+  useEffect(() => {
+    if (!user) return;
+    setDraft({
+      displayName: user.displayName,
+      email: user.email,
+      phone: user.phone ?? '',
+      membershipTier: user.membershipTier,
+      organizationId: user.organizationId ?? data?.organization?.id ?? '',
+    });
+  }, [user, data?.organization?.id]);
+
+  const orgOptions = useMemo(
+    () => [
+      { value: '', label: 'No organization (individual)' },
+      ...(organizations ?? [])
+        .filter((org) => org.status === 'active')
+        .map((org) => ({ value: org.id, label: org.name })),
+    ],
+    [organizations],
+  );
+
+  async function saveAccount() {
+    if (!user) return;
+    try {
+      await updateUser.mutateAsync({
+        userId,
+        payload: {
+          displayName: draft.displayName.trim(),
+          email: draft.email.trim(),
+          phone: draft.phone.trim() || null,
+          membershipTier: draft.membershipTier,
+          organizationId: draft.organizationId || undefined,
+          organization: draft.organizationId
+            ? organizations?.find((o) => o.id === draft.organizationId)?.name
+            : undefined,
+        },
+      });
+      toast.success('Account settings saved.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not save account settings'));
+    }
+  }
+
+  async function handleResetPassword() {
+    if (!user) return;
+    const ok = await confirm({
+      title: 'Email a new password?',
+      description: `${user.displayName} will receive a temporary password by email and be signed out everywhere.`,
+      confirmLabel: 'Send reset email',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      const result = await resetPassword.mutateAsync({ userId, sendEmail: true });
+      toast.success(
+        result.emailSent ? 'Password reset email sent.' : 'Password was reset.',
+        'Password reset',
+      );
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not reset password'));
+    }
+  }
+
+  async function handleToggleActive() {
+    if (!user) return;
+    const next = !user.isActive;
+    const ok = await confirm({
+      title: next ? 'Activate account?' : 'Deactivate account?',
+      description: next
+        ? `${user.displayName} will be able to sign in again.`
+        : `${user.displayName} will be blocked from signing in until reactivated.`,
+      confirmLabel: next ? 'Activate' : 'Deactivate',
+      tone: next ? 'primary' : 'danger',
+    });
+    if (!ok) return;
+    try {
+      await updateUser.mutateAsync({ userId, payload: { isActive: next } });
+      toast.success(next ? 'Account activated.' : 'Account deactivated.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not update account status'));
+    }
+  }
+
+  async function handleRemoveFromOrganization() {
+    if (!user?.organizationId && !data?.organization) {
+      toast.error('This user is not in an organization.');
+      return;
+    }
+    const ok = await confirm({
+      title: 'Remove from organization?',
+      description: `${user?.displayName} will become an individual account with no organization link.`,
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await updateUser.mutateAsync({
+        userId,
+        payload: { organizationId: '' },
+      });
+      setDraft((prev) => ({ ...prev, organizationId: '' }));
+      toast.success('Removed from organization.');
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not remove organization'));
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!user) return;
+    const ok = await confirm({
+      title: 'Permanently delete this account?',
+      description:
+        'This removes patient data, meals, and clinical assessments, then tombstones the login. This cannot be undone.',
+      confirmLabel: 'Delete account',
+      tone: 'danger',
+    });
+    if (!ok) return;
+    try {
+      await deleteUser.mutateAsync(userId);
+      toast.success('Account deleted.');
+      navigate(ADMIN_ROUTES.users);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, 'Could not delete account'));
+    }
+  }
+
+  if (isLoading || !user) {
+    return <p className="text-sm text-ash-grey-500">Loading settings…</p>;
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-5 xl:grid-cols-2">
+        <DashboardPanel
+          title="Account"
+          action={
+            <Button size="sm" disabled={updateUser.isPending} onClick={() => void saveAccount()}>
+              Save changes
+            </Button>
+          }>
+          <div className="space-y-4 px-3 py-3 sm:px-4">
+            <TextField
+              label="Display name"
+              value={draft.displayName}
+              onChange={(e) => setDraft((prev) => ({ ...prev, displayName: e.target.value }))}
+            />
+            <TextField
+              label="Email"
+              type="email"
+              value={draft.email}
+              onChange={(e) => setDraft((prev) => ({ ...prev, email: e.target.value }))}
+            />
+            <PhoneField
+              label="Phone"
+              value={draft.phone}
+              onChange={(phone) => setDraft((prev) => ({ ...prev, phone }))}
+            />
+            <div>
+              <FieldLabel>Membership tier</FieldLabel>
+              <p className="mb-1.5 text-xs text-ash-grey-500">
+                Pro patients jump to the front of the coach review queue.
+              </p>
+              <Select
+                aria-label="Membership tier"
+                value={draft.membershipTier}
+                onChange={(next) =>
+                  setDraft((prev) => ({ ...prev, membershipTier: next as 'standard' | 'pro' }))
+                }
+                options={[
+                  { value: 'standard', label: 'Standard' },
+                  { value: 'pro', label: 'Pro (priority reviews)' },
+                ]}
+              />
+            </div>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="Organization">
+          <div className="space-y-4 px-3 py-3 sm:px-4">
+            <div>
+              <FieldLabel>Assign to organization</FieldLabel>
+              <p className="mb-1.5 text-xs text-ash-grey-500">
+                Link this patient to a clinic, company, or partner account.
+              </p>
+              <Select
+                aria-label="Organization"
+                value={draft.organizationId}
+                onChange={(next) => setDraft((prev) => ({ ...prev, organizationId: next }))}
+                options={orgOptions}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" disabled={updateUser.isPending} onClick={() => void saveAccount()}>
+                Save organization
+              </Button>
+              {(user.organizationId || data.organization) && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={updateUser.isPending}
+                  onClick={() => void handleRemoveFromOrganization()}>
+                  Remove from organization
+                </Button>
+              )}
+            </div>
+            {data.organization ? (
+              <div className="rounded-xl border border-ash-grey-200 bg-ash-grey-50 px-4 py-3 text-sm text-ash-grey-600">
+                Current: <span className="font-medium text-ash-grey-900">{data.organization.name}</span>
+                <StatusPill tone={data.organization.status === 'active' ? 'good' : 'muted'} className="ml-2">
+                  {data.organization.status}
+                </StatusPill>
+              </div>
+            ) : (
+              <p className="text-sm text-ash-grey-500">Not linked to an organization.</p>
+            )}
+          </div>
+        </DashboardPanel>
+      </div>
+
+      <div className="grid gap-5 xl:grid-cols-2">
+        <DashboardPanel title="Security">
+          <div className="space-y-4 px-3 py-3 sm:px-4">
+            <p className="text-sm text-ash-grey-600">
+              Send a temporary password by email. The user is signed out of all sessions.
+            </p>
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={resetPassword.isPending}
+              onClick={() => void handleResetPassword()}>
+              {resetPassword.isPending ? 'Sending…' : 'Email new password'}
+            </Button>
+            <dl className="grid gap-2 border-t border-ash-grey-100 pt-3 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-ash-grey-500">Referral code</dt>
+                <dd className="font-medium text-ash-grey-900">{user.referralCode ?? '—'}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-ash-grey-500">Registration source</dt>
+                <dd className="font-medium capitalize text-ash-grey-900">
+                  {user.registrationSource ?? 'individual'}
+                </dd>
+              </div>
+              {data.subscription ? (
+                <>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-ash-grey-500">Subscription</dt>
+                    <dd className="font-medium text-ash-grey-900">{data.subscription.planCode}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-ash-grey-500">Billing status</dt>
+                    <dd className="font-medium capitalize text-ash-grey-900">{data.subscription.status}</dd>
+                  </div>
+                </>
+              ) : null}
+            </dl>
+          </div>
+        </DashboardPanel>
+
+        <DashboardPanel title="Danger zone">
+          <div className="space-y-4 px-3 py-3 sm:px-4">
+            <div className="rounded-xl border border-ash-grey-200 bg-ash-grey-50 px-4 py-3">
+              <p className="font-medium text-ash-grey-900">
+                {user.isActive ? 'Deactivate account' : 'Reactivate account'}
+              </p>
+              <p className="mt-1 text-sm text-ash-grey-600">
+                {user.isActive
+                  ? 'Blocks sign-in without deleting patient history.'
+                  : 'Restores sign-in access for this account.'}
+              </p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                disabled={updateUser.isPending}
+                onClick={() => void handleToggleActive()}>
+                {user.isActive ? 'Deactivate' : 'Activate'}
+              </Button>
+            </div>
+            <div className="rounded-xl border border-red-200 bg-red-50/70 px-4 py-3">
+              <p className="font-medium text-red-900">Delete account</p>
+              <p className="mt-1 text-sm text-red-800/80">
+                Permanently removes meals, clinical data, and login access. Prefer deactivate when you
+                only need to pause access.
+              </p>
+              <Button
+                className="mt-3"
+                size="sm"
+                variant="outline"
+                disabled={deleteUser.isPending}
+                onClick={() => void handleDeleteAccount()}>
+                {deleteUser.isPending ? 'Deleting…' : 'Delete account'}
+              </Button>
+            </div>
+          </div>
+        </DashboardPanel>
+      </div>
+
+      {dialog}
+    </div>
+  );
+}
+
 export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfileViewProps) {
   const toast = useToast();
   const { data, isLoading } = useAdminPatientView(userId);
   const { data: summary } = useAdminPatientSummary(userId);
   const updateConsumer = useUpdateAdminConsumerProfile();
-  const [tab, setTab] = useState<'overview' | 'assessment' | 'meals' | 'notes' | 'basics'>(
-    'overview',
-  );
+  const [tab, setTab] = useState<PatientTab>('overview');
   const [mealSearch, setMealSearch] = useState('');
   const [mealStatus, setMealStatus] = useState('all');
   const [mealType, setMealType] = useState('all');
   const [mealPage, setMealPage] = useState(1);
   const [adminNotes, setAdminNotes] = useState('');
-  const [basicsDraft, setBasicsDraft] = useState({
-    displayName: '',
-    goal: '',
-    goalPace: '',
-    allergies: [] as string[],
-  });
 
   useEffect(() => {
     const notes = data?.client.profile.adminNotes;
     if (typeof notes === 'string') setAdminNotes(notes);
   }, [data?.client.profile.adminNotes]);
-
-  useEffect(() => {
-    const profile = data?.client.profile;
-    if (!profile) return;
-    setBasicsDraft({
-      displayName: String(profile.displayName ?? ''),
-      goal: String(profile.goal ?? ''),
-      goalPace: String(profile.goalPace ?? ''),
-      allergies: Array.isArray(profile.allergies)
-        ? profile.allergies.map(String)
-        : [],
-    });
-  }, [data?.client.profile]);
 
   const meals = data?.meals ?? [];
   const mealTypes = useMemo(
@@ -266,32 +571,6 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
     }
   }
 
-  async function saveBasics() {
-    try {
-      await updateConsumer.mutateAsync({
-        userId,
-        payload: {
-          displayName: basicsDraft.displayName.trim() || undefined,
-          goal: basicsDraft.goal || undefined,
-          goalPace: basicsDraft.goalPace || undefined,
-          allergies: basicsDraft.allergies,
-        },
-      });
-      toast.success('Patient basics updated.');
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not save patient basics'));
-    }
-  }
-
-  function toggleAllergy(value: string) {
-    setBasicsDraft((prev) => ({
-      ...prev,
-      allergies: prev.allergies.includes(value)
-        ? prev.allergies.filter((item) => item !== value)
-        : [...prev.allergies, value],
-    }));
-  }
-
   if (isLoading) {
     return <p className="text-sm text-ash-grey-500">Loading patient profile…</p>;
   }
@@ -302,24 +581,18 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap gap-2">
-        {(
-          [
-            { id: 'overview' as const, label: 'Overview' },
-            { id: 'basics' as const, label: 'Patient basics' },
-            { id: 'assessment' as const, label: 'Clinical assessment' },
-            { id: 'meals' as const, label: 'Meals' },
-            { id: 'notes' as const, label: 'Admin notes' },
-          ] as const
-        ).map((item) => (
-          <FilterChip
-            key={item.id}
-            label={item.label}
-            active={tab === item.id}
-            onClick={() => setTab(item.id)}
-          />
-        ))}
-      </div>
+      <Tabs
+        variant="segmented"
+        active={tab}
+        onChange={(id) => setTab(id as PatientTab)}
+        tabs={[
+          { id: 'overview', label: 'Overview' },
+          { id: 'assessment', label: 'Clinical assessment' },
+          { id: 'meals', label: 'Meals', count: meals.length || undefined },
+          { id: 'notes', label: 'Admin notes' },
+          { id: 'settings', label: 'Settings' },
+        ]}
+      />
 
       {tab === 'overview' ? (
         <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
@@ -352,79 +625,6 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
             ) : null}
           </div>
         </div>
-      ) : null}
-
-      {tab === 'basics' ? (
-        <DashboardPanel
-          title="Patient-submitted details"
-          action={
-            <Button size="sm" disabled={updateConsumer.isPending} onClick={() => void saveBasics()}>
-              Save patient basics
-            </Button>
-          }>
-          <div className="space-y-4 px-3 py-3 sm:px-4">
-            <TextField
-              label="Patient display name"
-              value={basicsDraft.displayName}
-              onChange={(e) =>
-                setBasicsDraft((prev) => ({ ...prev, displayName: e.target.value }))
-              }
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <FieldLabel>Goal</FieldLabel>
-                <Select
-                  aria-label="Goal"
-                  value={basicsDraft.goal}
-                  onChange={(next) => setBasicsDraft((prev) => ({ ...prev, goal: next }))}
-                  options={[
-                    { value: '', label: 'Select' },
-                    ...HEALTH_GOAL_OPTIONS.map((opt) => ({
-                      value: opt.value,
-                      label: opt.label,
-                    })),
-                  ]}
-                />
-              </div>
-              <div>
-                <FieldLabel>Goal pace</FieldLabel>
-                <Select
-                  aria-label="Goal pace"
-                  value={basicsDraft.goalPace}
-                  onChange={(next) => setBasicsDraft((prev) => ({ ...prev, goalPace: next }))}
-                  options={[
-                    { value: '', label: 'Select' },
-                    ...GOAL_PACE_OPTIONS.map((opt) => ({
-                      value: opt.value,
-                      label: opt.label,
-                    })),
-                  ]}
-                />
-              </div>
-            </div>
-            <div>
-              <FieldLabel>Allergies</FieldLabel>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {COMMON_ALLERGY_OPTIONS.map((allergy) => {
-                  const active = basicsDraft.allergies.includes(allergy);
-                  return (
-                    <button
-                      key={allergy}
-                      type="button"
-                      onClick={() => toggleAllergy(allergy)}
-                      className={`rounded-full border px-3 py-1.5 text-sm transition ${
-                        active
-                          ? 'border-blue-spruce-600 bg-blue-spruce-600 text-white'
-                          : 'border-ash-grey-200 bg-white text-ash-grey-700 hover:border-ash-grey-300'
-                      }`}>
-                      {allergy}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </DashboardPanel>
       ) : null}
 
       {tab === 'assessment' ? (
@@ -527,6 +727,8 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
           </div>
         </DashboardPanel>
       ) : null}
+
+      {tab === 'settings' ? <PatientSettingsTab userId={userId} /> : null}
     </div>
   );
 }

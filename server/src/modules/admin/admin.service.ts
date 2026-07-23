@@ -6,7 +6,7 @@ import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { coachAssignmentsRepository } from "../coaches/coach-assignments.repository";
 import { mealsRepository } from "../meals/meals.repository";
 import { healthService } from "../health/health.service";
-import { openRouterService } from "../ai/openrouter.service";
+import { claudeService } from "../ai/claude.service";
 import { adminAuditService } from "./admin-audit.service";
 import { emailService } from "../../services/email.service";
 import { logger } from "../../config/logger";
@@ -23,6 +23,7 @@ import { authRepository } from "../auth/auth.repository";
 import { generatePatientId } from "../../utils/patient-id";
 import { generateReferralCode } from "../../utils/referral-code";
 import { ensureConsumerProfileForUser } from "../consumers/ensure-consumer-profile.util";
+import { accountLifecycleService } from "../consumers/account-lifecycle.service";
 import { normalizePhone } from "../../utils/phone.util";
 import { In } from "typeorm";
 import { ConsumerProfile } from "../meals/consumer-profile.entity";
@@ -550,8 +551,30 @@ export const adminService = {
 
     if (dto.organizationId != null || dto.organization != null) {
       if (actor.role === "organization_admin") {
-        // Org admins can only keep members inside their own org.
-        user.organizationId = actor.organizationId;
+        // Org admins can keep members in their org, or detach them (individual).
+        if (dto.organizationId === "" || dto.organization === "") {
+          if (user.organizationId !== actor.organizationId) {
+            throw new ForbiddenError("Can only remove members of your own organization");
+          }
+          if (user.role === "organization_admin") {
+            throw new BadRequestError("Cannot remove an organization admin from the organization");
+          }
+          user.organizationId = null;
+          const coach = await coachProfilesRepository.findByUserId(user.id);
+          if (coach) {
+            coach.organization = "Independent";
+            await coachProfilesRepository.save(coach);
+          }
+        } else {
+          user.organizationId = actor.organizationId;
+        }
+      } else if (dto.organizationId === "" || dto.organization === "") {
+        user.organizationId = null;
+        const coach = await coachProfilesRepository.findByUserId(user.id);
+        if (coach) {
+          coach.organization = "Independent";
+          await coachProfilesRepository.save(coach);
+        }
       } else {
         const org = await applyOrganizationToUser(user, {
           organizationId: dto.organizationId,
@@ -854,6 +877,7 @@ export const adminService = {
     }
 
     const sendEmail = dto.sendInviteEmail !== false;
+    let emailSent = false;
     if (sendEmail) {
       try {
         if (dto.role === "consumer") {
@@ -875,6 +899,7 @@ export const adminService = {
             organization: org?.name || dto.organization?.trim() || null,
           });
         }
+        emailSent = true;
       } catch (err) {
         logger.error({ err, email: user.email, role: dto.role }, "Failed to send user invite email");
       }
@@ -889,10 +914,13 @@ export const adminService = {
         role: user.role,
         organizationId: user.organizationId,
         organization: org?.name || null,
-        emailSent: sendEmail,
+        emailSent,
       },
       req,
     });
+
+    const shouldShareTempPassword =
+      !dto.password?.trim() && (env.NODE_ENV !== "production" || (sendEmail && !emailSent));
 
     return {
       user: mapUserSummary(user),
@@ -913,10 +941,8 @@ export const adminService = {
             timezone: coachProfile.timezone,
           }
         : null,
-      emailSent: sendEmail,
-      ...(env.NODE_ENV !== "production" && !dto.password?.trim()
-        ? { temporaryPassword: plainPassword }
-        : {}),
+      emailSent,
+      ...(shouldShareTempPassword ? { temporaryPassword: plainPassword } : {}),
     };
   },
 
@@ -982,14 +1008,38 @@ export const adminService = {
     return mapUserSummary(user);
   },
 
+  async deleteUser(adminId: string, actor: User, userId: string, req?: Request) {
+    if (!isPlatformAdmin(actor.role)) {
+      throw new ForbiddenError("Only platform admins can delete accounts");
+    }
+    const user = await usersRepository.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+    if (user.id === adminId) {
+      throw new BadRequestError("Cannot delete your own account");
+    }
+    if (user.role === "admin" || user.role === "super_admin") {
+      throw new BadRequestError("Cannot delete platform admin accounts");
+    }
+
+    const result = await accountLifecycleService.deleteByAdmin(adminId, userId);
+    await adminAuditService.log(adminId, "user.delete", {
+      targetType: "user",
+      targetId: userId,
+      meta: { email: user.email, role: user.role },
+      req,
+    });
+    return result;
+  },
+
   async systemStatus() {
     const readiness = await healthService.getReadiness();
     const runtime = healthService.getRuntimeMetrics();
     return {
       readiness,
       runtime,
-      openRouter: {
-        apiKeyStatus: openRouterService.getApiKeyStatus(),
+      anthropic: {
+        apiKeyStatus: claudeService.getApiKeyStatus(),
+        model: env.ANTHROPIC_MODEL,
       },
     };
   },

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArchiveIcon, PencilIcon, PlusIcon, RefreshIcon } from '@/components/icons/ActionIcons';
 import { TfctCompositionGrid } from '@/components/nutrition/TfctCompositionGrid';
 import { Button } from '@/components/ui/Button';
@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/Select';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { KpiStrip } from '@/components/ui/KpiStrip';
 import { resolveMediaUrl } from '@/lib/mediaUrls';
+import { MANUAL_SERVING_UNITS, coerceServingUnit, servingUnitLabel } from '@/lib/servingUnits';
 import { cn } from '@/lib/utils';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useToast } from '@/context/ToastContext';
@@ -19,7 +20,6 @@ import {
   createNutritionFood,
   fetchNutritionCategories,
   fetchNutritionFoodsPage,
-  fetchNutritionServingUnits,
   lookupNutritionBarcode,
   NUTRITION_FOODS_PAGE_SIZE,
   updateNutritionFood,
@@ -195,7 +195,7 @@ function formFromFood(food: NutritionFood): FoodFormState {
     servings:
       food.servings.length > 0
         ? food.servings.map((serving) => ({
-            unit: serving.unit,
+            unit: coerceServingUnit(serving.unit),
             amount: String(serving.amount),
             gramsEquivalent: String(serving.gramsEquivalent),
             isDefault: serving.isDefault,
@@ -355,7 +355,10 @@ function FoodForm({
               size="sm"
               value={serving.unit}
               onChange={(value) => updateServing(index, { unit: value })}
-              options={servingUnits.map((unit) => ({ value: unit, label: unit }))}
+              options={servingUnits.map((unit) => ({
+                value: unit,
+                label: servingUnitLabel(unit),
+              }))}
             />
             <input
               value={serving.amount}
@@ -445,10 +448,7 @@ export function NutritionDbPage() {
     queryFn: fetchNutritionCategories,
   });
 
-  const { data: servingUnits = [] } = useQuery({
-    queryKey: ['nutrition-db', 'serving-units'],
-    queryFn: fetchNutritionServingUnits,
-  });
+  const servingUnits = useMemo(() => [...MANUAL_SERVING_UNITS], []);
 
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['coach', 'nutrition-db', q, category, page],

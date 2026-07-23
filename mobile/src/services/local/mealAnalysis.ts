@@ -201,7 +201,7 @@ export function mockAnalyzeMeal(input: {
 
 /** Minimal preview when AI cannot analyze — coach reviews photo + description manually. */
 export function createCoachReviewStub(description: string): MealAnalysisPreview {
-  const cleaned = description.trim() || 'Meal pending review';
+  const cleaned = description.trim() || 'Meal';
   const title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;
   const emptyNutrition: NutritionFacts = {
     caloriesKcal: 0,
@@ -228,9 +228,9 @@ export function createCoachReviewStub(description: string): MealAnalysisPreview 
     totalNutrition: emptyNutrition,
     totalWeightG: 0,
     confidenceAvg: 0.25,
-    petals: [{ label: 'Pending review', percent: 100, color: '#9ca3af' }],
+    petals: [{ label: 'Estimating', percent: 100, color: '#9ca3af' }],
     healthFlag: 'yellow',
-    healthMessage: 'Your coach will review this meal and confirm nutrition.',
+    healthMessage: 'Nutrition will be confirmed shortly.',
   };
 }
 

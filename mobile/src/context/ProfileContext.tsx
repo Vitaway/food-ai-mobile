@@ -30,7 +30,7 @@ type ProfileDraft = Omit<
   'id' | 'macroTargets' | 'bmr' | 'tdee' | 'waterTargetMl' | 'onboardingComplete' | 'createdAt' | 'updatedAt'
 >;
 
-type AccountFields = Pick<UserProfile, 'displayName' | 'email' | 'avatarUrl'>;
+type AccountFields = Pick<UserProfile, 'displayName' | 'email' | 'avatarUrl' | 'phone'>;
 
 type ProfileContextValue = {
   profile: UserProfile | null;
@@ -85,6 +85,7 @@ function normalizeRemoteProfile(
   const draft: ProfileDraft = {
     displayName: raw.displayName,
     email: raw.email,
+    phone: raw.phone ?? existing?.phone ?? null,
     avatarUrl: raw.avatarUrl,
     dateOfBirth: raw.dateOfBirth ?? existing?.dateOfBirth,
     // Never invent body metrics for authenticated users — incomplete profiles stay incomplete.

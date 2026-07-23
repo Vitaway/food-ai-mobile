@@ -1,6 +1,6 @@
 import { BadRequestError, HttpError } from "routing-controllers";
 import { env } from "../../config/env";
-import { openRouterService } from "../ai/openrouter.service";
+import { claudeService } from "../ai/claude.service";
 import { SYSTEM_PROMPT, USER_PROMPT } from "../ai/prompts";
 import {
   MEAL_ANALYSIS_IMAGE_USER_PROMPT,
@@ -33,12 +33,17 @@ export interface PlateDetectResult {
   estimationNotes?: unknown;
 }
 
-function parseJsonResponse(text: string): Record<string, unknown> {
-  let cleaned = text.trim();
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
+function requireClaudeConfigured() {
+  const keyStatus = claudeService.getApiKeyStatus();
+  if (keyStatus === "missing") {
+    throw new HttpError(500, "ANTHROPIC_API_KEY is not set on the server");
   }
-  return JSON.parse(cleaned) as Record<string, unknown>;
+  if (keyStatus !== "configured") {
+    throw new HttpError(
+      500,
+      "ANTHROPIC_API_KEY on the server is missing or invalid. Create a Claude API key at https://console.anthropic.com/settings/keys",
+    );
+  }
 }
 
 function normalizeResult(
@@ -92,11 +97,7 @@ function normalizeResult(
     diameterSource: detected ? "computed" : null,
   };
 
-  if (
-    detected &&
-    typeof fraction === "number" &&
-    Number.isFinite(fraction)
-  ) {
+  if (detected && typeof fraction === "number" && Number.isFinite(fraction)) {
     result.effectiveDistanceCm = resolveEffectiveDistanceCm(
       fraction,
       typeof focal35 === "number" ? focal35 : null,
@@ -119,18 +120,29 @@ function normalizeResult(
   return result;
 }
 
+async function callClaudeJson(opts: {
+  system: string;
+  userText: string;
+  image?: { mimeType: string; base64: string };
+  temperature?: number;
+}): Promise<Record<string, unknown>> {
+  try {
+    return await claudeService.completeJson({
+      system: opts.system,
+      userText: opts.userText,
+      image: opts.image,
+      temperature: opts.temperature,
+    });
+  } catch (exc) {
+    const authError = claudeService.authErrorMessage(exc);
+    if (authError) throw new HttpError(502, authError);
+    throw new HttpError(502, `Claude request failed: ${String(exc)}`);
+  }
+}
+
 export const visionService = {
   async detectPlate(imageBuffer: Buffer, mimeType: string, metadataRaw: string): Promise<PlateDetectResult> {
-    const keyStatus = openRouterService.getApiKeyStatus();
-    if (keyStatus === "missing") {
-      throw new HttpError(500, "OPENROUTER_API_KEY is not set on the server");
-    }
-    if (keyStatus !== "configured") {
-      throw new HttpError(
-        500,
-        "OPENROUTER_API_KEY on the server is missing or invalid. Create a regular API key at https://openrouter.ai/keys",
-      );
-    }
+    requireClaudeConfigured();
 
     if (!imageBuffer.length) {
       throw new BadRequestError("Empty image file");
@@ -144,49 +156,22 @@ export const visionService = {
     }
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
-    const b64 = imageBuffer.toString("base64");
-    const dataUrl = `data:${mime};base64,${b64}`;
     const analysisContext = buildAnalysisContext(metadata);
-    const client = openRouterService.createClient();
 
-    let content: string;
+    let raw: Record<string, unknown>;
     try {
-      const response = await client.chat.completions.create({
-        model: env.OPENROUTER_MODEL,
-        temperature: env.OPENROUTER_TEMPERATURE,
-        response_format: { type: "json_object" },
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          {
-            role: "user",
-            content: [
-              {
-                type: "text",
-                text: USER_PROMPT.replace(
-                  "{context}",
-                  JSON.stringify(analysisContext, null, 2),
-                ),
-              },
-              {
-                type: "image_url",
-                image_url: {
-                  url: dataUrl,
-                  detail: env.OPENROUTER_IMAGE_DETAIL,
-                },
-              },
-            ],
-          },
-        ],
+      raw = await callClaudeJson({
+        system: SYSTEM_PROMPT,
+        userText: USER_PROMPT.replace("{context}", JSON.stringify(analysisContext, null, 2)),
+        image: { mimeType: mime, base64: imageBuffer.toString("base64") },
+        temperature: env.ANTHROPIC_TEMPERATURE,
       });
-      content = response.choices[0]?.message?.content ?? "{}";
     } catch (exc) {
-      const authError = openRouterService.authErrorMessage(exc);
-      if (authError) throw new HttpError(502, authError);
-      throw new HttpError(502, `OpenRouter request failed: ${String(exc)}`);
+      if (exc instanceof HttpError) throw exc;
+      throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
     }
 
     try {
-      const raw = parseJsonResponse(content);
       return normalizeResult(raw, analysisContext);
     } catch (exc) {
       throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
@@ -198,13 +183,7 @@ export const visionService = {
     mimeType: string,
     opts: { plateDiameterCm?: number | null; note?: string | null; metadataRaw?: string },
   ): Promise<MealAnalysisResult> {
-    const keyStatus = openRouterService.getApiKeyStatus();
-    if (keyStatus !== "configured") {
-      throw new HttpError(
-        500,
-        "OPENROUTER_API_KEY is not configured. Add a valid sk-or- key to server/.env",
-      );
-    }
+    requireClaudeConfigured();
     if (!imageBuffer.length) {
       throw new BadRequestError("Empty image file");
     }
@@ -217,7 +196,6 @@ export const visionService = {
     }
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
-    const dataUrl = `data:${mime};base64,${imageBuffer.toString("base64")}`;
     const userDescription = opts.note?.trim() || null;
     const analysisContext = {
       ...buildAnalysisContext(metadata),
@@ -232,25 +210,15 @@ export const visionService = {
         ).replace("{context}", contextJson)
       : MEAL_ANALYSIS_IMAGE_USER_PROMPT.replace("{context}", contextJson);
 
-    const raw = await this.callMealAnalysisModel([
-      { role: "system", content: MEAL_ANALYSIS_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: imagePrompt,
-          },
-          {
-            type: "image_url",
-            image_url: { url: dataUrl, detail: env.OPENROUTER_IMAGE_DETAIL },
-          },
-        ],
-      },
-    ]);
+    const raw = await callClaudeJson({
+      system: MEAL_ANALYSIS_SYSTEM_PROMPT,
+      userText: imagePrompt,
+      image: { mimeType: mime, base64: imageBuffer.toString("base64") },
+      temperature: Math.min(0.2, env.ANTHROPIC_TEMPERATURE + 0.1),
+    });
 
     const normalized = sanitizeMealAnalysisResult(
-      normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
+      normalizeMealAnalysisRaw(raw, env.ANTHROPIC_MODEL),
     );
     const scaled = applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
     return enrichMealAnalysisWithNutritionDb(scaled);
@@ -265,49 +233,18 @@ export const visionService = {
       throw new BadRequestError("text is required");
     }
 
-    const keyStatus = openRouterService.getApiKeyStatus();
-    if (keyStatus !== "configured") {
-      throw new HttpError(
-        500,
-        "OPENROUTER_API_KEY is not configured. Add a valid sk-or- key to server/.env",
-      );
-    }
+    requireClaudeConfigured();
 
-    const raw = await this.callMealAnalysisModel([
-      { role: "system", content: MEAL_ANALYSIS_SYSTEM_PROMPT },
-      {
-        role: "user",
-        content: MEAL_ANALYSIS_TEXT_USER_PROMPT.replace("{description}", cleaned.replace(/"/g, "'")),
-      },
-    ]);
+    const raw = await callClaudeJson({
+      system: MEAL_ANALYSIS_SYSTEM_PROMPT,
+      userText: MEAL_ANALYSIS_TEXT_USER_PROMPT.replace("{description}", cleaned.replace(/"/g, "'")),
+      temperature: Math.min(0.2, env.ANTHROPIC_TEMPERATURE + 0.1),
+    });
 
     const normalized = sanitizeMealAnalysisResult(
-      normalizeMealAnalysisRaw(raw, env.OPENROUTER_MODEL),
+      normalizeMealAnalysisRaw(raw, env.ANTHROPIC_MODEL),
     );
     const scaled = applyPlatePortionScale(normalized, plateDiameterCm ?? null);
     return enrichMealAnalysisWithNutritionDb(scaled);
-  },
-
-  async callMealAnalysisModel(
-    messages: Array<{
-      role: "system" | "user";
-      content: string | Array<Record<string, unknown>>;
-    }>,
-  ): Promise<Record<string, unknown>> {
-    const client = openRouterService.createClient();
-    try {
-      const response = await client.chat.completions.create({
-        model: env.OPENROUTER_MODEL,
-        temperature: Math.min(0.2, env.OPENROUTER_TEMPERATURE + 0.1),
-        response_format: { type: "json_object" },
-        messages: messages as never,
-      });
-      const content = response.choices[0]?.message?.content ?? "{}";
-      return parseJsonResponse(content);
-    } catch (exc) {
-      const authError = openRouterService.authErrorMessage(exc);
-      if (authError) throw new HttpError(502, authError);
-      throw new HttpError(502, `OpenRouter meal analysis failed: ${String(exc)}`);
-    }
   },
 };

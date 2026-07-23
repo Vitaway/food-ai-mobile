@@ -4,6 +4,7 @@ import { Alert, ScrollView, View } from 'react-native';
 import { ProfileAvatarPicker } from '@/components/profile/ProfileAvatarPicker';
 import { Button } from '@/components/ui/Button';
 import { FieldInput } from '@/components/ui/FieldInput';
+import { PhoneField } from '@/components/ui/PhoneField';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { useProfile } from '@/context/ProfileContext';
@@ -16,14 +17,16 @@ export default function AccountScreen() {
   const toast = useToast();
   const { profile, updateAccount, uploadAvatar } = useProfile();
   const [displayName, setDisplayName] = useState(profile?.displayName ?? '');
+  const [phone, setPhone] = useState(profile?.phone ?? '');
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatarUrl);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setDisplayName(profile?.displayName ?? '');
+    setPhone(profile?.phone ?? '');
     setAvatarUrl(profile?.avatarUrl);
-  }, [profile?.displayName, profile?.avatarUrl]);
+  }, [profile?.displayName, profile?.phone, profile?.avatarUrl]);
 
   const memberSince = profile?.createdAt
     ? new Date(profile.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
@@ -56,6 +59,7 @@ export default function AccountScreen() {
     try {
       await updateAccount({
         displayName: trimmedName,
+        phone: phone.trim() || null,
       });
       toast.success('Account updated');
       handleBack();
@@ -84,6 +88,12 @@ export default function AccountScreen() {
           </View>
 
           <View className="gap-4 rounded-2xl border border-ash-grey-100 bg-white p-4">
+            <Text className="text-sm font-sans-semibold text-neutral-900">Account details</Text>
+            <Text className="-mt-2 text-xs leading-5 text-neutral-500">
+              Sign-in email stays fixed here. Health info (date of birth, weight, goals, allergies) lives under
+              Health profile.
+            </Text>
+
             <FieldInput
               label="Name"
               value={displayName}
@@ -91,15 +101,25 @@ export default function AccountScreen() {
               autoCapitalize="words"
               autoCorrect={false}
             />
+
             {profile?.email ? (
               <View>
                 <Text className="mb-2 text-sm font-sans-medium text-neutral-700">Email</Text>
                 <View className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3">
                   <Text className="text-base text-neutral-700">{profile.email}</Text>
                 </View>
-                <Text className="mt-1.5 text-xs text-neutral-500">Email is tied to your sign-in and cannot be changed here.</Text>
+                <Text className="mt-1.5 text-xs text-neutral-500">
+                  Used to sign in. Contact support to change it.
+                </Text>
               </View>
             ) : null}
+
+            <PhoneField
+              label="Phone (optional)"
+              value={phone}
+              onChange={setPhone}
+              hint="For coach follow-ups and account recovery. Include country code."
+            />
           </View>
 
           {memberSince ? (

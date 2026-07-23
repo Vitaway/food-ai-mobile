@@ -126,9 +126,12 @@ export function QueuePage() {
       cell: (item) => (
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="font-semibold text-ash-grey-900">
-            {formatCoachPatientLabel(item.client.patientId ?? item.meal.clientId, item.client.profile.displayName)}
+            {formatCoachPatientLabel(
+              item.client.patientId ?? item.meal.clientId,
+              item.client.profile.displayName,
+            )}
           </span>
-          {(item.meal.isProPriority || item.client.membershipTier === 'pro') ? (
+          {item.meal.isProPriority || item.client.membershipTier === 'pro' ? (
             <StatusPill tone="good">Pro</StatusPill>
           ) : null}
           {item.meal.queueNeedsPickup ? <StatusPill tone="bad">Team alert</StatusPill> : null}
@@ -150,10 +153,8 @@ export function QueuePage() {
       header: 'Working on',
       cell: (item) => {
         const meal = item.meal;
-        const isMine =
-          coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id;
-        const pickedByOther =
-          meal.queueIsPicked && meal.queuePickedByCoachId && !isMine;
+        const isMine = coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id;
+        const pickedByOther = meal.queueIsPicked && meal.queuePickedByCoachId && !isMine;
 
         if (pickedByOther) {
           return (
@@ -324,12 +325,12 @@ export function QueuePage() {
             rowKey={(item) => item.meal.id}
             onRowClick={(item) => {
               const meal = item.meal;
-              const isMine =
-                coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id;
-              const blocked =
-                meal.queueIsPicked && meal.queuePickedByCoachId && !isMine;
+              const isMine = coachProfile?.id && meal.queuePickedByCoachId === coachProfile.id;
+              const blocked = meal.queueIsPicked && meal.queuePickedByCoachId && !isMine;
               if (blocked) {
-                toast.error(`${meal.queuePickedByCoachName ?? 'Another coach'} is already working on this review.`);
+                toast.error(
+                  `${meal.queuePickedByCoachName ?? 'Another coach'} is already working on this review.`,
+                );
                 return;
               }
               navigate(`/coach/queue/${meal.id}`);

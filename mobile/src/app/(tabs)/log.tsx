@@ -49,10 +49,11 @@ const STEP_TITLES: Record<FlowStep, string> = {
   results: 'Review & submit',
 };
 
-function fallbackCoachDescription(opts: { imageUri?: string | null; mealDescription?: string; textInput?: string }) {
+/** Label for coach-only stubs when AI is unavailable — never use marketing/status copy here. */
+function stubMealLabel(opts: { imageUri?: string | null; mealDescription?: string; textInput?: string }) {
   const described = opts.mealDescription?.trim() || opts.textInput?.trim();
   if (described) return described;
-  return opts.imageUri ? 'Meal photo submitted for coach review' : 'Meal submitted for coach review';
+  return opts.imageUri ? 'Meal photo' : 'Meal';
 }
 
 export default function LogMealScreen() {
@@ -166,11 +167,11 @@ export default function LogMealScreen() {
       setStep('results');
     } catch (error) {
       const fallback = createCoachReviewStub(
-        fallbackCoachDescription({ imageUri, mealDescription }),
+        stubMealLabel({ imageUri, mealDescription }),
       );
       setAnalysis(fallback);
       setStep('results');
-      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal.');
     } finally {
       setAnalyzing(false);
       setAnalyzePhase(null);
@@ -199,11 +200,11 @@ export default function LogMealScreen() {
       setStep('results');
     } catch (error) {
       const fallback = createCoachReviewStub(
-        fallbackCoachDescription({ textInput }),
+        stubMealLabel({ textInput }),
       );
       setAnalysis(fallback);
       setStep('results');
-      toast.info('Instant insights are unavailable right now. You can still submit this meal for coach review.');
+      toast.info('Instant insights are unavailable right now. You can still submit this meal.');
     } finally {
       setAnalyzing(false);
       setAnalyzePhase(null);
@@ -221,7 +222,7 @@ export default function LogMealScreen() {
   const submitToCoachWithoutAi = useCallback(async () => {
     const description = mealDescription.trim();
     if (description.length < 3) {
-      toast.error('Describe what you ate so your coach can review it.');
+      toast.error('Describe what you ate before submitting.');
       return;
     }
     if (analyzing || saving) return;
@@ -232,7 +233,7 @@ export default function LogMealScreen() {
     try {
       setAnalysis(createCoachReviewStub(description));
       setStep('results');
-      toast.info('Your coach will confirm nutrition from your photo and description.', 'Sent for review');
+      toast.info('Nutrition will be confirmed from your photo and description.', 'Ready to submit');
     } finally {
       setAnalyzing(false);
       setAnalyzePhase(null);
@@ -413,7 +414,7 @@ export default function LogMealScreen() {
         analysis,
       });
       resetFlow();
-      toast.success('Meal sent for coach review.', 'Submitted');
+      toast.success('Your meal was logged.', 'Saved');
       push(`/meal/${meal.id}`);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
@@ -469,7 +470,7 @@ export default function LogMealScreen() {
     if (step === 'results' && analysis) {
       return (
         <Button
-          label={saving ? 'Submitting…' : 'Submit for coach review'}
+          label={saving ? 'Submitting…' : 'Submit meal'}
           variant="secondary"
           onPress={handleSave}
           disabled={saving || !selectedMealType}

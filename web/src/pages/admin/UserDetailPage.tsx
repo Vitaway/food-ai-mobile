@@ -13,17 +13,12 @@ import { ADMIN_ROUTES } from '@/features/auth/constants';
 import {
   useAdminResetPassword,
   useAdminUserDetail,
-  useOrganizations,
   useUpdateAdminCoachProfile,
   useUpdateAdminUser,
 } from '@/features/admin/hooks/useAdminQueries';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
-import {
-  selectIsOrganizationAdmin,
-  useAuthStore,
-} from '@/features/auth/stores/authStore';
 
 const USER_ROLE_OPTIONS = [
   { value: 'consumer', label: 'Patient / consumer' },
@@ -38,8 +33,10 @@ function isCoachRole(role: string) {
   return role === 'coach' || role === 'nutrition_coach';
 }
 
-function roleRequiresOrganization(role: string) {
-  return role === 'organization_admin';
+function roleRequiresOrganization(role: string, existingOrganization?: string | null) {
+  if (role === 'organization_admin') return true;
+  if (isCoachRole(role) && !existingOrganization?.trim()) return true;
+  return false;
 }
 
 function tierTone(tier: string): 'info' | 'good' | 'muted' {
@@ -53,11 +50,9 @@ export function AdminUserDetailPage() {
   const toast = useToast();
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const { data, isLoading, isError } = useAdminUserDetail(id ?? null);
-  const { data: organizations = [] } = useOrganizations();
   const updateUser = useUpdateAdminUser();
   const updateCoach = useUpdateAdminCoachProfile();
   const resetPassword = useAdminResetPassword();
-  const isOrgAdmin = useAuthStore(selectIsOrganizationAdmin);
 
   const [accountDraft, setAccountDraft] = useState<Record<string, string>>({});
   const [coachDraft, setCoachDraft] = useState<Record<string, string>>({});
@@ -66,27 +61,20 @@ export function AdminUserDetailPage() {
   const user = data?.user;
   const coachProfile = data?.coachProfile;
   const isPatient = Boolean(data?.consumerProfile);
-  const currentRole = accountDraft.role ?? user?.role ?? '';
-  const showOrganizationField =
-    roleRequiresOrganization(currentRole) ||
-    isCoachRole(currentRole) ||
-    Boolean(user?.organizationId) ||
-    Boolean(data?.organization);
 
   async function saveAccount() {
     if (!id || !user) return;
 
     const nextRole = accountDraft.role ?? user.role;
-    const nextOrganizationId =
-      accountDraft.organizationId ?? user.organizationId ?? data?.organization?.id ?? '';
+    const nextOrganization =
+      accountDraft.organization ?? coachDraft.organization ?? coachProfile?.organization ?? '';
     const roleChanged = nextRole !== user.role;
 
-    if (roleRequiresOrganization(nextRole) && !nextOrganizationId.trim() && !isOrgAdmin) {
-      toast.error('Select an organization for this account type.');
-      return;
-    }
-
     if (roleChanged) {
+      if (roleRequiresOrganization(nextRole, coachProfile?.organization) && !nextOrganization.trim()) {
+        toast.error('Organization is required for this account type.');
+        return;
+      }
       const ok = await confirm({
         title: 'Confirm account type change',
         description: `Change ${user.displayName} from ${user.role} to ${nextRole}. This updates what they can access on the platform.`,
@@ -109,13 +97,10 @@ export function AdminUserDetailPage() {
 
       if (roleChanged) {
         payload.role = nextRole;
+        if (nextOrganization.trim()) payload.organization = nextOrganization.trim();
         if (accountDraft.title?.trim() || coachDraft.title?.trim()) {
           payload.title = (accountDraft.title ?? coachDraft.title)?.trim();
         }
-      }
-
-      if (showOrganizationField && nextOrganizationId.trim()) {
-        payload.organizationId = nextOrganizationId.trim();
       }
 
       await updateUser.mutateAsync({ userId: id, payload });
@@ -308,35 +293,26 @@ export function AdminUserDetailPage() {
                   }))}
                 />
               </div>
-              {showOrganizationField ? (
-                <div>
-                  <FieldLabel>
-                    Organization
-                    {roleRequiresOrganization(currentRole) ? ' *' : ''}
-                  </FieldLabel>
-                  <Select
-                    aria-label="Organization"
-                    value={
-                      accountDraft.organizationId ??
-                      user.organizationId ??
-                      data.organization?.id ??
-                      ''
-                    }
-                    onChange={(next) =>
-                      setAccountDraft((prev) => ({ ...prev, organizationId: next }))
-                    }
-                    options={[
-                      { value: '', label: 'Select organization' },
-                      ...organizations.map((org) => ({
-                        value: org.id,
-                        label: org.name,
-                      })),
-                    ]}
-                  />
-                  <p className="mt-1 text-xs text-ash-grey-500">
-                    Create organizations under Organizations, then assign members here.
-                  </p>
-                </div>
+              {roleRequiresOrganization(
+                accountDraft.role ?? user.role,
+                coachProfile?.organization ?? accountDraft.organization,
+              ) || isCoachRole(accountDraft.role ?? user.role) ? (
+                <TextField
+                  label="Organization"
+                  required={roleRequiresOrganization(
+                    accountDraft.role ?? user.role,
+                    coachProfile?.organization,
+                  )}
+                  value={
+                    accountDraft.organization ??
+                    coachDraft.organization ??
+                    coachProfile?.organization ??
+                    ''
+                  }
+                  onChange={(e) =>
+                    setAccountDraft((prev) => ({ ...prev, organization: e.target.value }))
+                  }
+                />
               ) : null}
               <div>
                 <FieldLabel>Membership tier</FieldLabel>

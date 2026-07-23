@@ -3,6 +3,7 @@ import {
   Authorized,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -135,6 +136,16 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return adminService.resetUserPassword(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized(["admin"])
+  @Delete("/users/:id")
+  deleteUser(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Req() req: Request,
+  ) {
+    return adminService.deleteUser(admin.id, admin, id, req);
   }
 
   @Authorized([...ADMIN_OR_ORG])
@@ -285,6 +296,28 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return organizationsService.create(admin, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/organizations/:id/metrics")
+  getOrganizationMetrics(@CurrentUser() admin: User, @Param("id") id: string) {
+    return organizationsService.metrics(admin, id);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Post("/organizations/:id/reports/generate")
+  generateOrganizationReport(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @QueryParam("period") period?: string,
+    @QueryParam("from") from?: string,
+    @QueryParam("to") to?: string,
+  ) {
+    return organizationsService.generateReport(admin, id, {
+      period: from || to ? (period as "custom") ?? "custom" : (period as "weekly" | "monthly") ?? "weekly",
+      from,
+      to,
+    });
   }
 
   @Authorized([...ADMIN_OR_ORG])

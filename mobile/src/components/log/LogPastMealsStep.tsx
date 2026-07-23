@@ -71,8 +71,8 @@ export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMe
       <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/40">
         <Text className="font-sans-semibold text-lg text-neutral-900">Repeat a meal</Text>
         <Text className="mt-1 text-sm leading-5 text-neutral-600">
-          Pick something you already ate. We reuse the ingredients and nutrition — then you submit for
-          coach review.
+          Pick something you already ate. We reuse the ingredients and nutrition — then you submit
+          the meal.
         </Text>
       </LogCard>
 

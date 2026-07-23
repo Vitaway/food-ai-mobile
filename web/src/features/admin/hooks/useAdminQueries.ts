@@ -19,6 +19,7 @@ import {
   confirmAdminClinicalAssessment,
   updateAdminUser,
   adminResetUserPassword,
+  deleteAdminUser,
   updateAdminConsumerProfile,
   updateAdminCoachProfile,
   fetchAuditLogs,
@@ -32,6 +33,7 @@ import {
   ensureModuleAccount,
   fetchOrganizations,
   fetchOrganization,
+  fetchOrganizationMetrics,
   createOrganization,
   updateOrganization,
   type CreateCoachPayload,
@@ -60,6 +62,7 @@ export const adminKeys = {
   adminClinicalAssessment: (id: string) => [...adminKeys.all, 'users', id, 'clinical-assessment'] as const,
   organizations: () => [...adminKeys.all, 'organizations'] as const,
   organization: (id: string) => [...adminKeys.all, 'organizations', id] as const,
+  organizationMetrics: (id: string) => [...adminKeys.all, 'organizations', id, 'metrics'] as const,
 };
 
 export function useAdminMetrics() {
@@ -177,6 +180,10 @@ export function useUpdateAdminUser() {
       void qc.invalidateQueries({ queryKey: adminKeys.users() });
       void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
       void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+      void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+      void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
+      // Invalidate all org detail/metrics queries — org id may change or clear.
+      void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'organizations'] });
     },
   });
 }
@@ -195,6 +202,20 @@ export function useAdminResetPassword() {
     }) => adminResetUserPassword(userId, { password, sendEmail }),
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: adminKeys.user(vars.userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.audit() });
+    },
+  });
+}
+
+export function useDeleteAdminUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => deleteAdminUser(userId),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.users() });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+      void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
+      void qc.invalidateQueries({ queryKey: adminKeys.metrics() });
       void qc.invalidateQueries({ queryKey: adminKeys.audit() });
     },
   });
@@ -313,13 +334,18 @@ export function useCreateAdminUser() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (payload: CreateAdminUserPayload) => createAdminUser(payload),
-    onSuccess: () => {
+    onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: adminKeys.users() });
       void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
       void qc.invalidateQueries({ queryKey: adminKeys.metrics() });
       void qc.invalidateQueries({ queryKey: adminKeys.audit() });
       void qc.invalidateQueries({ queryKey: adminKeys.modules() });
+      void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
+      if (vars.organizationId) {
+        void qc.invalidateQueries({ queryKey: adminKeys.organization(vars.organizationId) });
+        void qc.invalidateQueries({ queryKey: adminKeys.organizationMetrics(vars.organizationId) });
+      }
     },
   });
 }
@@ -396,6 +422,14 @@ export function useOrganization(id: string | null) {
   });
 }
 
+export function useOrganizationMetrics(id: string | null) {
+  return useQuery({
+    queryKey: adminKeys.organizationMetrics(id ?? ''),
+    queryFn: () => fetchOrganizationMetrics(id!),
+    enabled: Boolean(id),
+  });
+}
+
 export function useCreateOrganization() {
   const qc = useQueryClient();
   return useMutation({
@@ -415,6 +449,7 @@ export function useUpdateOrganization() {
     onSuccess: (_data, vars) => {
       void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
       void qc.invalidateQueries({ queryKey: adminKeys.organization(vars.id) });
+      void qc.invalidateQueries({ queryKey: adminKeys.organizationMetrics(vars.id) });
     },
   });
 }

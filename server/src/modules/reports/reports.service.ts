@@ -145,6 +145,64 @@ export const reportsService = {
     return snapshot;
   },
 
+  async generateOrganizationSnapshot(
+    organizationId: string,
+    organizationName: string,
+    opts: {
+      clientIds: string[];
+      coachCount: number;
+      patientCount: number;
+    },
+    input: ReportRangeInput | "weekly" | "monthly" = "weekly",
+  ) {
+    const rangeInput: ReportRangeInput = typeof input === "string" ? { period: input } : input;
+    const { start, end, period } = resolveReportRange(rangeInput);
+    const meals = await mealsRepository.findAllMeals();
+    const clientIdSet = new Set(opts.clientIds);
+    const periodMeals = mealsInRange(meals, start, end).filter((meal) =>
+      clientIdSet.has(meal.clientId),
+    );
+    const approvedMeals = periodMeals.filter((meal) => meal.status === "approved").length;
+    const inReviewMeals = periodMeals.filter((meal) => meal.status === "in_review").length;
+    const rejectedMeals = periodMeals.filter((meal) => meal.status === "rejected").length;
+    const daysInPeriod = daysInclusive(start, end);
+    const uniqueClientsLogging = new Set(periodMeals.map((m) => m.clientId)).size;
+    const consumers = opts.patientCount;
+
+    const metrics = {
+      period,
+      organizationId,
+      organizationName,
+      mealCount: periodMeals.length,
+      approvedMeals,
+      inReviewMeals,
+      rejectedMeals,
+      approvalRatePct: pct(approvedMeals, periodMeals.length),
+      daysInPeriod,
+      avgMealsPerDay: daysInPeriod > 0 ? Number((periodMeals.length / daysInPeriod).toFixed(1)) : 0,
+      clientAdherencePct:
+        consumers > 0 ? Math.round((uniqueClientsLogging / consumers) * 100) : 0,
+      coaches: opts.coachCount,
+      consumers,
+      platformUsage: {
+        totalMealsLogged: periodMeals.length,
+        uniqueClientsLogging,
+        activeClientSharePct: pct(uniqueClientsLogging, consumers),
+      },
+    };
+
+    const snapshot = reportsRepo.create({
+      scopeType: "admin",
+      scopeId: `organization:${organizationId}`,
+      period,
+      periodStart: start,
+      periodEnd: end,
+      metrics,
+    });
+    await reportsRepo.save(snapshot);
+    return snapshot;
+  },
+
   async generateConsumerSnapshot(
     clientId: string,
     input: ReportRangeInput | "weekly" | "monthly" = "weekly",

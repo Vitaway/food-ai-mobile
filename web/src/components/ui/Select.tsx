@@ -291,11 +291,11 @@ export function Select({
               }
               onKeyDown={onListKeyDown}
               data-vitaway-select-menu=""
-              className="font-ui fixed z-[200] max-h-[280px] overflow-auto rounded-2xl border border-ash-grey-200 bg-white py-1.5 shadow-[0_16px_40px_rgba(2,52,89,0.14)] outline-none"
+              className="font-ui fixed z-[400] max-h-[280px] overflow-auto rounded-2xl border border-ash-grey-200 bg-white py-1.5 shadow-[0_16px_40px_rgba(2,52,89,0.14)] outline-none"
               style={{
                 top: menuPos.top,
                 left: menuPos.left,
-                width: Math.max(menuPos.width, 160),
+                width: Math.max(menuPos.width, 200),
                 transform: menuPos.openUp ? 'translateY(-100%)' : undefined,
               }}>
               {options.length === 0 ? (

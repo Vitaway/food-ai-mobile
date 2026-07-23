@@ -26,12 +26,6 @@ import {
   reviewToDto,
 } from "./meal-effective.util";
 import {
-  isQueuePicked,
-  queuePickFieldsForDto,
-  readQueuePick,
-  writeQueuePick,
-} from "./queue-pick.util";
-import {
   ensureCoachCanAccessClient,
   filterConsumersForCoach,
   filterMealsForCoach,
@@ -45,6 +39,11 @@ import {
   deriveMealComplexity,
   slaMinutesRemaining,
 } from "./meal-metrics.util";
+import {
+  queuePickFieldsForDto,
+  readQueuePick,
+  writeQueuePick,
+} from "./queue-pick.util";
 import { mealReviewTasksRepository } from "./meal-review-tasks.repository";
 import { coachReviewDraftsRepository } from "./coach-review-drafts.repository";
 import type { MealSubmission } from "./meal-submission.entity";
@@ -600,6 +599,63 @@ export const coachMealsService = {
     };
   },
 
+  async pickMeal(mealId: string, coachId: string) {
+    await assertCoachModule(coachId, "coaching");
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    await ensureCoachCanAccessClient(coachId, meal.clientId);
+
+    if (meal.status !== "in_review") {
+      throw new BadRequestError("Only meals in review can be picked");
+    }
+
+    const existing = readQueuePick(meal);
+    if (existing.pickedAt && existing.pickedByCoachId && existing.pickedByCoachId !== coachId) {
+      throw new ForbiddenError(
+        `This meal is already picked by ${existing.pickedByCoachName ?? "another coach"}`,
+      );
+    }
+
+    const coach = await usersRepository.findById(coachId);
+    writeQueuePick(meal, {
+      pickedByCoachId: coachId,
+      pickedByCoachName: coach?.displayName ?? "Coach",
+      pickedAt: existing.pickedAt ?? new Date().toISOString(),
+    });
+    await mealsRepository.saveMeal(meal);
+    broadcastCoachQueueToAll({ type: "queue_updated", reason: "picked", mealId });
+
+    return {
+      mealId: meal.id,
+      ...queuePickFieldsForDto(meal),
+    };
+  },
+
+  async releaseMealPick(mealId: string, coachId: string) {
+    await assertCoachModule(coachId, "coaching");
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    await ensureCoachCanAccessClient(coachId, meal.clientId);
+
+    const existing = readQueuePick(meal);
+    if (existing.pickedByCoachId && existing.pickedByCoachId !== coachId) {
+      throw new ForbiddenError("Only the coach who picked this meal can release it");
+    }
+
+    writeQueuePick(meal, {
+      pickedByCoachId: undefined,
+      pickedByCoachName: undefined,
+      pickedAt: undefined,
+    });
+    await mealsRepository.saveMeal(meal);
+    broadcastCoachQueueToAll({ type: "queue_updated", reason: "released", mealId });
+
+    return {
+      mealId: meal.id,
+      queueIsPicked: false,
+    };
+  },
+
   async reviewMeal(mealId: string, coachId: string, dto: ReviewMealDto) {
     await assertCoachModule(coachId, "coaching");
     const meal = await mealsRepository.findMealById(mealId);
@@ -610,8 +666,8 @@ export const coachMealsService = {
     if (pick.pickedByCoachId && pick.pickedByCoachId !== coachId) {
       throw new ForbiddenError("Another coach is already working on this review");
     }
-    if (!isQueuePicked(meal)) {
-      await this.pickMeal(mealId, coachId, { silent: true });
+    if (!pick.pickedAt) {
+      await this.pickMeal(mealId, coachId);
       const refreshed = await mealsRepository.findMealById(mealId);
       if (!refreshed) throw new NotFoundError("Meal not found");
       Object.assign(meal, refreshed);
@@ -723,106 +779,6 @@ export const coachMealsService = {
       });
     }
     return result;
-  },
-
-  async pickMeal(
-    mealId: string,
-    coachUserId: string,
-    options: { silent?: boolean } = {},
-  ) {
-    await assertCoachModule(coachUserId, "coaching");
-    const meal = await mealsRepository.findMealById(mealId);
-    if (!meal) throw new NotFoundError("Meal not found");
-    if (meal.status !== "in_review") {
-      throw new BadRequestError("Only meals awaiting review can be picked");
-    }
-    await ensureCoachCanAccessClient(coachUserId, meal.clientId);
-
-    const existing = readQueuePick(meal);
-    if (existing.pickedByCoachId && existing.pickedByCoachId !== coachUserId) {
-      throw new BadRequestError("Another coach is already working on this review");
-    }
-    if (existing.pickedByCoachId === coachUserId) {
-      return {
-        mealId,
-        ...queuePickFieldsForDto(meal),
-      };
-    }
-
-    const coach = await usersRepository.findById(coachUserId);
-    const pickedAt = new Date().toISOString();
-    writeQueuePick(meal, {
-      pickedByCoachId: coachUserId,
-      pickedByCoachName: coach?.displayName ?? "Coach",
-      pickedAt,
-    });
-    await mealsRepository.saveMeal(meal);
-
-    if (!options.silent) {
-      const consumer = await mealsRepository.findConsumerById(meal.clientId);
-      const clientName =
-        (typeof consumer?.profile?.displayName === "string" && consumer.profile.displayName) ||
-        meal.clientId;
-      const mealName =
-        (typeof meal.data.mealName === "string" && meal.data.mealName) || "Meal";
-      broadcastCoachQueueToAll({
-        type: "queue_updated",
-        reason: "picked",
-        mealId,
-        clientName,
-        mealName,
-        pickedByCoachId: coachUserId,
-        pickedByCoachName: coach?.displayName,
-      });
-    }
-
-    return {
-      mealId,
-      ...queuePickFieldsForDto(meal),
-    };
-  },
-
-  async releaseMealPick(mealId: string, coachUserId: string) {
-    await assertCoachModule(coachUserId, "coaching");
-    const meal = await mealsRepository.findMealById(mealId);
-    if (!meal) throw new NotFoundError("Meal not found");
-    if (meal.status !== "in_review") {
-      throw new BadRequestError("Only in-review meals can be released");
-    }
-    await ensureCoachCanAccessClient(coachUserId, meal.clientId);
-
-    const existing = readQueuePick(meal);
-    if (!existing.pickedByCoachId) {
-      return { mealId, ...queuePickFieldsForDto(meal) };
-    }
-    if (existing.pickedByCoachId !== coachUserId) {
-      const actor = await usersRepository.findById(coachUserId);
-      if (actor?.role !== "admin") {
-        throw new ForbiddenError("Only the coach who picked this review can release it");
-      }
-    }
-
-    writeQueuePick(meal, null);
-    await mealsRepository.saveMeal(meal);
-
-    const consumer = await mealsRepository.findConsumerById(meal.clientId);
-    const clientName =
-      (typeof consumer?.profile?.displayName === "string" && consumer.profile.displayName) ||
-      meal.clientId;
-    const mealName =
-      (typeof meal.data.mealName === "string" && meal.data.mealName) || "Meal";
-    broadcastCoachQueueToAll({
-      type: "queue_updated",
-      reason: "released",
-      mealId,
-      clientName,
-      mealName,
-    });
-
-    return {
-      mealId,
-      ...queuePickFieldsForDto(meal),
-    };
   },
 
   async assignClient(coachUserId: string, clientId: string, assignedBy?: string) {

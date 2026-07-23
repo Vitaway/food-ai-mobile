@@ -4,7 +4,7 @@ import { NotFoundError } from "routing-controllers";
 import { NutritionFood } from "./nutrition-food.entity";
 import { NutritionServingProfile } from "./nutrition-serving-profile.entity";
 import type { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.dto";
-import { SERVING_UNITS } from "./serving-units.util";
+import { SERVING_UNITS, normalizeServingUnit } from "./serving-units.util";
 import { bestNutritionFoodMatch } from "./nutrition-lookup.util";
 import {
   composeTfctFromLegacy,
@@ -34,7 +34,7 @@ const LEGACY_CATEGORIES = [
 function normalizeServing(serving: NutritionServingProfile) {
   return {
     id: serving.id,
-    unit: serving.unit,
+    unit: normalizeServingUnit(serving.unit),
     amount: Number(serving.amount),
     gramsEquivalent: Number(serving.gramsEquivalent),
     isDefault: serving.isDefault,
@@ -244,7 +244,7 @@ export const nutritionDbService = {
       const payload = dto.servings.map((serving, idx) =>
         servingRepo.create({
           foodId: food.id,
-          unit: serving.unit.trim().toLowerCase(),
+          unit: normalizeServingUnit(serving.unit),
           amount: String(serving.amount ?? 1),
           gramsEquivalent: String(serving.gramsEquivalent),
           isDefault: serving.isDefault ?? idx === 0,
@@ -329,7 +329,7 @@ export const nutritionDbService = {
           dto.servings.map((serving, idx) =>
             servingRepo.create({
               foodId: id,
-              unit: serving.unit.trim().toLowerCase(),
+              unit: normalizeServingUnit(serving.unit),
               amount: String(serving.amount ?? 1),
               gramsEquivalent: String(serving.gramsEquivalent),
               isDefault: serving.isDefault ?? idx === 0,
