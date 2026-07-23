@@ -7,6 +7,10 @@ import { DashboardPageHeader } from '@/components/layout/DashboardPageHeader';
 import { KpiStrip } from '@/components/ui/KpiStrip';
 import { apiRequest } from '@/lib/apiClient';
 import { cn } from '@/lib/utils';
+import {
+  selectIsOrganizationAdmin,
+  useAuthStore,
+} from '@/features/auth/stores/authStore';
 
 type ReportSnapshot = {
   id: string;
@@ -71,6 +75,8 @@ function PipelineBar({
 }
 
 export function AdminReportsPage() {
+  const isOrgAdmin = useAuthStore(selectIsOrganizationAdmin);
+  const sessionOrgId = useAuthStore((s) => s.session?.user.organizationId ?? null);
   const initial = useMemo(() => defaultRange(7), []);
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
@@ -86,6 +92,15 @@ export function AdminReportsPage() {
         from: params.from,
         to: params.to,
       });
+      if (isOrgAdmin) {
+        if (!sessionOrgId) throw new Error('Your account is not linked to an organization.');
+        return {
+          platform: await apiRequest<ReportSnapshot>(
+            `/admin/organizations/${sessionOrgId}/reports/generate?${search.toString()}`,
+            { method: 'POST' },
+          ),
+        };
+      }
       return apiRequest<GenerateResponse>(`/reports/generate?${search.toString()}`, {
         method: 'POST',
       });
@@ -129,6 +144,15 @@ export function AdminReportsPage() {
   const approved = report ? metricNum(report.metrics, 'approvedMeals') : 0;
   const inReview = report ? metricNum(report.metrics, 'inReviewMeals') : 0;
   const rejected = report ? metricNum(report.metrics, 'rejectedMeals') : 0;
+  const orgName =
+    typeof report?.metrics.organizationName === 'string'
+      ? report.metrics.organizationName
+      : null;
+  const reportLabel = isOrgAdmin
+    ? orgName
+      ? `Organization report · ${orgName}`
+      : 'Organization report'
+    : 'Platform report';
 
   return (
     <div className="space-y-6">
@@ -138,7 +162,9 @@ export function AdminReportsPage() {
         <div className="max-w-2xl space-y-1">
           <h2 className="font-sans text-lg font-semibold text-ash-grey-900">Date range</h2>
           <p className="text-sm text-ash-grey-600">
-            Pick a start and end date to build one platform report.
+            {isOrgAdmin
+              ? 'Pick a start and end date to build a report for your organization only.'
+              : 'Pick a start and end date to build one platform report.'}
           </p>
         </div>
 
@@ -165,7 +191,7 @@ export function AdminReportsPage() {
           />
           <Button
             icon={<CalendarIcon />}
-            disabled={generate.isPending}
+            disabled={generate.isPending || (isOrgAdmin && !sessionOrgId)}
             onClick={handleGenerate}
             className="w-full lg:w-auto">
             {generate.isPending ? 'Generating…' : 'Generate report'}
@@ -173,6 +199,11 @@ export function AdminReportsPage() {
         </div>
 
         {formError ? <p className="mt-3 text-sm font-medium text-red-600">{formError}</p> : null}
+        {isOrgAdmin && !sessionOrgId ? (
+          <p className="mt-3 text-sm font-medium text-red-600">
+            Your account is not linked to an organization yet.
+          </p>
+        ) : null}
         {generate.isError ? (
           <p className="mt-3 text-sm font-medium text-red-600">
             {(generate.error as Error)?.message || 'Failed to generate report.'}
@@ -201,7 +232,7 @@ export function AdminReportsPage() {
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-blue-spruce-100">
-                  MiraFood · Platform report
+                  MiraFood · {reportLabel}
                 </p>
                 <h2 className="mt-1 font-sans text-2xl font-normal tracking-tight">
                   {new Date(report.periodStart).toLocaleDateString(undefined, {
@@ -266,7 +297,9 @@ export function AdminReportsPage() {
               </div>
 
               <div className="rounded-xl border border-ash-grey-200 bg-ash-grey-50/50 p-4">
-                <h3 className="text-sm font-semibold text-ash-grey-900">Platform reach</h3>
+                <h3 className="text-sm font-semibold text-ash-grey-900">
+                  {isOrgAdmin ? 'Organization reach' : 'Platform reach'}
+                </h3>
                 <dl className="mt-4 space-y-3 text-sm">
                   <div className="flex justify-between gap-3">
                     <dt className="text-ash-grey-600">Patients</dt>

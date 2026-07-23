@@ -85,26 +85,27 @@ function resolveApiBaseUrl(): string {
 
   if (__DEV__) {
     const port = getDevApiPort(fromEnv || `http://127.0.0.1:${DEFAULT_DEV_PORT}`);
+    const metroHost = getMetroDevHost();
+    const isLoopbackHost =
+      !metroHost || metroHost === 'localhost' || metroHost === '127.0.0.1';
 
     if (!fromEnv || isProdApiHost(fromEnv)) {
-      const host = getMetroDevHost() ?? '127.0.0.1';
+      const host = !isLoopbackHost ? metroHost! : '127.0.0.1';
       return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
 
     // Another local API (e.g. daily-focus) may already occupy :3010.
     if (fromEnv.endsWith(':3010')) {
-      const host = getMetroDevHost() ?? '127.0.0.1';
+      const host = !isLoopbackHost ? metroHost! : '127.0.0.1';
       return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
 
     const isLocalhost = fromEnv.includes('127.0.0.1') || fromEnv.includes('localhost');
 
-    // Physical devices cannot reach the dev machine via 127.0.0.1 — use Metro's LAN host.
-    if (isLocalhost && Constants.isDevice) {
-      const host = getMetroDevHost();
-      if (host) {
-        return buildDevApiUrl(host, port);
-      }
+    // Physical phones / Expo Go cannot reach the Mac via 127.0.0.1 — use Metro LAN host.
+    // Prefer any non-loopback Metro host in __DEV__ (not only Constants.isDevice; Expo Go can be flaky there).
+    if (isLocalhost && !isLoopbackHost) {
+      return buildDevApiUrl(metroHost!, port);
     }
 
     // Android emulator maps host loopback to 10.0.2.2

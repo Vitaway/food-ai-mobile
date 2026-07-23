@@ -13,7 +13,7 @@ export function AdminSystemPage() {
   const readiness = system as
     | {
         readiness?: { checks?: { database?: boolean; redis?: boolean } };
-        openRouter?: { apiKeyStatus?: string };
+        anthropic?: { apiKeyStatus?: string; model?: string };
       }
     | undefined;
 
@@ -71,11 +71,11 @@ export function AdminSystemPage() {
               warn: !readiness.readiness?.checks?.redis,
             },
             {
-              label: 'OpenRouter',
+              label: 'Claude (Anthropic)',
               value:
-                readiness.openRouter?.apiKeyStatus === 'configured' ? 'Configured' : 'Missing',
-              warn: readiness.openRouter?.apiKeyStatus !== 'configured',
-              caption: readiness.openRouter?.apiKeyStatus,
+                readiness.anthropic?.apiKeyStatus === 'configured' ? 'Configured' : 'Missing',
+              warn: readiness.anthropic?.apiKeyStatus !== 'configured',
+              caption: readiness.anthropic?.model ?? readiness.anthropic?.apiKeyStatus,
             },
           ]}
         />

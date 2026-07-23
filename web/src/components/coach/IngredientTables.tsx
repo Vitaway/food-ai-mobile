@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import type { DetectedFoodItem } from '@/types';
 import {
   fetchNutritionFood,
-  fetchNutritionServingUnits,
   type NutritionFood,
 } from '@/api/nutritionDbApi';
 import { FoodDbPicker } from '@/components/coach/FoodDbPicker';
@@ -11,9 +10,11 @@ import { nutritionFromPer100g } from '@/lib/nutrition';
 import {
   MANUAL_SERVING_UNITS,
   applyServingMeasure,
+  coerceServingUnit,
   defaultGramsForUnit,
   gramsPerUnit,
   pickDefaultServing,
+  servingUnitLabel,
   type FoodServingOption,
 } from '@/lib/servingUnits';
 import { cn } from '@/lib/utils';
@@ -95,21 +96,21 @@ function applyFoodFromDb(food: NutritionFood): Partial<DetectedFoodItem> {
     sodiumMg: food.nutritionPer100g.sodiumMg,
   };
   const defaultServing = pickDefaultServing(food.servings);
-  const perUnit = defaultServing ? gramsPerUnit(defaultServing) : 1;
-  const servingAmount = defaultServing ? Math.max(defaultServing.amount, 0.01) : 100;
-  const servingUnit = defaultServing?.unit ?? 'g';
-  const servingGramsEquivalent = defaultServing ? perUnit : 1;
-  // Prefer measuring as N of the default unit (usually amount=1 for cup/piece)
-  const measureAmount = defaultServing && defaultServing.unit !== 'g' ? 1 : servingAmount;
-  const grams = Math.round(measureAmount * servingGramsEquivalent * 100) / 100 || 100;
+  const servingUnit = coerceServingUnit(defaultServing?.unit ?? 'g');
+  // Always start at 1 of the chosen unit — never auto-fill 100.
+  const measureAmount = 1;
+  const servingGramsEquivalent = defaultServing
+    ? gramsPerUnit(defaultServing)
+    : defaultGramsForUnit(servingUnit);
+  const grams = Math.round(measureAmount * servingGramsEquivalent * 100) / 100;
 
   return {
     label: food.name,
     foodSource: 'nutrition_db',
     nutritionFoodId: food.id,
     nutritionPer100g: per100,
-    estimatedWeightG: grams,
-    nutrition: nutritionFromPer100g(per100, grams),
+    estimatedWeightG: grams > 0 ? grams : servingGramsEquivalent,
+    nutrition: nutritionFromPer100g(per100, grams > 0 ? grams : servingGramsEquivalent),
     servingUnit,
     servingAmount: measureAmount,
     servingGramsEquivalent,
@@ -122,13 +123,11 @@ function CoachIngredientRow({
   onUpdateItem,
   onUpdateNutrition,
   onRemove,
-  catalogUnits,
 }: {
   item: DetectedFoodItem;
   onUpdateItem: EditableProps['onUpdateItem'];
   onUpdateNutrition: EditableProps['onUpdateNutrition'];
   onRemove: EditableProps['onRemove'];
-  catalogUnits: string[];
 }) {
   const source = item.foodSource ?? 'manual';
   const fromDb = source === 'nutrition_db';
@@ -152,7 +151,7 @@ function CoachIngredientRow({
       });
       return;
     }
-    const amount = item.estimatedWeightG > 0 ? item.estimatedWeightG : 100;
+    const amount = item.estimatedWeightG > 0 ? item.estimatedWeightG : 1;
     onUpdateItem(item.id, {
       foodSource: 'manual',
       nutritionFoodId: undefined,
@@ -194,8 +193,16 @@ function CoachIngredientRow({
   function handleDbUnitChange(unit: string) {
     const serving = dbServings.find((s) => s.unit === unit);
     const perUnit = serving ? gramsPerUnit(serving) : defaultGramsForUnit(unit);
+    const previousUnit = (item.servingUnit ?? 'g').toLowerCase();
+    const nextUnit = unit.toLowerCase();
+    let servingAmount = item.servingAmount ?? 1;
+    if (nextUnit !== 'g' && (previousUnit === 'g' || servingAmount >= 100)) {
+      servingAmount = 1;
+    } else if (nextUnit === 'g' && previousUnit !== 'g') {
+      servingAmount = item.estimatedWeightG || 1;
+    }
     commitServing({
-      servingAmount: item.servingAmount ?? 1,
+      servingAmount,
       servingUnit: unit,
       servingGramsEquivalent: perUnit,
     });
@@ -204,10 +211,9 @@ function CoachIngredientRow({
   function handleManualUnitChange(unit: string) {
     const previousUnit = (item.servingUnit ?? 'g').toLowerCase();
     const nextUnit = unit.toLowerCase();
-    // When switching away from grams, start at 1 unit; when switching to g, use current weight
     let servingAmount = item.servingAmount ?? 1;
     if (nextUnit === 'g' && previousUnit !== 'g') {
-      servingAmount = item.estimatedWeightG || 100;
+      servingAmount = item.estimatedWeightG || 1;
     } else if (previousUnit === 'g' && nextUnit !== 'g') {
       servingAmount = 1;
     }
@@ -221,26 +227,25 @@ function CoachIngredientRow({
   const unitOptions = (() => {
     if (fromDb) {
       const options = dbServings.length
-        ? dbServings.map((s) => ({
-            value: s.unit,
-            label: s.unit === 'g' ? 'g' : `${s.unit} (${Math.round(gramsPerUnit(s))}g)`,
-          }))
-        : [{ value: item.servingUnit ?? 'g', label: item.servingUnit ?? 'g' }];
-      const unit = item.servingUnit ?? options[0]?.value ?? 'g';
+        ? dbServings
+            .map((s) => ({ ...s, unit: coerceServingUnit(s.unit) }))
+            .filter((s, idx, arr) => arr.findIndex((x) => x.unit === s.unit) === idx)
+            .map((s) => ({
+              value: s.unit,
+              label: s.unit === 'g' ? 'g' : `${servingUnitLabel(s.unit)} (${Math.round(gramsPerUnit(s))}g)`,
+            }))
+        : [{ value: coerceServingUnit(item.servingUnit), label: servingUnitLabel(item.servingUnit ?? 'g') }];
+      const unit = coerceServingUnit(item.servingUnit ?? options[0]?.value ?? 'g');
       if (!options.some((o) => o.value === unit)) {
-        return [{ value: unit, label: unit }, ...options];
+        return [{ value: unit, label: servingUnitLabel(unit) }, ...options];
       }
       return options;
     }
-    return Array.from(new Set([...catalogUnits, ...MANUAL_SERVING_UNITS, item.servingUnit ?? 'g']))
-      .filter(Boolean)
-      .map((unit) => ({ value: unit, label: unit }));
+    return MANUAL_SERVING_UNITS.map((unit) => ({ value: unit, label: servingUnitLabel(unit) }));
   })();
 
-  const currentUnit = item.servingUnit ?? unitOptions[0]?.value ?? 'g';
-  const displayAmount =
-    item.servingAmount ??
-    (currentUnit === 'g' ? item.estimatedWeightG || 100 : 1);
+  const currentUnit = coerceServingUnit(item.servingUnit ?? unitOptions[0]?.value ?? 'g');
+  const displayAmount = item.servingAmount ?? 1;
 
   return (
     <tr className="border-b border-ash-grey-100 last:border-b-0">
@@ -275,6 +280,16 @@ function CoachIngredientRow({
         )}
       </td>
       <td className={tdClass}>
+        <Select
+          aria-label="Serving unit"
+          size="sm"
+          className="min-w-[6.5rem]"
+          value={currentUnit}
+          onChange={(value) => (fromDb ? handleDbUnitChange(value) : handleManualUnitChange(value))}
+          options={unitOptions}
+        />
+      </td>
+      <td className={tdClass}>
         <input
           type="number"
           min={0}
@@ -283,16 +298,6 @@ function CoachIngredientRow({
           className={cn(inputClass, 'w-[4.5rem]')}
           value={displayAmount}
           onChange={(e) => handleAmountChange(Number(e.target.value))}
-        />
-      </td>
-      <td className={tdClass}>
-        <Select
-          aria-label="Serving unit"
-          size="sm"
-          className="min-w-[6.5rem]"
-          value={currentUnit}
-          onChange={(value) => (fromDb ? handleDbUnitChange(value) : handleManualUnitChange(value))}
-          options={unitOptions}
         />
       </td>
       <td className={tdClass}>
@@ -368,12 +373,6 @@ export function CoachIngredientsTable({
   onUpdateNutrition,
   onRemove,
 }: EditableProps) {
-  const { data: catalogUnits = [] } = useQuery({
-    queryKey: ['nutrition-db', 'serving-units'],
-    queryFn: fetchNutritionServingUnits,
-    staleTime: 60_000,
-  });
-
   if (!items.length) {
     return (
       <p className="px-2 py-4 text-sm text-ash-grey-500">
@@ -390,8 +389,8 @@ export function CoachIngredientsTable({
           <tr className="border-b border-ash-grey-200">
             <th className={thClass}>Source</th>
             <th className={cn(thClass, 'min-w-[14rem]')}>Item</th>
-            <th className={thClass}>Amount</th>
             <th className={thClass}>Unit</th>
+            <th className={thClass}>Amount</th>
             <th className={thClass}>Weight (g)</th>
             <th className={thClass}>Kcal</th>
             <th className={thClass}>P</th>
@@ -408,7 +407,6 @@ export function CoachIngredientsTable({
               onUpdateItem={onUpdateItem}
               onUpdateNutrition={onUpdateNutrition}
               onRemove={onRemove}
-              catalogUnits={catalogUnits}
             />
           ))}
         </tbody>

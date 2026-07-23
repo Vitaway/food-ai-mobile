@@ -65,7 +65,7 @@ export function LogResultsStep({
       <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/60">
         <Text className="font-sans-semibold text-sm text-blue-spruce-800">Almost done</Text>
         <Text className="mt-1 text-sm leading-5 text-blue-spruce-700">
-          Review the AI estimate below, pick a meal type, then tap <Text className="font-sans-semibold">Submit for coach review</Text> at the bottom.
+          Review the AI estimate below, pick a meal type, then tap <Text className="font-sans-semibold">Submit meal</Text> at the bottom.
         </Text>
       </LogCard>
 

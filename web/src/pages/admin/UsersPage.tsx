@@ -14,7 +14,7 @@ import {
   useAdminCoachRoster,
   useAdminUsers,
   useCreateAdminUser,
-  useOrganizations,
+  useModuleEntitlements,
   useSetUserActive,
   useSetUserRole,
 } from '@/features/admin/hooks/useAdminQueries';
@@ -66,7 +66,7 @@ const DEFAULT_CREATE_FORM = {
   role: 'consumer' as CreateAdminUserPayload['role'],
   membershipTier: 'standard' as 'standard' | 'pro',
   registrationSource: 'admin_created' as CreateAdminUserPayload['registrationSource'],
-  organizationId: '',
+  organization: '',
   title: '',
   bio: '',
   goal: '',
@@ -86,11 +86,13 @@ function matchesFilter(user: AdminUserRow, filter: UserFilter) {
   return true;
 }
 
-function roleRequiresOrganization(role: string) {
-  return role === 'organization_admin';
+function roleRequiresOrganization(role: string, existingOrganization?: string | null) {
+  if (role === 'organization_admin') return true;
+  if (isCoachRole(role) && !existingOrganization?.trim()) return true;
+  return false;
 }
 
-function roleChangeSummary(user: AdminUserRow, nextRole: string, organizationName?: string) {
+function roleChangeSummary(user: AdminUserRow, nextRole: string, organization?: string) {
   const from = roleLabel(user.role);
   const to = roleLabel(nextRole);
   const lines = [`Move ${user.displayName} from ${from} to ${to}.`];
@@ -99,11 +101,11 @@ function roleChangeSummary(user: AdminUserRow, nextRole: string, organizationNam
     lines.push('Creates a patient profile if one does not exist yet.');
   }
   if (isCoachRole(nextRole)) {
-    lines.push(`Coach profile will be linked to ${organizationName?.trim() || 'Vitaway'}.`);
+    lines.push(`Coach profile will be linked to ${organization?.trim() || 'Vitaway'}.`);
   }
   if (nextRole === 'organization_admin') {
-    lines.push(`Organization admin access will be scoped to ${organizationName?.trim()}.`);
-    lines.push('A patient profile is also created so they can track meals.');
+    lines.push(`Organization admin access will be scoped to ${organization?.trim()}.`);
+    lines.push('Module entitlements will be created for this organization if needed.');
   }
   if (nextRole === 'admin') {
     lines.push('This grants full platform admin access.');
@@ -117,7 +119,7 @@ export function AdminUsersPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { data: users, isLoading: usersLoading } = useAdminUsers();
   const { data: roster } = useAdminCoachRoster();
-  const { data: organizations = [] } = useOrganizations();
+  const { data: moduleEntitlements } = useModuleEntitlements();
   const setRole = useSetUserRole();
   const setActive = useSetUserActive();
   const createUser = useCreateAdminUser();
@@ -138,7 +140,7 @@ export function AdminUsersPage() {
   const [roleChangeUser, setRoleChangeUser] = useState<AdminUserRow | null>(null);
   const [roleChangeForm, setRoleChangeForm] = useState({
     role: 'consumer' as SetUserRolePayload['role'],
-    organizationId: '',
+    organization: '',
     title: '',
   });
 
@@ -170,7 +172,7 @@ export function AdminUsersPage() {
 
   useEffect(() => {
     if (activeFilter === 'coach') {
-      setForm((prev) => ({ ...prev, role: 'coach' }));
+      setForm((prev) => ({ ...prev, role: 'coach', organization: prev.organization || 'Vitaway' }));
     }
   }, [activeFilter]);
 
@@ -205,15 +207,16 @@ export function AdminUsersPage() {
     }
   }
 
-  const organizationOptions = useMemo(
-    () => organizations.map((org) => ({ value: org.id, label: org.name })),
-    [organizations],
-  );
-
-  const orgNameById = useMemo(
-    () => new Map(organizations.map((org) => [org.id, org.name])),
-    [organizations],
-  );
+  const organizationOptions = useMemo(() => {
+    const keys = new Set<string>();
+    for (const account of moduleEntitlements?.accounts ?? []) {
+      if (account.organizationKey.trim()) keys.add(account.organizationKey.trim());
+    }
+    for (const user of users ?? []) {
+      if (user.organization?.trim()) keys.add(user.organization.trim());
+    }
+    return [...keys].sort((a, b) => a.localeCompare(b)).map((value) => ({ value, label: value }));
+  }, [moduleEntitlements?.accounts, users]);
 
   const userSummary = useMemo(() => {
     const list = users ?? [];
@@ -226,10 +229,11 @@ export function AdminUsersPage() {
   }, [users]);
 
   const isCreateCoachRole = isCoachRole(form.role);
-  const createNeedsOrganization = form.role === 'organization_admin' || isCreateCoachRole;
+  const createNeedsOrganization =
+    form.role === 'organization_admin' || isCreateCoachRole || form.role === 'data_entry_staff';
 
   const roleChangeNeedsOrganization = roleChangeUser
-    ? roleRequiresOrganization(roleChangeForm.role)
+    ? roleRequiresOrganization(roleChangeForm.role, roleChangeUser.organization)
     : false;
 
   function closeCreateForm() {
@@ -245,21 +249,25 @@ export function AdminUsersPage() {
     setRoleChangeUser(user);
     setRoleChangeForm({
       role: user.role as SetUserRolePayload['role'],
-      organizationId: user.organizationId ?? '',
+      organization: user.organization ?? '',
       title: user.title ?? '',
     });
   }
 
   function closeRoleChangeModal() {
     setRoleChangeUser(null);
-    setRoleChangeForm({ role: 'consumer', organizationId: '', title: '' });
+    setRoleChangeForm({ role: 'consumer', organization: '', title: '' });
   }
 
   async function handleCreateUser(e: React.FormEvent) {
     e.preventDefault();
 
-    if (form.role === 'organization_admin' && !form.organizationId.trim()) {
+    if (form.role === 'organization_admin' && !form.organization.trim()) {
       toast.error('Organization is required for organization admin accounts.');
+      return;
+    }
+    if (isCreateCoachRole && !form.organization.trim()) {
+      toast.error('Organization is required for coach accounts.');
       return;
     }
 
@@ -282,7 +290,7 @@ export function AdminUsersPage() {
       };
 
       if (form.password.trim()) payload.password = form.password.trim();
-      if (form.organizationId.trim()) payload.organizationId = form.organizationId.trim();
+      if (form.organization.trim()) payload.organization = form.organization.trim();
       if (isCreateCoachRole) {
         if (form.title.trim()) payload.title = form.title.trim();
         if (form.bio.trim()) payload.bio = form.bio.trim();
@@ -303,6 +311,12 @@ export function AdminUsersPage() {
         'User added',
       );
       closeCreateForm();
+      if (result.temporaryPassword) {
+        toast.info(
+          `Temporary password: ${result.temporaryPassword}`,
+          result.emailSent ? 'Invite credentials' : 'Share credentials manually',
+        );
+      }
       navigate(`${ADMIN_ROUTES.users}/${result.user.id}`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not create user'));
@@ -318,15 +332,25 @@ export function AdminUsersPage() {
       return;
     }
 
-    if (roleRequiresOrganization(roleChangeForm.role) && !roleChangeForm.organizationId.trim()) {
+    if (
+      roleRequiresOrganization(roleChangeForm.role, roleChangeUser.organization) &&
+      !roleChangeForm.organization.trim()
+    ) {
       toast.error('Organization is required for this account type.');
       return;
     }
+    if (isCoachRole(roleChangeForm.role) && !roleChangeForm.organization.trim()) {
+      toast.error('Select which organization this coach belongs to.');
+      return;
+    }
 
-    const orgName = orgNameById.get(roleChangeForm.organizationId);
     const ok = await confirm({
       title: 'Confirm account type change',
-      description: roleChangeSummary(roleChangeUser, roleChangeForm.role, orgName),
+      description: roleChangeSummary(
+        roleChangeUser,
+        roleChangeForm.role,
+        roleChangeForm.organization,
+      ),
       confirmLabel: 'Change account type',
       tone: 'danger',
     });
@@ -334,9 +358,7 @@ export function AdminUsersPage() {
 
     try {
       const payload: SetUserRolePayload = { role: roleChangeForm.role };
-      if (roleChangeForm.organizationId.trim()) {
-        payload.organizationId = roleChangeForm.organizationId.trim();
-      }
+      if (roleChangeForm.organization.trim()) payload.organization = roleChangeForm.organization.trim();
       if (roleChangeForm.title.trim()) payload.title = roleChangeForm.title.trim();
 
       await setRole.mutateAsync({ userId: roleChangeUser.id, ...payload });
@@ -648,24 +670,37 @@ export function AdminUsersPage() {
           </div>
 
           {createNeedsOrganization ? (
-            <div className="space-y-1 sm:col-span-2">
-              <label className="text-sm font-medium text-ash-grey-800">
-                Organization {form.role === 'organization_admin' ? '(required)' : '(optional)'}
-              </label>
-              <Select
-                aria-label="Organization"
-                value={form.organizationId}
-                onChange={(next) => updateForm('organizationId', next)}
-                options={[
-                  { value: '', label: 'Select organization…' },
-                  ...organizationOptions,
-                ]}
+            <>
+              {organizationOptions.length > 0 ? (
+                <div className="space-y-1">
+                  <label className="text-sm font-medium text-ash-grey-800">
+                    Organization {form.role === 'organization_admin' ? '(required)' : ''}
+                  </label>
+                  <Select
+                    aria-label="Organization"
+                    value={form.organization}
+                    onChange={(next) => updateForm('organization', next)}
+                    options={[
+                      { value: '', label: 'Select organization…' },
+                      ...organizationOptions,
+                    ]}
+                  />
+                </div>
+              ) : null}
+              <TextField
+                label={organizationOptions.length > 0 ? 'Or enter organization' : 'Organization'}
+                required={form.role === 'organization_admin' || isCreateCoachRole}
+                value={form.organization}
+                onChange={(e) => updateForm('organization', e.target.value)}
+                placeholder="Vitaway Clinic"
+                hint={
+                  form.role === 'organization_admin'
+                    ? 'Creates module entitlements for this organization if needed'
+                    : undefined
+                }
+                className={organizationOptions.length > 0 ? 'sm:col-span-2' : undefined}
               />
-              <p className="text-xs text-ash-grey-500">
-                Create organizations under Organizations first. Coaches may omit this for Vitaway
-                internal staff.
-              </p>
-            </div>
+            </>
           ) : null}
 
           {isCreateCoachRole ? (
@@ -737,11 +772,7 @@ export function AdminUsersPage() {
         {roleChangeUser ? (
           <form id="change-role-form" onSubmit={(e) => void handleRoleChange(e)} className="space-y-4">
             <div className="rounded-2xl border border-cinnamon-wood-100 bg-cinnamon-wood-50/60 px-4 py-3 text-sm text-ash-grey-700">
-              {roleChangeSummary(
-                roleChangeUser,
-                roleChangeForm.role,
-                orgNameById.get(roleChangeForm.organizationId),
-              )}
+              {roleChangeSummary(roleChangeUser, roleChangeForm.role, roleChangeForm.organization)}
             </div>
 
             <div className="space-y-1">
@@ -760,22 +791,40 @@ export function AdminUsersPage() {
             </div>
 
             {roleChangeNeedsOrganization || isCoachRole(roleChangeForm.role) ? (
-              <div className="space-y-1">
-                <label className="text-sm font-medium text-ash-grey-800">
-                  Organization {roleChangeForm.role === 'organization_admin' ? '(required)' : '(optional)'}
-                </label>
-                <Select
-                  aria-label="Organization"
-                  value={roleChangeForm.organizationId}
-                  onChange={(next) =>
-                    setRoleChangeForm((prev) => ({ ...prev, organizationId: next }))
+              <>
+                {organizationOptions.length > 0 ? (
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-ash-grey-800">
+                      Organization {roleChangeForm.role === 'organization_admin' ? '(required)' : ''}
+                    </label>
+                    <Select
+                      aria-label="Organization"
+                      value={roleChangeForm.organization}
+                      onChange={(next) =>
+                        setRoleChangeForm((prev) => ({ ...prev, organization: next }))
+                      }
+                      options={[
+                        { value: '', label: 'Select organization…' },
+                        ...organizationOptions,
+                      ]}
+                    />
+                  </div>
+                ) : null}
+                <TextField
+                  label={organizationOptions.length > 0 ? 'Or enter organization' : 'Organization'}
+                  required={roleChangeNeedsOrganization}
+                  value={roleChangeForm.organization}
+                  onChange={(e) =>
+                    setRoleChangeForm((prev) => ({ ...prev, organization: e.target.value }))
                   }
-                  options={[
-                    { value: '', label: 'Select organization…' },
-                    ...organizationOptions,
-                  ]}
+                  placeholder="Vitaway Clinic"
+                  hint={
+                    roleChangeForm.role === 'organization_admin'
+                      ? 'This organization will receive admin access and module entitlements.'
+                      : 'Required so coaches and org admins are tied to the right clinic or company.'
+                  }
                 />
-              </div>
+              </>
             ) : null}
 
             {isCoachRole(roleChangeForm.role) ? (

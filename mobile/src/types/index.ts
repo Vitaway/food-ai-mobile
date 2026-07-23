@@ -44,6 +44,7 @@ export interface UserProfile {
   id: string;
   displayName?: string;
   email?: string;
+  phone?: string | null;
   avatarUrl?: string;
   dateOfBirth?: string;
   age: number;

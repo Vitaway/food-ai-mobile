@@ -48,8 +48,8 @@ export function CoachMessagesPanel({
   if (!conversationId) return null;
 
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-4">
+    <Card className="flex h-[min(70vh,36rem)] min-h-[22rem] flex-col overflow-hidden">
+      <CardHeader className="flex shrink-0 flex-row items-center justify-between gap-4">
         <h3 className="font-bold text-ash-grey-900">Messages</h3>
         <Link
           to={`/coach/messages/${conversationId}`}
@@ -57,12 +57,13 @@ export function CoachMessagesPanel({
           Open full chat
         </Link>
       </CardHeader>
-      <CardBody>
+      <CardBody className="flex min-h-0 flex-1 flex-col overflow-hidden p-0">
         <ChatThread
           conversationId={conversationId}
           messages={messages}
           isLoading={isLoading}
           mealId={mealId}
+          className="min-h-0 flex-1"
         />
       </CardBody>
     </Card>

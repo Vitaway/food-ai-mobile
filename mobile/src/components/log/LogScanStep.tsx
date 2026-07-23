@@ -37,7 +37,7 @@ export function LogScanStep({
         <View className="px-5 pb-5 pt-4">
           <Text className="text-center font-sans-semibold text-lg text-neutral-900">Ready to analyze</Text>
           <Text className="mt-1 text-center text-sm leading-5 text-neutral-500">
-            Tap analyze once — AI will measure your dish, identify the food, and estimate nutrition for coach review.
+            Tap analyze once — AI will measure your dish, identify the food, and estimate nutrition.
           </Text>
         </View>
       </LogCard>

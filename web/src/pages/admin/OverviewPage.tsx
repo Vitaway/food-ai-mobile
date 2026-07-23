@@ -10,9 +10,14 @@ import {
   useAdminMetrics,
   useAuditLogs,
   useAdminOperations,
+  useOrganizationMetrics,
 } from '@/features/admin/hooks/useAdminQueries';
 import { fetchAdminGrowth } from '@/features/admin/api/adminApi';
 import { cn } from '@/lib/utils';
+import {
+  selectIsOrganizationAdmin,
+  useAuthStore,
+} from '@/features/auth/stores/authStore';
 
 function greetingForNow(date = new Date()) {
   const hour = date.getHours();
@@ -29,15 +34,152 @@ function firstName(displayName?: string | null) {
 
 export function AdminOverviewPage() {
   const { user } = useAuth();
+  const isOrgAdmin = useAuthStore(selectIsOrganizationAdmin);
+  const sessionOrgId = useAuthStore((s) => s.session?.user.organizationId ?? null);
+  const { data: orgMetrics, isLoading: orgMetricsLoading } = useOrganizationMetrics(
+    isOrgAdmin ? sessionOrgId : null,
+  );
   const { data: metrics, isLoading } = useAdminMetrics();
   const { data: ops, isLoading: opsLoading } = useAdminOperations();
   const { data: audit } = useAuditLogs();
   const { data: growth } = useQuery({
     queryKey: ['admin', 'growth'],
     queryFn: () => fetchAdminGrowth(30),
+    enabled: !isOrgAdmin,
   });
 
   const name = firstName(user?.displayName);
+
+  if (isOrgAdmin) {
+    const orgName = orgMetrics?.organizationName ?? 'your organization';
+    const inReview = orgMetrics?.meals.inReview ?? 0;
+    const summaryParts = [
+      inReview > 0
+        ? `${inReview} meal${inReview === 1 ? '' : 's'} waiting for coach review`
+        : 'review queue clear',
+      orgMetrics
+        ? `${orgMetrics.members.patients} patient${orgMetrics.members.patients === 1 ? '' : 's'}`
+        : 'loading members',
+    ];
+
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0">
+            <h1 className="font-sans text-3xl font-semibold tracking-tight text-ash-grey-900 sm:text-4xl">
+              {greetingForNow()}, {name}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-ash-grey-600 sm:text-base">
+              {orgName}: {summaryParts.join(' · ')}.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {sessionOrgId ? (
+              <Button to={ADMIN_ROUTES.organizationDetail(sessionOrgId)} variant="outline" size="md">
+                My organization
+              </Button>
+            ) : null}
+            <Button to={ADMIN_ROUTES.users} variant="outline" size="md">
+              Members
+            </Button>
+            <Button to={ADMIN_ROUTES.assessments} variant="primary" size="md">
+              Assessments
+            </Button>
+          </div>
+        </div>
+
+        {orgMetricsLoading ? (
+          <p className="text-ash-grey-500">Loading organization metrics…</p>
+        ) : orgMetrics ? (
+          <>
+            <KpiStrip
+              columns={4}
+              items={[
+                {
+                  label: 'Patients',
+                  value: orgMetrics.members.patients,
+                  tone: 'success',
+                  caption: `${orgMetrics.members.coaches} coaches`,
+                },
+                {
+                  label: 'In review',
+                  value: orgMetrics.meals.inReview,
+                  tone: 'accent',
+                  warn: orgMetrics.meals.inReview > 0,
+                  caption: `${orgMetrics.meals.analyzing} analyzing`,
+                },
+                {
+                  label: 'Meals this week',
+                  value: orgMetrics.meals.thisWeek,
+                  tone: 'info',
+                  caption: `${orgMetrics.meals.total} total logged`,
+                },
+                {
+                  label: 'Needs attention',
+                  value: orgMetrics.patients.unassigned + orgMetrics.patients.inactive,
+                  tone: 'warn',
+                  warn:
+                    orgMetrics.patients.unassigned + orgMetrics.patients.inactive > 0,
+                  caption: `${orgMetrics.patients.unassigned} unassigned · ${orgMetrics.patients.inactive} inactive`,
+                },
+              ]}
+            />
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <DashboardPanel title="Member snapshot">
+                <dl className="space-y-3 px-4 py-4 text-sm">
+                  <div className="flex justify-between border-b border-ash-grey-100 pb-2">
+                    <dt className="text-ash-grey-500">Total members</dt>
+                    <dd className="font-semibold text-ash-grey-900">{orgMetrics.members.total}</dd>
+                  </div>
+                  <div className="flex justify-between border-b border-ash-grey-100 pb-2">
+                    <dt className="text-ash-grey-500">Active accounts</dt>
+                    <dd className="font-semibold text-shamrock-700">{orgMetrics.members.active}</dd>
+                  </div>
+                  <div className="flex justify-between border-b border-ash-grey-100 pb-2">
+                    <dt className="text-ash-grey-500">Org admins</dt>
+                    <dd className="font-semibold text-ash-grey-900">{orgMetrics.members.orgAdmins}</dd>
+                  </div>
+                  <div className="flex justify-between">
+                    <dt className="text-ash-grey-500">Patients without coach</dt>
+                    <dd className="font-semibold text-cinnamon-wood-600">
+                      {orgMetrics.patients.unassigned}
+                    </dd>
+                  </div>
+                </dl>
+              </DashboardPanel>
+
+              <DashboardPanel title="Quick actions">
+                <div className="flex flex-col gap-2 px-4 py-4">
+                  {sessionOrgId ? (
+                    <Button to={ADMIN_ROUTES.organizationDetail(sessionOrgId)} variant="outline">
+                      Manage organization
+                    </Button>
+                  ) : null}
+                  <Button to={ADMIN_ROUTES.users} variant="outline">
+                    View members
+                  </Button>
+                  <Button to={ADMIN_ROUTES.assessments} variant="outline">
+                    Clinical assessments
+                  </Button>
+                  <Button to={ADMIN_ROUTES.reports} variant="outline">
+                    Reports
+                  </Button>
+                </div>
+              </DashboardPanel>
+            </div>
+          </>
+        ) : (
+          <DashboardPanel title="Organization">
+            <p className="px-4 py-6 text-sm text-ash-grey-500">
+              Your account is not linked to an organization yet. Ask a platform admin to assign you.
+            </p>
+          </DashboardPanel>
+        )}
+      </div>
+    );
+  }
+
   const inReview = metrics?.meals.inReview ?? ops?.mealsInReview ?? 0;
   const summaryParts = [
     inReview > 0
