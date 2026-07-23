@@ -55,13 +55,10 @@ export const env = {
     process.env.CORS_ORIGIN ??
       "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081",
   ),
-  OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY ?? "",
-  OPENROUTER_BASE_URL: process.env.OPENROUTER_BASE_URL ?? "https://openrouter.ai/api/v1",
-  OPENROUTER_MODEL: process.env.OPENROUTER_MODEL ?? "openai/gpt-4o-mini",
-  OPENROUTER_APP_NAME: process.env.OPENROUTER_APP_NAME ?? "MiraFood",
-  OPENROUTER_SITE_URL: process.env.OPENROUTER_SITE_URL ?? "https://mirafood.vitaway.org",
-  OPENROUTER_IMAGE_DETAIL: (process.env.OPENROUTER_IMAGE_DETAIL ?? "high") as "low" | "high" | "auto",
-  OPENROUTER_TEMPERATURE: Number(process.env.OPENROUTER_TEMPERATURE ?? 0.05),
+  /** Anthropic Claude API — used for plate detection + meal analysis. */
+  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+  ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5",
+  ANTHROPIC_TEMPERATURE: Number(process.env.ANTHROPIC_TEMPERATURE ?? 0.05),
   PLATE_GEOMETRY_DISTANCE_WEIGHT: Number(process.env.PLATE_GEOMETRY_DISTANCE_WEIGHT ?? 0.72),
   AUTO_RUN_MIGRATIONS: process.env.AUTO_RUN_MIGRATIONS !== "false",
   TYPEORM_QUERY_LOG: process.env.TYPEORM_QUERY_LOG === "true",

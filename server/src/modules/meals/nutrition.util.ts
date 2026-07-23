@@ -23,18 +23,28 @@ export type DetectedFoodItem = {
 };
 
 const DEFAULT_GRAMS_PER_UNIT: Record<string, number> = {
-  piece: 85,
-  slice: 30,
+  g: 1,
+  kg: 1000,
+  ml: 1,
+  l: 1000,
   cup: 175,
   tbsp: 15,
   tsp: 5,
-  g: 1,
-  ml: 1,
+  glass: 240,
+  bowl: 300,
+  plate: 400,
+  piece: 85,
+  slice: 30,
+  serving: 100,
+  portion: 150,
+  scoop: 30,
+  handful: 40,
   bottle: 330,
   can: 330,
   carton: 250,
-  bowl: 300,
-  plate: 400,
+  jar: 200,
+  packet: 50,
+  sachet: 20,
 };
 
 function normalizeServingUnit(unit: string) {

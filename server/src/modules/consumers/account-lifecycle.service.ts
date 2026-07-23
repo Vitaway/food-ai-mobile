@@ -87,19 +87,32 @@ export const accountLifecycleService = {
   },
 
   async deleteForUser(userId: string) {
+    return this.deleteAccount(userId, userId, "self");
+  },
+
+  async deleteByAdmin(adminId: string, userId: string) {
     const user = await usersRepository.findById(userId);
     if (!user) throw new NotFoundError("User not found");
-    if (user.role !== "consumer") {
+    if (user.role === "admin" || user.role === "super_admin") {
+      throw new BadRequestError("Platform admin accounts cannot be deleted");
+    }
+    return this.deleteAccount(userId, adminId, "admin");
+  },
+
+  async deleteAccount(userId: string, actorId: string, source: "self" | "admin") {
+    const user = await usersRepository.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+    if (source === "self" && user.role !== "consumer") {
       throw new BadRequestError("Only consumer accounts can be self-deleted");
     }
 
     const profile = await consumerProfilesRepository.findByUserId(userId);
     const clientId = profile?.id;
 
-    await adminAuditService.log(userId, "account.delete_requested", {
+    await adminAuditService.log(actorId, "account.delete_requested", {
       targetType: "user",
       targetId: userId,
-      meta: { patientId: clientId ?? null },
+      meta: { patientId: clientId ?? null, source },
     });
 
     const qr = AppDataSource.createQueryRunner();
@@ -163,6 +176,12 @@ export const accountLifecycleService = {
       }
 
       try {
+        await qr.query(`DELETE FROM coach_profiles WHERE user_id = $1`, [userId]);
+      } catch {
+        /* ignore */
+      }
+
+      try {
         await qr.query(
           `UPDATE subscriptions SET metadata = COALESCE(metadata, '{}'::jsonb) || '{"deleted":true}'::jsonb, user_id = NULL WHERE user_id = $1`,
           [userId],
@@ -174,7 +193,7 @@ export const accountLifecycleService = {
       const tombstoneEmail = `deleted+${userId.replace(/-/g, "").slice(0, 12)}@deleted.mirafood.local`;
       const lockedHash = await bcrypt.hash(`deleted-${userId}-${Date.now()}`, 10);
       await qr.query(
-        `UPDATE users SET email = $2, display_name = 'Deleted user', password_hash = $3, avatar_url = NULL, is_active = false, referral_code = NULL, updated_at = NOW() WHERE id = $1`,
+        `UPDATE users SET email = $2, display_name = 'Deleted user', password_hash = $3, avatar_url = NULL, is_active = false, referral_code = NULL, organization_id = NULL, updated_at = NOW() WHERE id = $1`,
         [userId, tombstoneEmail, lockedHash],
       );
 
@@ -187,9 +206,10 @@ export const accountLifecycleService = {
       await qr.release();
     }
 
-    await adminAuditService.log(userId, "account.deleted", {
+    await adminAuditService.log(actorId, "account.deleted", {
       targetType: "user",
       targetId: userId,
+      meta: { source },
     });
 
     return { ok: true as const, deletedAt: new Date().toISOString() };

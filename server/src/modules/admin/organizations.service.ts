@@ -7,9 +7,12 @@ import { User as UserEntity } from "../users/user.entity";
 import { Organization } from "../payments/organization.entity";
 import { CoachProfile } from "../coaches/coach-profile.entity";
 import { ConsumerProfile } from "../meals/consumer-profile.entity";
+import { coachAssignmentsRepository } from "../coaches/coach-assignments.repository";
+import { mealsRepository } from "../meals/meals.repository";
 import { adminAuditService } from "./admin-audit.service";
 import { moduleEntitlementsService } from "./module-entitlements.service";
 import type { CreateOrganizationDto, UpdateOrganizationDto } from "./admin.dto";
+import { reportsService, type ReportRangeInput } from "../reports/reports.service";
 
 function mapOrganization(org: Organization, memberCount = 0) {
   return {
@@ -227,5 +230,111 @@ export const organizationsService = {
       where: { organizationId },
     });
     return mapOrganization(org, memberCount);
+  },
+
+  async metrics(actor: User, organizationId: string) {
+    assertCanAccessOrganization(actor, organizationId);
+    const org = await AppDataSource.getRepository(Organization).findOne({
+      where: { id: organizationId },
+    });
+    if (!org) throw new NotFoundError("Organization not found");
+
+    const members = await AppDataSource.getRepository(UserEntity).find({
+      where: { organizationId },
+    });
+    const patientRoles = new Set(["consumer", "organization_admin"]);
+    const coachRoles = new Set(["coach", "nutrition_coach"]);
+    const patientUserIds = members.filter((m) => patientRoles.has(m.role)).map((m) => m.id);
+
+    const consumers =
+      patientUserIds.length > 0
+        ? await AppDataSource.getRepository(ConsumerProfile).find({
+            where: { userId: In(patientUserIds) },
+          })
+        : [];
+    const clientIds = new Set(consumers.map((c) => c.id));
+
+    const allMeals = await mealsRepository.findAllMeals();
+    const orgMeals = allMeals.filter((m) => clientIds.has(m.clientId));
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const mealsInReview = orgMeals.filter((m) => m.status === "in_review").length;
+    const mealsAnalyzing = orgMeals.filter((m) => m.status === "analyzing").length;
+    const mealsThisWeek = orgMeals.filter((m) => m.submittedAt >= weekAgo).length;
+    const activeClientIds = new Set(
+      orgMeals.filter((m) => m.submittedAt >= weekAgo).map((m) => m.clientId),
+    );
+    const inactivePatients = consumers.filter((c) => !activeClientIds.has(c.id)).length;
+
+    const assignments = await coachAssignmentsRepository.findAll();
+    const assignedClientIds = new Set(assignments.map((a) => a.clientId));
+    const unassignedPatients = consumers.filter((c) => !assignedClientIds.has(c.id)).length;
+
+    return {
+      organizationId: org.id,
+      organizationName: org.name,
+      members: {
+        total: members.length,
+        patients: members.filter((m) => m.role === "consumer").length,
+        coaches: members.filter((m) => coachRoles.has(m.role)).length,
+        orgAdmins: members.filter((m) => m.role === "organization_admin").length,
+        active: members.filter((m) => m.isActive).length,
+      },
+      patients: {
+        total: consumers.length,
+        inactive: inactivePatients,
+        unassigned: unassignedPatients,
+      },
+      meals: {
+        total: orgMeals.length,
+        inReview: mealsInReview,
+        analyzing: mealsAnalyzing,
+        thisWeek: mealsThisWeek,
+      },
+      timestamp: new Date().toISOString(),
+    };
+  },
+
+  async generateReport(actor: User, organizationId: string, range: ReportRangeInput) {
+    assertCanAccessOrganization(actor, organizationId);
+    const org = await AppDataSource.getRepository(Organization).findOne({
+      where: { id: organizationId },
+    });
+    if (!org) throw new NotFoundError("Organization not found");
+
+    const members = await AppDataSource.getRepository(UserEntity).find({
+      where: { organizationId },
+    });
+    const patientRoles = new Set(["consumer", "organization_admin"]);
+    const coachRoles = new Set(["coach", "nutrition_coach"]);
+    const patientUserIds = members.filter((m) => patientRoles.has(m.role)).map((m) => m.id);
+    const consumers =
+      patientUserIds.length > 0
+        ? await AppDataSource.getRepository(ConsumerProfile).find({
+            where: { userId: In(patientUserIds) },
+          })
+        : [];
+
+    const snapshot = await reportsService.generateOrganizationSnapshot(
+      org.id,
+      org.name,
+      {
+        clientIds: consumers.map((c) => c.id),
+        coachCount: members.filter((m) => coachRoles.has(m.role)).length,
+        patientCount: consumers.length,
+      },
+      range,
+    );
+
+    return {
+      id: snapshot.id,
+      period: snapshot.period,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      metrics: snapshot.metrics,
+      createdAt: snapshot.createdAt.toISOString(),
+    };
   },
 };

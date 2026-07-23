@@ -69,7 +69,7 @@ Password for all seed users: `Test@123` (override via `SEED_*_PASSWORD` env vars
 
 ## Environment
 
-See `.env.example`. Required for vision: `OPENROUTER_API_KEY` (regular `sk-or-…` inference key).
+See `.env.example`. Required for vision: `ANTHROPIC_API_KEY` (Claude `sk-ant-…` key from https://console.anthropic.com/settings/keys).
 
 ## Scripts
 

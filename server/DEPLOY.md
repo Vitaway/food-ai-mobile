@@ -44,8 +44,8 @@ REDIS_PASSWORD=paste-hex-here
 JWT_SECRET=paste-hex-here
 
 CORS_ORIGIN=https://mirafood.vitaway.org,https://vitaway.nsengi.space
-OPENROUTER_API_KEY=sk-or-v1-...
-OPENROUTER_SITE_URL=https://vitaway.nsengi.space
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_MODEL=claude-haiku-4-5
 APP_URL=https://mirafood.vitaway.org
 
 SMTP_USER=...
