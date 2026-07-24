@@ -20,7 +20,6 @@ import { User } from "../users/user.entity";
 import { MealSubmission } from "../meals/meal-submission.entity";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
 import { authRepository } from "../auth/auth.repository";
-import { generatePatientId } from "../../utils/patient-id";
 import { generateReferralCode } from "../../utils/referral-code";
 import { ensureConsumerProfileForUser } from "../consumers/ensure-consumer-profile.util";
 import { accountLifecycleService } from "../consumers/account-lifecycle.service";

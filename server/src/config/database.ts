@@ -29,6 +29,7 @@ import { FamilySubscriptionMember } from "../modules/payments/family-subscriptio
 import { Organization } from "../modules/payments/organization.entity";
 import { ConsumerClinicalAssessment } from "../modules/consumers/clinical-assessment.entity";
 import { ConsumerWaterLog } from "../modules/consumers/water-log.entity";
+import { CoachInsight } from "../modules/coaches/coach-insight.entity";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -47,6 +48,7 @@ export const AppDataSource = new DataSource({
     Cohort,
     CohortMember,
     CoachMessage,
+    CoachInsight,
     ChatConversation,
     ChatMessage,
     ChatReadState,

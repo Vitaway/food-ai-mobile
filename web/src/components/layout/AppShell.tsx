@@ -12,6 +12,7 @@ const navRoutes = [
   { to: '/coach/queue', label: 'Review queue', end: false },
   { to: '/coach/history', label: 'Review history', end: false },
   { to: '/coach/clients', label: 'Clients', end: false },
+  { to: '/coach/insights', label: 'Insights', end: false },
   { to: '/coach/nutrition-db', label: 'Nutrition DB', end: false },
   { to: '/coach/reports', label: 'Reports', end: false },
   { to: '/coach/messages', label: 'Messages', end: false },

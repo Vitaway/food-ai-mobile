@@ -4,6 +4,7 @@ import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.reposito
 import { consumerProfilesRepository } from "./consumer-profiles.repository";
 import { computeDashboard, todayKey } from "./dashboard.util";
 import { ConsumerDailyHealthScore } from "./daily-health-score.entity";
+import { coachInsightsRepository } from "../coaches/coach-insights.repository";
 
 export type CoachingFeedItem = {
   id: string;
@@ -44,6 +45,19 @@ export const coachingFeedService = {
     const byMealId = new Map(reviews.map((r) => [r.mealId, r]));
     const dashboard = computeDashboard(profileRow.profile, profileRow.dashboard, meals, byMealId, todayKey());
     const items: CoachingFeedItem[] = [];
+
+    const authored = await coachInsightsRepository.findByClientId(clientId, 8);
+    for (const insight of authored) {
+      items.push({
+        id: `authored-${insight.id}`,
+        type: insight.type,
+        title: insight.title,
+        body: insight.body,
+        priority: 95,
+        actionLabel: "Open chat",
+        actionRoute: "/(tabs)/chat",
+      });
+    }
 
     const macros = profileRow.profile.macroTargets as
       | { proteinG?: number; fiberG?: number }
