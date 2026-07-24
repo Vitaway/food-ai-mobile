@@ -91,7 +91,10 @@ function isWeightOrVolumeUnit(unit: string) {
   return WEIGHT_VOLUME_UNITS.has(unit.trim().toLowerCase());
 }
 
-/** Initial amount + grams-per-1-unit from a Food DB serving profile. */
+/** Initial amount + grams-per-1-unit from a Food DB serving profile.
+ * Profile means: `amount` of `unit` = `gramsEquivalent` grams total.
+ * Example: piece / 10 / 85 → 10 pieces weigh 85g (8.5g each).
+ */
 function measureFromDbServing(serving: FoodServingOption | null, fallbackUnit = 'g') {
   const unit = coerceServingUnit(serving?.unit ?? fallbackUnit);
   if (!serving) {
@@ -103,11 +106,8 @@ function measureFromDbServing(serving: FoodServingOption | null, fallbackUnit = 
     };
   }
   const gramsPerOne = gramsPerUnit(serving);
-  // Weight/volume profiles are often "100 g = 100 g" — start at that portion.
-  // Countable units (piece, cup, bowl…) always start at 1 of that unit.
-  const servingAmount = isWeightOrVolumeUnit(unit)
-    ? Math.max(Number(serving.amount) || 0, 0.01)
-    : 1;
+  // Always use the profile amount (10 pieces, 100 g, 1 cup, …) — that is the selected serving.
+  const servingAmount = Math.max(Number(serving.amount) || 0, 0.01);
   return {
     servingUnit: unit,
     servingAmount,
@@ -258,13 +258,16 @@ function CoachIngredientRow({
             .map((s) => ({ ...s, unit: coerceServingUnit(s.unit) }))
             .filter((s, idx, arr) => arr.findIndex((x) => x.unit === s.unit) === idx)
             .map((s) => {
-              const per = Math.round(gramsPerUnit(s));
+              const per = Math.round(gramsPerUnit(s) * 10) / 10;
+              const qty = Number(s.amount) > 0 ? Number(s.amount) : 1;
+              const totalG = Math.round(qty * per * 10) / 10;
+              // Show the profile as defined: "10 piece = 85g" (not misleading "piece (9g)").
               return {
                 value: s.unit,
                 label:
-                  s.unit === 'g' || s.unit === 'ml'
-                    ? `${servingUnitLabel(s.unit)} · ${per}g each`
-                    : `${servingUnitLabel(s.unit)} (${per}g)`,
+                  qty === 1
+                    ? `${servingUnitLabel(s.unit)} (${per}g)`
+                    : `${qty} ${servingUnitLabel(s.unit)} = ${totalG}g`,
               };
             })
         : [
@@ -293,12 +296,16 @@ function CoachIngredientRow({
           size="sm"
           className="min-w-[7.5rem]"
           value={source}
+          disabled={source === 'ai'}
           onChange={(value) => handleSourceChange(value as 'nutrition_db' | 'manual')}
-          options={[
-            { value: 'nutrition_db', label: 'Food DB' },
-            { value: 'manual', label: 'Manual' },
-            ...(source === 'ai' ? [{ value: 'ai', label: 'AI', disabled: true }] : []),
-          ]}
+          options={
+            source === 'ai'
+              ? [{ value: 'ai', label: 'AI' }]
+              : [
+                  { value: 'nutrition_db', label: 'Food DB' },
+                  { value: 'manual', label: 'Manual' },
+                ]
+          }
         />
       </td>
       <td className={tdClass}>
