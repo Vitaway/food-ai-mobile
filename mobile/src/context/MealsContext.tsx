@@ -109,8 +109,17 @@ export function MealsProvider({ children }: PropsWithChildren) {
     if (!isApiConfigured() || !isAuthenticated) return;
     try {
       const dashboard = await fetchConsumerDashboard();
+      const local = await services.mealsRepository.getDailyLog(dashboard.date);
+      // Keep optimistic local total when the server hasn't caught up yet.
+      if (local.waterMl !== dashboard.waterMl && local.date === dashboard.date) {
+        const pending = (local.waterEntries ?? []).length > 0 && local.waterMl > dashboard.waterMl;
+        if (pending) {
+          setDailyLog(local);
+          return;
+        }
+      }
       const log = await services.mealsRepository.setWater(dashboard.date, dashboard.waterMl);
-      setDailyLog(log);
+      setDailyLog({ ...log, waterEntries: local.waterEntries });
     } catch {
       /* keep local value */
     }
@@ -139,7 +148,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
 
           setMeals(merged);
           await services.mealsRepository.replaceMeals(merged);
-          await syncRemoteWater();
+          // Water is updated via logWaterCups / bootstrap — avoid clobbering optimistic logs.
           return;
         }
         const [storedMeals, log] = await Promise.all([
@@ -156,7 +165,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     })();
 
     return mealsInflightRef.current;
-  }, [isAuthenticated, syncRemoteWater]);
+  }, [isAuthenticated]);
 
   const simulatePipeline = useCallback(
     async (mealId: string, fromStatus?: MealSubmissionStatus) => {
@@ -188,6 +197,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
       if (useRemote) {
         try {
           await refreshMeals();
+          await syncRemoteWater();
         } finally {
           if (!cancelled) setIsLoading(false);
         }
@@ -213,7 +223,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, refreshMeals, resumeActivePipelines]);
+  }, [isAuthenticated, refreshMeals, resumeActivePipelines, syncRemoteWater]);
 
   const analyzeMeal = useCallback(
     async ({

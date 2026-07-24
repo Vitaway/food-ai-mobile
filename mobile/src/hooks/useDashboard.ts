@@ -37,6 +37,12 @@ function mealTypeLabel(mealType: string) {
   return MEAL_TYPES.find((type) => type.id === mealType)?.label ?? 'Meal';
 }
 
+function mealRevisionKey(meals: MealSubmission[]) {
+  return meals
+    .map((meal) => `${meal.id}:${meal.status}:${meal.totalNutrition?.caloriesKcal ?? 0}`)
+    .join('|');
+}
+
 export function useDashboard(selectedDate = todayKey()) {
   const { profile } = useProfile();
   const { isAuthenticated } = useAuth();
@@ -46,6 +52,9 @@ export function useDashboard(selectedDate = todayKey()) {
     null,
   );
 
+  const mealsKey = useMemo(() => mealRevisionKey(meals), [meals]);
+
+  // Remote dashboard for health score / server extras — refresh when meals or water change.
   useEffect(() => {
     if (!isApiConfigured() || !isAuthenticated) {
       setRemoteDashboard(null);
@@ -62,7 +71,7 @@ export function useDashboard(selectedDate = todayKey()) {
     return () => {
       active = false;
     };
-  }, [isAuthenticated, selectedDate]);
+  }, [isAuthenticated, selectedDate, mealsKey, dailyLog.waterMl, dailyLog.date]);
 
   useEffect(() => {
     if (selectedDate === dailyLog.date) {
@@ -81,11 +90,12 @@ export function useDashboard(selectedDate = todayKey()) {
     };
   }, [selectedDate, dailyLog.date, dailyLog.waterMl]);
 
+  // Prefer local water so logging updates home immediately (remote can lag).
   const waterMl =
-    remoteDashboard?.date === selectedDate
-      ? remoteDashboard.waterMl
-      : selectedDate === dailyLog.date
-        ? dailyLog.waterMl
+    selectedDate === dailyLog.date
+      ? dailyLog.waterMl
+      : remoteDashboard?.date === selectedDate
+        ? remoteDashboard.waterMl
         : selectedLogWaterMl;
 
   return useMemo(() => {
@@ -117,26 +127,27 @@ export function useDashboard(selectedDate = todayKey()) {
       0,
     );
 
-    const useRemote = remoteDashboard?.date === selectedDate;
+    const useRemoteExtras = remoteDashboard?.date === selectedDate;
 
     const dashboard: DailyDashboard = {
       date: selectedDate,
-      caloriesConsumed: useRemote ? remoteDashboard.caloriesConsumed : Math.round(caloriesConsumed),
-      calorieTarget: useRemote ? remoteDashboard.calorieTarget : targets.calories,
+      // Local meals are authoritative for live UI; remote extras fill health score etc.
+      caloriesConsumed: Math.round(caloriesConsumed),
+      calorieTarget: useRemoteExtras ? remoteDashboard.calorieTarget : targets.calories,
       macros: targets,
-      macrosConsumed: useRemote
-        ? remoteDashboard.macrosConsumed
-        : {
-            proteinG: Math.round(macrosConsumed.proteinG),
-            carbsG: Math.round(macrosConsumed.carbsG),
-            fatG: Math.round(macrosConsumed.fatG),
-            fiberG: Math.round(macrosConsumed.fiberG),
-          },
+      macrosConsumed: {
+        proteinG: Math.round(macrosConsumed.proteinG),
+        carbsG: Math.round(macrosConsumed.carbsG),
+        fatG: Math.round(macrosConsumed.fatG),
+        fiberG: Math.round(macrosConsumed.fiberG),
+      },
       waterMl,
-      waterTargetMl: useRemote ? remoteDashboard.waterTargetMl : (profile?.waterTargetMl ?? 0),
-      healthScore: useRemote ? remoteDashboard.healthScore : 0,
-      healthScoreBreakdown: useRemote ? remoteDashboard.healthScoreBreakdown : undefined,
-      streakDays: useRemote ? remoteDashboard.streakDays : computeStreak(meals),
+      waterTargetMl: useRemoteExtras
+        ? remoteDashboard.waterTargetMl
+        : (profile?.waterTargetMl ?? 0),
+      healthScore: useRemoteExtras ? remoteDashboard.healthScore : 0,
+      healthScoreBreakdown: useRemoteExtras ? remoteDashboard.healthScoreBreakdown : undefined,
+      streakDays: useRemoteExtras ? remoteDashboard.streakDays : computeStreak(meals),
       lastMeal: dayMealsAll[0],
     };
 

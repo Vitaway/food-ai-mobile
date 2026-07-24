@@ -54,7 +54,16 @@ export function CoachingFeedCard() {
     );
   }
 
-  if (!data.length) return null;
+  if (!data.length) {
+    return (
+      <View className="rounded-3xl bg-white p-5">
+        <Text className="font-sans-semibold text-base text-neutral-900">Coaching insights</Text>
+        <Text className="mt-2 text-sm leading-5 text-neutral-500">
+          Tips from your coach and personalized reminders will show up here as you log meals.
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <View

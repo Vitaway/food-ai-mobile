@@ -66,7 +66,9 @@ export function WaterHeroPanel({
           <Text className="text-sm font-sans-medium text-white/70">Today&apos;s hydration</Text>
           <View className="mt-2 flex-row items-end gap-1.5">
             <Text className="font-sans-bold text-5xl leading-none text-white">{formatCups(cupsLogged)}</Text>
-            <Text className="mb-1.5 font-sans-medium text-lg text-white/75">/ {formatCups(cupsTarget)} cups</Text>
+            <Text className="mb-1.5 font-sans-medium text-lg text-white/75">
+              / {formatCups(cupsTarget)} glasses
+            </Text>
           </View>
 
           <View className="mt-5 h-2.5 overflow-hidden rounded-full bg-white/20">
@@ -78,11 +80,11 @@ export function WaterHeroPanel({
 
           <Text className="mt-3 text-sm text-white/85">
             {remainingCups > 0
-              ? `${formatCups(remainingCups)} cups to go · ${progressPct}% of goal`
+              ? `${formatCups(remainingCups)} glasses to go · ${progressPct}% of goal`
               : 'Daily goal reached — nice work!'}
           </Text>
           <Text className="mt-1 text-xs text-white/55">
-            {waterMl} ml logged · 1 cup = {WATER_CUP_ML} ml
+            {waterMl} ml logged · 1 glass = {WATER_CUP_ML} ml
           </Text>
         </View>
 
