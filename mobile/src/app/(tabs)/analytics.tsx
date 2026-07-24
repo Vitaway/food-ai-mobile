@@ -16,7 +16,14 @@ import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 export default function AnalyticsScreen() {
   const { push } = useNavigateOnce();
   const [period, setPeriod] = useState<7 | 30>(7);
-  const { snapshot, coachInsights, mealSwaps, stats, calorieTarget, waterTargetCups } = useInsightsData(period);
+  const {
+    coachInsights,
+    coachInsightsLoading,
+    mealSwaps,
+    stats,
+    calorieTarget,
+    waterTargetCups,
+  } = useInsightsData(period);
 
   const totalCalories = stats.caloriesByType.reduce((sum, row) => sum + row.calories, 0);
 
@@ -64,11 +71,12 @@ export default function AnalyticsScreen() {
           <InsightsMacroPanel macros={stats.macroBars} hasData={stats.hasData} />
 
           <InsightsCoachPanel
-            snapshot={snapshot}
-            tips={coachInsights}
+            insights={coachInsights}
+            loading={coachInsightsLoading}
             swaps={mealSwaps}
             showSwaps={stats.hasData}
             onLogMeal={() => push('/(tabs)/log')}
+            onOpenChat={() => push('/(tabs)/chat')}
           />
         </ScrollView>
       </ContentSheet>

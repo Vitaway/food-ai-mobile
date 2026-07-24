@@ -62,7 +62,7 @@ export function InsightsPage() {
       <div>
         <h1 className="font-sans text-xl font-semibold tracking-tight text-ash-grey-900">Insights</h1>
         <p className="mt-1 text-sm text-ash-grey-500">
-          Send personalized tips and notes that appear on the patient’s home screen.
+          Send personalized tips and notes that appear on the patient’s Insights tab and home feed.
         </p>
       </div>
 

@@ -35,6 +35,14 @@ export const coachInsightsService = {
     return rows.map(toDto);
   },
 
+  /** Patient-facing: authored insights sent by their coach. */
+  async listForConsumerUser(userId: string) {
+    const client = await consumerProfilesRepository.findByUserId(userId);
+    if (!client) return [];
+    const rows = await coachInsightsRepository.findByClientId(client.id, 40);
+    return rows.map(toDto);
+  },
+
   async create(
     coachUserId: string,
     input: { clientId: string; title: string; body: string; type?: string },
