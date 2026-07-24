@@ -10,6 +10,7 @@ import { useMeals } from '@/context/MealsContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useProfileBack } from '@/hooks/useProfileBack';
 import { formatDisplayDate, parseDateKey, todayKey } from '@/utils/dates';
+import { formatGlasses, mlToGlasses } from '@/utils/waterUnits';
 
 function isDateKey(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -50,7 +51,8 @@ export default function ProfileDayDetailScreen() {
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
                 <Text className="text-xs text-neutral-500">Water</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">
-                  {dashboard.waterMl}/{dashboard.waterTargetMl}
+                  {formatGlasses(mlToGlasses(dashboard.waterMl))}/
+                  {formatGlasses(mlToGlasses(dashboard.waterTargetMl))} glasses
                 </Text>
               </View>
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">

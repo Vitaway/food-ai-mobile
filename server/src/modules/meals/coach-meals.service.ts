@@ -48,6 +48,8 @@ import { mealReviewTasksRepository } from "./meal-review-tasks.repository";
 import { coachReviewDraftsRepository } from "./coach-review-drafts.repository";
 import type { MealSubmission } from "./meal-submission.entity";
 import type { MealCoachReview } from "./meal-coach-review.entity";
+import { visionService } from "../vision/vision.service";
+import { readMealPhotoFromUrl } from "../../services/uploads.service";
 import type { ReviewMealDto } from "./meals.dto";
 
 function coachSafeFirstName(displayName: unknown): string {
@@ -674,9 +676,7 @@ export const coachMealsService = {
     }
 
     const existingReview = await mealCoachReviewsRepository.findByMealId(mealId);
-    if (existingReview) {
-      throw new BadRequestError("This meal has already been reviewed");
-    }
+    const isUpdate = Boolean(existingReview);
 
     const items = dto.items
       ? normalizeMealItems(dto.items)
@@ -698,10 +698,10 @@ export const coachMealsService = {
     writeQueuePick(meal, null);
     await mealsRepository.saveMeal(meal);
 
-    const review = await mealCoachReviewsRepository.save({
+    const reviewPayload = {
       mealId,
       coachId,
-      action: dto.action,
+      action: dto.action as "approve" | "reject",
       note: dto.note ?? null,
       trainingNote: dto.trainingNote ?? null,
       mealName: dto.mealName ?? (meal.data.mealName as string | undefined) ?? null,
@@ -709,19 +709,32 @@ export const coachMealsService = {
       totalNutrition: totalNutrition ?? null,
       reviewDurationSeconds,
       reviewedAt,
-    });
+    };
+
+    const review = existingReview
+      ? await mealCoachReviewsRepository.save({
+          ...existingReview,
+          ...reviewPayload,
+          id: existingReview.id,
+        })
+      : await mealCoachReviewsRepository.save(reviewPayload);
 
     await coachReviewDraftsRepository.delete(mealId, coachId);
 
-    await adminAuditService.log(coachId, `meal.review.${dto.action}`, {
-      targetType: "meal",
-      targetId: mealId,
-      meta: {
-        clientId: meal.clientId,
-        allergenMatch: allergenAssessment.allergenMatch,
-        possibleAllergenMatch: allergenAssessment.possibleAllergenMatch,
+    await adminAuditService.log(
+      coachId,
+      isUpdate ? `meal.review.update.${dto.action}` : `meal.review.${dto.action}`,
+      {
+        targetType: "meal",
+        targetId: mealId,
+        meta: {
+          clientId: meal.clientId,
+          allergenMatch: allergenAssessment.allergenMatch,
+          possibleAllergenMatch: allergenAssessment.possibleAllergenMatch,
+          updated: isUpdate,
+        },
       },
-    });
+    );
 
     const consumer = consumerForAllergen;
     if (consumer?.userId) {
@@ -732,7 +745,7 @@ export const coachMealsService = {
         status: meal.status,
       });
 
-      if (meal.status === "approved" || meal.status === "rejected") {
+      if (!isUpdate && (meal.status === "approved" || meal.status === "rejected")) {
         const user = await usersRepository.findById(consumer.userId);
         if (user?.email) {
           const profile = consumer.profile as Record<string, unknown>;
@@ -756,6 +769,82 @@ export const coachMealsService = {
     broadcastCoachQueueToAll({ type: "queue_updated", reason: "reviewed", mealId });
 
     return mealToCoachDto(meal, review);
+  },
+
+  async aiAssistMeal(mealId: string, coachId: string) {
+    await assertCoachModule(coachId, "coaching");
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    await ensureCoachCanAccessClient(coachId, meal.clientId);
+
+    if (meal.status !== "in_review" && meal.status !== "approved") {
+      throw new BadRequestError("AI assist is only available for meals in review or approved");
+    }
+
+    const note =
+      (typeof meal.data.note === "string" && meal.data.note.trim()) ||
+      (typeof meal.data.textInput === "string" && meal.data.textInput.trim()) ||
+      null;
+    const imageUrl = typeof meal.data.imageUrl === "string" ? meal.data.imageUrl : null;
+
+    let analysis;
+    const photo = imageUrl ? readMealPhotoFromUrl(imageUrl) : null;
+    if (photo) {
+      analysis = await visionService.analyzeMealFromImage(photo.buffer, photo.mimeType, {
+        note,
+        metadataRaw: "{}",
+      });
+    } else {
+      const text =
+        note ||
+        (typeof meal.data.mealName === "string" ? meal.data.mealName.trim() : "") ||
+        "";
+      if (!text) {
+        throw new BadRequestError(
+          "This meal has no photo on disk and no description to analyze.",
+        );
+      }
+      analysis = await visionService.analyzeMealFromText(text);
+    }
+
+    const items = normalizeMealItems(analysis.items).map((item) => ({
+      ...item,
+      foodSource: "ai" as const,
+    }));
+    // Draft-only: never write provisional nutrition onto the patient meal row.
+    meal.data = {
+      ...meal.data,
+      assistAnalysis: {
+        mealName: analysis.mealName,
+        items,
+        totalNutrition: analysis.totalNutrition,
+        generatedAt: new Date().toISOString(),
+      },
+    };
+    await mealsRepository.saveMeal(meal);
+
+    await coachReviewDraftsRepository.upsert({
+      mealId,
+      coachId,
+      mealName: analysis.mealName ?? null,
+      items: items as unknown as Record<string, unknown>[],
+      note: null,
+      trainingNote: null,
+    });
+
+    return {
+      mealId,
+      mealName: analysis.mealName,
+      items,
+      totalNutrition: analysis.totalNutrition,
+      draft: {
+        mealId,
+        mealName: analysis.mealName,
+        items,
+        note: "",
+        trainingNote: "",
+      },
+    };
   },
 
   async getCohorts(coachUserId: string) {

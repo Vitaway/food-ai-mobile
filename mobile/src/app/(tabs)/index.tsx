@@ -1,12 +1,11 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useIsFocused } from '@react-navigation/native';
-import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
 import { Image, Pressable, ScrollView, View } from 'react-native';
+import { useFocusEffect, useIsFocused } from '@react-navigation/native';
+import { StatusBar } from 'expo-status-bar';
+import { Ionicons } from '@expo/vector-icons';
 
 import { HomeWaterCard } from '@/components/home/HomeWaterCard';
 import { HomeHeroCard } from '@/components/home/HomeHeroCard';
-import { CoachingFeedCard } from '@/components/home/CoachingFeedCard';
 import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
 import { HomeQuickLogBar } from '@/components/home/HomeQuickLogBar';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
@@ -30,12 +29,18 @@ import { setLogMealTypeIntent, setLogMethodIntent } from '@/utils/logIntent';
 export default function HomeScreen() {
   const { push } = useNavigateOnce();
   const isFocused = useIsFocused();
-  const { meals } = useMeals();
+  const { meals, refreshMeals } = useMeals();
   const { profile } = useProfile();
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const { dashboard, timeline, mealCount, displayName } = useDashboard(selectedDate);
   const notificationUnread = useNotificationUnreadCount();
   const firstName = useMemo(() => displayName.trim().split(/\s+/)[0] || 'there', [displayName]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void refreshMeals();
+    }, [refreshMeals]),
+  );
 
   const isToday = selectedDate === todayKey();
   const dayHeading = formatDayHeading(selectedDate);
@@ -116,6 +121,7 @@ export default function HomeScreen() {
   );
 
   const onOpenHealth = useSinglePress(() => push('/profile/health'));
+  const onOpenSelectedDay = useSinglePress(() => push(`/profile/day/${selectedDate}`));
 
   return (
     <View className="flex-1 bg-white">
@@ -184,10 +190,8 @@ export default function HomeScreen() {
             lastMeal={dashboard.lastMeal}
             onSelectDate={setSelectedDate}
             onOpenCalendar={() => onOpenHealth?.()}
-            onPressDetail={() => onOpenHealth?.()}
+            onPressDetail={() => onOpenSelectedDay?.()}
           />
-
-          <CoachingFeedCard />
 
           {activePipelineCount > 0 ? (
             <Pressable

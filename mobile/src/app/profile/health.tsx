@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { MonthCalendar } from '@/components/home/MonthCalendar';
+import { HealthWeekStrip } from '@/components/home/HealthWeekStrip';
 import { HealthScoreBreakdownCard } from '@/components/home/HealthScoreBreakdownCard';
 import { HealthScoreTrendChart } from '@/components/home/HealthScoreTrendChart';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
@@ -20,7 +20,8 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { fetchHealthScoreHistory, type HealthScoreHistoryEntry } from '@/services/remote/consumerApi';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
-import { formatDisplayDate, todayKey } from '@/utils/dates';
+import { formatDayHeading, formatDisplayDate, todayKey } from '@/utils/dates';
+import { formatGlasses, mlToGlasses } from '@/utils/waterUnits';
 
 export default function HealthProfileScreen() {
   const router = useRouter();
@@ -129,40 +130,61 @@ export default function HealthProfileScreen() {
 
       <StackScreenBody>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="gap-4 px-5 pb-10 pt-5">
-          <View className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 p-3">
-            <MonthCalendar
-              selectedDate={selectedDate}
-              onSelectDate={(dateKey) => {
-                setSelectedDate(dateKey);
-                router.push({ pathname: '/profile/day/[date]', params: { date: dateKey } } as Href);
-              }}
-              markedDates={loggedDates}
-            />
-          </View>
+          <HealthWeekStrip
+            selectedDate={selectedDate}
+            onSelectDate={setSelectedDate}
+            markedDates={loggedDates}
+          />
 
-          <View className="rounded-2xl border border-ash-grey-100 p-4">
-            <Text className="font-sans-semibold text-base text-neutral-900">
-              {formatDisplayDate(new Date(selectedDate))}
-            </Text>
-            <View className="mt-3 flex-row gap-2">
-              <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
+          <Pressable
+            onPress={() =>
+              router.push({ pathname: '/profile/day/[date]', params: { date: selectedDate } } as Href)
+            }
+            className="rounded-[24px] border border-ash-grey-100 bg-white p-4 active:bg-ash-grey-50"
+            style={{
+              shadowColor: '#1a1c17',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.06,
+              shadowRadius: 14,
+              elevation: 2,
+            }}>
+            <View className="flex-row items-start justify-between gap-3">
+              <View className="min-w-0 flex-1">
+                <Text className="text-xs font-sans-semibold uppercase tracking-wide text-neutral-400">
+                  {formatDayHeading(selectedDate)}
+                </Text>
+                <Text className="mt-1 font-sans-semibold text-lg text-neutral-900">
+                  {formatDisplayDate(new Date(`${selectedDate}T12:00:00`))}
+                </Text>
+              </View>
+              <View className="flex-row items-center gap-1.5 rounded-full bg-blue-spruce-600 py-2 pl-3.5 pr-2.5">
+                <Text className="font-sans-semibold text-sm text-white">Open</Text>
+                <View className="h-7 w-7 items-center justify-center rounded-full bg-white">
+                  <Ionicons name="arrow-forward" size={16} color="#023459" />
+                </View>
+              </View>
+            </View>
+
+            <View className="mt-4 flex-row gap-2">
+              <View className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
                 <Text className="text-xs text-neutral-500">Calories</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">
                   {dashboard.caloriesConsumed}/{dashboard.calorieTarget}
                 </Text>
               </View>
-              <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
+              <View className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
                 <Text className="text-xs text-neutral-500">Water</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">
-                  {dashboard.waterMl}/{dashboard.waterTargetMl}
+                  {formatGlasses(mlToGlasses(dashboard.waterMl))}/
+                  {formatGlasses(mlToGlasses(dashboard.waterTargetMl))}
                 </Text>
               </View>
-              <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
+              <View className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
                 <Text className="text-xs text-neutral-500">Score</Text>
                 <Text className="mt-1 font-sans-semibold text-shamrock-700">{dashboard.healthScore}</Text>
               </View>
             </View>
-          </View>
+          </Pressable>
 
           {dashboard.healthScoreBreakdown ? (
             <HealthScoreBreakdownCard

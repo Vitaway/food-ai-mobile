@@ -9,7 +9,7 @@ import { MarketingShell } from '@/components/marketing/MarketingShell';
 import { GuestRoute, ProtectedRoute } from '@/features/auth';
 import { AdminRoute } from '@/features/admin/components/AdminRoute';
 import { AdminShell } from '@/features/admin/components/AdminShell';
-import { OverviewPage, QueuePage, MealReviewPage, ProfilePage, ClientsPage, ClientDetailPage, TeamPage, PastReviewsPage, PastReviewDetailPage, MessagesPage, NutritionDbPage, ReportsPage } from '@/pages/coach';
+import { OverviewPage, QueuePage, MealReviewPage, ProfilePage, ClientsPage, ClientDetailPage, TeamPage, PastReviewsPage, PastReviewDetailPage, MessagesPage, NutritionDbPage, ReportsPage, InsightsPage } from '@/pages/coach';
 import {
   AdminOverviewPage,
   AdminCoachesPage,
@@ -129,6 +129,7 @@ function App() {
           <Route path="messages" element={<MessagesPage />} />
           <Route path="messages/:id" element={<MessagesPage />} />
           <Route path="nutrition-db" element={<NutritionDbPage />} />
+          <Route path="insights" element={<InsightsPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="*" element={<Navigate to="/coach" replace />} />

@@ -31,7 +31,7 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
       <Text className="font-sans-semibold text-base text-neutral-900">Custom amount</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">Fine-tune in ¼-cup steps</Text>
+      <Text className="mt-0.5 text-sm text-neutral-500">Fine-tune in ¼-glass steps</Text>
 
       <View className="mt-5 flex-row items-center justify-center gap-5">
         <Pressable
@@ -47,7 +47,7 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
 
         <View className="min-w-[120px] items-center">
           <Text className="font-sans-bold text-4xl text-blue-spruce-900">{formatCups(cups)}</Text>
-          <Text className="mt-1 text-sm text-neutral-500">{cups === 1 ? 'cup' : 'cups'}</Text>
+          <Text className="mt-1 text-sm text-neutral-500">{cups === 1 ? 'glass' : 'glasses'}</Text>
         </View>
 
         <Pressable

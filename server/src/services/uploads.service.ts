@@ -161,6 +161,26 @@ export function saveMealPhoto(
   return { imageUrl: `${base}/uploads/meals/${filename}` };
 }
 
+/** Resolve a stored meal photo URL to a local buffer (for coach AI assist). */
+export function readMealPhotoFromUrl(imageUrl: string): { buffer: Buffer; mimeType: string } | null {
+  const match = imageUrl.match(/\/uploads\/meals\/([^/?#]+)/i);
+  if (!match) return null;
+  const filename = path.basename(match[1]);
+  if (!filename || filename.includes("..")) return null;
+  const filePath = path.join(MEAL_PHOTOS_DIR, filename);
+  if (!fs.existsSync(filePath)) return null;
+  const ext = path.extname(filename).toLowerCase();
+  const mimeType =
+    ext === ".png"
+      ? "image/png"
+      : ext === ".webp"
+        ? "image/webp"
+        : ext === ".gif"
+          ? "image/gif"
+          : "image/jpeg";
+  return { buffer: fs.readFileSync(filePath), mimeType };
+}
+
 export function saveNutritionFoodImage(
   buffer: Buffer,
   mimeType: string,

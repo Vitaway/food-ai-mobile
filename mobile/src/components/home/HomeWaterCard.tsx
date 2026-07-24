@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
-import { formatCups, mlToCups } from '@/utils/waterUnits';
+import { formatGlasses, formatGlassesShort, mlToGlasses } from '@/utils/waterUnits';
 
 type HomeWaterCardProps = {
   waterMl: number;
@@ -13,9 +13,9 @@ type HomeWaterCardProps = {
 
 export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCardProps) {
   const progress = waterTargetMl > 0 ? Math.min(1, waterMl / waterTargetMl) : 0;
-  const cupsLogged = mlToCups(waterMl);
-  const cupsTarget = mlToCups(waterTargetMl);
-  const remainingCups = Math.max(0, cupsTarget - cupsLogged);
+  const glassesLogged = mlToGlasses(waterMl);
+  const glassesTarget = mlToGlasses(waterTargetMl);
+  const remainingGlasses = Math.max(0, glassesTarget - glassesLogged);
 
   return (
     <Pressable
@@ -36,7 +36,7 @@ export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCard
         <View className="flex-row items-center justify-between">
           <Text className="font-sans-semibold text-neutral-900">Water today</Text>
           <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">
-            {formatCups(cupsLogged)}/{formatCups(cupsTarget)} cups
+            {formatGlasses(glassesLogged)}/{formatGlasses(glassesTarget)} glasses
           </Text>
         </View>
         <View className="mt-2 h-2 overflow-hidden rounded-full bg-ash-grey-100">
@@ -46,8 +46,8 @@ export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCard
           />
         </View>
         <Text className="mt-1.5 text-xs text-neutral-500">
-          {remainingCups > 0
-            ? `${formatCups(remainingCups)} cups to go · tap to log`
+          {remainingGlasses > 0
+            ? `${formatGlassesShort(remainingGlasses)} to go · tap to log`
             : 'Goal reached · tap to add more'}
         </Text>
       </View>

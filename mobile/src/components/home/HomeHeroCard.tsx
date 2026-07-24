@@ -6,6 +6,7 @@ import { WeekDaySelector } from '@/components/home/WeekDaySelector';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 import type { DailyDashboard, MealSubmission } from '@/types';
+import { formatGlasses, mlToGlasses } from '@/utils/waterUnits';
 
 type HomeHeroCardProps = {
   dashboard: DailyDashboard;
@@ -30,6 +31,8 @@ export function HomeHeroCard({
     dashboard.calorieTarget > 0
       ? Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100)
       : 0;
+  const glassesLogged = mlToGlasses(dashboard.waterMl);
+  const glassesTarget = mlToGlasses(dashboard.waterTargetMl);
 
   return (
     <View
@@ -76,7 +79,7 @@ export function HomeHeroCard({
               of {dashboard.calorieTarget} kcal · {calorieProgress}%
             </Text>
             <Text className="mt-2 text-sm text-white/70">
-              Water {dashboard.waterMl}/{dashboard.waterTargetMl} ml
+              Water {formatGlasses(glassesLogged)}/{formatGlasses(glassesTarget)} glasses
             </Text>
           </View>
 

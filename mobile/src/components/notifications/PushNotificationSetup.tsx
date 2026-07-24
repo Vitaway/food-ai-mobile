@@ -53,9 +53,16 @@ export function PushNotificationSetup() {
     if (!isExpoNotificationsAvailable()) return;
 
     void (async () => {
-      const { requestPushPermissions } = await import('@/services/push/pushNotifications');
-      await requestPushPermissions();
-      await syncPushTokenWithServer();
+      const Notifications = await loadExpoNotifications();
+      if (!Notifications) return;
+      const settings = await Notifications.getPermissionsAsync();
+      const granted =
+        settings.granted ||
+        settings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+      // Only sync when already allowed — first-install prompt owns the system dialog.
+      if (granted) {
+        await syncPushTokenWithServer();
+      }
     })();
 
     let subscription: { remove: () => void } | undefined;

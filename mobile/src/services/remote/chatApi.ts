@@ -1,4 +1,5 @@
 import { apiRequest, ApiError, getApiAuthToken } from '@/lib/apiClient';
+import { emitUnauthorized } from '@/lib/authEvents';
 import { getApiV1Url } from '@/constants/api';
 
 export type ChatConversation = {
@@ -120,6 +121,9 @@ export async function sendChatMessageWithAttachment(
   };
 
   if (!response.ok || payload.success === false) {
+    if (response.status === 401 && token) {
+      emitUnauthorized();
+    }
     const message =
       (typeof payload.error === 'string' && payload.error) ||
       (typeof payload.message === 'string' && payload.message) ||

@@ -32,6 +32,26 @@ import { coachingFeedService } from "../consumers/coaching-feed.service";
 import { CreateReviewTaskDto, ReviewMealDto, SaveReviewDraftDto } from "../meals/meals.dto";
 import { platformMetricsService } from "../admin/platform-metrics.service";
 import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
+import { coachInsightsService } from "./coach-insights.service";
+import { IsIn, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
+
+class CreateCoachInsightDto {
+  @IsString()
+  clientId!: string;
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(160)
+  title!: string;
+
+  @IsString()
+  @MinLength(3)
+  body!: string;
+
+  @IsOptional()
+  @IsIn(["tip", "celebration", "reminder", "coach_note", "trend"])
+  type?: string;
+}
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -165,6 +185,24 @@ export class CoachController {
   }
 
   @Authorized(["coach"])
+  @Get("/insights")
+  listInsights(@CurrentUser() user: User) {
+    return coachInsightsService.listForCoach(user.id);
+  }
+
+  @Authorized(["coach"])
+  @Get("/clients/:id/insights")
+  listClientInsights(@CurrentUser() user: User, @Param("id") id: string) {
+    return coachInsightsService.listForClient(user.id, id);
+  }
+
+  @Authorized(["coach"])
+  @Post("/insights")
+  createInsight(@CurrentUser() user: User, @Body() dto: CreateCoachInsightDto) {
+    return coachInsightsService.create(user.id, dto);
+  }
+
+  @Authorized(["coach"])
   @Post("/assignments")
   assignClient(@CurrentUser() user: User, @Body() dto: AssignClientDto) {
     return coachMealsService.assignClient(user.id, dto.clientId, user.id);
@@ -258,6 +296,12 @@ export class CoachController {
   @Delete("/meals/:id/pick")
   releaseMealPick(@CurrentUser() user: User, @Param("id") id: string) {
     return coachMealsService.releaseMealPick(id, user.id);
+  }
+
+  @Authorized(["coach"])
+  @Post("/meals/:id/ai-assist")
+  aiAssist(@CurrentUser() user: User, @Param("id") id: string) {
+    return coachMealsService.aiAssistMeal(id, user.id);
   }
 
   @Authorized(["coach"])

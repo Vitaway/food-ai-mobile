@@ -369,7 +369,8 @@ export function ProfileProvider({ children }: PropsWithChildren) {
           const remote = await uploadConsumerAvatar(avatarUrl);
           avatarUrl = remote.profile.avatarUrl ?? avatarUrl;
         } catch {
-          throw new Error('Could not upload your profile photo. Please try again.');
+          // Photo is optional — never block onboarding Finish on upload failure.
+          avatarUrl = undefined;
         }
       }
 
@@ -381,9 +382,16 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         next = (await persistRemoteProfile(localPreview, avatarUrl)) ?? localPreview;
       }
 
+      const complete = isApiConfigured() && isAuthenticated
+        ? Boolean(next.onboardingComplete)
+        : Boolean(next.onboardingComplete) || resolveOnboardingComplete(next);
+      next = { ...next, onboardingComplete: complete };
+
       await services.profileRepository.saveProfile(next);
       setProfile(next);
-      await markOnboardingComplete();
+      if (complete) {
+        await markOnboardingComplete();
+      }
 
       return next;
     },

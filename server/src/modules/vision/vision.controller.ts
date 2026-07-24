@@ -1,70 +1,34 @@
-import {
-  Authorized,
-  BadRequestError,
-  Body,
-  Controller,
-  CurrentUser,
-  Post,
-  Req,
-  UseBefore,
-} from "routing-controllers";
-import type { Request } from "express";
-import multer from "multer";
+import { Authorized, BadRequestError, Body, Controller, Post } from "routing-controllers";
 import { AnalyzeMealTextDto } from "./vision.dto";
-import { visionService } from "./vision.service";
 import type { User } from "../users/user.entity";
-import { assertConsumerSubscription } from "../../middlewares/entitlements";
 
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 12 * 1024 * 1024 },
-});
-
-function parseOptionalNumber(value: unknown): number | null {
-  if (value == null || value === "") return null;
-  const num = Number.parseFloat(String(value));
-  return Number.isFinite(num) && num > 0 ? num : null;
-}
-
+/**
+ * Patient-facing vision endpoints are disabled — meals go to coaches first.
+ * Coach AI assist lives under /coach/meals/:id/ai-assist.
+ */
 @Controller("/vision")
 export class VisionController {
   @Authorized(["consumer"])
   @Post("/plates/detect")
-  @UseBefore(upload.single("image"))
-  async detectPlate(@CurrentUser() user: User, @Req() req: Request) {
-    await assertConsumerSubscription(user.id);
-    const file = req.file;
-    if (!file) {
-      throw new BadRequestError("Missing image file (field name: image)");
-    }
-    const metadata = typeof req.body?.metadata === "string" ? req.body.metadata : "{}";
-    return visionService.detectPlate(file.buffer, file.mimetype, metadata);
+  async detectPlate() {
+    throw new BadRequestError(
+      "Plate detection is no longer available on the patient app. Submit meals for coach review.",
+    );
   }
 
   @Authorized(["consumer"])
   @Post("/meals/analyze")
-  @UseBefore(upload.single("image"))
-  async analyzeMealImage(@CurrentUser() user: User, @Req() req: Request) {
-    await assertConsumerSubscription(user.id);
-    const file = req.file;
-    if (!file) {
-      throw new BadRequestError("Missing image file (field name: image)");
-    }
-    const metadata = typeof req.body?.metadata === "string" ? req.body.metadata : "{}";
-    const plateDiameterCm = parseOptionalNumber(req.body?.plateDiameterCm);
-    const note = typeof req.body?.note === "string" ? req.body.note : null;
-
-    return visionService.analyzeMealFromImage(file.buffer, file.mimetype, {
-      plateDiameterCm,
-      note,
-      metadataRaw: metadata,
-    });
+  async analyzeMealImage() {
+    throw new BadRequestError(
+      "Meal analysis is coach-only. Submit the meal photo for coach review.",
+    );
   }
 
   @Authorized(["consumer"])
   @Post("/meals/analyze-text")
-  async analyzeMealText(@CurrentUser() user: User, @Body() dto: AnalyzeMealTextDto) {
-    await assertConsumerSubscription(user.id);
-    return visionService.analyzeMealFromText(dto.text, dto.plateDiameterCm ?? null);
+  async analyzeMealText(@Body() _dto: AnalyzeMealTextDto) {
+    throw new BadRequestError(
+      "Meal analysis is coach-only. Submit a description for coach review.",
+    );
   }
 }

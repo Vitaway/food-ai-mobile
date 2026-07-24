@@ -146,6 +146,8 @@ export interface MealSubmission {
   manualReviewRequired?: boolean | null;
   manualReviewReason?: string | null;
   aiAnalysis?: AiAnalysis;
+  /** Explicit coach "Ask AI" result — never patient submission stubs. */
+  assistAnalysis?: AiAnalysis;
   coachReview?: CoachReview | null;
   waitingMinutes?: number;
   slaLevel?: 'ok' | 'warning' | 'critical';

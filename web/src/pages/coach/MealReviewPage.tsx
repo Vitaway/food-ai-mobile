@@ -9,6 +9,7 @@ import { FlagBadge, StatusBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { StatusPill } from '@/components/ui/StatusPill';
 import {
+  coachKeys,
   useAssignClient,
   useCoachClient,
   useCoachMeal,
@@ -20,6 +21,7 @@ import {
   useReviewMeal,
   useSaveReviewDraft,
 } from '@/hooks/useCoachQueries';
+import { runCoachMealAiAssist } from '@/api/coachApi';
 import { useCoachStore } from '@/stores/coachStore';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
@@ -32,10 +34,28 @@ import {
 } from '@/lib/utils';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import type { DetectedFoodItem } from '@/types';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
-function sanitizeSeedItems(items: DetectedFoodItem[]): DetectedFoodItem[] {
-  return items.map((item) =>
-    isUsableMealName(item.label) ? item : { ...item, label: 'Ingredient' },
+function sanitizeSeedItems(
+  items: DetectedFoodItem[],
+  opts?: { foodSource?: DetectedFoodItem['foodSource'] },
+): DetectedFoodItem[] {
+  return items.map((item) => ({
+    ...item,
+    label: isUsableMealName(item.label) ? item.label : 'Ingredient',
+    foodSource: opts?.foodSource ?? item.foodSource ?? 'manual',
+  }));
+}
+
+/** Old auto-seed / stub drafts — 1g rows with no Food DB link and not from Ask AI. */
+function isPollutedAutoSeedDraft(items: DetectedFoodItem[] | undefined): boolean {
+  if (!items?.length) return false;
+  return items.every(
+    (item) =>
+      !item.nutritionFoodId &&
+      item.foodSource !== 'ai' &&
+      (item.estimatedWeightG ?? 0) <= 1 &&
+      (item.foodSource === 'manual' || !item.foodSource),
   );
 }
 
@@ -60,10 +80,28 @@ export function MealReviewPage() {
   const pickMutation = usePickMeal();
   const releaseMutation = useReleaseMealPick();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const startReviewDraft = useCoachStore((s) => s.startReviewDraft);
   const hydrateReviewDraft = useCoachStore((s) => s.hydrateReviewDraft);
   const clearReviewDraft = useCoachStore((s) => s.clearReviewDraft);
   const reviewDraft = useCoachStore((s) => s.reviewDraft);
+  const aiAssistMutation = useMutation({
+    mutationFn: (mealId: string) => runCoachMealAiAssist(mealId),
+    onSuccess: (result) => {
+      const items = sanitizeSeedItems(result.draft.items, { foodSource: 'ai' });
+      hydrateReviewDraft({
+        mealId: result.draft.mealId,
+        mealName: result.draft.mealName || result.mealName,
+        items,
+        note: result.draft.note ?? '',
+        trainingNote: result.draft.trainingNote ?? '',
+      });
+      toast.success('AI suggestion added to your review. Check Food DB matches, then approve.');
+    },
+    onError: (error) => {
+      toast.error(getApiErrorMessage(error, 'Could not run assist right now.'));
+    },
+  });
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [approveModal, setApproveModal] = useState<'single' | 'next' | null>(null);
   const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -96,20 +134,44 @@ export function MealReviewPage() {
     };
   }, [id, clearReviewDraft]);
 
-  // One-time init: wait for server draft fetch, then hydrate or seed from AI
+  // One-time init: blank coach-first slate (wipe polluted auto-seeds). AI only after Ask AI.
   useEffect(() => {
     if (!id || !item?.meal || !draftFetched) return;
     if (initializedMealIdRef.current === id) return;
     initializedMealIdRef.current = id;
 
-    if (persistedDraft?.mealId === id) {
+    const clientTitle = resolveCoachMealTitle({
+      mealName:
+        item.meal.note?.trim() ||
+        item.meal.textInput?.trim() ||
+        item.meal.mealName ||
+        undefined,
+      mealType: item.meal.mealType,
+    });
+
+    // Re-edit approved meals from the prior coach review.
+    if (item.meal.coachReview?.items?.length) {
+      const title = resolveCoachMealTitle({
+        mealName: item.meal.coachReview.mealName || item.meal.mealName,
+        mealType: item.meal.mealType,
+      });
+      startReviewDraft(
+        item.meal.id,
+        title,
+        sanitizeSeedItems(item.meal.coachReview.items),
+      );
+      return;
+    }
+
+    const polluted =
+      !persistedDraft ||
+      persistedDraft.mealId !== id ||
+      isPollutedAutoSeedDraft(persistedDraft.items);
+
+    if (!polluted && persistedDraft?.mealId === id) {
       const title = isUsableMealName(persistedDraft.mealName)
         ? persistedDraft.mealName.trim()
-        : resolveCoachMealTitle({
-            mealName: item.meal.mealName,
-            aiMealName: item.meal.aiAnalysis?.mealName,
-            mealType: item.meal.mealType,
-          });
+        : clientTitle;
       hydrateReviewDraft({
         mealId: persistedDraft.mealId,
         mealName: title,
@@ -120,13 +182,18 @@ export function MealReviewPage() {
       return;
     }
 
-    const seedItems = sanitizeSeedItems(item.meal.aiAnalysis?.items ?? item.meal.items ?? []);
-    const title = resolveCoachMealTitle({
-      mealName: item.meal.mealName,
-      aiMealName: item.meal.aiAnalysis?.mealName,
-      mealType: item.meal.mealType,
-    });
-    startReviewDraft(item.meal.id, title, seedItems);
+    // Blank slate — photo + client text only.
+    startReviewDraft(item.meal.id, clientTitle, []);
+    if (persistedDraft?.mealId === id) {
+      saveDraft({
+        mealId: id,
+        mealName: clientTitle,
+        items: [],
+        note: '',
+        trainingNote: '',
+      });
+      void queryClient.invalidateQueries({ queryKey: coachKeys.reviewDraft(id) });
+    }
   }, [
     id,
     item?.meal,
@@ -134,6 +201,8 @@ export function MealReviewPage() {
     persistedDraft,
     hydrateReviewDraft,
     startReviewDraft,
+    saveDraft,
+    queryClient,
   ]);
 
   // Debounced autosave — only when the local draft changes (not on mutation status)
@@ -395,8 +464,25 @@ export function MealReviewPage() {
         onApprove={() => void submitReview('approve')}
         onApproveNext={() => void submitReview('approve', true)}
         onReject={() => void submitReview('reject')}
+        onAiAssist={() => {
+          if (!id) return;
+          if ((reviewDraft?.items.length ?? 0) > 0) {
+            void confirm({
+              title: 'Replace your draft?',
+              description:
+                'Ask AI suggestion will overwrite your current ingredient list with a new draft.',
+              confirmLabel: 'Ask AI suggestion',
+            }).then((ok) => {
+              if (ok) aiAssistMutation.mutate(id);
+            });
+            return;
+          }
+          aiAssistMutation.mutate(id);
+        }}
         isSubmitting={reviewMutation.isPending}
+        isAiAssisting={aiAssistMutation.isPending}
         disabled={pickedByOther}
+        isUpdate={Boolean(meal.coachReview)}
       />
 
       <div className="grid gap-4 lg:grid-cols-2">

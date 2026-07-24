@@ -7,7 +7,7 @@ import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
 import { ensurePatientConversation } from '@/services/remote/chatApi';
 
-export function AskCoachButton({ mealId }: { mealId: string }) {
+export function AskCoachButton({ mealId, label }: { mealId: string; label?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +36,7 @@ export function AskCoachButton({ mealId }: { mealId: string }) {
   return (
     <View className="gap-2">
       <Button
-        label={loading ? 'Opening chat…' : 'Ask coach about this meal'}
+        label={loading ? 'Opening chat…' : label ?? 'Ask coach about this meal'}
         variant="secondary"
         onPress={() => void openChat()}
         disabled={loading}

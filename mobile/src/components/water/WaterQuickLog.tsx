@@ -28,7 +28,9 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
       <Text className="font-sans-semibold text-base text-neutral-900">Quick log</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">Tap to add a cup — undo mistakes in today&apos;s log</Text>
+      <Text className="mt-0.5 text-sm text-neutral-500">
+        Tap to add a glass of water — undo mistakes in today&apos;s log
+      </Text>
 
       <View className="mt-4 flex-row gap-3">
         {QUICK_CUP_AMOUNTS.map((cups) => (
@@ -41,7 +43,7 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
               <Ionicons name="add" size={22} color={semanticColors.accentOrange} />
             </View>
             <Text className="font-sans-bold text-xl text-cinnamon-wood-500">+{formatCups(cups)}</Text>
-            <Text className="mt-0.5 text-xs text-neutral-500">{cups === 1 ? 'cup' : 'cups'}</Text>
+            <Text className="mt-0.5 text-xs text-neutral-500">{cups === 1 ? 'glass' : 'glasses'}</Text>
           </Pressable>
         ))}
       </View>

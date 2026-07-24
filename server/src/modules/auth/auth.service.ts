@@ -37,7 +37,7 @@ import { coachProfilesRepository } from "../coaches/coach-profiles.repository";
 import { consumerProfilesRepository } from "../consumers/consumer-profiles.repository";
 import { resolveOnboardingComplete } from "../consumers/onboarding.util";
 import { ensureConsumerProfileForUser } from "../consumers/ensure-consumer-profile.util";
-import { generatePatientId } from "../../utils/patient-id";
+import { allocatePatientId } from "../../utils/patient-id";
 import { logger } from "../../config/logger";
 import { emailService } from "../../services/email.service";
 import { generateReferralCode } from "../../utils/referral-code";
@@ -223,10 +223,7 @@ export const authService = {
     });
     await usersRepository.save(user);
 
-    let patientId = generatePatientId();
-    while (await consumerProfilesRepository.findById(patientId)) {
-      patientId = generatePatientId();
-    }
+    const patientId = await allocatePatientId();
 
     const now = new Date().toISOString();
     const consumerProfile = consumerProfilesRepository.create({

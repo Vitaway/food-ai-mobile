@@ -1,4 +1,5 @@
 import { apiRequest, ApiError, getApiAuthToken } from '@/lib/apiClient';
+import { emitUnauthorized } from '@/lib/authEvents';
 import { API_BASE_URL, getApiV1Url } from '@/constants/api';
 import type { MealSubmission, UserProfile } from '@/types';
 import { ensureServingFields } from '@/utils/servingUnits';
@@ -59,11 +60,14 @@ export async function uploadConsumerAvatar(imageUri: string): Promise<ConsumerPr
   };
 
   if (!response.ok || body.success === false) {
+    if (response.status === 401 && token) {
+      emitUnauthorized();
+    }
     const message =
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       `Upload failed (${response.status})`;
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   if (body.success === true && body.data) {
@@ -269,6 +273,9 @@ async function postMealMultipart(payload: ReturnType<typeof mealPayload>, imageU
   };
 
   if (!response.ok || body.success === false) {
+    if (response.status === 401 && token) {
+      emitUnauthorized();
+    }
     const message =
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
@@ -362,11 +369,14 @@ export async function uploadMealPhoto(mealId: string, imageUri: string): Promise
   };
 
   if (!response.ok || body.success === false) {
+    if (response.status === 401 && token) {
+      emitUnauthorized();
+    }
     const message =
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       `Upload failed (${response.status})`;
-    throw new Error(message);
+    throw new ApiError(message, response.status);
   }
 
   const imageUrl = body.data?.imageUrl;

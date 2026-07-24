@@ -141,7 +141,7 @@ export const clinicFaqs = [
 export const patientFaqs = [
   {
     q: 'What is my patient file ID?',
-    a: 'When you register, MiraFood assigns a Vitaway patient file ID (e.g. VTW-…) — your unique reference across the platform and with your care team.',
+    a: 'When you register, MiraFood assigns a patient MRN (e.g. MRN-26070183) — your unique reference across the platform and with your care team.',
   },
   {
     q: 'Why do coaches review my meals?',

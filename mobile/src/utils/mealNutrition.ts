@@ -1,7 +1,10 @@
 import type { DetectedFoodItem, MealPetal, MealSubmission, NutritionFacts } from '@/types';
 
-function round1(value: number) {
-  return Math.round(value * 10) / 10;
+/** Cap nutrition values at 2 decimal places. */
+export function roundNutrition(n: number, maxDecimals = 2) {
+  if (!Number.isFinite(n)) return 0;
+  const factor = 10 ** Math.max(0, Math.min(2, maxDecimals));
+  return Math.round(n * factor) / factor;
 }
 
 export function sumItemNutrition(items: DetectedFoodItem[]): NutritionFacts {
@@ -42,11 +45,11 @@ export function scaleItemWeight(item: DetectedFoodItem, newWeightG: number): Det
     estimatedWeightG: weight,
     nutrition: {
       caloriesKcal: Math.max(0, Math.round(n.caloriesKcal * factor)),
-      proteinG: round1(n.proteinG * factor),
-      carbsG: round1(n.carbsG * factor),
-      fatG: round1(n.fatG * factor),
-      fiberG: round1(n.fiberG * factor),
-      sugarG: round1((n.sugarG ?? 0) * factor),
+      proteinG: roundNutrition(n.proteinG * factor),
+      carbsG: roundNutrition(n.carbsG * factor),
+      fatG: roundNutrition(n.fatG * factor),
+      fiberG: roundNutrition(n.fiberG * factor),
+      sugarG: roundNutrition((n.sugarG ?? 0) * factor),
       sodiumMg: Math.max(0, Math.round((n.sodiumMg ?? 0) * factor)),
     },
   };

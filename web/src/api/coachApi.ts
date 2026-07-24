@@ -341,6 +341,22 @@ export async function saveReviewDraft(
   });
 }
 
+export async function runCoachMealAiAssist(mealId: string) {
+  return apiRequest<{
+    mealId: string;
+    mealName: string;
+    items: import('@/types').DetectedFoodItem[];
+    totalNutrition: import('@/types').NutritionFacts;
+    draft: {
+      mealId: string;
+      mealName: string;
+      items: import('@/types').DetectedFoodItem[];
+      note: string;
+      trainingNote: string;
+    };
+  }>(`/coach/meals/${mealId}/ai-assist`, { method: 'POST' });
+}
+
 export async function fetchReviewTasks(mealId: string): Promise<import('@/types').MealReviewTask[]> {
   return apiRequest(`/coach/meals/${mealId}/review-tasks`);
 }
@@ -397,4 +413,31 @@ export type CoachingInsight = {
 
 export async function fetchClientCoachingInsights(clientId: string): Promise<CoachingInsight[]> {
   return apiRequest<CoachingInsight[]>(`/coach/clients/${clientId}/coaching-insights`);
+}
+
+export type CoachAuthoredInsight = {
+  id: string;
+  coachUserId: string;
+  clientId: string;
+  type: string;
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchCoachAuthoredInsights(): Promise<CoachAuthoredInsight[]> {
+  return apiRequest<CoachAuthoredInsight[]>('/coach/insights');
+}
+
+export async function createCoachInsight(payload: {
+  clientId: string;
+  title: string;
+  body: string;
+  type?: string;
+}): Promise<CoachAuthoredInsight> {
+  return apiRequest<CoachAuthoredInsight>('/coach/insights', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }

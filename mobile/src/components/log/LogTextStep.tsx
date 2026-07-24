@@ -24,7 +24,9 @@ export function LogTextStep({
     <>
       <LogCard>
         <Text className="font-sans-semibold text-lg text-neutral-900">What did you eat?</Text>
-        <Text className="mt-1 text-sm text-neutral-500">Separate items with commas for better results</Text>
+        <Text className="mt-1 text-sm text-neutral-500">
+          Your coach will review this description and confirm nutrition.
+        </Text>
         <AppTextInput
           value={value}
           onChangeText={onChangeText}
@@ -39,7 +41,7 @@ export function LogTextStep({
 
       <View className="mt-2">
         <Button
-          label={loading ? 'Analyzing…' : 'Analyze meal'}
+          label={loading ? 'Preparing…' : 'Continue'}
           variant="secondary"
           onPress={onContinue}
           disabled={!canContinue || loading}
