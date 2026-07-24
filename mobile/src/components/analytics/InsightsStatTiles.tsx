@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
+import { glassNoun } from '@/utils/waterUnits';
 
 type StatTile = {
   label: string;
@@ -78,8 +79,8 @@ export function InsightsStatTiles({
       <View className="flex-row items-center gap-3 rounded-2xl bg-blue-spruce-50 px-4 py-3">
         <Ionicons name="water" size={20} color="#023459" />
         <Text className="flex-1 text-sm text-blue-spruce-900">
-          Avg <Text className="font-sans-bold">{avgWaterCups}</Text> glasses/day · goal{' '}
-          {waterTargetCups} glasses
+          Avg <Text className="font-sans-bold">{avgWaterCups}</Text> {glassNoun(avgWaterCups)}
+          /day · goal {waterTargetCups} {glassNoun(waterTargetCups)}
         </Text>
       </View>
     </View>

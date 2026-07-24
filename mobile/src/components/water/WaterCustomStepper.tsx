@@ -4,7 +4,7 @@ import { Pressable, View } from 'react-native';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
-import { formatCups, formatCupsLabel } from '@/utils/waterUnits';
+import { formatCups, formatCupsLabel, glassNoun, toWholeGlasses } from '@/utils/waterUnits';
 
 const CARD_SHADOW = {
   shadowColor: '#1a1c17',
@@ -21,24 +21,25 @@ type WaterCustomStepperProps = {
   onSubmit: () => void;
 };
 
-function clampCups(value: number) {
-  return Math.min(20, Math.max(0.25, Math.round(value * 4) / 4));
+function clampGlasses(value: number) {
+  return Math.min(20, Math.max(1, toWholeGlasses(value)));
 }
 
 export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterCustomStepperProps) {
-  const step = (delta: number) => onChange(clampCups(cups + delta));
+  const whole = clampGlasses(cups);
+  const step = (delta: number) => onChange(clampGlasses(whole + delta));
 
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
       <Text className="font-sans-semibold text-base text-neutral-900">Custom amount</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">Fine-tune in ¼-glass steps</Text>
+      <Text className="mt-0.5 text-sm text-neutral-500">Add whole glasses only</Text>
 
       <View className="mt-5 flex-row items-center justify-center gap-5">
         <Pressable
-          disabled={logging || cups <= 0.25}
-          onPress={() => step(-0.25)}
+          disabled={logging || whole <= 1}
+          onPress={() => step(-1)}
           className={`h-12 w-12 items-center justify-center rounded-full border ${
-            logging || cups <= 0.25
+            logging || whole <= 1
               ? 'border-ash-grey-100 bg-ash-grey-50 opacity-50'
               : 'border-ash-grey-200 bg-white active:opacity-80'
           }`}>
@@ -46,15 +47,15 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
         </Pressable>
 
         <View className="min-w-[120px] items-center">
-          <Text className="font-sans-bold text-4xl text-blue-spruce-900">{formatCups(cups)}</Text>
-          <Text className="mt-1 text-sm text-neutral-500">{cups === 1 ? 'glass' : 'glasses'}</Text>
+          <Text className="font-sans-bold text-4xl text-blue-spruce-900">{formatCups(whole)}</Text>
+          <Text className="mt-1 text-sm text-neutral-500">{glassNoun(whole)}</Text>
         </View>
 
         <Pressable
-          disabled={logging || cups >= 20}
-          onPress={() => step(0.25)}
+          disabled={logging || whole >= 20}
+          onPress={() => step(1)}
           className={`h-12 w-12 items-center justify-center rounded-full border ${
-            logging || cups >= 20
+            logging || whole >= 20
               ? 'border-ash-grey-100 bg-ash-grey-50 opacity-50'
               : 'border-cinnamon-wood-100 bg-cinnamon-wood-50 active:opacity-80'
           }`}>
@@ -64,11 +65,11 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
 
       <View className="mt-5">
         <Button
-          label={logging ? 'Logging…' : `Add ${formatCupsLabel(cups)}`}
+          label={logging ? 'Logging…' : `Add ${formatCupsLabel(whole)}`}
           onPress={onSubmit}
           disabled={logging}
           fullWidth
-          variant="secondary"
+          variant="primary"
         />
       </View>
     </View>
