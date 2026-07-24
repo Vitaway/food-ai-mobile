@@ -20,7 +20,7 @@ async function main() {
   console.log(`Sending welcome email to ${to}…`);
   await emailService.sendWelcomeEmail(to, {
     displayName: "Test User",
-    patientId: "VTW-EMAILTEST",
+    patientId: "MRN-26070001",
   });
 
   console.log("Done — check the inbox.");

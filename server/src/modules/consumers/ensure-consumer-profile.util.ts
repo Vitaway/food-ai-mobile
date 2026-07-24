@@ -1,5 +1,5 @@
 import { ForbiddenError, NotFoundError } from "routing-controllers";
-import { generatePatientId } from "../../utils/patient-id";
+import { allocatePatientId } from "../../utils/patient-id";
 import { logger } from "../../config/logger";
 import { usersRepository } from "../users/users.repository";
 import { consumerProfilesRepository } from "./consumer-profiles.repository";
@@ -19,10 +19,7 @@ export async function ensureConsumerProfileForUser(userId: string): Promise<Cons
     throw new ForbiddenError("Consumer profile not found");
   }
 
-  let patientId = generatePatientId();
-  while (await consumerProfilesRepository.findById(patientId)) {
-    patientId = generatePatientId();
-  }
+  const patientId = await allocatePatientId();
 
   const now = new Date().toISOString();
   const profile = consumerProfilesRepository.create({

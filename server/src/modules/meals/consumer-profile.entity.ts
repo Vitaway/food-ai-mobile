@@ -9,7 +9,7 @@ import {
 
 @Entity({ name: "consumer_profiles" })
 export class ConsumerProfile {
-  /** Vitaway patient file ID (e.g. VTW-7K2M9X4Q) */
+  /** Patient MRN (e.g. MRN-26070183) */
   @PrimaryColumn({ type: "varchar", length: 64 })
   id!: string;
 
