@@ -7,6 +7,8 @@ import {
   MEAL_ANALYSIS_IMAGE_WITH_DESCRIPTION_USER_PROMPT,
   MEAL_ANALYSIS_SYSTEM_PROMPT,
   MEAL_ANALYSIS_TEXT_USER_PROMPT,
+  MEAL_TITLE_SYSTEM_PROMPT,
+  MEAL_TITLE_USER_PROMPT,
 } from "../ai/meal-analysis.prompts";
 import { buildAnalysisContext } from "./metadata-context";
 import { resolveDiameterCm, resolveEffectiveDistanceCm, roundDiameterCm } from "./diameter-math";
@@ -240,5 +242,30 @@ export const visionService = {
       normalizeMealAnalysisRaw(raw, env.ANTHROPIC_MODEL),
     );
     return enrichMealAnalysisWithNutritionDb(normalized);
+  },
+
+  /** Lightweight title for coach-first patient submissions (no nutrition). */
+  async suggestMealTitle(description: string): Promise<{ mealName: string }> {
+    const cleaned = description.trim();
+    if (!cleaned) {
+      throw new BadRequestError("description is required");
+    }
+
+    requireClaudeConfigured();
+
+    const raw = await callClaudeJson({
+      system: MEAL_TITLE_SYSTEM_PROMPT,
+      userText: MEAL_TITLE_USER_PROMPT.replace("{description}", cleaned.replace(/"/g, "'")),
+      temperature: Math.min(0.3, env.ANTHROPIC_TEMPERATURE + 0.15),
+    });
+
+    const mealName =
+      typeof raw.mealName === "string" && raw.mealName.trim()
+        ? raw.mealName.trim().slice(0, 80)
+        : cleaned.length > 48
+          ? `${cleaned.slice(0, 45)}…`
+          : cleaned;
+
+    return { mealName };
   },
 };

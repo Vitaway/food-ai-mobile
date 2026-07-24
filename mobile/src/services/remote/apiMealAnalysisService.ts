@@ -32,6 +32,37 @@ async function parseApiResponse<T>(response: Response): Promise<T> {
 }
 
 export const apiMealAnalysisService: MealAnalysisService = {
+  async suggestMealTitle(description: string) {
+    if (!API_BASE_URL) {
+      throw new Error('API is not configured');
+    }
+
+    const token = getApiAuthToken();
+    if (!token) {
+      throw new Error('Sign in to name meals with AI');
+    }
+
+    const cleaned = description.trim();
+    if (cleaned.length < 2) {
+      throw new Error('Describe your meal first');
+    }
+
+    const response = await fetch(getApiV1Url('/vision/meals/title'), {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ description: cleaned }),
+    });
+    const data = await parseApiResponse<{ mealName?: string }>(response);
+    const mealName = typeof data.mealName === 'string' ? data.mealName.trim() : '';
+    if (!mealName) {
+      throw new Error('Could not generate a meal title');
+    }
+    return mealName;
+  },
+
   async analyzeMeal({ imageUri, text, note, plateDiameterCm }) {
     if (!API_BASE_URL) {
       throw new Error('API is not configured');

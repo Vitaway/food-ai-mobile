@@ -34,6 +34,16 @@ async function runAnalysisJob(jobId: string) {
 }
 
 export const fakeApiMealAnalysisService: MealAnalysisService = {
+  async suggestMealTitle(description: string) {
+    await delay(350);
+    const cleaned = description.trim() || 'Custom meal';
+    return cleaned
+      .split(/\s+/)
+      .slice(0, 6)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  },
+
   async analyzeMeal(input) {
     const jobId = createJobId();
     jobs.set(jobId, { status: 'queued', input });

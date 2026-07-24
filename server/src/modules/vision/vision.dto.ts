@@ -10,3 +10,18 @@ export class AnalyzeMealTextDto {
   @IsNumber()
   plateDiameterCm?: number | null;
 }
+
+export class SuggestMealTitleDto {
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(2000)
+  description?: string;
+
+  /** Alias for description — clients may send either field. */
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(2000)
+  text?: string;
+}

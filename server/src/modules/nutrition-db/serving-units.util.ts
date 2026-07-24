@@ -18,6 +18,9 @@ export const SERVING_UNITS = [
   // Discrete
   "piece",
   "slice",
+  "strip",
+  "section",
+  "leaf",
   "serving",
   "portion",
   "scoop",
@@ -47,6 +50,9 @@ export const DEFAULT_GRAMS_PER_UNIT: Record<ServingUnit, number> = {
   plate: 400,
   piece: 85,
   slice: 30,
+  strip: 30,
+  section: 25,
+  leaf: 10,
   serving: 100,
   portion: 150,
   scoop: 30,
@@ -73,6 +79,9 @@ export function normalizeServingUnit(unit: string): ServingUnit {
   if (lower === "pcs" || lower === "pc" || lower === "each" || lower === "unit" || lower === "units") {
     return "piece";
   }
+  if (lower === "leave" || lower === "leaves") return "leaf";
+  if (lower === "sections" || lower === "segment" || lower === "segments") return "section";
+  if (lower === "strips" || lower === "finger" || lower === "fingers") return "strip";
   return "g";
 }
 
@@ -96,6 +105,9 @@ export const SERVING_UNIT_LABELS: Record<ServingUnit, string> = {
   plate: "plate",
   piece: "piece",
   slice: "slice",
+  strip: "strip",
+  section: "section",
+  leaf: "leaf",
   serving: "serving",
   portion: "portion",
   scoop: "scoop",

@@ -111,9 +111,9 @@ export function mealToCoachDto(
   // Only an explicit coach "Ask AI" result (assistAnalysis) counts.
   const awaitingCoachConfirm = meal.status === "in_review" && !review;
   const clientTitle =
+    (typeof meal.data.mealName === "string" && meal.data.mealName.trim()) ||
     (typeof meal.data.note === "string" && meal.data.note.trim()) ||
     (typeof meal.data.textInput === "string" && meal.data.textInput.trim()) ||
-    (typeof meal.data.mealName === "string" && meal.data.mealName.trim()) ||
     undefined;
 
   return {
@@ -152,10 +152,11 @@ export function mealToConsumerDto(
   const effective = effectiveMealFields(meal, review);
   const awaitingCoach = meal.status === "in_review";
   // Patients must not see provisional macros / item breakdown until coach confirms.
+  // Prefer the AI dish title (mealName) over the raw note/description.
   const mealName = awaitingCoach
-    ? ((meal.data.note as string | undefined)?.trim() ||
+    ? ((typeof meal.data.mealName === "string" ? meal.data.mealName.trim() : "") ||
+        (meal.data.note as string | undefined)?.trim() ||
         (meal.data.textInput as string | undefined)?.trim() ||
-        (typeof meal.data.mealName === "string" ? meal.data.mealName : undefined) ||
         "Meal")
     : effective.mealName;
 
