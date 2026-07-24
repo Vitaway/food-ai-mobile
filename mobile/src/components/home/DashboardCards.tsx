@@ -1,32 +1,26 @@
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { useSinglePress } from '@/hooks/useSinglePress';
 import { isMealReadable } from '@/constants/mealStatus';
 import { Text } from '@/components/ui/Text';
 import type { DailyDashboard } from '@/types';
+import { healthScoreMeta } from '@/utils/healthScore';
+import { mealDisplayTitle } from '@/utils/mealDisplay';
 
 type HealthScoreBadgeProps = {
   score: number;
 };
 
 export function HealthScoreBadge({ score }: HealthScoreBadgeProps) {
-  const containerClass =
-    score >= 80
-      ? 'bg-shamrock-100'
-      : score >= 60
-        ? 'bg-cinnamon-wood-100'
-        : 'bg-cinnamon-wood-200';
-  const textClass =
-    score >= 80
-      ? 'text-shamrock-700'
-      : score >= 60
-        ? 'text-cinnamon-wood-700'
-        : 'text-cinnamon-wood-800';
+  const meta = healthScoreMeta(score);
 
   return (
-    <View className={`rounded-full px-3 py-1 ${containerClass}`}>
-      <Text className={`font-sans-semibold text-sm ${textClass}`}>Health {score}</Text>
+    <View className={`rounded-full px-3 py-1 ${meta.bgClass}`}>
+      <Text className={`font-sans-semibold text-sm ${meta.textClass}`}>
+        Health {score} · {meta.label}
+      </Text>
     </View>
   );
 }
@@ -51,17 +45,20 @@ export function LastMealCard({ meal, onPress }: LastMealCardProps) {
   const readable = isMealReadable(meal.status);
   const content = (
     <View className="flex-row gap-3">
-      {meal.imageUrl ? (
-        <Image source={{ uri: meal.imageUrl }} className="h-16 w-16 rounded-2xl" resizeMode="cover" />
-      ) : (
-        <View className="h-16 w-16 items-center justify-center rounded-2xl bg-ash-grey-100">
-          <Text className="text-2xl">🍽️</Text>
-        </View>
-      )}
+      <ResolvedImage
+        uri={meal.imageUrl}
+        className="h-16 w-16 rounded-2xl"
+        resizeMode="cover"
+        fallback={
+          <View className="h-16 w-16 items-center justify-center rounded-2xl bg-ash-grey-100">
+            <Text className="text-2xl">🍽️</Text>
+          </View>
+        }
+      />
       <View className="min-w-0 flex-1">
         <View className="flex-row items-start justify-between gap-2">
-          <Text className="flex-1 font-sans-semibold text-lg text-neutral-900" numberOfLines={1}>
-            {meal.mealName ?? 'Logged meal'}
+          <Text className="flex-1 font-sans-semibold text-lg text-neutral-900" numberOfLines={2}>
+            {mealDisplayTitle(meal)}
           </Text>
           <MealStatusBadge status={meal.status} />
         </View>

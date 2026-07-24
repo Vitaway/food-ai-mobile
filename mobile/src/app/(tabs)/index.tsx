@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useFocusEffect, useIsFocused } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,6 +15,7 @@ import { isPipelineActive } from '@/constants/mealStatus';
 import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 import { useMeals } from '@/context/MealsContext';
@@ -147,13 +148,18 @@ export default function HomeScreen() {
               ) : null}
             </Pressable>
             <Pressable onPress={onOpenProfile} className="h-11 w-11 overflow-hidden rounded-full bg-white/20">
-              {profile?.avatarUrl ? (
-                <Image source={{ uri: profile.avatarUrl }} className="h-full w-full" resizeMode="cover" />
-              ) : (
-                <View className="h-full w-full items-center justify-center bg-shamrock-500">
-                  <Text className="font-sans-semibold text-sm text-white">{firstName.slice(0, 1).toUpperCase()}</Text>
-                </View>
-              )}
+              <ResolvedImage
+                uri={profile?.avatarUrl}
+                className="h-full w-full"
+                resizeMode="cover"
+                fallback={
+                  <View className="h-full w-full items-center justify-center bg-shamrock-500">
+                    <Text className="font-sans-semibold text-sm text-white">
+                      {firstName.slice(0, 1).toUpperCase()}
+                    </Text>
+                  </View>
+                }
+              />
             </Pressable>
           </View>
         </View>

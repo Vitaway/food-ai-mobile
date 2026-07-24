@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 
 type HomeWelcomeHeaderProps = {
@@ -21,13 +22,18 @@ export function HomeWelcomeHeader({
   return (
     <View className="mb-5 flex-row items-center justify-between">
       <Pressable onPress={onPressProfile} className="flex-row items-center gap-3 active:opacity-90">
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} className="h-12 w-12 rounded-full" resizeMode="cover" />
-        ) : (
-          <View className="h-12 w-12 items-center justify-center rounded-full bg-blue-spruce-100">
-            <Text className="font-sans-bold text-lg text-blue-spruce-700">{firstName.slice(0, 1).toUpperCase()}</Text>
-          </View>
-        )}
+        <ResolvedImage
+          uri={avatarUrl}
+          className="h-12 w-12 rounded-full"
+          resizeMode="cover"
+          fallback={
+            <View className="h-12 w-12 items-center justify-center rounded-full bg-blue-spruce-100">
+              <Text className="font-sans-bold text-lg text-blue-spruce-700">
+                {firstName.slice(0, 1).toUpperCase()}
+              </Text>
+            </View>
+          }
+        />
         <View>
           <Text className="text-sm text-neutral-500">Welcome back 👋</Text>
           <Text className="font-sans-bold text-xl text-neutral-900">{firstName}</Text>

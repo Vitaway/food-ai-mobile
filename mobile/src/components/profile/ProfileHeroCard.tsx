@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Platform, View } from 'react-native';
+import { Platform, View } from 'react-native';
 
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { palette } from '@/design-system/colors';
@@ -35,13 +36,16 @@ export function ProfileHeroCard({ displayName, subtitle, avatarUrl, initial }: P
         }),
       ]}>
       <View className="relative">
-        {avatarUrl ? (
-          <Image source={{ uri: avatarUrl }} className="h-16 w-16 rounded-full" resizeMode="cover" />
-        ) : (
-          <View className="h-16 w-16 items-center justify-center rounded-full bg-white/20">
-            <Text className="font-sans-bold text-2xl text-white">{initial}</Text>
-          </View>
-        )}
+        <ResolvedImage
+          uri={avatarUrl}
+          className="h-16 w-16 rounded-full"
+          resizeMode="cover"
+          fallback={
+            <View className="h-16 w-16 items-center justify-center rounded-full bg-white/20">
+              <Text className="font-sans-bold text-2xl text-white">{initial}</Text>
+            </View>
+          }
+        />
         <View className="absolute -bottom-0.5 -right-0.5 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-blue-spruce-300">
           <Ionicons name="checkmark" size={14} color="#ffffff" />
         </View>

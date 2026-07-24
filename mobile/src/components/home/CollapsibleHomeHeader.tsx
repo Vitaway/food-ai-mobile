@@ -198,7 +198,10 @@ export function CollapsibleHomeHeader({
         </Animated.View>
 
         <Animated.View style={ringSectionStyle}>
-          <HealthScoreRing score={healthScore} subtitle={isToday ? 'Balanced day' : 'Past day snapshot'} />
+          <HealthScoreRing
+            score={healthScore}
+            subtitle={isToday ? undefined : 'Past day snapshot'}
+          />
         </Animated.View>
       </View>
     </Animated.View>
