@@ -20,21 +20,26 @@ function hostFromHostPort(value: string): string | null {
   return host || null;
 }
 
-function getMetroDevHost(): string | null {
-  const manualHost = process.env.EXPO_PUBLIC_DEV_API_HOST?.trim();
-  if (manualHost) {
-    const host = manualHost.replace(/^https?:\/\//, '').split(':')[0] || null;
-    // iOS Simulator shares the Mac network stack — loopback works; stale LAN IPs do not.
-    if (host && !Constants.isDevice && Platform.OS === 'ios') {
-      return null;
-    }
-    if (host) return host;
-  }
+function isLoopbackHost(host: string | null | undefined): boolean {
+  return !host || host === 'localhost' || host === '127.0.0.1' || host === '::1';
+}
 
+function readManualDevHost(): string | null {
+  const raw = process.env.EXPO_PUBLIC_DEV_API_HOST?.trim();
+  if (!raw) return null;
+  const host = raw.replace(/^https?:\/\//, '').split(':')[0]?.trim() || null;
+  if (!host || isLoopbackHost(host)) return null;
+  // iOS Simulator shares the Mac network stack — loopback works; a LAN override breaks it.
+  if (!Constants.isDevice && Platform.OS === 'ios') return null;
+  return host;
+}
+
+/** Prefer the live Metro/Expo LAN host so stale .env IPs don't break Expo Go after Wi‑Fi changes. */
+function getMetroDevHost(): string | null {
   const hostUri = Constants.expoConfig?.hostUri;
   if (hostUri) {
     const host = hostFromHostPort(hostUri);
-    if (host && host !== 'localhost') return host;
+    if (host && !isLoopbackHost(host)) return host;
   }
 
   const debuggerHost =
@@ -45,22 +50,23 @@ function getMetroDevHost(): string | null {
 
   if (typeof debuggerHost === 'string') {
     const host = hostFromHostPort(debuggerHost);
-    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
+    if (host && !isLoopbackHost(host)) return host;
   }
 
   const scriptURL: string | undefined = NativeModules.SourceCode?.scriptURL;
   if (scriptURL) {
     const host = hostFromUrl(scriptURL);
-    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
+    if (host && !isLoopbackHost(host)) return host;
   }
 
   const linkingUri = Constants.linkingUri;
   if (linkingUri) {
     const host = hostFromUrl(linkingUri);
-    if (host && host !== 'localhost' && host !== '127.0.0.1') return host;
+    if (host && !isLoopbackHost(host)) return host;
   }
 
-  return null;
+  // Last resort only — often stale after switching networks / hotspots.
+  return readManualDevHost();
 }
 
 function getDevApiPort(fromEnv: string): number {
@@ -86,17 +92,16 @@ function resolveApiBaseUrl(): string {
   if (__DEV__) {
     const port = getDevApiPort(fromEnv || `http://127.0.0.1:${DEFAULT_DEV_PORT}`);
     const metroHost = getMetroDevHost();
-    const isLoopbackHost =
-      !metroHost || metroHost === 'localhost' || metroHost === '127.0.0.1';
+    const hasLanHost = Boolean(metroHost && !isLoopbackHost(metroHost));
 
     if (!fromEnv || isProdApiHost(fromEnv)) {
-      const host = !isLoopbackHost ? metroHost! : '127.0.0.1';
+      const host = hasLanHost ? metroHost! : '127.0.0.1';
       return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
 
     // Another local API (e.g. daily-focus) may already occupy :3010.
     if (fromEnv.endsWith(':3010')) {
-      const host = !isLoopbackHost ? metroHost! : '127.0.0.1';
+      const host = hasLanHost ? metroHost! : '127.0.0.1';
       return buildDevApiUrl(host, DEFAULT_DEV_PORT);
     }
 
@@ -104,7 +109,7 @@ function resolveApiBaseUrl(): string {
 
     // Physical phones / Expo Go cannot reach the Mac via 127.0.0.1 — use Metro LAN host.
     // Prefer any non-loopback Metro host in __DEV__ (not only Constants.isDevice; Expo Go can be flaky there).
-    if (isLocalhost && !isLoopbackHost) {
+    if (isLocalhost && hasLanHost) {
       return buildDevApiUrl(metroHost!, port);
     }
 
@@ -123,6 +128,11 @@ function resolveApiBaseUrl(): string {
 
 /** MiraFood API origin (no trailing slash, no /api/v1 suffix) */
 export const API_BASE_URL = resolveApiBaseUrl();
+
+if (__DEV__) {
+  // Helps debug Expo Go / LAN reachability — look for this in Metro logs after reload.
+  console.log(`[mirafood] API_BASE_URL=${API_BASE_URL}`);
+}
 
 export function getApiV1Url(path: string): string {
   const base = API_BASE_URL.replace(/\/$/, '');

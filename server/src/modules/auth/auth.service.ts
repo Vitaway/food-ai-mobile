@@ -72,6 +72,8 @@ export type MfaChallengeResult = {
   mfaRequired: true;
   challengeToken: string;
   email: string;
+  /** Included so mobile can route staff to the web app without crashing. */
+  role: string;
   /** Present only outside production when email delivery may be unavailable. */
   debugCode?: string;
 };
@@ -342,6 +344,7 @@ export const authService = {
         mfaRequired: true,
         challengeToken: signMfaChallengeToken(user.id),
         email: user.email,
+        role: user.role,
         ...(debugCode ? { debugCode } : {}),
       };
     }
