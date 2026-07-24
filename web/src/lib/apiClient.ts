@@ -39,6 +39,7 @@ export async function apiRequest<T>(
     headers.set(key, value);
   }
 
+  const hadToken = Boolean(useAuthStore.getState().session?.token);
   const response = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers,
@@ -47,6 +48,9 @@ export async function apiRequest<T>(
   const body = (await response.json().catch(() => ({}))) as ApiEnvelope<T> & Record<string, unknown>;
 
   if (!response.ok) {
+    if (response.status === 401 && hadToken) {
+      useAuthStore.getState().clearSession();
+    }
     const message =
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
@@ -59,6 +63,9 @@ export async function apiRequest<T>(
   }
 
   if (body.success === false) {
+    if (response.status === 401 && hadToken) {
+      useAuthStore.getState().clearSession();
+    }
     throw new ApiError(body.error ?? 'Request failed', response.status);
   }
 

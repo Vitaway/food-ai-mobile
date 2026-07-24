@@ -1,4 +1,5 @@
 import { getApiBaseUrl } from '@/lib/apiClient';
+import { useAuthStore } from '@/features/auth/stores/authStore';
 
 function apiOrigin(): string {
   const proxy = import.meta.env.VITE_API_PROXY_TARGET as string | undefined;
@@ -10,6 +11,20 @@ function apiOrigin(): string {
   }
 
   return 'http://127.0.0.1:3011';
+}
+
+function withAccessToken(url: string): string {
+  const token = useAuthStore.getState().session?.token;
+  if (!token) return url;
+  try {
+    const parsed = new URL(url);
+    if (!parsed.pathname.startsWith('/uploads/')) return url;
+    parsed.searchParams.set('access_token', token);
+    return parsed.toString();
+  } catch {
+    const sep = url.includes('?') ? '&' : '?';
+    return `${url}${sep}access_token=${encodeURIComponent(token)}`;
+  }
 }
 
 /** Turn stored meal/avatar URLs into something the coach web app can load. */
@@ -24,7 +39,7 @@ export function resolveMediaUrl(url: string | undefined | null): string | null {
       const parsed = new URL(trimmed);
       if (parsed.pathname.startsWith('/uploads/')) {
         const origin = apiOrigin();
-        return `${origin}${parsed.pathname}${parsed.search}`;
+        return withAccessToken(`${origin}${parsed.pathname}${parsed.search}`);
       }
     } catch {
       return trimmed;
@@ -33,7 +48,7 @@ export function resolveMediaUrl(url: string | undefined | null): string | null {
   }
   if (trimmed.startsWith('/uploads/')) {
     const origin = apiOrigin();
-    return origin ? `${origin}${trimmed}` : trimmed;
+    return origin ? withAccessToken(`${origin}${trimmed}`) : trimmed;
   }
   return trimmed;
 }

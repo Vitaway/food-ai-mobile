@@ -62,6 +62,32 @@ export function extractBearerToken(req: Request): string | null {
   return header.slice(7).trim() || null;
 }
 
+/** Auth for static uploads: Bearer header or `access_token` query (for <img src>). */
+export function extractAccessToken(req: Request): string | null {
+  const bearer = extractBearerToken(req);
+  if (bearer) return bearer;
+  const query = req.query.access_token;
+  if (typeof query === "string" && query.trim()) return query.trim();
+  return null;
+}
+
+export function requireUploadsAuth() {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const token = extractAccessToken(req);
+    if (!token) {
+      res.status(401).json({ success: false, error: "Authentication required" });
+      return;
+    }
+    try {
+      const payload = verifyAuthToken(token);
+      await resolveAuthUser(payload);
+      next();
+    } catch {
+      res.status(401).json({ success: false, error: "Authentication required" });
+    }
+  };
+}
+
 export function createAuthorizationChecker() {
   return async (action: Action, roles: string[]): Promise<boolean> => {
     const req = action.request as Request;
