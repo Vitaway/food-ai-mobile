@@ -11,6 +11,7 @@ import { fetchConsumerDashboard } from '@/services/remote/consumerApi';
 import { services } from '@/services';
 import type { DailyDashboard, MealSubmission } from '@/types';
 import { formatTime, todayKey, toLocalDateKey } from '@/utils/dates';
+import { mealDisplaySubtitle, mealDisplayTitle } from '@/utils/mealDisplay';
 
 function isSameDay(iso: string, dateKey: string) {
   return iso.slice(0, 10) === dateKey;
@@ -153,13 +154,12 @@ export function useDashboard(selectedDate = todayKey()) {
 
     const timeline: MealTimelineItem[] = dayMealsAll.map((logged) => {
       const readable = isMealReadable(logged.status);
-      const slotLabel = mealTypeLabel(logged.mealType);
 
       return {
         id: logged.id,
         mealTypeId: logged.mealType,
-        label: logged.mealName ?? slotLabel,
-        subtitle: slotLabel,
+        label: mealDisplayTitle(logged),
+        subtitle: mealDisplaySubtitle(logged) ?? mealTypeLabel(logged.mealType),
         time: formatTime(logged.submittedAt),
         items: readable ? logged.items?.map((item) => item.label) : undefined,
         logged: true,

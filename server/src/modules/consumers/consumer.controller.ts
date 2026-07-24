@@ -23,6 +23,7 @@ import { reportsService } from "../reports/reports.service";
 import { familySubscriptionService } from "../payments/family.service";
 import { coachingFeedService } from "./coaching-feed.service";
 import { accountLifecycleService } from "./account-lifecycle.service";
+import { coachInsightsService } from "../coaches/coach-insights.service";
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -153,6 +154,13 @@ export class ConsumerController {
   @Get("/coaching-feed")
   coachingFeed(@CurrentUser() user: User) {
     return coachingFeedService.listForConsumerUser(user.id);
+  }
+
+  /** Coach-authored insights only (no auto-generated tips). */
+  @Authorized(["consumer"])
+  @Get("/coach-insights")
+  coachInsights(@CurrentUser() user: User) {
+    return coachInsightsService.listForConsumerUser(user.id);
   }
 
   @Authorized(["consumer"])

@@ -96,6 +96,7 @@ export function MealReviewPage() {
         note: result.draft.note ?? '',
         trainingNote: result.draft.trainingNote ?? '',
       });
+      void queryClient.invalidateQueries({ queryKey: coachKeys.meal(result.mealId) });
       toast.success('AI suggestion added to your review. Check Food DB matches, then approve.');
     },
     onError: (error) => {

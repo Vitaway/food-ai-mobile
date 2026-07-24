@@ -1,9 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Image, Pressable, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
 
 import { PhotoSourceMenu } from '@/components/ui/PhotoSourceMenu';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 
 type ProfileAvatarPickerProps = {
@@ -64,11 +65,16 @@ export function ProfileAvatarPicker({
           onPress={() => !uploading && setMenuOpen(true)}
           disabled={uploading}
           className="h-[112px] w-[112px] items-center justify-center overflow-hidden rounded-full border-2 border-ash-grey-200 bg-ash-grey-50">
-          {avatarUrl ? (
-            <Image source={{ uri: avatarUrl }} className="h-full w-full" resizeMode="cover" />
-          ) : (
-            <Text className="font-sans-bold text-4xl text-blue-spruce-700">{initial}</Text>
-          )}
+          <ResolvedImage
+            uri={avatarUrl}
+            className="h-full w-full"
+            resizeMode="cover"
+            fallback={
+              <View className="h-full w-full items-center justify-center">
+                <Text className="font-sans-bold text-4xl text-blue-spruce-700">{initial}</Text>
+              </View>
+            }
+          />
           {uploading ? (
             <View className="absolute inset-0 items-center justify-center bg-black/40">
               <ActivityIndicator color="#ffffff" />

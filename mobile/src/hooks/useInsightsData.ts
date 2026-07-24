@@ -1,11 +1,16 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 
 import { MEAL_TYPES, type MealTypeId } from '@/constants/mealTypes';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 import { services } from '@/services';
-import { buildAnalyticsSnapshot } from '@/services/local/analytics';
-import { buildCoachInsights, filterMealSwapSuggestions } from '@/services/local/recommendations';
+import { filterMealSwapSuggestions } from '@/services/local/recommendations';
+import {
+  fetchCoachAuthoredInsights,
+  type CoachAuthoredInsight,
+} from '@/services/remote/consumerApi';
+import { isApiConfigured } from '@/constants/api';
 import type { DailyLog, MealSubmission } from '@/types';
 import { getDateWindow, parseDateKey, toLocalDateKey } from '@/utils/dates';
 import { mlToCups } from '@/utils/waterUnits';
@@ -92,10 +97,37 @@ export function useInsightsData(period: 7 | 30) {
   const { meals } = useMeals();
   const { profile } = useProfile();
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
+  const [coachInsights, setCoachInsights] = useState<CoachAuthoredInsight[]>([]);
+  const [coachInsightsLoading, setCoachInsightsLoading] = useState(true);
 
   useEffect(() => {
     services.mealsRepository.getDailyLogs().then(setDailyLogs);
   }, [meals]);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isApiConfigured()) {
+        setCoachInsights([]);
+        setCoachInsightsLoading(false);
+        return;
+      }
+      let active = true;
+      setCoachInsightsLoading(true);
+      void fetchCoachAuthoredInsights()
+        .then((rows) => {
+          if (active) setCoachInsights(rows);
+        })
+        .catch(() => {
+          if (active) setCoachInsights([]);
+        })
+        .finally(() => {
+          if (active) setCoachInsightsLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, []),
+  );
 
   const targets = useMemo(
     () =>
@@ -110,30 +142,6 @@ export function useInsightsData(period: 7 | 30) {
   );
 
   const waterTarget = profile?.waterTargetMl ?? 0;
-
-  const snapshot = useMemo(
-    () =>
-      buildAnalyticsSnapshot({
-        meals,
-        dailyLogs,
-        macroTargets: targets,
-        waterTargetMl: waterTarget,
-        days: period,
-      }),
-    [dailyLogs, meals, period, targets, waterTarget],
-  );
-
-  const coachInsights = useMemo(
-    () =>
-      buildCoachInsights({
-        meals,
-        dailyLogs,
-        macroTargets: targets,
-        waterTargetMl: waterTarget,
-        days: period,
-      }),
-    [dailyLogs, meals, period, targets, waterTarget],
-  );
 
   const mealSwaps = useMemo(
     () =>
@@ -229,8 +237,8 @@ export function useInsightsData(period: 7 | 30) {
   }, [dailyLogs, meals, period, targets, waterTarget]);
 
   return {
-    snapshot,
     coachInsights,
+    coachInsightsLoading,
     mealSwaps,
     stats,
     calorieTarget: targets.calories,

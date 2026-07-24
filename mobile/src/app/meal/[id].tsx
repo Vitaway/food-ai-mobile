@@ -1,20 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo } from 'react';
-import { Image, ScrollView, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle } from 'react-native-svg';
 
+import { MealPhotoHero } from '@/components/meal/MealPhotoHero';
 import { MealPipelineBanner } from '@/components/meal/MealPipelineBanner';
-import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
-import { IngredientList } from '@/components/log/IngredientList';
-import { LogCard } from '@/components/log/LogScreenShell';
 import { AskCoachButton } from '@/components/chat/AskCoachButton';
 import { Button } from '@/components/ui/Button';
-import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
-import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
 import { isApiConfigured } from '@/constants/api';
 import { isAwaitingCoachReview, isMealReadable } from '@/constants/mealStatus';
 import { semanticColors } from '@/design-system/colors';
@@ -24,12 +21,9 @@ import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useSinglePress } from '@/hooks/useSinglePress';
 import { formatMacroG } from '@/utils/formatMacro';
 
-const FLAG_STYLES = {
-  green: { bg: 'bg-shamrock-100', text: 'text-shamrock-800', icon: '#1D9E75' as const },
-  yellow: { bg: 'bg-amber-100', text: 'text-amber-800', icon: '#b45309' as const },
-  orange: { bg: 'bg-cinnamon-wood-100', text: 'text-cinnamon-wood-700', icon: '#c45c26' as const },
-  red: { bg: 'bg-red-100', text: 'text-red-800', icon: '#b91c1c' as const },
-};
+const RING = 74;
+const RING_R = 31;
+const RING_C = 2 * Math.PI * RING_R;
 
 function formatSubmittedAt(iso: string): string {
   const date = new Date(iso);
@@ -42,75 +36,82 @@ function formatSubmittedAt(iso: string): string {
   });
 }
 
-function mealTypeMeta(mealType: MealSubmission['mealType']) {
-  return MEAL_TYPE_OPTIONS.find((option) => option.id === mealType) ?? MEAL_TYPE_OPTIONS[1];
-}
-
 function hasConfirmedNutrition(meal: MealSubmission): boolean {
   return Boolean(
     isMealReadable(meal.status) && ((meal.items && meal.items.length > 0) || meal.totalNutrition),
   );
 }
 
-function totalWeightG(meal: MealSubmission): number {
-  if (meal.items?.length) {
-    return meal.items.reduce((sum, item) => sum + item.estimatedWeightG, 0);
-  }
-  return 0;
-}
-
-function MacroPill({ label, value, color }: { label: string; value: string; color: string }) {
+function MacroBar({
+  label,
+  value,
+  percent,
+  color,
+  dashed,
+}: {
+  label: string;
+  value: string;
+  percent: number;
+  color: string;
+  dashed?: boolean;
+}) {
+  const width = `${Math.max(4, Math.min(100, percent))}%`;
   return (
-    <View className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
-      <Text className="text-xs text-neutral-500">{label}</Text>
-      <Text className="mt-1 font-sans-bold text-lg" style={{ color }}>
-        {value}
-      </Text>
+    <View className="mb-2">
+      <View className="mb-1 flex-row items-center justify-between">
+        <Text className="text-[11px] text-neutral-600">{label}</Text>
+        <Text className="text-[11px] font-sans-semibold text-neutral-900">{value}</Text>
+      </View>
+      <View
+        className={`h-1.5 overflow-hidden rounded-full ${dashed ? 'border border-dashed border-amber-200 bg-white' : 'bg-white'}`}>
+        <View className="h-full rounded-full" style={{ width: width as `${number}%`, backgroundColor: color }} />
+      </View>
     </View>
   );
 }
 
-function MealHero({ meal }: { meal: MealSubmission }) {
-  const mealType = mealTypeMeta(meal.mealType);
-
-  if (meal.imageUrl) {
-    return (
-      <View className="relative h-[220px] w-full overflow-hidden bg-ash-grey-200">
-        <Image source={{ uri: meal.imageUrl }} className="h-full w-full" resizeMode="cover" />
-        <View className="absolute inset-0 bg-black/25" />
-        <View className="absolute bottom-0 left-0 right-0 px-5 pb-5 pt-12">
-          <View className="flex-row items-end justify-between gap-3">
-            <View className="min-w-0 flex-1">
-              <View className="mb-2 flex-row items-center gap-1.5 self-start rounded-full bg-white/20 px-2.5 py-1">
-                <Ionicons name={mealType.icon} size={14} color="#ffffff" />
-                <Text className="text-xs font-sans-semibold text-white">{mealType.label}</Text>
-              </View>
-              <Text className="font-sans-bold text-2xl leading-8 text-white" numberOfLines={2}>
-                {meal.mealName ?? 'Logged meal'}
-              </Text>
-            </View>
-            <MealStatusBadge status={meal.status} size="md" />
-          </View>
-        </View>
-      </View>
-    );
-  }
-
+function CalorieRing({
+  kcal,
+  progress,
+  color,
+  estimate,
+}: {
+  kcal: string;
+  progress: number;
+  color: string;
+  estimate?: boolean;
+}) {
+  const dash = Math.max(0, Math.min(1, progress)) * RING_C;
   return (
-    <View className="px-5 pb-5 pt-2" style={{ backgroundColor: BRAND_HEADER_COLOR }}>
-      <View className="flex-row items-start justify-between gap-3">
-        <View className="min-w-0 flex-1">
-          <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-            <Ionicons name={mealType.icon} size={28} color="#ffffff" />
-          </View>
-          <Text className="font-sans-bold text-2xl leading-8 text-white" numberOfLines={2}>
-            {meal.mealName ?? 'Logged meal'}
-          </Text>
-          <Text className="mt-1 text-sm text-white/75">{mealType.label}</Text>
-        </View>
-        <MealStatusBadge status={meal.status} size="md" />
+    <View style={{ width: RING, height: RING }} className="items-center justify-center">
+      <Svg width={RING} height={RING} style={{ transform: [{ rotate: '-90deg' }] }}>
+        <Circle cx={RING / 2} cy={RING / 2} r={RING_R} stroke="#ffffff" strokeWidth={7} fill="none" />
+        <Circle
+          cx={RING / 2}
+          cy={RING / 2}
+          r={RING_R}
+          stroke={color}
+          strokeWidth={7}
+          fill="none"
+          strokeDasharray={`${dash} ${RING_C}`}
+          strokeLinecap="round"
+        />
+      </Svg>
+      <View className="absolute inset-0 items-center justify-center">
+        <Text className="font-sans-bold text-[19px] leading-5 text-neutral-900">
+          {estimate ? `~${kcal}` : kcal}
+        </Text>
+        <Text className="text-[9px] uppercase tracking-wide text-neutral-400">kcal</Text>
       </View>
     </View>
+  );
+}
+
+function SectionLabel({ children }: { children: string }) {
+  return (
+    <Text className="mb-2 mt-1 text-[11px] font-sans-bold uppercase tracking-[0.07em] text-neutral-400">
+      {children}
+    </Text>
   );
 }
 
@@ -121,6 +122,7 @@ export default function MealResultScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { getMeal } = useMeals();
   const meal = id ? getMeal(id) : undefined;
+  const [showAllNutrients, setShowAllNutrients] = useState(false);
 
   const ingredients = useMemo(() => {
     if (!meal?.items?.length) return [];
@@ -129,11 +131,7 @@ export default function MealResultScreen() {
       name: item.label,
       weightG: item.estimatedWeightG,
       emoji: item.emoji ?? '🍽️',
-      macros: {
-        carbs: formatMacroG(item.nutrition.carbsG),
-        fats: formatMacroG(item.nutrition.fatG),
-        sugar: formatMacroG(item.nutrition.sugarG ?? 0),
-      },
+      kcal: Math.round(item.nutrition.caloriesKcal),
     }));
   }, [meal?.items]);
 
@@ -142,11 +140,7 @@ export default function MealResultScreen() {
       <Screen edges={[]}>
         <ScreenTopBar title="Meal" onBack={back} />
         <View className="flex-1 items-center justify-center px-6">
-          <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-ash-grey-100">
-            <Ionicons name="restaurant-outline" size={32} color="#9ca3af" />
-          </View>
           <Text className="text-center font-sans-semibold text-lg text-neutral-900">Meal not found</Text>
-          <Text className="mt-2 text-center text-sm text-neutral-500">It may have been removed from your diary.</Text>
           <Button label="Go back" className="mt-6" onPress={back} />
         </View>
       </Screen>
@@ -158,9 +152,23 @@ export default function MealResultScreen() {
   const awaitingCoach = isAwaitingCoachReview(meal.status);
   const showNutrition = hasConfirmedNutrition(meal);
   const totals: NutritionFacts | undefined = meal.totalNutrition;
-  const flag = meal.healthFlag ? FLAG_STYLES[meal.healthFlag] : FLAG_STYLES.green;
-  const weight = totalWeightG(meal);
   const coachNote = meal.coachReview?.note?.trim();
+  const reviewedAt = meal.coachReview?.reviewedAt
+    ? new Date(meal.coachReview.reviewedAt).toLocaleTimeString('en-US', {
+        hour: 'numeric',
+        minute: '2-digit',
+      })
+    : null;
+
+  const protein = totals?.proteinG ?? 0;
+  const carbs = totals?.carbsG ?? 0;
+  const fat = totals?.fatG ?? 0;
+  const kcal = totals?.caloriesKcal ?? 0;
+  const proteinPct = Math.min(100, Math.round((protein / 55) * 100));
+  const carbsPct = Math.min(100, Math.round((carbs / 250) * 100));
+  const fatPct = Math.min(100, Math.round((fat / 70) * 100));
+  const kcalProgress = Math.min(1, kcal / 2000);
+
   const chatLabel = approved
     ? 'Ask about this review'
     : awaitingCoach
@@ -171,101 +179,212 @@ export default function MealResultScreen() {
     <Screen edges={[]}>
       <ScreenTopBar title="Meal" onBack={back} />
       <ScrollView
-        className="flex-1"
+        className="flex-1 bg-[#EEF3F6]"
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
-        <MealHero meal={meal} />
+        contentContainerStyle={{ paddingBottom: insets.bottom + 28 }}>
+        <MealPhotoHero meal={meal} />
 
-        <View className="-mt-4 gap-4 px-5">
-          {meal.imageUrl ? (
-            <LogCard className="py-3">
-              <Text className="text-xs text-neutral-500">Logged {formatSubmittedAt(meal.submittedAt)}</Text>
-            </LogCard>
-          ) : (
-            <Text className="px-1 text-xs text-neutral-500">Logged {formatSubmittedAt(meal.submittedAt)}</Text>
-          )}
+        <View className="-mt-3 gap-3 px-4">
+          <View className="rounded-2xl bg-white px-4 py-3 shadow-sm shadow-black/5">
+            <Text className="text-xs text-neutral-500">Logged {formatSubmittedAt(meal.submittedAt)}</Text>
+          </View>
 
-          {!approved ? <MealPipelineBanner status={meal.status} /> : null}
+          {!approved && !awaitingCoach ? <MealPipelineBanner status={meal.status} /> : null}
 
+          {/* Waiting / estimate card */}
           {awaitingCoach ? (
-            <LogCard className="items-center border border-dashed border-blue-spruce-100 bg-blue-spruce-50/40 py-8">
-              <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-white">
-                <Ionicons name="time-outline" size={24} color="#023459" />
+            <View className="rounded-2xl border-[1.5px] border-dashed border-[#EFD9AE] bg-[#FDF4E3] px-4 py-4">
+              <View className="mb-3 flex-row items-center gap-2">
+                <View className="h-[17px] w-[17px] items-center justify-center rounded-full bg-[#A9740B]">
+                  <View className="h-1.5 w-1.5 rounded-full bg-white" />
+                </View>
+                <Text className="text-xs font-sans-semibold text-[#A9740B]">
+                  Waiting for coach review
+                </Text>
               </View>
-              <Text className="font-sans-semibold text-base text-neutral-900">Waiting for coach review</Text>
-              <Text className="mt-2 max-w-[280px] text-center text-sm leading-5 text-neutral-500">
-                Nutrition details will appear here after your coach confirms this meal. You can message them anytime.
+              <Text className="text-sm leading-5 text-neutral-600">
+                Nutrition unlocks after your coach confirms portions. You can message them anytime.
               </Text>
-            </LogCard>
-          ) : null}
-
-          {showNutrition && meal.healthMessage ? (
-            <View className={`flex-row gap-3 rounded-2xl px-4 py-3.5 ${flag.bg}`}>
-              <Ionicons name="leaf-outline" size={20} color={flag.icon} />
-              <Text className={`flex-1 text-sm leading-5 ${flag.text}`}>{meal.healthMessage}</Text>
-            </View>
-          ) : null}
-
-          {coachNote ? (
-            <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/50">
-              <View className="flex-row items-center gap-2">
-                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#023459" />
-                <Text className="font-sans-semibold text-sm text-blue-spruce-800">Coach note</Text>
-              </View>
-              <Text className="mt-2 text-sm leading-5 text-blue-spruce-900">{coachNote}</Text>
-            </LogCard>
-          ) : null}
-
-          {showNutrition && totals ? (
-            <LogCard>
-              <Text className="text-sm text-neutral-500">Confirmed nutrition</Text>
-              <View className="mt-2 flex-row items-end justify-between">
-                <Text className="font-sans-bold text-4xl text-neutral-900">{totals.caloriesKcal}</Text>
-                <Text className="pb-1 font-sans-semibold text-lg text-neutral-500">kcal</Text>
-              </View>
-              {weight > 0 ? (
-                <Text className="mt-1 text-sm text-neutral-500">{weight} g total</Text>
+              {(meal.note || meal.textInput) ? (
+                <View className="mt-3 rounded-xl bg-white/70 px-3 py-2.5">
+                  <Text className="text-[11px] font-sans-semibold uppercase tracking-wide text-neutral-400">
+                    Your description
+                  </Text>
+                  <Text className="mt-1 text-sm leading-5 text-neutral-700">
+                    {meal.note || meal.textInput}
+                  </Text>
+                </View>
               ) : null}
-
-              <View className="mt-4 flex-row gap-2">
-                <MacroPill label="Protein" value={formatMacroG(totals.proteinG)} color="#1D9E75" />
-                <MacroPill label="Carbs" value={formatMacroG(totals.carbsG)} color="#023459" />
-                <MacroPill label="Fat" value={formatMacroG(totals.fatG)} color={semanticColors.accentOrange} />
-              </View>
-            </LogCard>
-          ) : null}
-
-          {meal.note ? (
-            <LogCard>
-              <Text className="font-sans-semibold text-sm text-neutral-900">Your note</Text>
-              <Text className="mt-2 text-sm leading-5 text-neutral-600">{meal.note}</Text>
-            </LogCard>
-          ) : null}
-
-          {meal.textInput && !meal.note ? (
-            <LogCard>
-              <Text className="font-sans-semibold text-sm text-neutral-900">Description</Text>
-              <Text className="mt-2 text-sm leading-5 text-neutral-600">{meal.textInput}</Text>
-            </LogCard>
-          ) : null}
-
-          {showNutrition && ingredients.length > 0 ? (
-            <LogCard>
-              <View className="mb-4 flex-row items-center justify-between">
-                <Text className="font-sans-semibold text-base text-neutral-900">Ingredients</Text>
-                <Text className="text-sm text-neutral-500">{ingredients.length} items</Text>
-              </View>
-              <IngredientList ingredients={ingredients} />
-            </LogCard>
-          ) : null}
-
-          {rejected ? (
-            <View className="gap-3">
-              <Button label="Log again" variant="secondary" onPress={logAgain} />
             </View>
-          ) : isApiConfigured() ? (
-            <AskCoachButton mealId={meal.id} label={chatLabel} />
           ) : null}
+
+          {/* Verified nutrition hero */}
+          {showNutrition && totals ? (
+            <View className="rounded-2xl border border-[#BEE5D6] bg-[#E4F5EE] px-4 py-4">
+              <View className="mb-3 flex-row items-center gap-2">
+                <View className="h-[17px] w-[17px] items-center justify-center rounded-full bg-[#1D9E75]">
+                  <Ionicons name="checkmark" size={11} color="#ffffff" />
+                </View>
+                <Text className="flex-1 text-xs font-sans-semibold text-[#0F6E56]">
+                  Verified by your coach
+                </Text>
+                {reviewedAt ? <Text className="text-[11px] text-neutral-500">{reviewedAt}</Text> : null}
+              </View>
+
+              <View className="flex-row items-center gap-3">
+                <CalorieRing
+                  kcal={String(Math.round(kcal))}
+                  progress={kcalProgress}
+                  color="#1D9E75"
+                />
+                <View className="min-w-0 flex-1">
+                  <MacroBar
+                    label="Protein"
+                    value={`${formatMacroG(protein)}`}
+                    percent={proteinPct}
+                    color="#1D9E75"
+                  />
+                  <MacroBar
+                    label="Carbs"
+                    value={`${formatMacroG(carbs)}`}
+                    percent={carbsPct}
+                    color="#023459"
+                  />
+                  <MacroBar
+                    label="Fat"
+                    value={`${formatMacroG(fat)}`}
+                    percent={fatPct}
+                    color={semanticColors.accentOrange}
+                  />
+                </View>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Coach note — product moment */}
+          {coachNote ? (
+            <View className="rounded-2xl bg-[#023459] px-4 py-4">
+              <View className="mb-2 flex-row items-center gap-2.5">
+                <View className="h-8 w-8 items-center justify-center rounded-full bg-[#FF6F32]">
+                  <Text className="text-[11px] font-sans-bold text-white">C</Text>
+                </View>
+                <View className="min-w-0 flex-1">
+                  <Text className="font-sans-semibold text-sm text-white">Your coach</Text>
+                  <Text className="text-[11px] text-[#9DC2DC]">Nutritionist · Vitaway</Text>
+                </View>
+              </View>
+              <Text className="text-[13px] leading-5 text-[#DCEAF3]">{coachNote}</Text>
+            </View>
+          ) : null}
+
+          {/* Confirmed items */}
+          {showNutrition && ingredients.length > 0 ? (
+            <View className="rounded-2xl bg-white px-4 py-3">
+              <SectionLabel>Confirmed items</SectionLabel>
+              {ingredients.map((item, index) => (
+                <View
+                  key={item.id}
+                  className={`flex-row items-center gap-3 py-2.5 ${
+                    index < ingredients.length - 1 ? 'border-b border-ash-grey-100' : ''
+                  }`}>
+                  <View className="h-8 w-8 items-center justify-center rounded-lg bg-[#EEF3F6]">
+                    <Text className="text-[13px]">{item.emoji}</Text>
+                  </View>
+                  <View className="min-w-0 flex-1">
+                    <Text className="font-sans-semibold text-[13px] text-neutral-900" numberOfLines={1}>
+                      {item.name}
+                    </Text>
+                    <Text className="text-[11px] text-neutral-400">
+                      {item.weightG > 0 ? `${Math.round(item.weightG)} g` : 'Portion confirmed'}
+                    </Text>
+                  </View>
+                  <Text className="text-xs tabular-nums text-neutral-500">{item.kcal}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {/* Micros locked until review */}
+          {awaitingCoach ? (
+            <View className="rounded-2xl bg-white px-4 py-4">
+              <SectionLabel>Vitamins & minerals</SectionLabel>
+              <View className="items-center rounded-xl bg-[#EEF3F6] px-4 py-4">
+                <Text className="font-sans-semibold text-[13px] text-neutral-600">
+                  Unlocks after review
+                </Text>
+                <Text className="mt-1 text-center text-xs leading-5 text-neutral-400">
+                  Micronutrients depend on exact portions. Your coach confirms weights first, then you
+                  get the full picture.
+                </Text>
+              </View>
+            </View>
+          ) : null}
+
+          {/* Health message / flag */}
+          {showNutrition && meal.healthMessage ? (
+            <View className="rounded-r-xl border-l-[3px] border-[#FF6F32] bg-[#FFF1EA] px-3.5 py-3">
+              <Text className="mb-0.5 font-sans-bold text-xs text-[#7A3111]">Worth knowing</Text>
+              <Text className="text-xs leading-5 text-[#7A3111]">{meal.healthMessage}</Text>
+            </View>
+          ) : null}
+
+          {/* Expandable nutrient summary */}
+          {showNutrition && totals ? (
+            <View className="overflow-hidden rounded-xl border border-ash-grey-100 bg-white">
+              <Pressable
+                onPress={() => setShowAllNutrients((v) => !v)}
+                className="flex-row items-center gap-2 px-3.5 py-3 active:bg-ash-grey-50">
+                <Text className="flex-1 font-sans-semibold text-[13px] text-neutral-900">
+                  See macros detail
+                </Text>
+                <Ionicons
+                  name={showAllNutrients ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color="#8B9AA5"
+                />
+              </Pressable>
+              {showAllNutrients ? (
+                <View className="gap-2 border-t border-ash-grey-100 px-3.5 py-3">
+                  {(
+                    [
+                      ['Energy', `${Math.round(kcal)} kcal`],
+                      ['Protein', formatMacroG(protein)],
+                      ['Carbohydrate', formatMacroG(carbs)],
+                      ['Fat', formatMacroG(fat)],
+                      ['Fiber', formatMacroG(totals.fiberG)],
+                      ['Sugar', formatMacroG(totals.sugarG ?? 0)],
+                      ['Sodium', `${Math.round(totals.sodiumMg ?? 0)} mg`],
+                    ] as const
+                  ).map(([label, value]) => (
+                    <View key={label} className="flex-row items-center justify-between py-0.5">
+                      <Text className="text-xs text-neutral-500">{label}</Text>
+                      <Text className="text-xs font-sans-semibold tabular-nums text-neutral-800">
+                        {value}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+            </View>
+          ) : null}
+
+          {/* Patient note when verified (don't duplicate in waiting card) */}
+          {showNutrition && meal.note ? (
+            <View className="rounded-2xl bg-white px-4 py-3">
+              <Text className="font-sans-semibold text-sm text-neutral-900">Your note</Text>
+              <Text className="mt-1.5 text-sm leading-5 text-neutral-600">{meal.note}</Text>
+            </View>
+          ) : null}
+
+          <View className="mt-1 gap-2">
+            {rejected ? (
+              <Button label="Log next meal" variant="secondary" onPress={logAgain} />
+            ) : null}
+            {isApiConfigured() ? <AskCoachButton mealId={meal.id} label={chatLabel} /> : null}
+            {approved ? (
+              <Button label="Log next meal" variant="outline" onPress={logAgain} />
+            ) : null}
+          </View>
         </View>
       </ScrollView>
     </Screen>

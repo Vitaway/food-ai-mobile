@@ -80,7 +80,9 @@ export function LogResultsStep({
               </View>
             )}
             <View className="min-w-0 flex-1 justify-center">
-              <Text className="font-sans-bold text-xl text-neutral-900">{analysis.mealName}</Text>
+              <Text className="font-sans-bold text-xl leading-6 text-neutral-900" numberOfLines={2}>
+                {analysis.mealName}
+              </Text>
               <Text className="mt-1 text-sm text-neutral-500">Waiting for coach review</Text>
             </View>
           </View>
@@ -120,7 +122,9 @@ export function LogResultsStep({
             </View>
           )}
           <View className="min-w-0 flex-1 justify-center">
-            <Text className="font-sans-bold text-xl text-neutral-900">{analysis.mealName}</Text>
+            <Text className="font-sans-bold text-xl leading-6 text-neutral-900" numberOfLines={2}>
+              {analysis.mealName}
+            </Text>
             {showNutrition ? (
               <Text className="mt-1 text-sm text-neutral-500">
                 {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal

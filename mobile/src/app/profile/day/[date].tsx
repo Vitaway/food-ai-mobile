@@ -1,16 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo } from 'react';
-import { Image, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { useMeals } from '@/context/MealsContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useProfileBack } from '@/hooks/useProfileBack';
 import { formatDisplayDate, parseDateKey, todayKey } from '@/utils/dates';
-import { formatGlasses, mlToGlasses } from '@/utils/waterUnits';
+import { formatGlassesWhole, glassNoun, mlToGlasses } from '@/utils/waterUnits';
 
 function isDateKey(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
@@ -51,8 +52,9 @@ export default function ProfileDayDetailScreen() {
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
                 <Text className="text-xs text-neutral-500">Water</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">
-                  {formatGlasses(mlToGlasses(dashboard.waterMl))}/
-                  {formatGlasses(mlToGlasses(dashboard.waterTargetMl))} glasses
+                  {formatGlassesWhole(mlToGlasses(dashboard.waterMl))}/
+                  {formatGlassesWhole(mlToGlasses(dashboard.waterTargetMl))}{' '}
+                  {glassNoun(mlToGlasses(dashboard.waterTargetMl))}
                 </Text>
               </View>
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
@@ -77,13 +79,16 @@ export default function ProfileDayDetailScreen() {
                     key={meal.id}
                     onPress={() => router.push(`/meal/${meal.id}`)}
                     className="overflow-hidden rounded-2xl border border-ash-grey-100 bg-white active:bg-ash-grey-50">
-                    {meal.imageUrl ? (
-                      <Image source={{ uri: meal.imageUrl }} className="h-36 w-full bg-ash-grey-100" resizeMode="cover" />
-                    ) : (
-                      <View className="h-20 w-full items-center justify-center bg-ash-grey-50">
-                        <Ionicons name="image-outline" size={22} color="#9ca3af" />
-                      </View>
-                    )}
+                    <ResolvedImage
+                      uri={meal.imageUrl}
+                      className="h-36 w-full bg-ash-grey-100"
+                      resizeMode="cover"
+                      fallback={
+                        <View className="h-20 w-full items-center justify-center bg-ash-grey-50">
+                          <Ionicons name="image-outline" size={22} color="#9ca3af" />
+                        </View>
+                      }
+                    />
                     <View className="flex-row items-center justify-between gap-3 px-3 py-3">
                       <View className="min-w-0 flex-1">
                         <Text className="font-sans-semibold text-neutral-900" numberOfLines={1}>

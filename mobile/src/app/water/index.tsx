@@ -12,7 +12,7 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useToast } from '@/context/ToastContext';
 import { todayKey } from '@/utils/dates';
-import { formatCupsLabel, mlToCups } from '@/utils/waterUnits';
+import { formatCupsLabel, mlToCups, toWholeGlasses } from '@/utils/waterUnits';
 
 export default function WaterScreen() {
   const { back } = useNavigateOnce();
@@ -39,10 +39,11 @@ export default function WaterScreen() {
 
   const applyCups = useCallback(
     async (cups: number, message: string) => {
-      if (cups === 0) return;
+      const whole = cups < 0 ? -toWholeGlasses(Math.abs(cups)) : toWholeGlasses(cups);
+      if (whole === 0) return;
       setLogging(true);
       try {
-        await logWaterCups(cups, selectedDate);
+        await logWaterCups(whole, selectedDate);
         toast.success(message, 'Hydration');
       } catch {
         toast.error('Could not update water right now.');
@@ -55,15 +56,16 @@ export default function WaterScreen() {
 
   const handleAddCups = useCallback(
     (cups: number) => {
-      const label =
-        cups > 0 ? `+${formatCupsLabel(cups)}` : `Removed ${formatCupsLabel(Math.abs(cups))}`;
-      void applyCups(cups, label);
+      const whole = toWholeGlasses(Math.abs(cups));
+      const label = cups > 0 ? `+${formatCupsLabel(whole)}` : `Removed ${formatCupsLabel(whole)}`;
+      void applyCups(cups > 0 ? whole : -whole, label);
     },
     [applyCups],
   );
 
   const handleCustomAdd = useCallback(() => {
-    void applyCups(customCups, `+${formatCupsLabel(customCups)}`);
+    const whole = Math.max(1, toWholeGlasses(customCups));
+    void applyCups(whole, `+${formatCupsLabel(whole)}`);
   }, [applyCups, customCups]);
 
   const handleRemoveEntry = useCallback(

@@ -4,7 +4,7 @@ export const WATER_GLASS_ML = 250;
 export const WATER_CUP_ML = WATER_GLASS_ML;
 
 export function glassesToMl(glasses: number): number {
-  return Math.round(glasses * WATER_GLASS_ML);
+  return Math.round(toWholeGlasses(glasses) * WATER_GLASS_ML);
 }
 
 /** @deprecated Use glassesToMl */
@@ -21,10 +21,20 @@ export function mlToCups(ml: number): number {
   return mlToGlasses(ml);
 }
 
+/** Clamp/round to whole glasses for logging UI (1, 2, 3…). */
+export function toWholeGlasses(glasses: number): number {
+  if (!Number.isFinite(glasses)) return 0;
+  return Math.max(0, Math.round(glasses));
+}
+
+/** Whole-glass amount display. */
 export function formatGlasses(glasses: number): string {
-  if (!Number.isFinite(glasses)) return '0';
-  const rounded = Math.round(glasses * 10) / 10;
-  return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return String(toWholeGlasses(glasses));
+}
+
+/** @deprecated Alias — same as formatGlasses (whole glasses only). */
+export function formatGlassesWhole(glasses: number): string {
+  return formatGlasses(glasses);
 }
 
 /** @deprecated Use formatGlasses */
@@ -33,18 +43,18 @@ export function formatCups(cups: number): string {
 }
 
 export function glassNoun(glasses: number): string {
-  return glasses === 1 ? 'glass' : 'glasses';
+  return toWholeGlasses(glasses) === 1 ? 'glass' : 'glasses';
 }
 
 export function formatGlassesLabel(glasses: number): string {
   const value = formatGlasses(glasses);
-  return glasses === 1 ? '1 glass of water' : `${value} glasses of water`;
+  return `${value} ${glassNoun(glasses)} of water`;
 }
 
-/** Short label for compact UI (e.g. "2 glasses"). */
+/** Short label for compact UI (e.g. "2 glasses", "1 glass"). */
 export function formatGlassesShort(glasses: number): string {
   const value = formatGlasses(glasses);
-  return glasses === 1 ? '1 glass' : `${value} glasses`;
+  return `${value} ${glassNoun(glasses)}`;
 }
 
 /** @deprecated Use formatGlassesLabel */

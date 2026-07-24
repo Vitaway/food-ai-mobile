@@ -13,19 +13,28 @@ const WEB_APP_URL =
   process.env.EXPO_PUBLIC_WEB_URL ?? (__DEV__ ? 'http://localhost:5173' : MIRAFOOD_WEB_URL);
 
 function roleCopy(role: string | undefined) {
-  if (role === 'admin') {
+  if (role === 'admin' || role === 'super_admin' || role === 'organization_admin') {
     return {
       title: 'Admin accounts use the web dashboard',
-      body: 'Platform admin tools are not available in the mobile app. Sign in on the web to manage coaches, users, and system settings.',
+      body: 'Admin tools are not available in the mobile app. Sign in on the web to manage coaches, users, and settings — or create a separate patient account here.',
       cta: 'Open admin dashboard',
       path: '/login',
     };
   }
 
+  if (role === 'coach' || role === 'nutrition_coach' || role === 'data_entry_staff') {
+    return {
+      title: 'Coach accounts use the web dashboard',
+      body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard — not in the consumer mobile app.',
+      cta: 'Open coach dashboard',
+      path: '/login',
+    };
+  }
+
   return {
-    title: 'Coach accounts use the web dashboard',
-    body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard — not in the consumer mobile app.',
-    cta: 'Open coach dashboard',
+    title: 'This account is for the web dashboard',
+    body: 'The MiraFood mobile app is for patients. Sign in on the web with this account, or create a patient account in the app.',
+    cta: 'Open MiraFood web',
     path: '/login',
   };
 }

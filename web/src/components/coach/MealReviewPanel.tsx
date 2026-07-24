@@ -1,8 +1,9 @@
+import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
 import { DashboardPanel } from '@/components/ui/DashboardPanel';
 import { StatusPill } from '@/components/ui/StatusPill';
 import { ArrowRightIcon, CheckIcon, PlusIcon, XIcon } from '@/components/icons/ActionIcons';
-import { CoachIngredientsTable } from '@/components/coach/IngredientTables';
+import { AiIngredientsTable, CoachIngredientsTable } from '@/components/coach/IngredientTables';
 import { MealPhotoViewer } from '@/components/coach/MealPhotoViewer';
 import { sumNutrition } from '@/lib/nutrition';
 import { isUsableMealName, resolveCoachMealTitle } from '@/lib/utils';
@@ -40,12 +41,28 @@ export function MealReviewPanel({
   const updateDraftMealName = useCoachStore((s) => s.updateDraftMealName);
 
   const { meal } = item;
+  const [showAi, setShowAi] = useState(true);
   const displayTitle = resolveCoachMealTitle({
     mealName: draft?.mealName || meal.mealName,
     mealType: meal.mealType,
   });
   const coachItems = draft?.items ?? [];
   const coachTotals = coachItems.length ? sumNutrition(coachItems) : null;
+
+  // Read-only snapshot from Ask AI (assistAnalysis) — never the editable draft.
+  const aiAnalysis = meal.assistAnalysis?.items?.length
+    ? meal.assistAnalysis
+    : meal.aiAnalysis?.items?.length
+      ? meal.aiAnalysis
+      : null;
+  const aiItems = aiAnalysis?.items ?? [];
+  const aiTotals =
+    aiAnalysis?.totalNutrition ?? (aiItems.length ? sumNutrition(aiItems) : null);
+  const aiTitle = resolveCoachMealTitle({
+    mealName: aiAnalysis?.mealName,
+    aiMealName: aiAnalysis?.mealName,
+    mealType: meal.mealType,
+  });
 
   return (
     <div className="space-y-4">
@@ -157,6 +174,62 @@ export function MealReviewPanel({
           </div>
         </DashboardPanel>
       </div>
+
+      <DashboardPanel
+        title="AI review"
+        className="border-ash-grey-200"
+        action={
+          <div className="flex flex-wrap items-center gap-3">
+            {aiTotals ? (
+              <div className="hidden flex-wrap gap-1 sm:flex">
+                <StatusPill tone="muted">{aiTotals.caloriesKcal} kcal</StatusPill>
+                <StatusPill tone="good">P {aiTotals.proteinG}g</StatusPill>
+                <StatusPill tone="info">C {aiTotals.carbsG}g</StatusPill>
+                <StatusPill tone="warn">F {aiTotals.fatG}g</StatusPill>
+              </div>
+            ) : null}
+            {aiItems.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setShowAi((v) => !v)}
+                className="text-xs font-semibold text-blue-spruce-600 hover:underline">
+                {showAi ? 'Hide' : 'Show'} items
+              </button>
+            ) : null}
+          </div>
+        }
+        bodyClassName={showAi ? 'px-2 py-2 sm:px-3 sm:py-3' : 'px-3 py-2 sm:px-4 sm:py-2'}>
+        {aiItems.length === 0 ? (
+          <p className="px-1 text-sm text-ash-grey-500">
+            Read-only. Tap <span className="font-semibold">Ask AI suggestion</span> to generate an AI
+            analysis you can compare against your review — it won&apos;t edit this panel.
+          </p>
+        ) : !showAi ? (
+          <div className="flex flex-wrap items-center gap-2 px-1 text-sm text-ash-grey-600">
+            <span>
+              {aiItems.length} item{aiItems.length === 1 ? '' : 's'} · {aiTitle}
+              {aiTotals ? ` · ${aiTotals.caloriesKcal} kcal` : ''}
+            </span>
+            <StatusPill tone="muted">Read-only</StatusPill>
+          </div>
+        ) : (
+          <div>
+            <div className="mb-2 flex flex-wrap items-center gap-2 px-1">
+              <p className="text-sm font-semibold text-ash-grey-800">
+                {aiTitle}
+                <span className="ml-2 font-normal text-ash-grey-500">
+                  · {aiItems.length} item{aiItems.length === 1 ? '' : 's'}
+                </span>
+              </p>
+              <StatusPill tone="muted">Read-only</StatusPill>
+            </div>
+            <p className="mb-2 px-1 text-xs text-ash-grey-500">
+              AI suggestion snapshot. Edit ingredients only in Your review above.
+            </p>
+            <AiIngredientsTable items={aiItems} />
+          </div>
+        )}
+      </DashboardPanel>
 
       <DashboardPanel title="Training note" bodyClassName="px-3 py-2 sm:px-4 sm:py-3">
         <p className="mb-2 text-xs text-ash-grey-500">Internal only — used for model improvement</p>

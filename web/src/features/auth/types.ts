@@ -31,6 +31,7 @@ export type MfaChallenge = {
   mfaRequired: true;
   challengeToken: string;
   email: string;
+  role?: string;
   debugCode?: string;
 };
 

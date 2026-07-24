@@ -12,7 +12,7 @@ type BrutalVariantTokens = {
 export const BRUTAL_BUTTON = {
   borderWidth: 2,
   borderRadius: 2,
-  shadowOffset: 4,
+  shadowOffset: 2,
   variants: {
     primary: {
       faceBg: palette['cinnamon-wood'][400],

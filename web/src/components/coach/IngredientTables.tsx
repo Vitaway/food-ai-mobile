@@ -168,23 +168,27 @@ function CoachIngredientRow({
 
   const dbServings: FoodServingOption[] = dbFood?.servings ?? [];
 
-  function handleSourceChange(next: 'nutrition_db' | 'manual') {
+  function handleSourceChange(next: 'ai' | 'nutrition_db' | 'manual') {
+    if (next === 'ai' || next === source) return;
+
     if (next === 'nutrition_db') {
       onUpdateItem(item.id, {
         foodSource: 'nutrition_db',
-        label: item.nutritionFoodId ? item.label : '',
+        // Keep AI/manual label as the Food DB search starting point when unlinked
+        label: item.label,
         nutritionFoodId: item.nutritionFoodId,
       });
       return;
     }
+
     const amount = item.estimatedWeightG > 0 ? item.estimatedWeightG : 1;
     onUpdateItem(item.id, {
       foodSource: 'manual',
       nutritionFoodId: undefined,
       nutritionPer100g: undefined,
-      servingUnit: 'g',
-      servingAmount: amount,
-      servingGramsEquivalent: 1,
+      servingUnit: item.servingUnit ?? 'g',
+      servingAmount: item.servingAmount ?? amount,
+      servingGramsEquivalent: item.servingGramsEquivalent ?? 1,
     });
   }
 
@@ -296,16 +300,13 @@ function CoachIngredientRow({
           size="sm"
           className="min-w-[7.5rem]"
           value={source}
-          disabled={source === 'ai'}
-          onChange={(value) => handleSourceChange(value as 'nutrition_db' | 'manual')}
-          options={
-            source === 'ai'
-              ? [{ value: 'ai', label: 'AI' }]
-              : [
-                  { value: 'nutrition_db', label: 'Food DB' },
-                  { value: 'manual', label: 'Manual' },
-                ]
-          }
+          onChange={(value) => handleSourceChange(value as 'ai' | 'nutrition_db' | 'manual')}
+          options={[
+            // Keep AI visible after Ask AI so coaches can see provenance, but still switch away
+            ...(source === 'ai' ? [{ value: 'ai', label: 'AI' }] : []),
+            { value: 'nutrition_db', label: 'Food DB' },
+            { value: 'manual', label: 'Manual' },
+          ]}
         />
       </td>
       <td className={tdClass}>

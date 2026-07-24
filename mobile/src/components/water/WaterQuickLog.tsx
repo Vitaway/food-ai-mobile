@@ -3,7 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
-import { formatCups } from '@/utils/waterUnits';
+import { formatCups, glassNoun, toWholeGlasses } from '@/utils/waterUnits';
 
 const CARD_SHADOW = {
   shadowColor: '#1a1c17',
@@ -13,7 +13,7 @@ const CARD_SHADOW = {
   elevation: 2,
 };
 
-const QUICK_CUP_AMOUNTS = [0.5, 1, 2] as const;
+const QUICK_GLASS_AMOUNTS = [1, 2, 3] as const;
 
 type WaterQuickLogProps = {
   logging: boolean;
@@ -23,17 +23,18 @@ type WaterQuickLogProps = {
 };
 
 export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQuickLogProps) {
-  const canSubtract = cupsLogged > 0;
+  const loggedWhole = toWholeGlasses(cupsLogged);
+  const canSubtract = loggedWhole > 0;
 
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
       <Text className="font-sans-semibold text-base text-neutral-900">Quick log</Text>
       <Text className="mt-0.5 text-sm text-neutral-500">
-        Tap to add a glass of water — undo mistakes in today&apos;s log
+        Tap to add whole glasses — undo mistakes in today&apos;s log
       </Text>
 
       <View className="mt-4 flex-row gap-3">
-        {QUICK_CUP_AMOUNTS.map((cups) => (
+        {QUICK_GLASS_AMOUNTS.map((cups) => (
           <Pressable
             key={`add-${cups}`}
             disabled={logging}
@@ -43,7 +44,7 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
               <Ionicons name="add" size={22} color={semanticColors.accentOrange} />
             </View>
             <Text className="font-sans-bold text-xl text-cinnamon-wood-500">+{formatCups(cups)}</Text>
-            <Text className="mt-0.5 text-xs text-neutral-500">{cups === 1 ? 'glass' : 'glasses'}</Text>
+            <Text className="mt-0.5 text-xs text-neutral-500">{glassNoun(cups)}</Text>
           </Pressable>
         ))}
       </View>
@@ -54,8 +55,8 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
             Remove by mistake
           </Text>
           <View className="flex-row gap-2">
-            {QUICK_CUP_AMOUNTS.map((cups) => {
-              const disabled = logging || cupsLogged < cups;
+            {QUICK_GLASS_AMOUNTS.map((cups) => {
+              const disabled = logging || loggedWhole < cups;
               return (
                 <Pressable
                   key={`remove-${cups}`}

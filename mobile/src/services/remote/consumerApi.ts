@@ -235,7 +235,12 @@ export function isLocalImageUri(uri: string | undefined): boolean {
 
 export function hasServerImageUrl(url: string | undefined): boolean {
   if (!url?.trim()) return false;
-  return url.startsWith('http://') || url.startsWith('https://');
+  const trimmed = url.trim();
+  return (
+    trimmed.startsWith('http://') ||
+    trimmed.startsWith('https://') ||
+    trimmed.startsWith('/uploads/')
+  );
 }
 
 async function postMealMultipart(payload: ReturnType<typeof mealPayload>, imageUri: string) {
@@ -455,6 +460,22 @@ export type CoachingFeedItem = {
 
 export async function fetchCoachingFeed(): Promise<CoachingFeedItem[]> {
   return apiRequest<CoachingFeedItem[]>('/consumer/coaching-feed');
+}
+
+/** Insights written by the patient's coach (not auto-computed). */
+export type CoachAuthoredInsight = {
+  id: string;
+  coachUserId: string;
+  clientId: string;
+  type: 'tip' | 'celebration' | 'reminder' | 'coach_note' | 'trend';
+  title: string;
+  body: string;
+  readAt: string | null;
+  createdAt: string;
+};
+
+export async function fetchCoachAuthoredInsights(): Promise<CoachAuthoredInsight[]> {
+  return apiRequest<CoachAuthoredInsight[]>('/consumer/coach-insights');
 }
 
 export async function exportAccountData() {

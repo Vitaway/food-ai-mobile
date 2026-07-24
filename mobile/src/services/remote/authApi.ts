@@ -18,16 +18,31 @@ export type AuthResponse = {
   };
 };
 
+/** Staff login may return this instead of a session (OTP on web). */
+export type MfaChallengeResponse = {
+  mfaRequired: true;
+  challengeToken: string;
+  email: string;
+  role?: string;
+  debugCode?: string;
+};
+
+export type LoginApiResult = AuthResponse | MfaChallengeResponse;
+
 export type MeResponse = AuthUser & {
   consumerProfile?: AuthResponse['consumerProfile'];
 };
+
+export function isMfaChallenge(value: LoginApiResult): value is MfaChallengeResponse {
+  return Boolean(value && typeof value === 'object' && 'mfaRequired' in value && value.mfaRequired);
+}
 
 export async function fetchMeRequest(): Promise<MeResponse> {
   return apiRequest<MeResponse>('/auth/me', { method: 'POST' });
 }
 
-export async function loginRequest(email: string, password: string): Promise<AuthResponse> {
-  return apiRequest<AuthResponse>('/auth/login', {
+export async function loginRequest(email: string, password: string): Promise<LoginApiResult> {
+  return apiRequest<LoginApiResult>('/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email: email.trim(), password }),
   });

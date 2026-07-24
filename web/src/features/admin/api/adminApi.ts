@@ -311,6 +311,57 @@ export async function setAdminClientCoaches(userId: string, coachUserIds: string
   );
 }
 
+export type AdminQueueMeal = {
+  mealId: string;
+  clientId: string;
+  patientId: string;
+  userId: string | null;
+  clientName: string | null;
+  mealName: string;
+  mealType: string;
+  status: string;
+  submittedAt: string;
+  waitingMinutes: number;
+  imageUrl: string | null;
+  assignedCoachIds: string[];
+  reviewedAt?: string | null;
+  reviewedByCoachId?: string | null;
+  reviewAction?: 'approve' | 'reject' | string | null;
+  queuePickedByCoachId?: string;
+  queuePickedByCoachName?: string;
+  queuePickedAt?: string;
+  queueEscalatedAt?: string;
+  queueIsPicked?: boolean;
+  queueNeedsPickup?: boolean;
+};
+
+export type AdminQueueStatusFilter = 'waiting' | 'in_review' | 'previous';
+
+export type AdminReviewQueueResponse = {
+  status: AdminQueueStatusFilter;
+  counts: {
+    waiting: number;
+    in_review: number;
+    previous: number;
+  };
+  items: AdminQueueMeal[];
+};
+
+export async function fetchAdminReviewQueue(
+  status: AdminQueueStatusFilter = 'in_review',
+): Promise<AdminReviewQueueResponse> {
+  return apiRequest(`/admin/meals/queue?status=${encodeURIComponent(status)}`);
+}
+
+export async function adminForceReleaseMealPick(mealId: string) {
+  return apiRequest<{
+    mealId: string;
+    queueIsPicked: boolean;
+    previousCoachId: string | null;
+    previousCoachName: string | null;
+  }>(`/admin/meals/${mealId}/pick`, { method: 'DELETE' });
+}
+
 export async function updateAdminUser(userId: string, payload: UpdateAdminUserPayload) {
   return apiRequest(`/admin/users/${userId}`, {
     method: 'PATCH',

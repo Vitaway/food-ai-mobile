@@ -42,7 +42,7 @@ export function LogTextStep({
       <View className="mt-2">
         <Button
           label={loading ? 'Preparing…' : 'Continue'}
-          variant="secondary"
+          variant="primary"
           onPress={onContinue}
           disabled={!canContinue || loading}
         />

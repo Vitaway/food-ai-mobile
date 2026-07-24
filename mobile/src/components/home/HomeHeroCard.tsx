@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { CalorieRing } from '@/components/home/CalorieRing';
 import { WeekDaySelector } from '@/components/home/WeekDaySelector';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 import type { DailyDashboard, MealSubmission } from '@/types';
-import { formatGlasses, mlToGlasses } from '@/utils/waterUnits';
+import { healthScoreMeta } from '@/utils/healthScore';
+import { formatGlassesWhole, glassNoun, mlToGlasses } from '@/utils/waterUnits';
 
 type HomeHeroCardProps = {
   dashboard: DailyDashboard;
@@ -33,6 +35,16 @@ export function HomeHeroCard({
       : 0;
   const glassesLogged = mlToGlasses(dashboard.waterMl);
   const glassesTarget = mlToGlasses(dashboard.waterTargetMl);
+  const health = healthScoreMeta(dashboard.healthScore);
+  const calorieRing = (
+    <CalorieRing
+      consumed={dashboard.caloriesConsumed}
+      target={dashboard.calorieTarget}
+      size={100}
+      compact
+      tone="light"
+    />
+  );
 
   return (
     <View
@@ -59,8 +71,10 @@ export function HomeHeroCard({
                 {dashboard.streakDays > 0 ? `${dashboard.streakDays} day streak` : 'Start streak'}
               </Text>
             </View>
-            <View className="rounded-full bg-white/20 px-2.5 py-1">
-              <Text className="font-sans-semibold text-xs text-white">Health {dashboard.healthScore}</Text>
+            <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: `${health.accentHex}33` }}>
+              <Text className="font-sans-semibold text-xs text-white">
+                Health {dashboard.healthScore} · {health.label}
+              </Text>
             </View>
           </View>
 
@@ -76,26 +90,26 @@ export function HomeHeroCard({
             <Text className="text-sm font-sans-medium text-white/80">{dayHeading} · Daily plan</Text>
             <Text className="mt-1 font-sans-bold text-4xl text-white">{dashboard.caloriesConsumed}</Text>
             <Text className="mt-0.5 text-base text-white/85">
-              of {dashboard.calorieTarget} kcal · {calorieProgress}%
+              of {dashboard.calorieTarget} kcal · {calorieProgress}% of goal
             </Text>
             <Text className="mt-2 text-sm text-white/70">
-              Water {formatGlasses(glassesLogged)}/{formatGlasses(glassesTarget)} glasses
+              Water {formatGlassesWhole(glassesLogged)}/{formatGlassesWhole(glassesTarget)}{' '}
+              {glassNoun(glassesTarget)}
             </Text>
           </View>
 
           <View className="items-center">
             {lastMeal?.imageUrl ? (
               <View className="h-[100px] w-[100px] overflow-hidden rounded-2xl border-2 border-white/30">
-                <Image source={{ uri: lastMeal.imageUrl }} className="h-full w-full" resizeMode="cover" />
+                <ResolvedImage
+                  uri={lastMeal.imageUrl}
+                  className="h-full w-full"
+                  resizeMode="cover"
+                  fallback={calorieRing}
+                />
               </View>
             ) : (
-              <CalorieRing
-                consumed={dashboard.caloriesConsumed}
-                target={dashboard.calorieTarget}
-                size={100}
-                compact
-                tone="light"
-              />
+              calorieRing
             )}
           </View>
         </View>

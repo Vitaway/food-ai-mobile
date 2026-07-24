@@ -18,11 +18,14 @@ import {
   logoutRequest,
   registerRequest,
   fetchMeRequest,
+  isMfaChallenge,
+  type AuthResponse,
   type AuthUser,
 } from '@/services/remote/authApi';
 import { WrongAppRoleError } from '@/utils/authErrors';
 
 const AUTH_STORAGE_KEY = 'mirafood-auth-session';
+const MOBILE_ALLOWED_ROLES = new Set(['consumer']);
 
 export type AuthSession = {
   token: string;
@@ -59,7 +62,7 @@ function jwtExpiresAt(token: string): number {
   return Date.now() + 7 * 24 * 60 * 60 * 1000;
 }
 
-function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession {
+function mapSession(data: AuthResponse): AuthSession {
   const patientId = data.user.patientId ?? data.consumerProfile?.patientId;
   return {
     token: data.token,
@@ -67,6 +70,14 @@ function mapSession(data: Awaited<ReturnType<typeof loginRequest>>): AuthSession
     expiresAt: jwtExpiresAt(data.token),
     onboardingComplete: Boolean(data.consumerProfile?.onboardingComplete),
   };
+}
+
+function assertConsumerSession(data: AuthResponse): AuthResponse {
+  const role = data.user?.role;
+  if (!role || !MOBILE_ALLOWED_ROLES.has(role)) {
+    throw new WrongAppRoleError(role || 'unknown');
+  }
+  return data;
 }
 
 function mapMeToSession(session: AuthSession, me: Awaited<ReturnType<typeof fetchMeRequest>>): AuthSession {
@@ -179,10 +190,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const login = useCallback(
     async (email: string, password: string) => {
       const data = await loginRequest(email, password);
-      if (data.user.role !== 'consumer') {
-        throw new WrongAppRoleError(data.user.role);
+      // Staff accounts get an MFA challenge (no user/token). Mobile is consumer-only.
+      if (isMfaChallenge(data)) {
+        throw new WrongAppRoleError(data.role || 'staff');
       }
-      await applySession(mapSession(data));
+      if (!data?.user || !data.token) {
+        throw new WrongAppRoleError('unknown');
+      }
+      await applySession(mapSession(assertConsumerSession(data)));
     },
     [applySession],
   );

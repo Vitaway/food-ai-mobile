@@ -12,6 +12,8 @@ import {
   fetchAdminUsers,
   fetchAdminUserDetail,
   setAdminClientCoaches,
+  fetchAdminReviewQueue,
+  adminForceReleaseMealPick,
   fetchAdminPatientView,
   fetchAdminPatientSummary,
   fetchAdminClinicalAssessment,
@@ -59,6 +61,7 @@ export const adminKeys = {
   user: (id: string) => [...adminKeys.all, 'users', id] as const,
   patient: (id: string) => [...adminKeys.all, 'users', id, 'patient'] as const,
   patientSummary: (id: string) => [...adminKeys.all, 'users', id, 'patient-summary'] as const,
+  reviewQueue: (status = 'in_review') => [...adminKeys.all, 'meals-queue', status] as const,
   adminClinicalAssessment: (id: string) => [...adminKeys.all, 'users', id, 'clinical-assessment'] as const,
   organizations: () => [...adminKeys.all, 'organizations'] as const,
   organization: (id: string) => [...adminKeys.all, 'organizations', id] as const,
@@ -77,6 +80,26 @@ export function useAdminCoaches() {
   return useQuery({
     queryKey: adminKeys.coaches(),
     queryFn: fetchAdminCoaches,
+  });
+}
+
+export function useAdminReviewQueue(status: 'waiting' | 'in_review' | 'previous' = 'in_review') {
+  return useQuery({
+    queryKey: adminKeys.reviewQueue(status),
+    queryFn: () => fetchAdminReviewQueue(status),
+    refetchInterval: 20_000,
+  });
+}
+
+export function useAdminForceReleaseMealPick() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: adminForceReleaseMealPick,
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'meals-queue'] });
+      void qc.invalidateQueries({ queryKey: adminKeys.metrics() });
+      void qc.invalidateQueries({ queryKey: adminKeys.operations() });
+    },
   });
 }
 

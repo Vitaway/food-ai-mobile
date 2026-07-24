@@ -10,3 +10,4 @@ export { AdminFoodDbPage } from './FoodDbPage';
 export { AdminModulesPage } from './ModulesPage';
 export { AdminAssessmentsPage } from './AssessmentsPage';
 export { AdminOrganizationsPage } from './OrganizationsPage';
+export { AdminMealsQueuePage } from './MealsQueuePage';

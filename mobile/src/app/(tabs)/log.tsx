@@ -97,13 +97,17 @@ export default function LogMealScreen() {
       setAwaitingCoachConfirm(true);
 
       let title = cleaned;
-      try {
-        title = await services.mealAnalysis.suggestMealTitle(cleaned);
-      } catch {
-        title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;
+      if (cleaned) {
+        try {
+          title = await services.mealAnalysis.suggestMealTitle(cleaned);
+        } catch {
+          title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;
+        }
+      } else {
+        title = 'Logged meal';
       }
 
-      const stub = createCoachReviewStub(cleaned);
+      const stub = createCoachReviewStub(cleaned || 'Meal photo');
       setAnalysis({ ...stub, mealName: title });
       setStep('results');
       setSaving(false);
@@ -369,7 +373,7 @@ export default function LogMealScreen() {
       return (
         <Button
           label={saving ? 'Submitting…' : 'Submit meal'}
-          variant="secondary"
+          variant="primary"
           onPress={handleSave}
           disabled={saving || !selectedMealType}
           fullWidth

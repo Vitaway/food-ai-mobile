@@ -23,6 +23,7 @@ import {
   AdminModulesPage,
   AdminAssessmentsPage,
   AdminOrganizationsPage,
+  AdminMealsQueuePage,
 } from '@/pages/admin';
 import { LoginPage, RegisterPage, ForgotPasswordPage } from '@/pages/auth';
 import {
@@ -147,6 +148,7 @@ function App() {
           <Route path="coaches" element={<AdminCoachesPage />} />
           <Route path="users" element={<AdminUsersPage />} />
           <Route path="users/:id" element={<AdminUserDetailPage />} />
+          <Route path="meals" element={<AdminMealsQueuePage />} />
           <Route path="organizations" element={<AdminOrganizationsPage />} />
           <Route path="organizations/:id" element={<AdminOrganizationsPage />} />
           <Route path="payments" element={<AdminPaymentsPage />} />

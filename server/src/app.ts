@@ -44,7 +44,11 @@ const corsOptions: cors.CorsOptions = {
     }
     if (
       env.NODE_ENV !== "production" &&
-      /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin) ||
+        // Expo Go / Vite on LAN (phone + Mac same Wi‑Fi)
+        /^https?:\/\/(192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3})(:\d+)?$/.test(
+          origin,
+        ))
     ) {
       callback(null, true);
       return;

@@ -3,7 +3,7 @@ import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { palette, semanticColors } from '@/design-system/colors';
-import { formatCups, WATER_CUP_ML } from '@/utils/waterUnits';
+import { formatGlasses, glassNoun, WATER_CUP_ML } from '@/utils/waterUnits';
 
 type WaterHeroPanelProps = {
   cupsLogged: number;
@@ -65,9 +65,11 @@ export function WaterHeroPanel({
         <View className="min-w-0 flex-1">
           <Text className="text-sm font-sans-medium text-white/70">Today&apos;s hydration</Text>
           <View className="mt-2 flex-row items-end gap-1.5">
-            <Text className="font-sans-bold text-5xl leading-none text-white">{formatCups(cupsLogged)}</Text>
+            <Text className="font-sans-bold text-5xl leading-none text-white">
+              {formatGlasses(cupsLogged)}
+            </Text>
             <Text className="mb-1.5 font-sans-medium text-lg text-white/75">
-              / {formatCups(cupsTarget)} glasses
+              / {formatGlasses(cupsTarget)} {glassNoun(cupsTarget)}
             </Text>
           </View>
 
@@ -80,7 +82,7 @@ export function WaterHeroPanel({
 
           <Text className="mt-3 text-sm text-white/85">
             {remainingCups > 0
-              ? `${formatCups(remainingCups)} glasses to go · ${progressPct}% of goal`
+              ? `${formatGlasses(remainingCups)} ${glassNoun(remainingCups)} to go · ${progressPct}% of goal`
               : 'Daily goal reached — nice work!'}
           </Text>
           <Text className="mt-1 text-xs text-white/55">

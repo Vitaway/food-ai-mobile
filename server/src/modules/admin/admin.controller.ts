@@ -34,6 +34,7 @@ import {
 } from "./admin.dto";
 import { moduleEntitlementsService } from "./module-entitlements.service";
 import { organizationsService } from "./organizations.service";
+import { coachMealsService } from "../meals/coach-meals.service";
 import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
 import { adminPatientService } from "./admin-patient.service";
 import { ConfirmClinicalAssessmentDto, SaveClinicalAssessmentDto } from "../coaches/coach.dto";
@@ -168,6 +169,18 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return adminService.updateCoachProfileAdmin(admin.id, admin, id, dto, req);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Get("/meals/queue")
+  reviewQueue(@QueryParam("status") status?: string) {
+    return coachMealsService.getAdminReviewQueue(status);
+  }
+
+  @Authorized([...ADMIN_OR_ORG])
+  @Delete("/meals/:id/pick")
+  forceReleaseMealPick(@CurrentUser() admin: User, @Param("id") id: string) {
+    return coachMealsService.forceReleaseMealPick(id, admin.id);
   }
 
   @Authorized([...ADMIN_OR_ORG])
