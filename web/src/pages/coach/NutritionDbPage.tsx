@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { ArchiveIcon, PencilIcon, PlusIcon, RefreshIcon } from '@/components/icons/ActionIcons';
 import { TfctCompositionGrid } from '@/components/nutrition/TfctCompositionGrid';
 import { Button } from '@/components/ui/Button';
@@ -333,7 +333,12 @@ function FoodForm({
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ash-grey-500">Serving profiles</p>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-ash-grey-500">Serving profiles</p>
+            <p className="mt-0.5 text-xs text-ash-grey-500">
+              Unit + how many + total grams (e.g. piece, 10, 85 = 10 pieces weigh 85g).
+            </p>
+          </div>
           <Button
             variant="outline"
             size="sm"
@@ -363,13 +368,17 @@ function FoodForm({
             <input
               value={serving.amount}
               onChange={(e) => updateServing(index, { amount: e.target.value })}
-              placeholder="Amount"
+              placeholder="How many"
+              aria-label={`Serving count ${index + 1}`}
+              title="How many of this unit (e.g. 10 pieces)"
               className="rounded-lg border border-ash-grey-200 bg-white px-2 py-2 text-sm"
             />
             <input
               value={serving.gramsEquivalent}
               onChange={(e) => updateServing(index, { gramsEquivalent: e.target.value })}
-              placeholder="Grams"
+              placeholder="Total grams"
+              aria-label={`Grams for that count ${index + 1}`}
+              title="Total grams for that many units (e.g. 85g for 10 pieces)"
               className="rounded-lg border border-ash-grey-200 bg-white px-2 py-2 text-sm"
             />
             <label className="flex items-center gap-2 text-sm text-ash-grey-700">
@@ -432,6 +441,7 @@ export function NutritionDbPage() {
   const { confirm, dialog: confirmDialog } = useConfirmDialog();
   const rowPhotoRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const [q, setQ] = useState('');
+  const deferredQ = useDeferredValue(q.trim());
   const [category, setCategory] = useState('');
   const [page, setPage] = useState(1);
   const [barcodeLookup, setBarcodeLookup] = useState('');
@@ -451,10 +461,10 @@ export function NutritionDbPage() {
   const servingUnits = useMemo(() => [...MANUAL_SERVING_UNITS], []);
 
   const { data, isLoading, isFetching } = useQuery({
-    queryKey: ['coach', 'nutrition-db', q, category, page],
+    queryKey: ['coach', 'nutrition-db', deferredQ, category, page],
     queryFn: () =>
       fetchNutritionFoodsPage({
-        q,
+        q: deferredQ || undefined,
         category,
         includeInactive: true,
         page,
@@ -465,7 +475,7 @@ export function NutritionDbPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [q, category]);
+  }, [deferredQ, category]);
 
   useEffect(() => {
     return () => {
@@ -678,7 +688,7 @@ export function NutritionDbPage() {
           className="min-w-[12rem] flex-1 sm:max-w-xs"
           value={q}
           onValueChange={setQ}
-          placeholder="Search foods…"
+          placeholder="Search foods by name, brand, or local name…"
           size="sm"
         />
         <Select

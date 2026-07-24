@@ -5,7 +5,7 @@ import { NutritionFood } from "./nutrition-food.entity";
 import { NutritionServingProfile } from "./nutrition-serving-profile.entity";
 import type { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.dto";
 import { SERVING_UNITS, normalizeServingUnit } from "./serving-units.util";
-import { bestNutritionFoodMatch } from "./nutrition-lookup.util";
+import { bestNutritionFoodMatch, normalizeSearchLabel, scoreNutritionFood } from "./nutrition-lookup.util";
 import {
   composeTfctFromLegacy,
   toLegacyMicronutrients,
@@ -118,14 +118,37 @@ export const nutritionDbService = {
     } else if (approvalFilter === "rejected") {
       qb.andWhere("food.approval_status = 'rejected'");
     }
-    if (query?.trim()) {
-      qb.andWhere(
-        `(food.name ILIKE :q OR food.brand ILIKE :q OR food.name_sw ILIKE :q
-          OR food.name_rw ILIKE :q OR food.name_local_other ILIKE :q
-          OR food.food_code ILIKE :q OR food.barcode ILIKE :q)`,
-        { q: `%${query.trim()}%` },
-      );
+
+    const trimmedQuery = query?.trim() ?? "";
+    const tokens = trimmedQuery
+      ? normalizeSearchLabel(trimmedQuery).split(" ").filter((token) => token.length >= 2)
+      : [];
+
+    if (trimmedQuery) {
+      const ors: string[] = [
+        "food.name ILIKE :full",
+        "food.brand ILIKE :full",
+        "food.name_sw ILIKE :full",
+        "food.name_rw ILIKE :full",
+        "food.name_local_other ILIKE :full",
+        "food.food_code ILIKE :full",
+        "food.barcode ILIKE :full",
+      ];
+      const params: Record<string, string> = { full: `%${trimmedQuery}%` };
+      tokens.forEach((token, index) => {
+        const key = `t${index}`;
+        params[key] = `%${token}%`;
+        ors.push(
+          `food.name ILIKE :${key}`,
+          `food.brand ILIKE :${key}`,
+          `food.name_sw ILIKE :${key}`,
+          `food.name_rw ILIKE :${key}`,
+          `food.name_local_other ILIKE :${key}`,
+        );
+      });
+      qb.andWhere(`(${ors.join(" OR ")})`, params);
     }
+
     if (category?.trim()) {
       qb.andWhere("(food.category = :category OR food.food_group_name = :category)", {
         category: category.trim(),
@@ -139,14 +162,17 @@ export const nutritionDbService = {
     const safePage = Math.max(1, page ?? 1);
     const safePageSize = Math.min(100, Math.max(1, pageSize ?? 20));
 
-    const total = await qb.getCount();
-
-    if (paginate) {
-      qb.skip((safePage - 1) * safePageSize).take(safePageSize);
+    // When searching, pull a wider candidate set then rank in memory for better relevance.
+    const candidateLimit = trimmedQuery ? Math.min(400, Math.max(safePageSize * 8, 80)) : undefined;
+    if (!paginate) {
+      qb.take(trimmedQuery ? candidateLimit ?? 200 : 200);
+    } else if (trimmedQuery) {
+      qb.take(candidateLimit);
     } else {
-      qb.take(200);
+      qb.skip((safePage - 1) * safePageSize).take(safePageSize);
     }
 
+    const totalBeforeRank = await qb.clone().getCount();
     const foods = await qb.getMany();
     const foodIds = foods.map((food) => food.id);
     const servings = foodIds.length
@@ -161,18 +187,41 @@ export const nutritionDbService = {
       rows.push(serving);
       servingsByFood.set(serving.foodId, rows);
     }
-    const items = foods.map((food) => mapFood(food, servingsByFood.get(food.id) ?? []));
+
+    let items = foods.map((food) => mapFood(food, servingsByFood.get(food.id) ?? []));
+    if (trimmedQuery) {
+      items = items
+        .map((food) => ({ food, score: scoreNutritionFood(trimmedQuery, food) }))
+        .filter((row) => row.score > 0)
+        .sort(
+          (a, b) =>
+            b.score - a.score || a.food.name.localeCompare(b.food.name),
+        )
+        .map((row) => row.food);
+    }
 
     if (!paginate) {
-      return items;
+      return items.slice(0, 200);
+    }
+
+    if (trimmedQuery) {
+      const total = items.length;
+      const start = (safePage - 1) * safePageSize;
+      return {
+        items: items.slice(start, start + safePageSize),
+        total,
+        page: safePage,
+        pageSize: safePageSize,
+        totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+      };
     }
 
     return {
       items,
-      total,
+      total: totalBeforeRank,
       page: safePage,
       pageSize: safePageSize,
-      totalPages: Math.max(1, Math.ceil(total / safePageSize)),
+      totalPages: Math.max(1, Math.ceil(totalBeforeRank / safePageSize)),
     };
   },
 
