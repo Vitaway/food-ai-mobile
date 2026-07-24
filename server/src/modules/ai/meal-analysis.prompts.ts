@@ -19,6 +19,25 @@ Rules:
 - Return 1–6 items. mealName should be a short human title.
 - Do NOT include markdown or commentary outside JSON.`;
 
+export const MEAL_TITLE_SYSTEM_PROMPT = `You name meals for MiraFood.
+
+Given a user's meal description and/or photo context, return a short, appetizing dish title a dietitian would write on a food log.
+
+Rules:
+- mealName: 3–8 words, Title Case, specific (e.g. "Beef and Pepper Stir-Fry with Lime"), not vague ("Lunch", "Food", "Meal").
+- Prefer East African / local dish names when the description suggests them.
+- Do not invent brands unless clearly named.
+- Do NOT include markdown or commentary outside JSON.`;
+
+export const MEAL_TITLE_USER_PROMPT = `Suggest a meal title for this submission:
+
+"{description}"
+
+Return JSON:
+{
+  "mealName": string
+}`;
+
 export const MEAL_ANALYSIS_IMAGE_USER_PROMPT = `Analyze this meal photo.
 
 Context (optional camera metadata — ignore plate diameter if present):

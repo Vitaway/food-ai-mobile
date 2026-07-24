@@ -1,10 +1,10 @@
 import { Authorized, BadRequestError, Body, Controller, Post } from "routing-controllers";
-import { AnalyzeMealTextDto } from "./vision.dto";
-import type { User } from "../users/user.entity";
+import { AnalyzeMealTextDto, SuggestMealTitleDto } from "./vision.dto";
+import { visionService } from "./vision.service";
 
 /**
- * Patient-facing vision endpoints are disabled — meals go to coaches first.
- * Coach AI assist lives under /coach/meals/:id/ai-assist.
+ * Full meal nutrition analysis is coach-only (/coach/meals/:id/ai-assist).
+ * Patients may still request a lightweight dish title for the food log.
  */
 @Controller("/vision")
 export class VisionController {
@@ -30,5 +30,15 @@ export class VisionController {
     throw new BadRequestError(
       "Meal analysis is coach-only. Submit a description for coach review.",
     );
+  }
+
+  @Authorized(["consumer"])
+  @Post("/meals/title")
+  async suggestMealTitle(@Body() dto: SuggestMealTitleDto) {
+    const description = dto.description?.trim() || dto.text?.trim();
+    if (!description || description.length < 2) {
+      throw new BadRequestError("description is required");
+    }
+    return visionService.suggestMealTitle(description);
   }
 }
