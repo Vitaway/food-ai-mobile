@@ -49,7 +49,8 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
           </Pressable>
         </View>
         <Text className="mt-1 text-sm leading-5 text-neutral-600">
-          Enter the product barcode from packaged food. We'll pull nutrition from the database.
+          Enter the product barcode from packaged food. We'll identify the product and send it to your
+          coach for nutrition confirmation.
         </Text>
       </LogCard>
 

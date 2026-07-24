@@ -8,7 +8,8 @@ import type { MealSubmission } from '@/types';
 import { formatDayHeading, formatTime, toLocalDateKey } from '@/utils/dates';
 
 export function canRepeatMeal(meal: MealSubmission): boolean {
-  return Boolean(meal.items?.length && meal.totalNutrition);
+  // Only coach-confirmed meals have nutrition the patient can reference for repeat.
+  return meal.status === 'approved' && Boolean(meal.items?.length && meal.totalNutrition);
 }
 
 function mealTypeLabel(mealType: MealSubmission['mealType']) {

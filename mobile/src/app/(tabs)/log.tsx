@@ -4,7 +4,6 @@ import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useRef, useState } from 'react';
 
-import { LogAnalyzingStep, type MealAnalyzePhase } from '@/components/log/LogAnalyzingStep';
 import { LogBarcodeStep } from '@/components/log/LogBarcodeStep';
 import { LogMethodStep, type LogMethodId } from '@/components/log/LogMethodStep';
 import { canRepeatMeal, LogPastMealsStep } from '@/components/log/LogPastMealsStep';
@@ -18,8 +17,6 @@ import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constant
 import type { LogStep } from '@/constants/logFlow';
 import { useMeals } from '@/context/MealsContext';
 import { useToast } from '@/context/ToastContext';
-import { services } from '@/services';
-import type { PlateContainerType } from '@/services/contracts/plateDetectionService';
 import type { MealAnalysisPreview, MealSubmission } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { getApiErrorMessage } from '@/utils/apiErrors';
@@ -34,7 +31,6 @@ import {
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
-  type ImageCaptureMetadata,
 } from '@/utils/imageCaptureMetadata';
 
 type FlowStep = LogStep | 'text' | 'barcode' | 'past';
@@ -45,23 +41,16 @@ const STEP_TITLES: Record<FlowStep, string> = {
   barcode: 'Barcode',
   past: 'Repeat',
   scan: 'Photo',
-  analyzing: 'AI analysis',
+  analyzing: 'Preparing',
   results: 'Review & submit',
 };
-
-/** Label for coach-only stubs when AI is unavailable — never use marketing/status copy here. */
-function stubMealLabel(opts: { imageUri?: string | null; mealDescription?: string; textInput?: string }) {
-  const described = opts.mealDescription?.trim() || opts.textInput?.trim();
-  if (described) return described;
-  return opts.imageUri ? 'Meal photo' : 'Meal';
-}
 
 export default function LogMealScreen() {
   const { push } = useNavigateOnce();
   const toast = useToast();
   const isFocused = useIsFocused();
   const { mealType: mealTypeParam } = useLocalSearchParams<{ mealType?: string }>();
-  const { analyzeMeal, saveMealToDiary, meals } = useMeals();
+  const { saveMealToDiary, meals } = useMeals();
   const handledIntentRef = useRef(false);
 
   const [step, setStep] = useState<FlowStep>('method');
@@ -71,17 +60,10 @@ export default function LogMealScreen() {
   const [textInput, setTextInput] = useState('');
   const [mealDescription, setMealDescription] = useState('');
   const [analysis, setAnalysis] = useState<MealAnalysisPreview | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [captureMetadata, setCaptureMetadata] = useState<ImageCaptureMetadata | null>(null);
-  const [plateDetected, setPlateDetected] = useState(false);
-  const [containerType, setContainerType] = useState<PlateContainerType | null>(null);
-  const [plateDiameterCm, setPlateDiameterCm] = useState<number | null>(null);
-  const [plateConfidence, setPlateConfidence] = useState<number | null>(null);
-  const [plateDetectionError, setPlateDetectionError] = useState<string | null>(null);
-  const [analyzePhase, setAnalyzePhase] = useState<MealAnalyzePhase | null>(null);
   const [fromBarcode, setFromBarcode] = useState(false);
   const [fromPastMeal, setFromPastMeal] = useState(false);
+  const [awaitingCoachConfirm, setAwaitingCoachConfirm] = useState(false);
 
   const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
   const stepTitle = STEP_TITLES[step];
@@ -91,20 +73,6 @@ export default function LogMealScreen() {
     return suggestMealTypeForNow();
   }, [mealTypeParam]);
 
-  const resetPlateResults = useCallback(() => {
-    setPlateDetected(false);
-    setContainerType(null);
-    setPlateDiameterCm(null);
-    setPlateConfidence(null);
-    setPlateDetectionError(null);
-  }, []);
-
-  const resetPlateDetection = useCallback(() => {
-    setCaptureMetadata(null);
-    resetPlateResults();
-    setAnalyzePhase(null);
-  }, [resetPlateResults]);
-
   const resetFlow = useCallback(() => {
     setStep('method');
     setSelectedMealType(resolveInitialMealType());
@@ -112,133 +80,22 @@ export default function LogMealScreen() {
     setTextInput('');
     setMealDescription('');
     setAnalysis(null);
-    setAnalyzing(false);
     setSaving(false);
     setFromBarcode(false);
     setFromPastMeal(false);
-    resetPlateDetection();
+    setAwaitingCoachConfirm(false);
     handledIntentRef.current = false;
-  }, [resolveInitialMealType, resetPlateDetection]);
+  }, [resolveInitialMealType]);
 
-  const detectPlateFromPhoto = useCallback(async (uri: string, metadata: ImageCaptureMetadata) => {
-    setPlateDetectionError(null);
-
-    try {
-      const result = await services.plateDetection.detectPlate({ imageUri: uri, metadata });
-      setPlateDetected(result.detected);
-      setContainerType(result.containerType);
-      setPlateDiameterCm(result.diameterCm);
-      setPlateConfidence(result.confidence);
-      return result;
-    } catch (error) {
-      setPlateDetected(false);
-      setContainerType(null);
-      setPlateDiameterCm(null);
-      setPlateConfidence(null);
-      const message =
-        error instanceof Error ? error.message : 'Plate detection failed. Check the API server.';
-      setPlateDetectionError(message);
-      return null;
-    }
-  }, []);
-
-  const runPhotoAnalysis = useCallback(async () => {
-    if (analyzing || !imageUri || !captureMetadata) return;
-
-    setAnalyzing(true);
-    setStep('analyzing');
-    setAnalyzePhase('plate');
-    resetPlateResults();
-
-    let resolvedDiameter: number | null = null;
-    const plateResult = await detectPlateFromPhoto(imageUri, captureMetadata);
-    if (plateResult?.detected && plateResult.diameterCm != null) {
-      resolvedDiameter = plateResult.diameterCm;
-    }
-
-    setAnalyzePhase('food');
-    try {
-      const result = await analyzeMeal({
-        imageUri,
-        note: mealDescription.trim() || undefined,
-        plateDiameterCm: resolvedDiameter ?? undefined,
-      });
-      setAnalysis(result);
+  const prepareCoachSubmit = useCallback(
+    (description: string) => {
+      const stub = createCoachReviewStub(description);
+      setAnalysis(stub);
+      setAwaitingCoachConfirm(true);
       setStep('results');
-    } catch (error) {
-      const fallback = createCoachReviewStub(
-        stubMealLabel({ imageUri, mealDescription }),
-      );
-      setAnalysis(fallback);
-      setStep('results');
-      toast.info('Instant insights are unavailable right now. You can still submit this meal.');
-    } finally {
-      setAnalyzing(false);
-      setAnalyzePhase(null);
-    }
-  }, [
-    analyzing,
-    analyzeMeal,
-    captureMetadata,
-    detectPlateFromPhoto,
-    imageUri,
-    mealDescription,
-    resetPlateResults,
-    toast,
-  ]);
-
-  const runTextAnalysis = useCallback(async () => {
-    if (analyzing) return;
-    setAnalyzing(true);
-    setStep('analyzing');
-    setAnalyzePhase('food');
-    try {
-      const result = await analyzeMeal({
-        text: textInput.trim() || undefined,
-      });
-      setAnalysis(result);
-      setStep('results');
-    } catch (error) {
-      const fallback = createCoachReviewStub(
-        stubMealLabel({ textInput }),
-      );
-      setAnalysis(fallback);
-      setStep('results');
-      toast.info('Instant insights are unavailable right now. You can still submit this meal.');
-    } finally {
-      setAnalyzing(false);
-      setAnalyzePhase(null);
-    }
-  }, [analyzing, analyzeMeal, textInput, toast]);
-
-  const runAnalysis = useCallback(async () => {
-    if (imageUri) {
-      await runPhotoAnalysis();
-      return;
-    }
-    await runTextAnalysis();
-  }, [imageUri, runPhotoAnalysis, runTextAnalysis]);
-
-  const submitToCoachWithoutAi = useCallback(async () => {
-    const description = mealDescription.trim();
-    if (description.length < 3) {
-      toast.error('Describe what you ate before submitting.');
-      return;
-    }
-    if (analyzing || saving) return;
-
-    setAnalyzing(true);
-    setStep('analyzing');
-    setAnalyzePhase('food');
-    try {
-      setAnalysis(createCoachReviewStub(description));
-      setStep('results');
-      toast.info('Nutrition will be confirmed from your photo and description.', 'Ready to submit');
-    } finally {
-      setAnalyzing(false);
-      setAnalyzePhase(null);
-    }
-  }, [analyzing, mealDescription, saving, toast]);
+    },
+    [],
+  );
 
   const handlePermissionDenied = useCallback(
     (source: 'camera' | 'gallery', canAskAgain: boolean) => {
@@ -284,7 +141,7 @@ export default function LogMealScreen() {
 
   const openPhotoFlow = useCallback(
     async (source: 'camera' | 'gallery') => {
-      if (analyzing || saving) return;
+      if (saving) return;
       setSelectedMethod(source);
       setMealDescription('');
       const captured = await pickImage(source);
@@ -292,18 +149,17 @@ export default function LogMealScreen() {
         setStep('method');
         return;
       }
-      resetPlateDetection();
       setAnalysis(null);
+      setAwaitingCoachConfirm(false);
       setImageUri(captured.uri);
-      setCaptureMetadata(captured.metadata);
       setStep('scan');
     },
-    [analyzing, pickImage, resetPlateDetection, saving],
+    [pickImage, saving],
   );
 
   const handleMethodSelect = useCallback(
     async (method: LogMethodId) => {
-      if (analyzing || saving) return;
+      if (saving) return;
       setSelectedMethod(method);
 
       if (method === 'camera') {
@@ -326,6 +182,7 @@ export default function LogMealScreen() {
         setFromBarcode(false);
         setImageUri(null);
         setAnalysis(null);
+        setAwaitingCoachConfirm(false);
         setStep('barcode');
         return;
       }
@@ -334,27 +191,34 @@ export default function LogMealScreen() {
       setFromPastMeal(false);
       setStep('past');
     },
-    [analyzing, openPhotoFlow, saving],
+    [openPhotoFlow, saving],
   );
 
   const handleSelectPastMeal = useCallback(
     (meal: MealSubmission) => {
-      if (analyzing || saving || !canRepeatMeal(meal)) return;
+      if (saving || !canRepeatMeal(meal)) return;
       try {
         const preview = analysisPreviewFromPastMeal(meal);
+        const description =
+          meal.note?.trim() ||
+          meal.textInput?.trim() ||
+          meal.mealName?.trim() ||
+          preview.mealName;
         setFromBarcode(false);
         setFromPastMeal(true);
         setSelectedMealType(meal.mealType);
         setImageUri(meal.imageUrl ?? null);
-        setTextInput(meal.textInput ?? meal.mealName ?? preview.mealName);
-        setMealDescription(meal.note ?? '');
-        setAnalysis(preview);
+        setTextInput(description);
+        setMealDescription(description);
+        // Coach-first: send a stub; coach confirms nutrition (past macros are a hint only via note).
+        setAnalysis(createCoachReviewStub(description));
+        setAwaitingCoachConfirm(true);
         setStep('results');
       } catch {
         toast.error('Could not load that meal. Try another one.');
       }
     },
-    [analyzing, saving, toast],
+    [saving, toast],
   );
 
   const applyNavigationIntents = useCallback(() => {
@@ -390,10 +254,31 @@ export default function LogMealScreen() {
   );
 
   const handleRetakePhoto = useCallback(async () => {
-    if (analyzing || saving) return;
+    if (saving) return;
     const source = selectedMethod === 'gallery' ? 'gallery' : 'camera';
     await openPhotoFlow(source);
-  }, [analyzing, openPhotoFlow, saving, selectedMethod]);
+  }, [openPhotoFlow, saving, selectedMethod]);
+
+  const handlePhotoContinue = useCallback(() => {
+    if (saving) return;
+    const description = mealDescription.trim();
+    if (description.length < 3) {
+      toast.error('Describe what you ate before continuing.');
+      return;
+    }
+    prepareCoachSubmit(description);
+  }, [mealDescription, prepareCoachSubmit, saving, toast]);
+
+  const handleTextContinue = useCallback(() => {
+    if (saving) return;
+    const description = textInput.trim();
+    if (description.length < 3) {
+      toast.error('Describe what you ate before continuing.');
+      return;
+    }
+    setMealDescription(description);
+    prepareCoachSubmit(description);
+  }, [prepareCoachSubmit, saving, textInput, toast]);
 
   const handleSave = useCallback(async () => {
     if (!analysis || saving || !selectedMealType) {
@@ -410,11 +295,10 @@ export default function LogMealScreen() {
         imageUrl: imageUri ?? undefined,
         textInput: (imageUri ? mealDescription : textInput).trim() || undefined,
         note: mealDescription.trim() || undefined,
-        plateDiameterCm: analysis.plateDiameterCm ?? plateDiameterCm,
         analysis,
       });
       resetFlow();
-      toast.success('Your meal was logged.', 'Saved');
+      toast.success('Sent to your coach for review.', 'Submitted');
       push(`/meal/${meal.id}`);
     } catch (error) {
       toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
@@ -425,7 +309,6 @@ export default function LogMealScreen() {
     analysis,
     imageUri,
     mealDescription,
-    plateDiameterCm,
     push,
     resetFlow,
     saveMealToDiary,
@@ -444,10 +327,12 @@ export default function LogMealScreen() {
       if (fromPastMeal) {
         setAnalysis(null);
         setFromPastMeal(false);
+        setAwaitingCoachConfirm(false);
         setStep('past');
         return;
       }
       if (fromBarcode) {
+        setAwaitingCoachConfirm(false);
         setStep('barcode');
         return;
       }
@@ -455,11 +340,10 @@ export default function LogMealScreen() {
     }
   }, [fromBarcode, fromPastMeal, imageUri, step]);
 
-  const showBack = step !== 'method' && step !== 'analyzing';
+  const showBack = step !== 'method';
   const useScroll =
     step === 'method' ||
     step === 'results' ||
-    step === 'analyzing' ||
     step === 'scan' ||
     step === 'text' ||
     step === 'barcode' ||
@@ -483,30 +367,35 @@ export default function LogMealScreen() {
 
   const content = useMemo(() => {
     if (step === 'method') {
-      return <LogMethodStep loading={analyzing || saving} onSelectMethod={handleMethodSelect} />;
+      return <LogMethodStep loading={saving} onSelectMethod={handleMethodSelect} />;
     }
     if (step === 'text') {
       return (
         <LogTextStep
           value={textInput}
-          loading={analyzing}
+          loading={saving}
           onChangeText={setTextInput}
-          onContinue={runAnalysis}
+          onContinue={handleTextContinue}
         />
       );
     }
     if (step === 'barcode') {
       return (
         <LogBarcodeStep
-          loading={analyzing || saving}
+          loading={saving}
           onBack={() => setStep('method')}
-          onFound={(nextAnalysis) => {
+          onFound={(nextAnalysis, barcode) => {
             setFromBarcode(true);
             setFromPastMeal(false);
             setImageUri(null);
-            setTextInput('');
-            setMealDescription('');
-            setAnalysis(nextAnalysis);
+            const label = nextAnalysis.mealName || `Barcode ${barcode}`;
+            setTextInput(label);
+            setMealDescription(
+              `Barcode ${barcode}: ${label}. Product nutrition available in database for coach review.`,
+            );
+            // Coach-first: do not show DB macros to the patient before coach confirm.
+            setAnalysis(createCoachReviewStub(label));
+            setAwaitingCoachConfirm(true);
             setStep('results');
           }}
         />
@@ -516,7 +405,7 @@ export default function LogMealScreen() {
       return (
         <LogPastMealsStep
           meals={meals}
-          loading={analyzing || saving}
+          loading={saving}
           onSelect={handleSelectPastMeal}
         />
       );
@@ -527,22 +416,9 @@ export default function LogMealScreen() {
           imageUri={imageUri}
           mealDescription={mealDescription}
           onMealDescriptionChange={setMealDescription}
-          loading={analyzing}
+          loading={saving}
           onRetake={handleRetakePhoto}
-          onAnalyze={runAnalysis}
-          onSubmitToCoach={submitToCoachWithoutAi}
-        />
-      );
-    }
-    if (step === 'analyzing') {
-      return (
-        <LogAnalyzingStep
-          phase={analyzePhase ?? 'food'}
-          variant={imageUri ? 'photo' : 'text'}
-          plateDetected={plateDetected}
-          containerType={containerType}
-          plateDiameterCm={plateDiameterCm}
-          plateDetectionError={plateDetectionError}
+          onContinue={handlePhotoContinue}
         />
       );
     }
@@ -554,27 +430,22 @@ export default function LogMealScreen() {
           imageUri={imageUri ?? undefined}
           selectedMealType={selectedMealType}
           onSelectMealType={setSelectedMealType}
+          awaitingCoachConfirm={awaitingCoachConfirm}
         />
       );
     }
     return null;
   }, [
     analysis,
-    analyzePhase,
-    analyzing,
-    bottomPadding,
-    containerType,
+    awaitingCoachConfirm,
     handleMethodSelect,
+    handlePhotoContinue,
     handleRetakePhoto,
     handleSelectPastMeal,
+    handleTextContinue,
     imageUri,
     mealDescription,
     meals,
-    plateDetected,
-    plateDetectionError,
-    plateDiameterCm,
-    runAnalysis,
-    submitToCoachWithoutAi,
     saving,
     selectedMealType,
     step,

@@ -230,7 +230,7 @@ export function createCoachReviewStub(description: string): MealAnalysisPreview 
     confidenceAvg: 0.25,
     petals: [{ label: 'Estimating', percent: 100, color: '#9ca3af' }],
     healthFlag: 'yellow',
-    healthMessage: 'Nutrition will be confirmed shortly.',
+    healthMessage: 'Your coach will confirm nutrition from this submission.',
   };
 }
 

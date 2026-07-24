@@ -16,7 +16,7 @@ import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
 import { isApiConfigured } from '@/constants/api';
-import { isMealReadable } from '@/constants/mealStatus';
+import { isAwaitingCoachReview, isMealReadable } from '@/constants/mealStatus';
 import { semanticColors } from '@/design-system/colors';
 import { useMeals } from '@/context/MealsContext';
 import type { MealSubmission, NutritionFacts } from '@/types';
@@ -46,8 +46,10 @@ function mealTypeMeta(mealType: MealSubmission['mealType']) {
   return MEAL_TYPE_OPTIONS.find((option) => option.id === mealType) ?? MEAL_TYPE_OPTIONS[1];
 }
 
-function hasNutritionDetails(meal: MealSubmission): boolean {
-  return Boolean((meal.items && meal.items.length > 0) || meal.totalNutrition);
+function hasConfirmedNutrition(meal: MealSubmission): boolean {
+  return Boolean(
+    isMealReadable(meal.status) && ((meal.items && meal.items.length > 0) || meal.totalNutrition),
+  );
 }
 
 function totalWeightG(meal: MealSubmission): number {
@@ -153,11 +155,17 @@ export default function MealResultScreen() {
 
   const approved = isMealReadable(meal.status);
   const rejected = meal.status === 'rejected';
-  const showNutrition = hasNutritionDetails(meal);
+  const awaitingCoach = isAwaitingCoachReview(meal.status);
+  const showNutrition = hasConfirmedNutrition(meal);
   const totals: NutritionFacts | undefined = meal.totalNutrition;
   const flag = meal.healthFlag ? FLAG_STYLES[meal.healthFlag] : FLAG_STYLES.green;
   const weight = totalWeightG(meal);
   const coachNote = meal.coachReview?.note?.trim();
+  const chatLabel = approved
+    ? 'Ask about this review'
+    : awaitingCoach
+      ? 'Message coach'
+      : 'Ask coach about this meal';
 
   return (
     <Screen edges={[]}>
@@ -179,6 +187,18 @@ export default function MealResultScreen() {
 
           {!approved ? <MealPipelineBanner status={meal.status} /> : null}
 
+          {awaitingCoach ? (
+            <LogCard className="items-center border border-dashed border-blue-spruce-100 bg-blue-spruce-50/40 py-8">
+              <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-white">
+                <Ionicons name="time-outline" size={24} color="#023459" />
+              </View>
+              <Text className="font-sans-semibold text-base text-neutral-900">Waiting for coach review</Text>
+              <Text className="mt-2 max-w-[280px] text-center text-sm leading-5 text-neutral-500">
+                Nutrition details will appear here after your coach confirms this meal. You can message them anytime.
+              </Text>
+            </LogCard>
+          ) : null}
+
           {showNutrition && meal.healthMessage ? (
             <View className={`flex-row gap-3 rounded-2xl px-4 py-3.5 ${flag.bg}`}>
               <Ionicons name="leaf-outline" size={20} color={flag.icon} />
@@ -198,13 +218,13 @@ export default function MealResultScreen() {
 
           {showNutrition && totals ? (
             <LogCard>
-              <Text className="text-sm text-neutral-500">Nutrition estimate</Text>
+              <Text className="text-sm text-neutral-500">Confirmed nutrition</Text>
               <View className="mt-2 flex-row items-end justify-between">
                 <Text className="font-sans-bold text-4xl text-neutral-900">{totals.caloriesKcal}</Text>
                 <Text className="pb-1 font-sans-semibold text-lg text-neutral-500">kcal</Text>
               </View>
               {weight > 0 ? (
-                <Text className="mt-1 text-sm text-neutral-500">{weight} g total · AI estimate</Text>
+                <Text className="mt-1 text-sm text-neutral-500">{weight} g total</Text>
               ) : null}
 
               <View className="mt-4 flex-row gap-2">
@@ -212,14 +232,6 @@ export default function MealResultScreen() {
                 <MacroPill label="Carbs" value={formatMacroG(totals.carbsG)} color="#023459" />
                 <MacroPill label="Fat" value={formatMacroG(totals.fatG)} color={semanticColors.accentOrange} />
               </View>
-
-              {!approved ? (
-                <View className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5">
-                  <Text className="text-xs leading-5 text-amber-900">
-                    Pending — numbers may change after approval.
-                  </Text>
-                </View>
-              ) : null}
             </LogCard>
           ) : null}
 
@@ -237,7 +249,7 @@ export default function MealResultScreen() {
             </LogCard>
           ) : null}
 
-          {ingredients.length > 0 ? (
+          {showNutrition && ingredients.length > 0 ? (
             <LogCard>
               <View className="mb-4 flex-row items-center justify-between">
                 <Text className="font-sans-semibold text-base text-neutral-900">Ingredients</Text>
@@ -247,24 +259,12 @@ export default function MealResultScreen() {
             </LogCard>
           ) : null}
 
-          {!showNutrition && !rejected ? (
-            <LogCard className="items-center border border-dashed border-ash-grey-200 bg-ash-grey-50 py-8">
-              <View className="mb-3 h-12 w-12 items-center justify-center rounded-full bg-white">
-                <Ionicons name="hourglass-outline" size={24} color="#023459" />
-              </View>
-              <Text className="font-sans-semibold text-base text-neutral-900">Analysis in progress</Text>
-              <Text className="mt-2 max-w-[260px] text-center text-sm leading-5 text-neutral-500">
-                Nutrition details will appear here once AI finishes analyzing your meal.
-              </Text>
-            </LogCard>
-          ) : null}
-
           {rejected ? (
             <View className="gap-3">
               <Button label="Log again" variant="secondary" onPress={logAgain} />
             </View>
           ) : isApiConfigured() ? (
-            <AskCoachButton mealId={meal.id} />
+            <AskCoachButton mealId={meal.id} label={chatLabel} />
           ) : null}
         </View>
       </ScrollView>

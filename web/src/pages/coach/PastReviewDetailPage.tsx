@@ -60,6 +60,11 @@ export function PastReviewDetailPage() {
         <span className="text-sm text-ash-grey-500">
           {formatMealType(meal.mealType)} · Submitted {formatRelativeTime(meal.submittedAt)}
         </span>
+        <Link
+          to={`/coach/queue/${meal.id}`}
+          className="ml-auto text-sm font-semibold text-blue-spruce-700 hover:underline">
+          Re-edit review →
+        </Link>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start">

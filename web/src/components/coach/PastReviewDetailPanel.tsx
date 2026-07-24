@@ -56,11 +56,6 @@ export function PastReviewDetailPanel({ item }: { item: CoachMealDetail }) {
                 <span className="mt-0.5 block">{meal.note}</span>
               </p>
             ) : null}
-            {meal.plateDiameterCm ? (
-              <p className="mt-2 text-xs text-cinnamon-wood-700/80">
-                Plate diameter: {meal.plateDiameterCm} cm
-              </p>
-            ) : null}
             {reviewedMeta ? (
               <p className="mt-2 text-xs text-cinnamon-wood-700/70">{reviewedMeta}</p>
             ) : null}

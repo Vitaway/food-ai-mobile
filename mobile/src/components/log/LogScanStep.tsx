@@ -12,8 +12,7 @@ type LogScanStepProps = {
   onMealDescriptionChange?: (text: string) => void;
   loading?: boolean;
   onRetake: () => void;
-  onAnalyze: () => void;
-  onSubmitToCoach: () => void;
+  onContinue: () => void;
 };
 
 export function LogScanStep({
@@ -22,8 +21,7 @@ export function LogScanStep({
   onMealDescriptionChange,
   loading = false,
   onRetake,
-  onAnalyze,
-  onSubmitToCoach,
+  onContinue,
 }: LogScanStepProps) {
   const descriptionReady = mealDescription.trim().length >= 3;
 
@@ -35,22 +33,22 @@ export function LogScanStep({
           <ScanFrameOverlay />
         </View>
         <View className="px-5 pb-5 pt-4">
-          <Text className="text-center font-sans-semibold text-lg text-neutral-900">Ready to analyze</Text>
+          <Text className="text-center font-sans-semibold text-lg text-neutral-900">Send to your coach</Text>
           <Text className="mt-1 text-center text-sm leading-5 text-neutral-500">
-            Tap analyze once — AI will measure your dish, identify the food, and estimate nutrition.
+            Add a short description of what you ate. Your coach will confirm nutrition from this photo.
           </Text>
         </View>
       </LogCard>
 
       <LogCard>
-        <Text className="font-sans-semibold text-base text-neutral-900">Anything to add? (optional)</Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">What did you eat?</Text>
         <Text className="mt-1 text-sm leading-5 text-neutral-500">
-          Help AI if the photo is unclear — portions, sauces, drinks, or how it was prepared.
+          Portions, sauces, drinks, or how it was prepared help your coach review accurately.
         </Text>
         <AppTextInput
           value={mealDescription}
           onChangeText={onMealDescriptionChange}
-          placeholder="e.g. Black coffee, half portion, extra olive oil…"
+          placeholder="e.g. Grilled chicken, rice, and cabbage…"
           placeholderTextColor="#9ca3af"
           multiline
           textAlignVertical="top"
@@ -60,20 +58,14 @@ export function LogScanStep({
 
       <View className="gap-3">
         <Button
-          label={loading ? 'Analyzing…' : 'Analyze meal'}
+          label={loading ? 'Preparing…' : 'Continue'}
           variant="secondary"
-          onPress={onAnalyze}
-          disabled={loading}
-        />
-        <Button
-          label="Send to coach without AI"
-          variant="outline"
-          onPress={onSubmitToCoach}
+          onPress={onContinue}
           disabled={loading || !descriptionReady}
         />
         {!descriptionReady ? (
           <Text className="text-center text-xs text-neutral-500">
-            Add a short description above to skip AI and send straight to your coach.
+            Add a short description (at least a few words) to continue.
           </Text>
         ) : null}
         <Button label="Retake photo" variant="outline" onPress={onRetake} disabled={loading} />
