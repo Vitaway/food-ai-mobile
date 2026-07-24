@@ -3,14 +3,16 @@ export const MEAL_ANALYSIS_SYSTEM_PROMPT = `You are a registered-dietitian assis
 Analyze meals and return realistic nutrition estimates. Use USDA-style per-100g reasoning, then scale by estimated portion weight.
 
 Rules:
-- Identify visible or described foods with realistic portion weights in grams.
+- Prefer food names that match common East African / local dishes when the photo or description suggests them.
+- Prefer matching known nutrition-database style labels (short, specific food names) over vague dishes.
+- Do NOT invent branded packaged foods unless clearly visible or described.
 - Per-item nutrition must be internally consistent (macros should roughly match calories).
 - healthFlag: "green" (balanced), "yellow" (okay), "orange" (high carb/fat), or "red" (very poor balance).
 - healthMessage: one short encouraging sentence for the user.
 - confidence per item: 0.0–1.0 based on certainty.
 - emoji: single food emoji per item when obvious.
 - For text-only descriptions, infer reasonable portions.
-- For photos, estimate weights using visible portion size and plate context when provided.
+- For photos, estimate weights from visible food volume and common serving sizes. Do not ask for or rely on measured plate diameter.
 - When context includes userDescription, treat it as the user's own words about the meal: use it to identify foods, cooking method, sauces, drinks, and portions when the photo is unclear or ambiguous.
 - Empty dishware (cup, bowl, plate with no food), plain water, black unsweetened coffee, and diet/zero drinks are ~0 kcal — return estimatedWeightG 0 and all macros 0. Do not invent nutrition for non-food items.
 - Per-item nutrition: estimate per-100g values (USDA-style), then multiply by estimatedWeightG / 100.
@@ -19,7 +21,7 @@ Rules:
 
 export const MEAL_ANALYSIS_IMAGE_USER_PROMPT = `Analyze this meal photo.
 
-Context (camera, plate size, etc.):
+Context (optional camera metadata — ignore plate diameter if present):
 {context}
 
 Return JSON:
@@ -52,7 +54,7 @@ export const MEAL_ANALYSIS_IMAGE_WITH_DESCRIPTION_USER_PROMPT = `Analyze this me
 The user wrote about this meal (use this to disambiguate the photo — prefer their words for food identity, prep, sauces, drinks, and portion notes; use the photo mainly for visual portion sizing):
 "{userDescription}"
 
-Additional context (camera, plate size, etc.):
+Additional context (optional camera metadata — ignore plate diameter if present):
 {context}
 
 Return JSON:

@@ -11,7 +11,6 @@ import {
 import { buildAnalysisContext } from "./metadata-context";
 import { resolveDiameterCm, resolveEffectiveDistanceCm, roundDiameterCm } from "./diameter-math";
 import {
-  applyPlatePortionScale,
   normalizeMealAnalysisRaw,
   type MealAnalysisResult,
 } from "./meal-analysis";
@@ -181,7 +180,7 @@ export const visionService = {
   async analyzeMealFromImage(
     imageBuffer: Buffer,
     mimeType: string,
-    opts: { plateDiameterCm?: number | null; note?: string | null; metadataRaw?: string },
+    opts: { note?: string | null; metadataRaw?: string } = {},
   ): Promise<MealAnalysisResult> {
     requireClaudeConfigured();
     if (!imageBuffer.length) {
@@ -197,9 +196,9 @@ export const visionService = {
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
     const userDescription = opts.note?.trim() || null;
+    // Plate-size detection/scaling is intentionally disabled — estimate portions from the photo/description only.
     const analysisContext = {
       ...buildAnalysisContext(metadata),
-      plateDiameterCm: opts.plateDiameterCm ?? null,
       userDescription,
     };
     const contextJson = JSON.stringify(analysisContext, null, 2);
@@ -220,14 +219,10 @@ export const visionService = {
     const normalized = sanitizeMealAnalysisResult(
       normalizeMealAnalysisRaw(raw, env.ANTHROPIC_MODEL),
     );
-    const scaled = applyPlatePortionScale(normalized, opts.plateDiameterCm ?? null);
-    return enrichMealAnalysisWithNutritionDb(scaled);
+    return enrichMealAnalysisWithNutritionDb(normalized);
   },
 
-  async analyzeMealFromText(
-    text: string,
-    plateDiameterCm?: number | null,
-  ): Promise<MealAnalysisResult> {
+  async analyzeMealFromText(text: string): Promise<MealAnalysisResult> {
     const cleaned = text.trim();
     if (!cleaned) {
       throw new BadRequestError("text is required");
@@ -244,7 +239,6 @@ export const visionService = {
     const normalized = sanitizeMealAnalysisResult(
       normalizeMealAnalysisRaw(raw, env.ANTHROPIC_MODEL),
     );
-    const scaled = applyPlatePortionScale(normalized, plateDiameterCm ?? null);
-    return enrichMealAnalysisWithNutritionDb(scaled);
+    return enrichMealAnalysisWithNutritionDb(normalized);
   },
 };
