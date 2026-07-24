@@ -1,18 +1,21 @@
 import type { DetectedFoodItem, NutritionFacts } from '@/types';
 
-function round1(n: number) {
-  return Math.round(n * 10) / 10;
+/** Cap nutrition values at 2 decimal places (kcal/sodium stay integers via callers). */
+export function roundNutrition(n: number, maxDecimals = 2) {
+  if (!Number.isFinite(n)) return 0;
+  const factor = 10 ** Math.max(0, Math.min(2, maxDecimals));
+  return Math.round(n * factor) / factor;
 }
 
 export function nutritionFromPer100g(per100g: NutritionFacts, weightG: number): NutritionFacts {
   const factor = Math.max(0, weightG) / 100;
   return {
     caloriesKcal: Math.round((per100g.caloriesKcal ?? 0) * factor),
-    proteinG: round1((per100g.proteinG ?? 0) * factor),
-    carbsG: round1((per100g.carbsG ?? 0) * factor),
-    fatG: round1((per100g.fatG ?? 0) * factor),
-    fiberG: round1((per100g.fiberG ?? 0) * factor),
-    sugarG: per100g.sugarG != null ? round1(per100g.sugarG * factor) : undefined,
+    proteinG: roundNutrition((per100g.proteinG ?? 0) * factor),
+    carbsG: roundNutrition((per100g.carbsG ?? 0) * factor),
+    fatG: roundNutrition((per100g.fatG ?? 0) * factor),
+    fiberG: roundNutrition((per100g.fiberG ?? 0) * factor),
+    sugarG: per100g.sugarG != null ? roundNutrition(per100g.sugarG * factor) : undefined,
     sodiumMg: per100g.sodiumMg != null ? Math.round(per100g.sodiumMg * factor) : undefined,
   };
 }
@@ -33,11 +36,11 @@ export function scaleItemNutrition(item: DetectedFoodItem, newWeightG: number): 
     estimatedWeightG: newWeightG,
     nutrition: {
       caloriesKcal: Math.round((n.caloriesKcal ?? 0) * ratio),
-      proteinG: round1((n.proteinG ?? 0) * ratio),
-      carbsG: round1((n.carbsG ?? 0) * ratio),
-      fatG: round1((n.fatG ?? 0) * ratio),
-      fiberG: round1((n.fiberG ?? 0) * ratio),
-      sugarG: n.sugarG != null ? round1(n.sugarG * ratio) : undefined,
+      proteinG: roundNutrition((n.proteinG ?? 0) * ratio),
+      carbsG: roundNutrition((n.carbsG ?? 0) * ratio),
+      fatG: roundNutrition((n.fatG ?? 0) * ratio),
+      fiberG: roundNutrition((n.fiberG ?? 0) * ratio),
+      sugarG: n.sugarG != null ? roundNutrition(n.sugarG * ratio) : undefined,
       sodiumMg: n.sodiumMg != null ? Math.round(n.sodiumMg * ratio) : undefined,
     },
   };
@@ -60,10 +63,10 @@ export function sumNutrition(items: DetectedFoodItem[]): NutritionFacts {
   }
   return {
     caloriesKcal: Math.round(total.caloriesKcal),
-    proteinG: round1(total.proteinG),
-    carbsG: round1(total.carbsG),
-    fatG: round1(total.fatG),
-    fiberG: round1(total.fiberG),
+    proteinG: roundNutrition(total.proteinG),
+    carbsG: roundNutrition(total.carbsG),
+    fatG: roundNutrition(total.fatG),
+    fiberG: roundNutrition(total.fiberG),
   };
 }
 

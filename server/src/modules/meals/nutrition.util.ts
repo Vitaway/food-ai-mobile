@@ -19,6 +19,7 @@ export type DetectedFoodItem = {
   nutritionFoodId?: string;
   micronutrients?: Record<string, number>;
   emoji?: string;
+  foodSource?: "ai" | "nutrition_db" | "manual";
   nutrition: NutritionFacts;
 };
 
@@ -75,8 +76,11 @@ export function normalizeMealItems(raw: unknown): DetectedFoodItem[] {
   return asDetectedItems(raw).map(normalizeDetectedItem);
 }
 
-function round1(n: number) {
-  return Math.round(n * 10) / 10;
+/** Cap nutrition values at 2 decimal places (kcal/sodium stay integers via callers). */
+export function roundNutrition(n: number, maxDecimals = 2) {
+  if (!Number.isFinite(n)) return 0;
+  const factor = 10 ** Math.max(0, Math.min(2, maxDecimals));
+  return Math.round(n * factor) / factor;
 }
 
 export function scaleItemNutrition(
@@ -91,18 +95,18 @@ export function scaleItemNutrition(
     estimatedWeightG: newWeightG,
     nutrition: {
       caloriesKcal: Math.round((n.caloriesKcal ?? 0) * ratio),
-      proteinG: round1((n.proteinG ?? 0) * ratio),
-      carbsG: round1((n.carbsG ?? 0) * ratio),
-      fatG: round1((n.fatG ?? 0) * ratio),
-      fiberG: round1((n.fiberG ?? 0) * ratio),
-      sugarG: n.sugarG != null ? round1(n.sugarG * ratio) : undefined,
+      proteinG: roundNutrition((n.proteinG ?? 0) * ratio),
+      carbsG: roundNutrition((n.carbsG ?? 0) * ratio),
+      fatG: roundNutrition((n.fatG ?? 0) * ratio),
+      fiberG: roundNutrition((n.fiberG ?? 0) * ratio),
+      sugarG: n.sugarG != null ? roundNutrition(n.sugarG * ratio) : undefined,
       sodiumMg: n.sodiumMg != null ? Math.round(n.sodiumMg * ratio) : undefined,
     },
     micronutrients: item.micronutrients
       ? Object.fromEntries(
           Object.entries(item.micronutrients).map(([key, value]) => [
             key,
-            round1(value * ratio),
+            roundNutrition(value * ratio),
           ]),
         )
       : undefined,
@@ -127,10 +131,10 @@ export function sumNutrition(items: DetectedFoodItem[]): NutritionFacts {
   }
   return {
     caloriesKcal: Math.round(total.caloriesKcal),
-    proteinG: round1(total.proteinG),
-    carbsG: round1(total.carbsG),
-    fatG: round1(total.fatG),
-    fiberG: round1(total.fiberG),
+    proteinG: roundNutrition(total.proteinG),
+    carbsG: roundNutrition(total.carbsG),
+    fatG: roundNutrition(total.fatG),
+    fiberG: roundNutrition(total.fiberG),
   };
 }
 
@@ -158,6 +162,12 @@ export function asDetectedItems(raw: unknown): DetectedFoodItem[] {
             ? (item.micronutrients as Record<string, number>)
             : undefined,
         emoji: typeof item.emoji === "string" ? item.emoji : undefined,
+        foodSource:
+          item.foodSource === "ai" ||
+          item.foodSource === "nutrition_db" ||
+          item.foodSource === "manual"
+            ? item.foodSource
+            : undefined,
         nutrition: {
           caloriesKcal: Number(nutrition.caloriesKcal ?? 0),
           proteinG: Number(nutrition.proteinG ?? 0),

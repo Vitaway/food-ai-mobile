@@ -75,14 +75,20 @@ export function gramsForServing(unit: string, amount = 1, gramsEquivalent?: numb
   return Math.round(perUnit * amount * 100) / 100;
 }
 
+function roundNutrition(n: number, maxDecimals = 2) {
+  if (!Number.isFinite(n)) return 0;
+  const factor = 10 ** Math.max(0, Math.min(2, maxDecimals));
+  return Math.round(n * factor) / factor;
+}
+
 function scaleNutrition(nutrition: NutritionFacts, factor: number): NutritionFacts {
   return {
     caloriesKcal: Math.round(nutrition.caloriesKcal * factor),
-    proteinG: Math.round(nutrition.proteinG * factor * 10) / 10,
-    carbsG: Math.round(nutrition.carbsG * factor * 10) / 10,
-    fatG: Math.round(nutrition.fatG * factor * 10) / 10,
-    fiberG: Math.round(nutrition.fiberG * factor * 10) / 10,
-    sugarG: nutrition.sugarG != null ? Math.round(nutrition.sugarG * factor * 10) / 10 : undefined,
+    proteinG: roundNutrition(nutrition.proteinG * factor),
+    carbsG: roundNutrition(nutrition.carbsG * factor),
+    fatG: roundNutrition(nutrition.fatG * factor),
+    fiberG: roundNutrition(nutrition.fiberG * factor),
+    sugarG: nutrition.sugarG != null ? roundNutrition(nutrition.sugarG * factor) : undefined,
     sodiumMg: nutrition.sodiumMg != null ? Math.round(nutrition.sodiumMg * factor) : undefined,
   };
 }
