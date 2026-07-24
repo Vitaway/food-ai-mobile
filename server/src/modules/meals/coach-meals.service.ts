@@ -658,25 +658,161 @@ export const coachMealsService = {
     };
   },
 
+  /** Admin force-release — clears any coach's pick so another can claim it. */
+  async forceReleaseMealPick(mealId: string, actorUserId: string) {
+    const meal = await mealsRepository.findMealById(mealId);
+    if (!meal) throw new NotFoundError("Meal not found");
+    if (meal.status !== "in_review") {
+      throw new BadRequestError("Only meals awaiting review can be released");
+    }
+
+    const existing = readQueuePick(meal);
+    writeQueuePick(meal, {
+      pickedByCoachId: undefined,
+      pickedByCoachName: undefined,
+      pickedAt: undefined,
+    });
+    await mealsRepository.saveMeal(meal);
+
+    await adminAuditService.log(actorUserId, "meal.queue.force_release", {
+      targetType: "meal",
+      targetId: mealId,
+      meta: {
+        previousCoachId: existing.pickedByCoachId ?? null,
+        previousCoachName: existing.pickedByCoachName ?? null,
+      },
+    });
+
+    broadcastCoachQueueToAll({ type: "queue_updated", reason: "released", mealId });
+
+    return {
+      mealId: meal.id,
+      queueIsPicked: false,
+      previousCoachId: existing.pickedByCoachId ?? null,
+      previousCoachName: existing.pickedByCoachName ?? null,
+    };
+  },
+
+  async getAdminReviewQueue(statusRaw?: string) {
+    const status =
+      statusRaw === "waiting" || statusRaw === "previous" || statusRaw === "in_review"
+        ? statusRaw
+        : "in_review";
+
+    const [allMeals, allConsumers, allAssignments, recentReviews] = await Promise.all([
+      mealsRepository.findAllMeals(),
+      mealsRepository.findAllConsumers(),
+      coachAssignmentsRepository.findAll(),
+      mealCoachReviewsRepository.findRecent(200),
+    ]);
+    const consumerById = new Map(allConsumers.map((c) => [c.id, c]));
+    const coachesByClient = new Map<string, string[]>();
+    for (const row of allAssignments) {
+      const list = coachesByClient.get(row.clientId) ?? [];
+      list.push(row.coachUserId);
+      coachesByClient.set(row.clientId, list);
+    }
+    const reviewByMealId = new Map(recentReviews.map((r) => [r.mealId, r]));
+
+    const inReview = allMeals.filter((m) => m.status === "in_review");
+    const waiting = inReview.filter((m) => !readQueuePick(m).pickedAt);
+    const active = inReview.filter((m) => Boolean(readQueuePick(m).pickedAt));
+    const previous = allMeals
+      .filter((m) => m.status === "approved" || m.status === "rejected")
+      .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+
+    const counts = {
+      waiting: waiting.length,
+      in_review: active.length,
+      previous: previous.length,
+    };
+
+    let selected: MealSubmission[];
+    if (status === "waiting") {
+      selected = [...waiting].sort((a, b) => {
+        const aEsc = a.data.queueEscalatedAt && !a.data.queuePickedAt ? 1 : 0;
+        const bEsc = b.data.queueEscalatedAt && !b.data.queuePickedAt ? 1 : 0;
+        if (bEsc !== aEsc) return bEsc - aEsc;
+        return a.submittedAt.getTime() - b.submittedAt.getTime();
+      });
+    } else if (status === "previous") {
+      selected = previous.slice(0, 100);
+    } else {
+      selected = [...active].sort(
+        (a, b) => a.submittedAt.getTime() - b.submittedAt.getTime(),
+      );
+    }
+
+    const items = selected.map((meal) => {
+      const consumer = consumerById.get(meal.clientId);
+      const pick = queuePickFieldsForDto(meal);
+      const review = reviewByMealId.get(meal.id);
+      const displayName =
+        (typeof consumer?.profile?.displayName === "string" && consumer.profile.displayName) ||
+        null;
+      return {
+        mealId: meal.id,
+        clientId: meal.clientId,
+        patientId: meal.clientId,
+        userId: consumer?.userId ?? null,
+        clientName: displayName,
+        mealName:
+          (typeof meal.data.mealName === "string" && meal.data.mealName.trim()) ||
+          (typeof meal.data.note === "string" && meal.data.note.trim()) ||
+          meal.mealType,
+        mealType: meal.mealType,
+        status: meal.status,
+        submittedAt: meal.submittedAt.toISOString(),
+        waitingMinutes: waitingMinutes(meal.submittedAt),
+        imageUrl: typeof meal.data.imageUrl === "string" ? meal.data.imageUrl : null,
+        assignedCoachIds: coachesByClient.get(meal.clientId) ?? [],
+        reviewedAt: review?.reviewedAt?.toISOString() ?? meal.updatedAt.toISOString(),
+        reviewedByCoachId: review?.coachId ?? null,
+        reviewAction:
+          review?.action ??
+          (meal.status === "approved"
+            ? "approve"
+            : meal.status === "rejected"
+              ? "reject"
+              : null),
+        ...pick,
+      };
+    });
+
+    return { status, counts, items };
+  },
+
   async reviewMeal(mealId: string, coachId: string, dto: ReviewMealDto) {
     await assertCoachModule(coachId, "coaching");
     const meal = await mealsRepository.findMealById(mealId);
     if (!meal) throw new NotFoundError("Meal not found");
     await ensureCoachCanAccessClient(coachId, meal.clientId);
 
-    const pick = readQueuePick(meal);
-    if (pick.pickedByCoachId && pick.pickedByCoachId !== coachId) {
-      throw new ForbiddenError("Another coach is already working on this review");
-    }
-    if (!pick.pickedAt) {
-      await this.pickMeal(mealId, coachId);
-      const refreshed = await mealsRepository.findMealById(mealId);
-      if (!refreshed) throw new NotFoundError("Meal not found");
-      Object.assign(meal, refreshed);
+    // Queue pickup only applies to live in-review meals. Coaches may also re-save
+    // an already approved/rejected meal (e.g. from a chat complaint / "View meal").
+    if (
+      meal.status !== "in_review" &&
+      meal.status !== "approved" &&
+      meal.status !== "rejected"
+    ) {
+      throw new BadRequestError("Meal cannot be reviewed in its current state");
     }
 
     const existingReview = await mealCoachReviewsRepository.findByMealId(mealId);
-    const isUpdate = Boolean(existingReview);
+    const isUpdate = Boolean(existingReview) || meal.status === "approved" || meal.status === "rejected";
+
+    if (meal.status === "in_review") {
+      const pick = readQueuePick(meal);
+      if (pick.pickedByCoachId && pick.pickedByCoachId !== coachId) {
+        throw new ForbiddenError("Another coach is already working on this review");
+      }
+      if (!pick.pickedAt) {
+        await this.pickMeal(mealId, coachId);
+        const refreshed = await mealsRepository.findMealById(mealId);
+        if (!refreshed) throw new NotFoundError("Meal not found");
+        Object.assign(meal, refreshed);
+      }
+    }
 
     const items = dto.items
       ? normalizeMealItems(dto.items)

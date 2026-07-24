@@ -31,6 +31,7 @@ export const ADMIN_ROUTES = {
   modules: '/admin/modules',
   assessments: '/admin/assessments',
   messages: '/admin/messages',
+  meals: '/admin/meals',
   profile: '/admin/profile',
   system: '/admin/system',
 } as const;

@@ -14,6 +14,7 @@ import {
 const platformNavRoutes = [
   { to: ADMIN_ROUTES.dashboard, label: 'Overview', end: true },
   { to: ADMIN_ROUTES.users, label: 'Users & roles', end: false },
+  { to: ADMIN_ROUTES.meals, label: 'Review queue', end: false },
   { to: ADMIN_ROUTES.organizations, label: 'Organizations', end: false },
   { to: ADMIN_ROUTES.assessments, label: 'Clinical assessments', end: false },
   { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
@@ -28,6 +29,7 @@ const platformNavRoutes = [
 const orgAdminNavRoutes = [
   { to: ADMIN_ROUTES.dashboard, label: 'Overview', end: true },
   { to: ADMIN_ROUTES.users, label: 'Members', end: false },
+  { to: ADMIN_ROUTES.meals, label: 'Review queue', end: false },
   { to: ADMIN_ROUTES.organizations, label: 'My organization', end: false },
   { to: ADMIN_ROUTES.assessments, label: 'Clinical assessments', end: false },
   { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
