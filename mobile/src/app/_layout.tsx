@@ -56,6 +56,7 @@ export default function RootLayout() {
           <Stack.Screen name="auth" />
           <Stack.Screen name="onboarding" />
           <Stack.Screen name="notifications/index" />
+          <Stack.Screen name="notifications/enable" options={{ gestureEnabled: false }} />
           <Stack.Screen name="water/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="referral/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="profile" options={{ presentation: 'card' }} />

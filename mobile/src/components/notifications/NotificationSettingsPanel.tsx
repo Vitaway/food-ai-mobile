@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Switch, View } from 'react-native';
+import { Linking, Switch, View } from 'react-native';
 
 import { QuietHoursPicker } from '@/components/notifications/QuietHoursPicker';
+import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { services } from '@/services';
 import {
@@ -9,6 +10,10 @@ import {
   type NotificationCategory,
   type NotificationSettings,
 } from '@/services/local/notificationPreferences';
+import {
+  requestPushPermissions,
+  syncPushTokenWithServer,
+} from '@/services/push/pushNotifications';
 
 const CATEGORY_LABELS: Record<NotificationCategory, { title: string; description: string }> = {
   meals: { title: 'Meal reminders', description: 'Missed breakfast, lunch, or dinner windows' },
@@ -23,6 +28,8 @@ type NotificationSettingsPanelProps = {
 export function NotificationSettingsPanel({ onSettingsChange }: NotificationSettingsPanelProps) {
   const [settings, setSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
   const [loaded, setLoaded] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushMessage, setPushMessage] = useState<string | null>(null);
 
   useEffect(() => {
     services.notificationsRepository.getSettings().then((value) => {
@@ -40,10 +47,43 @@ export function NotificationSettingsPanel({ onSettingsChange }: NotificationSett
     [onSettingsChange],
   );
 
+  async function enablePush() {
+    setPushBusy(true);
+    setPushMessage(null);
+    try {
+      const granted = await requestPushPermissions();
+      if (!granted) {
+        setPushMessage('Notifications are off. Enable them in phone Settings.');
+        return;
+      }
+      await syncPushTokenWithServer();
+      setPushMessage('Phone notifications are enabled for this device.');
+    } catch {
+      setPushMessage('Could not enable notifications right now.');
+    } finally {
+      setPushBusy(false);
+    }
+  }
+
   if (!loaded) return null;
 
   return (
     <View className="gap-5">
+      <View className="gap-3 rounded-2xl border border-ash-grey-100 bg-white p-4 shadow-sm">
+        <Text className="font-sans-semibold text-base text-neutral-900">Phone alerts</Text>
+        <Text className="-mt-1 text-sm text-neutral-500">
+          Allow MiraFood to send lock-screen alerts for meal reviews and coach insights.
+        </Text>
+        <Button
+          label={pushBusy ? 'Checking…' : 'Enable phone notifications'}
+          variant="secondary"
+          disabled={pushBusy}
+          onPress={() => void enablePush()}
+        />
+        <Button label="Open phone Settings" variant="outline" onPress={() => void Linking.openSettings()} />
+        {pushMessage ? <Text className="text-sm text-neutral-600">{pushMessage}</Text> : null}
+      </View>
+
       <QuietHoursPicker
         start={settings.quietHoursStart}
         end={settings.quietHoursEnd}

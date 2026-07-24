@@ -1,6 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Image, Keyboard, Pressable, ScrollView, View } from 'react-native';
 import { Plus } from 'iconoir-react-native';
 
@@ -44,6 +44,7 @@ import {
 } from '@/utils/onboardingResume';
 import { calculateMacroTargets, calculateWaterTargetMl } from '@/utils/nutrition';
 import { ageFromDateOfBirth, isValidDateOfBirth } from '@/utils/dateOfBirth';
+import { getApiErrorMessage } from '@/utils/apiErrors';
 
 const STEPS = ONBOARDING_STEPS;
 
@@ -69,6 +70,7 @@ export default function OnboardingScreen() {
   const [allergies, setAllergies] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [photoMenuOpen, setPhotoMenuOpen] = useState(false);
+  const hydratedFromProfileRef = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated || hasSetInitialStep) return;
@@ -77,7 +79,8 @@ export default function OnboardingScreen() {
   }, [isAuthenticated, hasSetInitialStep]);
 
   useEffect(() => {
-    if (!profile) return;
+    if (!profile || hydratedFromProfileRef.current) return;
+    hydratedFromProfileRef.current = true;
     setDisplayName(profile.displayName ?? session?.user.displayName ?? '');
     setAvatarUrl(profile.avatarUrl);
     setDateOfBirth(profile.dateOfBirth ?? '');
@@ -174,6 +177,10 @@ export default function OnboardingScreen() {
   const handleFinish = async () => {
     Keyboard.dismiss();
     if (saving) return;
+    if (!hasValidDateOfBirth) {
+      Alert.alert('Date of birth required', 'Enter a valid birth date before finishing.');
+      return;
+    }
     setSaving(true);
     try {
       await saveProfile({
@@ -192,11 +199,11 @@ export default function OnboardingScreen() {
         dietaryPreferences,
         allergies,
       });
-      // AuthGuard navigates to tabs once onboarding is marked complete.
-    } catch {
+      // AuthGuard navigates to tabs / push prompt once onboarding is marked complete.
+    } catch (err) {
       Alert.alert(
         'Could not save profile',
-        'Something went wrong saving your plan. Please try again.',
+        getApiErrorMessage(err, 'Something went wrong saving your plan. Please try again.'),
       );
     } finally {
       setSaving(false);
@@ -274,6 +281,9 @@ export default function OnboardingScreen() {
             onPress={() => setPhotoMenuOpen(true)}
             variant="secondary"
           />
+          {avatarUrl ? (
+            <Button label="Remove photo" variant="outline" onPress={() => setAvatarUrl(undefined)} />
+          ) : null}
           <PhotoSourceMenu
             visible={photoMenuOpen}
             onClose={() => setPhotoMenuOpen(false)}
