@@ -15,6 +15,9 @@ export const MANUAL_SERVING_UNITS = [
   'plate',
   'piece',
   'slice',
+  'strip',
+  'section',
+  'leaf',
   'serving',
   'portion',
   'scoop',
@@ -40,6 +43,9 @@ export const SERVING_UNIT_LABELS: Record<string, string> = {
   plate: 'plate',
   piece: 'piece',
   slice: 'slice',
+  strip: 'strip',
+  section: 'section',
+  leaf: 'leaf',
   serving: 'serving',
   portion: 'portion',
   scoop: 'scoop',
@@ -65,6 +71,9 @@ export const DEFAULT_GRAMS_PER_UNIT: Record<string, number> = {
   plate: 400,
   piece: 85,
   slice: 30,
+  strip: 30,
+  section: 25,
+  leaf: 10,
   serving: 100,
   portion: 150,
   scoop: 30,
@@ -98,6 +107,9 @@ export function coerceServingUnit(unit: string | null | undefined): string {
   if (key === 'each' || key === 'pcs' || key === 'pc' || key === 'unit' || key === 'units') {
     return 'piece';
   }
+  if (key === 'leave' || key === 'leaves') return 'leaf';
+  if (key === 'sections' || key === 'segment' || key === 'segments') return 'section';
+  if (key === 'strips' || key === 'finger' || key === 'fingers') return 'strip';
   return 'piece';
 }
 

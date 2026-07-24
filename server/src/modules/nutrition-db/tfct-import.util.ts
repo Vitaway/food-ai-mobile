@@ -4,7 +4,15 @@ import { AppDataSource } from "../../config/database";
 import { logger } from "../../config/logger";
 import { NutritionFood } from "./nutrition-food.entity";
 import { NutritionServingProfile } from "./nutrition-serving-profile.entity";
+import { normalizeServingUnit } from "./serving-units.util";
 import { pickTfctComposition } from "./tfct-nutrients";
+
+export type TfctServingSeed = {
+  unit: string;
+  amount: number;
+  gramsEquivalent: number;
+  isDefault?: boolean;
+};
 
 export type TfctFoodRow = {
   food_code: string;
@@ -26,6 +34,8 @@ export type TfctFoodRow = {
   source?: string | null;
   source_version?: string | null;
   composition: Record<string, number>;
+  /** Household measures from TFCT serving-size table (grams per 1 unit). */
+  servings?: TfctServingSeed[];
 };
 
 function resolveTfctJsonPath() {
@@ -83,18 +93,88 @@ function applyTfctRow(food: NutritionFood, row: TfctFoodRow) {
   food.approvalStatus = "approved";
 }
 
-async function ensureDefaultServing(foodId: string) {
+function roundServingNumber(n: number) {
+  return Math.round(n * 100) / 100;
+}
+
+function normalizeSeedServings(row: TfctFoodRow): TfctServingSeed[] {
+  const raw = Array.isArray(row.servings) ? row.servings : [];
+  const byUnit = new Map<string, TfctServingSeed>();
+
+  for (const seed of raw) {
+    const unit = normalizeServingUnit(String(seed.unit ?? ""));
+    const amount = Number(seed.amount);
+    const gramsEquivalent = Number(seed.gramsEquivalent);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    if (!Number.isFinite(gramsEquivalent) || gramsEquivalent <= 0) continue;
+    byUnit.set(unit, {
+      unit,
+      amount: roundServingNumber(amount),
+      gramsEquivalent: roundServingNumber(gramsEquivalent),
+      isDefault: Boolean(seed.isDefault),
+    });
+  }
+
+  if (!byUnit.has("g")) {
+    byUnit.set("g", { unit: "g", amount: 100, gramsEquivalent: 100, isDefault: false });
+  }
+
+  const list = [...byUnit.values()];
+  if (!list.some((s) => s.isDefault)) {
+    const fallback = list.find((s) => s.unit === "g") ?? list[0];
+    if (fallback) fallback.isDefault = true;
+  } else {
+    // Exactly one default
+    let seen = false;
+    for (const s of list) {
+      if (s.isDefault && !seen) {
+        seen = true;
+      } else {
+        s.isDefault = false;
+      }
+    }
+  }
+  return list;
+}
+
+/**
+ * Append seed serving units that are not already on the food.
+ * Never overwrites coach-edited gram weights for an existing unit.
+ */
+async function ensureServingsFromSeed(foodId: string, row: TfctFoodRow) {
   const servingRepo = AppDataSource.getRepository(NutritionServingProfile);
-  const existing = await servingRepo.count({ where: { foodId } });
-  if (existing > 0) return;
+  const existing = await servingRepo.find({ where: { foodId } });
+  const existingUnits = new Set(existing.map((s) => normalizeServingUnit(s.unit)));
+  const seeds = normalizeSeedServings(row);
+
+  const toCreate = seeds.filter((s) => !existingUnits.has(normalizeServingUnit(s.unit)));
+  if (!toCreate.length) {
+    if (existing.length === 0) {
+      await servingRepo.save(
+        servingRepo.create({
+          foodId,
+          unit: "g",
+          amount: "100",
+          gramsEquivalent: "100",
+          isDefault: true,
+        }),
+      );
+    }
+    return;
+  }
+
+  const hasDefault = existing.some((s) => s.isDefault);
   await servingRepo.save(
-    servingRepo.create({
-      foodId,
-      unit: "g",
-      amount: "100",
-      gramsEquivalent: "100",
-      isDefault: true,
-    }),
+    toCreate.map((seed) =>
+      servingRepo.create({
+        foodId,
+        unit: seed.unit,
+        amount: String(seed.amount),
+        gramsEquivalent: String(seed.gramsEquivalent),
+        // Only mark default from seed when the food has no default yet
+        isDefault: !hasDefault && Boolean(seed.isDefault),
+      }),
+    ),
   );
 }
 
@@ -135,14 +215,14 @@ export async function importTfctFoods() {
       });
       applyTfctRow(food, row);
       await foodRepo.save(food);
-      await ensureDefaultServing(food.id);
+      await ensureServingsFromSeed(food.id, row);
       created += 1;
       continue;
     }
 
     applyTfctRow(food, row);
     await foodRepo.save(food);
-    await ensureDefaultServing(food.id);
+    await ensureServingsFromSeed(food.id, row);
     updated += 1;
   }
 
