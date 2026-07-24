@@ -70,9 +70,7 @@ export function LogScreenShell({
     <View className="flex-1">
       {body}
       {footer ? (
-        <View
-          className="border-t border-ash-grey-100 bg-white px-5 pt-3"
-          style={{ paddingBottom: bottomPadding }}>
+        <View className="px-5 pt-2" style={{ paddingBottom: bottomPadding }}>
           {footer}
         </View>
       ) : null}

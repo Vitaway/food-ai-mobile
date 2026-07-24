@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { LogCard } from '@/components/log/LogScreenShell';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
 import type { MealSubmission } from '@/types';
@@ -100,15 +101,16 @@ export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMe
                   elevation: 1,
                 }}>
                 <View className="flex-row items-center gap-3 p-3">
-                  <View className="h-14 w-14 overflow-hidden rounded-2xl bg-ash-grey-100">
-                    {meal.imageUrl ? (
-                      <Image source={{ uri: meal.imageUrl }} className="h-full w-full" resizeMode="cover" />
-                    ) : (
-                      <View className="h-full w-full items-center justify-center">
+                  <ResolvedImage
+                    uri={meal.imageUrl}
+                    className="h-14 w-14 rounded-2xl"
+                    resizeMode="cover"
+                    fallback={
+                      <View className="h-14 w-14 items-center justify-center rounded-2xl bg-ash-grey-100">
                         <Ionicons name="restaurant-outline" size={22} color="#848a75" />
                       </View>
-                    )}
-                  </View>
+                    }
+                  />
 
                   <View className="min-w-0 flex-1">
                     <Text className="font-sans-semibold text-base text-neutral-900" numberOfLines={1}>
