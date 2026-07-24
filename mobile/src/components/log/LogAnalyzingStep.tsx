@@ -9,8 +9,8 @@ import { formatDiameterCm } from '@/utils/formatDiameter';
 export type MealAnalyzePhase = 'plate' | 'food';
 
 type LogAnalyzingStepProps = {
-  phase: MealAnalyzePhase;
-  variant?: 'photo' | 'text';
+  phase?: MealAnalyzePhase;
+  variant?: 'photo' | 'text' | 'title';
   plateDetected?: boolean;
   containerType?: PlateContainerType | null;
   plateDiameterCm?: number | null;
@@ -40,13 +40,29 @@ function plateStepState(phase: MealAnalyzePhase, plateDetected: boolean, error: 
 }
 
 export function LogAnalyzingStep({
-  phase,
+  phase = 'food',
   variant = 'photo',
   plateDetected = false,
   containerType = null,
   plateDiameterCm = null,
   plateDetectionError = null,
 }: LogAnalyzingStepProps) {
+  if (variant === 'title') {
+    return (
+      <View className="py-4">
+        <LogCard className="items-center py-8">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-shamrock-100">
+            <ActivityIndicator size="large" color="#1D9E75" />
+          </View>
+          <Text className="mt-6 font-sans-bold text-xl text-neutral-900">Naming your meal</Text>
+          <Text className="mt-2 px-4 text-center text-sm leading-5 text-neutral-500">
+            AI is writing a short dish title for your food log. Your coach will confirm nutrition next.
+          </Text>
+        </LogCard>
+      </View>
+    );
+  }
+
   const dishLabel = containerType === 'bowl' ? 'bowl' : containerType === 'plate' ? 'plate' : 'dish';
   const plateState = plateStepState(phase, plateDetected, plateDetectionError);
   const foodState: StepState = phase === 'food' ? 'active' : 'pending';

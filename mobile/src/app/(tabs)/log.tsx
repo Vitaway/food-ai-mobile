@@ -11,6 +11,7 @@ import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
 import { LogScreenShell } from '@/components/log/LogScreenShell';
 import { LogTextStep } from '@/components/log/LogTextStep';
+import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
 import { Button } from '@/components/ui/Button';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constants/mealTypes';
@@ -28,6 +29,7 @@ import {
   analysisPreviewFromPastMeal,
   createCoachReviewStub,
 } from '@/services/local/mealAnalysis';
+import { services } from '@/services';
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
@@ -41,7 +43,7 @@ const STEP_TITLES: Record<FlowStep, string> = {
   barcode: 'Barcode',
   past: 'Repeat',
   scan: 'Photo',
-  analyzing: 'Preparing',
+  analyzing: 'Naming meal',
   results: 'Review & submit',
 };
 
@@ -88,11 +90,23 @@ export default function LogMealScreen() {
   }, [resolveInitialMealType]);
 
   const prepareCoachSubmit = useCallback(
-    (description: string) => {
-      const stub = createCoachReviewStub(description);
-      setAnalysis(stub);
+    async (description: string) => {
+      const cleaned = description.trim();
+      setSaving(true);
+      setStep('analyzing');
       setAwaitingCoachConfirm(true);
+
+      let title = cleaned;
+      try {
+        title = await services.mealAnalysis.suggestMealTitle(cleaned);
+      } catch {
+        title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;
+      }
+
+      const stub = createCoachReviewStub(cleaned);
+      setAnalysis({ ...stub, mealName: title });
       setStep('results');
+      setSaving(false);
     },
     [],
   );
@@ -259,17 +273,17 @@ export default function LogMealScreen() {
     await openPhotoFlow(source);
   }, [openPhotoFlow, saving, selectedMethod]);
 
-  const handlePhotoContinue = useCallback(() => {
+  const handlePhotoContinue = useCallback(async () => {
     if (saving) return;
     const description = mealDescription.trim();
     if (description.length < 3) {
       toast.error('Describe what you ate before continuing.');
       return;
     }
-    prepareCoachSubmit(description);
+    await prepareCoachSubmit(description);
   }, [mealDescription, prepareCoachSubmit, saving, toast]);
 
-  const handleTextContinue = useCallback(() => {
+  const handleTextContinue = useCallback(async () => {
     if (saving) return;
     const description = textInput.trim();
     if (description.length < 3) {
@@ -277,7 +291,7 @@ export default function LogMealScreen() {
       return;
     }
     setMealDescription(description);
-    prepareCoachSubmit(description);
+    await prepareCoachSubmit(description);
   }, [prepareCoachSubmit, saving, textInput, toast]);
 
   const handleSave = useCallback(async () => {
@@ -340,7 +354,7 @@ export default function LogMealScreen() {
     }
   }, [fromBarcode, fromPastMeal, imageUri, step]);
 
-  const showBack = step !== 'method';
+  const showBack = step !== 'method' && step !== 'analyzing';
   const useScroll =
     step === 'method' ||
     step === 'results' ||
@@ -421,6 +435,9 @@ export default function LogMealScreen() {
           onContinue={handlePhotoContinue}
         />
       );
+    }
+    if (step === 'analyzing') {
+      return <LogAnalyzingStep variant="title" />;
     }
     if (step === 'results' && analysis) {
       return (

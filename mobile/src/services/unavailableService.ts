@@ -5,5 +5,8 @@ export function createUnavailableMealAnalysisService(message: string): MealAnaly
     async analyzeMeal() {
       throw new Error(message);
     },
+    async suggestMealTitle() {
+      throw new Error(message);
+    },
   };
 }

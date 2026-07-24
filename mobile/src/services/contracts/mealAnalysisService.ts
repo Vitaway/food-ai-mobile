@@ -11,4 +11,6 @@ export type AnalyzeMealInput = {
 
 export interface MealAnalysisService {
   analyzeMeal: (input: AnalyzeMealInput) => Promise<MealAnalysisPreview>;
+  /** Lightweight AI dish title for coach-first submissions (no nutrition). */
+  suggestMealTitle: (description: string) => Promise<string>;
 }
