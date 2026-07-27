@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
+import { MealInsightsCarousel } from '@/components/meal/MealInsightsCarousel';
 import { MealPhotoHero } from '@/components/meal/MealPhotoHero';
 import { MealPipelineBanner } from '@/components/meal/MealPipelineBanner';
 import { AskCoachButton } from '@/components/chat/AskCoachButton';
@@ -19,6 +20,10 @@ import { useMeals } from '@/context/MealsContext';
 import type { MealSubmission, NutritionFacts } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useSinglePress } from '@/hooks/useSinglePress';
+import {
+  fetchCoachAuthoredInsights,
+  type CoachAuthoredInsight,
+} from '@/services/remote/consumerApi';
 import { formatMacroG } from '@/utils/formatMacro';
 
 const RING = 74;
@@ -123,6 +128,22 @@ export default function MealResultScreen() {
   const { getMeal } = useMeals();
   const meal = id ? getMeal(id) : undefined;
   const [showAllNutrients, setShowAllNutrients] = useState(false);
+  const [coachInsights, setCoachInsights] = useState<CoachAuthoredInsight[]>([]);
+
+  useEffect(() => {
+    if (!isApiConfigured() || !meal || !isMealReadable(meal.status)) return;
+    let cancelled = false;
+    void fetchCoachAuthoredInsights()
+      .then((items) => {
+        if (!cancelled) setCoachInsights(items);
+      })
+      .catch(() => {
+        if (!cancelled) setCoachInsights([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [meal?.id, meal?.status]);
 
   const ingredients = useMemo(() => {
     if (!meal?.items?.length) return [];
@@ -320,12 +341,9 @@ export default function MealResultScreen() {
             </View>
           ) : null}
 
-          {/* Health message / flag */}
-          {showNutrition && meal.healthMessage ? (
-            <View className="rounded-r-xl border-l-[3px] border-[#FF6F32] bg-[#FFF1EA] px-3.5 py-3">
-              <Text className="mb-0.5 font-sans-bold text-xs text-[#7A3111]">Worth knowing</Text>
-              <Text className="text-xs leading-5 text-[#7A3111]">{meal.healthMessage}</Text>
-            </View>
+          {/* Tips & insights — sliding cards */}
+          {showNutrition ? (
+            <MealInsightsCarousel meal={meal} coachInsights={coachInsights} />
           ) : null}
 
           {/* Expandable nutrient summary */}
