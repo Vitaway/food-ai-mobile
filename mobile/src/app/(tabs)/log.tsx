@@ -279,13 +279,9 @@ export default function LogMealScreen() {
 
   const handlePhotoContinue = useCallback(async () => {
     if (saving) return;
-    const description = mealDescription.trim();
-    if (description.length < 3) {
-      toast.error('Describe what you ate before continuing.');
-      return;
-    }
-    await prepareCoachSubmit(description);
-  }, [mealDescription, prepareCoachSubmit, saving, toast]);
+    // Description is optional for photo logs — photo alone is enough to submit to coach.
+    await prepareCoachSubmit(mealDescription.trim());
+  }, [mealDescription, prepareCoachSubmit, saving]);
 
   const handleTextContinue = useCallback(async () => {
     if (saving) return;
