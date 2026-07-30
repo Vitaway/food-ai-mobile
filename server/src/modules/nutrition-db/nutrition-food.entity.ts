@@ -72,6 +72,13 @@ export class NutritionFood {
   @Column({ type: "varchar", name: "image_url", length: 512, nullable: true })
   imageUrl!: string | null;
 
+  /**
+   * Total cooked dish weight in grams (recipes only).
+   * Raw ingredient nutrients ÷ this → per-gram cooked composition.
+   */
+  @Column({ type: "numeric", name: "cooked_yield_g", precision: 10, scale: 2, nullable: true })
+  cookedYieldG!: string | null;
+
   @Column({ type: "boolean", name: "image_confirmed", default: false })
   imageConfirmed!: boolean;
 

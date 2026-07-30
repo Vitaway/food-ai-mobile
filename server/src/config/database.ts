@@ -21,6 +21,7 @@ import { ChatMessage } from "../modules/chat/chat-message.entity";
 import { ChatReadState } from "../modules/chat/chat-read-state.entity";
 import { NutritionFood } from "../modules/nutrition-db/nutrition-food.entity";
 import { NutritionServingProfile } from "../modules/nutrition-db/nutrition-serving-profile.entity";
+import { NutritionRecipeIngredient } from "../modules/nutrition-db/nutrition-recipe-ingredient.entity";
 import { ConsumerDailyHealthScore } from "../modules/consumers/daily-health-score.entity";
 import { Subscription } from "../modules/payments/subscription.entity";
 import { PaymentTransaction } from "../modules/payments/payment-transaction.entity";
@@ -54,6 +55,7 @@ export const AppDataSource = new DataSource({
     ChatReadState,
     NutritionFood,
     NutritionServingProfile,
+    NutritionRecipeIngredient,
     ConsumerDailyHealthScore,
     Subscription,
     PaymentTransaction,

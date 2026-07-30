@@ -63,6 +63,7 @@ function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
     barcode: food.barcode,
     packageSizeG: food.packageSizeG != null ? Number(food.packageSizeG) : null,
     labelSource: food.labelSource,
+    cookedYieldG: food.cookedYieldG != null ? Number(food.cookedYieldG) : null,
     source: food.source,
     sourceVersion: food.sourceVersion,
     approvalStatus: food.approvalStatus ?? "approved",

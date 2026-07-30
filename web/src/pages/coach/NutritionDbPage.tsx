@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
+import { RecipeBuilderPanel } from '@/components/nutrition/RecipeBuilderPanel';
+import { Tabs } from '@/components/ui/Tabs';
 import {
   createNutritionFood,
   fetchNutritionCategories,
@@ -452,6 +454,7 @@ export function NutritionDbPage() {
   const [lookupMessage, setLookupMessage] = useState<string | null>(null);
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null);
   const [pendingImagePreview, setPendingImagePreview] = useState<string | null>(null);
+  const [tab, setTab] = useState<'foods' | 'recipes'>('foods');
 
   const { data: categories = [] } = useQuery({
     queryKey: ['nutrition-db', 'categories'],
@@ -644,12 +647,28 @@ export function NutritionDbPage() {
       <DashboardPageHeader
         title="Nutrition database"
         actions={
-          <Button variant="primary" icon={<PlusIcon />} onClick={openAddModal}>
-            Add food
-          </Button>
+          tab === 'foods' ? (
+            <Button variant="primary" icon={<PlusIcon />} onClick={openAddModal}>
+              Add food
+            </Button>
+          ) : null
         }
       />
 
+      <Tabs
+        tabs={[
+          { id: 'foods', label: 'Foods' },
+          { id: 'recipes', label: 'Recipes' },
+        ]}
+        active={tab}
+        onChange={(id) => setTab(id as 'foods' | 'recipes')}
+        variant="segmented"
+      />
+
+      {tab === 'recipes' ? <RecipeBuilderPanel /> : null}
+
+      {tab === 'foods' ? (
+        <>
       <KpiStrip
         columns={5}
         items={[
@@ -926,6 +945,8 @@ export function NutritionDbPage() {
         }>
         <TfctCompositionGrid composition={compositionFood?.composition} />
       </Modal>
+        </>
+      ) : null}
 
       {confirmDialog}
     </div>
