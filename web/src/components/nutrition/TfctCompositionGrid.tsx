@@ -123,7 +123,7 @@ function formatValue(value: number | undefined) {
   return Number.isInteger(value) ? String(value) : String(Math.round(value * 100) / 100);
 }
 
-/** Read-only grid of TFCT composition columns (per 100g). */
+/** Read-only grid of TFCT composition columns (per 100g). Zero rows are hidden. */
 export function TfctCompositionGrid({ composition }: { composition?: Record<string, number> | null }) {
   const data = composition ?? {};
   const hasAny = Object.keys(data).length > 0;
@@ -134,25 +134,32 @@ export function TfctCompositionGrid({ composition }: { composition?: Record<stri
 
   return (
     <div className="space-y-4">
-      {GROUPS.map((group) => (
-        <div key={group.title}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
-            {group.title}
-          </p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
-            {group.keys.map((key) => (
-              <div
-                key={key}
-                className="flex items-baseline justify-between gap-2 border-b border-ash-grey-100 py-1 text-sm">
-                <span className="text-ash-grey-600">{LABELS[key] ?? key}</span>
-                <span className="font-medium tabular-nums text-ash-grey-900">
-                  {formatValue(data[key])}
-                </span>
-              </div>
-            ))}
+      {GROUPS.map((group) => {
+        const keys = group.keys.filter((key) => {
+          const n = Number(data[key]);
+          return Number.isFinite(n) && n !== 0;
+        });
+        if (!keys.length) return null;
+        return (
+          <div key={group.title}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
+              {group.title}
+            </p>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:grid-cols-3">
+              {keys.map((key) => (
+                <div
+                  key={key}
+                  className="flex items-baseline justify-between gap-2 border-b border-ash-grey-100 py-1 text-sm">
+                  <span className="text-ash-grey-600">{LABELS[key] ?? key}</span>
+                  <span className="font-medium tabular-nums text-ash-grey-900">
+                    {formatValue(data[key])}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

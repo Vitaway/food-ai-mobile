@@ -1,5 +1,5 @@
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
-import { readNutrient } from "../nutrition-db/tfct-nutrients";
+import { readNutrient, toLegacyMicronutrients } from "../nutrition-db/tfct-nutrients";
 import type { MealAnalysisItem, MealAnalysisResult } from "./meal-analysis";
 
 function roundNutrition(n: number, maxDecimals = 2) {
@@ -27,13 +27,14 @@ function nutritionFromPer100g(per100g: Record<string, number>, weightG: number) 
   };
 }
 
-function micronutrientsFromPer100g(per100g: Record<string, number>, weightG: number) {
+/** Scale camelCase micros (per 100g) to the item portion. */
+function scaleMicronutrients(per100g: Record<string, number>, weightG: number) {
   const factor = weightG / 100;
   const result: Record<string, number> = {};
   for (const [key, value] of Object.entries(per100g)) {
-    if (Number.isFinite(value)) {
-      result[key] = roundNutrition(value * factor);
-    }
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) continue;
+    result[key] = roundNutrition(n * factor);
   }
   return result;
 }
@@ -86,14 +87,11 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
     }
   }
 
-  const nutrition = nutritionFromPer100g(
-    food.nutritionPer100g as Record<string, number>,
-    weightG,
-  );
-  const micronutrients = micronutrientsFromPer100g(
-    (food.micronutrients ?? {}) as Record<string, number>,
-    weightG,
-  );
+  const composition = food.nutritionPer100g as Record<string, number>;
+  const nutrition = nutritionFromPer100g(composition, weightG);
+  // TFCT stores micros in composition; legacy rows may also have micronutrients blob.
+  const microsPer100 = toLegacyMicronutrients(composition, food.micronutrients ?? {});
+  const micronutrients = scaleMicronutrients(microsPer100, weightG);
 
   return {
     ...item,

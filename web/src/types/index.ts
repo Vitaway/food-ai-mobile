@@ -78,6 +78,8 @@ export interface DetectedFoodItem {
   nutritionFoodId?: string;
   /** Per-100g macros from DB — used to rescale weight accurately. */
   nutritionPer100g?: NutritionFacts;
+  /** Portion-scaled micronutrients (camelCase keys, e.g. ironMg). */
+  micronutrients?: Record<string, number>;
   emoji?: string;
   nutrition: NutritionFacts;
 }

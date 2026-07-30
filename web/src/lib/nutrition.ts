@@ -20,12 +20,39 @@ export function nutritionFromPer100g(per100g: NutritionFacts, weightG: number): 
   };
 }
 
+/** Scale per-100g micronutrients to the given portion weight. */
+export function micronutrientsFromPer100g(
+  per100g: Record<string, number> | undefined,
+  weightG: number,
+): Record<string, number> | undefined {
+  if (!per100g || !Object.keys(per100g).length) return undefined;
+  const factor = Math.max(0, weightG) / 100;
+  const out: Record<string, number> = {};
+  for (const [key, value] of Object.entries(per100g)) {
+    const n = Number(value);
+    if (!Number.isFinite(n) || n === 0) continue;
+    out[key] = roundNutrition(n * factor);
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 export function scaleItemNutrition(item: DetectedFoodItem, newWeightG: number): DetectedFoodItem {
   if (item.nutritionPer100g) {
+    // Prefer food.micronutrients-per-100 stored alongside when rescaling from DB.
+    const microsPer100 =
+      item.micronutrients && item.estimatedWeightG > 0
+        ? Object.fromEntries(
+            Object.entries(item.micronutrients).map(([k, v]) => [
+              k,
+              (Number(v) / item.estimatedWeightG) * 100,
+            ]),
+          )
+        : undefined;
     return {
       ...item,
       estimatedWeightG: newWeightG,
       nutrition: nutritionFromPer100g(item.nutritionPer100g, newWeightG),
+      micronutrients: micronutrientsFromPer100g(microsPer100, newWeightG),
     };
   }
   const oldWeight = item.estimatedWeightG > 0 ? item.estimatedWeightG : 1;
@@ -43,6 +70,11 @@ export function scaleItemNutrition(item: DetectedFoodItem, newWeightG: number): 
       sugarG: n.sugarG != null ? roundNutrition(n.sugarG * ratio) : undefined,
       sodiumMg: n.sodiumMg != null ? Math.round(n.sodiumMg * ratio) : undefined,
     },
+    micronutrients: item.micronutrients
+      ? Object.fromEntries(
+          Object.entries(item.micronutrients).map(([k, v]) => [k, roundNutrition(Number(v) * ratio)]),
+        )
+      : undefined,
   };
 }
 
