@@ -2,6 +2,7 @@ import type { MealSubmission } from "./meal-submission.entity";
 import type { MealCoachReview } from "./meal-coach-review.entity";
 import { asDetectedItems } from "./nutrition.util";
 import { waitingMinutes } from "./meal-effective.util";
+import { slaLevel } from "./coach-scope.util";
 
 export const SLA_TARGET_MINUTES = 240;
 
@@ -11,6 +12,26 @@ export type MealClassificationLabel = "single_item" | "multi_item" | "mixed_dish
 export function slaMinutesRemaining(submittedAt: Date, targetMinutes = SLA_TARGET_MINUTES, now = new Date()) {
   const waited = waitingMinutes(submittedAt, now);
   return Math.max(0, targetMinutes - waited);
+}
+
+/** Queue SLA urgency — cleared once the meal is approved/rejected (no longer waiting). */
+export function mealSlaFields(
+  meal: Pick<MealSubmission, "status" | "submittedAt">,
+  now = new Date(),
+): {
+  waitingMinutes: number;
+  slaLevel: "ok" | "warning" | "critical";
+  slaMinutesRemaining: number | null;
+} {
+  if (meal.status !== "in_review") {
+    return { waitingMinutes: 0, slaLevel: "ok", slaMinutesRemaining: null };
+  }
+  const waiting = waitingMinutes(meal.submittedAt, now);
+  return {
+    waitingMinutes: waiting,
+    slaLevel: slaLevel(waiting),
+    slaMinutesRemaining: slaMinutesRemaining(meal.submittedAt, SLA_TARGET_MINUTES, now),
+  };
 }
 
 export function deriveMealComplexity(meal: MealSubmission): MealComplexity {

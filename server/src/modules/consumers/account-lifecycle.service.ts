@@ -8,9 +8,57 @@ import { mealsRepository } from "../meals/meals.repository";
 import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.repository";
 import { clinicalAssessmentsRepository } from "./clinical-assessments.repository";
 import { ConsumerWaterLog } from "./water-log.entity";
+import { emailService } from "../../services/email.service";
 import { logger } from "../../config/logger";
+import type { AccountDeletionRequestDto } from "./consumer.dto";
 
 export const accountLifecycleService = {
+  /**
+   * Public web request (Play Store account-deletion URL). Does not delete immediately —
+   * notifies support and logs for manual/verified processing within 30 days.
+   */
+  async requestDeletionFromWeb(dto: AccountDeletionRequestDto) {
+    const email = dto.email.toLowerCase().trim();
+    const user = await usersRepository.findByEmail(email);
+    const accountFound = Boolean(user && user.role === "consumer");
+
+    if (user && accountFound) {
+      await adminAuditService.log(user.id, "account.delete_web_request", {
+        targetType: "user",
+        targetId: user.id,
+        meta: {
+          email,
+          displayName: dto.displayName?.trim() || null,
+          source: "web",
+        },
+      });
+    } else {
+      logger.info(
+        { email, role: user?.role ?? null },
+        "Account deletion web request (no consumer account match)",
+      );
+    }
+
+    try {
+      await emailService.sendAccountDeletionRequestEmail({
+        email,
+        displayName: dto.displayName ?? null,
+        note: dto.note ?? null,
+        accountFound,
+        userId: accountFound && user ? user.id : null,
+      });
+    } catch (err) {
+      logger.error({ err, email }, "Failed to email support about deletion request");
+      // Still accept the request — support can use logs / audit trail.
+    }
+
+    return {
+      ok: true as const,
+      message:
+        "If an account exists for this email, we will verify and complete deletion within 30 days. You will not need further action unless we contact you to confirm identity.",
+    };
+  },
+
   async exportForUser(userId: string) {
     const user = await usersRepository.findById(userId);
     if (!user) throw new NotFoundError("User not found");

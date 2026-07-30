@@ -53,3 +53,14 @@ export const authResetPasswordRateLimit = rateLimit({
     error: "Too many password reset attempts. Try again in a few minutes.",
   },
 });
+
+export const accountDeletionRequestRateLimit = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Too many account deletion requests. Try again later.",
+  },
+});

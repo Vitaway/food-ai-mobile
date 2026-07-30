@@ -99,10 +99,10 @@ export function HomeHeroCard({
           </View>
 
           <View className="items-center">
-            {lastMeal?.imageUrl ? (
+            {lastMeal?.imageUrl || lastMeal?.thumbnailUrl ? (
               <View className="h-[100px] w-[100px] overflow-hidden rounded-2xl border-2 border-white/30">
                 <ResolvedImage
-                  uri={lastMeal.imageUrl}
+                  uri={lastMeal.thumbnailUrl || lastMeal.imageUrl}
                   className="h-full w-full"
                   resizeMode="cover"
                   fallback={calorieRing}

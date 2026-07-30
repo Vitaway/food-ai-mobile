@@ -51,6 +51,9 @@ export const paymentsService = {
   async createCheckout(userId: string, dto: CreateCheckoutDto) {
     const plan = getPlanByCode(dto.planCode);
     if (!plan) throw new BadRequestError("Unknown plan code");
+    if (plan.public === false) {
+      throw new BadRequestError("This plan is not available for self-serve checkout");
+    }
 
     let organizationId = dto.organizationId ?? null;
     if (plan.subscriptionType === "corporate" && dto.organizationName?.trim() && !organizationId) {
@@ -69,16 +72,28 @@ export const paymentsService = {
         planCode: plan.code,
         subscriptionType: plan.subscriptionType,
         status: "trialing",
-        metadata: {},
+        metadata: { pendingPlanCode: plan.code },
       });
       await subscriptionsRepo.save(subscription);
-    } else {
+    } else if (subscription.status === "cancelled" || subscription.status === "past_due") {
+      // Restart checkout without inventing an active entitlement until payment succeeds.
       subscription.planCode = plan.code;
       subscription.subscriptionType = plan.subscriptionType;
       if (organizationId) subscription.organizationId = organizationId;
-      if (subscription.status === "cancelled" || subscription.status === "past_due") {
-        subscription.status = "trialing";
-      }
+      subscription.status = "trialing";
+      subscription.metadata = {
+        ...(subscription.metadata ?? {}),
+        pendingPlanCode: plan.code,
+      };
+      await subscriptionsRepo.save(subscription);
+    } else {
+      // Keep current active/trialing plan until webhook success; stash intended plan on tx + metadata.
+      subscription.metadata = {
+        ...(subscription.metadata ?? {}),
+        pendingPlanCode: plan.code,
+        pendingSubscriptionType: plan.subscriptionType,
+        pendingOrganizationId: organizationId,
+      };
       await subscriptionsRepo.save(subscription);
     }
 
@@ -90,7 +105,13 @@ export const paymentsService = {
       currency: plan.currency,
       amount: plan.amount.toFixed(2),
       status: "pending",
-      payload: { planCode: plan.code, userId, amount: plan.amount },
+      payload: {
+        planCode: plan.code,
+        subscriptionType: plan.subscriptionType,
+        organizationId,
+        userId,
+        amount: plan.amount,
+      },
     });
     await transactionsRepo.save(tx);
 
@@ -139,11 +160,28 @@ export const paymentsService = {
       const subscription = await subscriptionsRepo.findOne({ where: { id: tx.subscriptionId } });
       if (subscription) {
         if (dto.status === "succeeded") {
+          const payload = (tx.payload ?? {}) as Record<string, unknown>;
+          const paidPlanCode =
+            (typeof payload.planCode === "string" && payload.planCode) ||
+            (typeof subscription.metadata?.pendingPlanCode === "string"
+              ? subscription.metadata.pendingPlanCode
+              : null) ||
+            subscription.planCode;
+          const paidPlan = getPlanByCode(paidPlanCode) ?? getPlanByCode(subscription.planCode);
+          subscription.planCode = paidPlan?.code ?? paidPlanCode;
+          subscription.subscriptionType = paidPlan?.subscriptionType ?? subscription.subscriptionType;
+          if (typeof payload.organizationId === "string" && payload.organizationId) {
+            subscription.organizationId = payload.organizationId;
+          }
           subscription.status = "active";
-          const plan = getPlanByCode(subscription.planCode);
           const next = new Date();
-          next.setDate(next.getDate() + (plan?.intervalDays ?? 30));
+          next.setDate(next.getDate() + (paidPlan?.intervalDays ?? 30));
           subscription.renewsOn = next.toISOString().slice(0, 10);
+          if (subscription.metadata) {
+            const { pendingPlanCode: _p, pendingSubscriptionType: _t, pendingOrganizationId: _o, ...rest } =
+              subscription.metadata as Record<string, unknown>;
+            subscription.metadata = rest;
+          }
           await subscriptionsRepo.save(subscription);
           if (subscription.subscriptionType === "family" && subscription.userId) {
             await familySubscriptionService.ensurePayerMembership(
@@ -159,11 +197,22 @@ export const paymentsService = {
             });
           }
         } else if (dto.status === "failed") {
-          subscription.status = "past_due";
-          await subscriptionsRepo.save(subscription);
+          // Keep active entitlements; only mark past_due when there was no paid plan yet.
+          if (subscription.status === "trialing") {
+            subscription.status = "past_due";
+            await subscriptionsRepo.save(subscription);
+          }
+          if (subscription.metadata) {
+            const { pendingPlanCode: _p, pendingSubscriptionType: _t, pendingOrganizationId: _o, ...rest } =
+              subscription.metadata as Record<string, unknown>;
+            subscription.metadata = rest;
+            await subscriptionsRepo.save(subscription);
+          }
         } else if (dto.status === "cancelled") {
-          subscription.status = "cancelled";
-          await subscriptionsRepo.save(subscription);
+          if (subscription.status !== "active") {
+            subscription.status = "cancelled";
+            await subscriptionsRepo.save(subscription);
+          }
         }
       }
     }

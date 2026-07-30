@@ -11,6 +11,7 @@ import { computeDashboard, todayKey } from "./dashboard.util";
 import { backfillOnboardingComplete, resolveOnboardingComplete } from "./onboarding.util";
 import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.repository";
 import { mealToConsumerDto } from "../meals/meal-effective.util";
+import { backfillItemMicronutrients } from "../meals/backfill-micronutrients.util";
 import { annotateManualReviewFallback } from "../meals/ai-fallback.util";
 import { normalizeMealItems, asDetectedItems } from "../meals/nutrition.util";
 import { assessMealAllergens } from "../meals/allergen-match.util";
@@ -64,7 +65,7 @@ async function syncUserFields(
   }
 }
 
-function mealToDto(
+async function mealToDto(
   row: {
     id: string;
     clientId: string;
@@ -75,7 +76,7 @@ function mealToDto(
   },
   review?: Awaited<ReturnType<typeof mealCoachReviewsRepository.findByMealId>>,
 ) {
-  return mealToConsumerDto(
+  const dto = mealToConsumerDto(
     {
       id: row.id,
       clientId: row.clientId,
@@ -86,6 +87,10 @@ function mealToDto(
     } as import("../meals/meal-submission.entity").MealSubmission,
     review ?? null,
   );
+  if (dto.items?.length) {
+    dto.items = await backfillItemMicronutrients(dto.items);
+  }
+  return dto;
 }
 
 async function mealsWithReviews(
@@ -227,15 +232,15 @@ export const consumerService = {
     req?: import("express").Request,
   ) {
     const row = await this.requireProfileForUser(userId);
-    const { imageUrl } = saveMealPhoto(buffer, mimeType, mealId, row.id, req);
+    const { imageUrl, thumbnailUrl } = await saveMealPhoto(buffer, mimeType, mealId, row.id, req);
 
     const meal = await mealsRepository.findMealByIdForClient(mealId, row.id);
     if (meal) {
-      meal.data = { ...meal.data, imageUrl };
+      meal.data = { ...meal.data, imageUrl, thumbnailUrl };
       await mealsRepository.saveMeal(meal);
     }
 
-    return { mealId, imageUrl };
+    return { mealId, imageUrl, thumbnailUrl };
   },
 
   async updateDashboardCache(userId: string, patch: Record<string, unknown>) {
@@ -285,7 +290,7 @@ export const consumerService = {
     const row = await this.requireProfileForUser(userId);
     const meals = await mealsRepository.findMealsByClientId(row.id);
     const { byMealId } = await mealsWithReviews(meals);
-    return meals.map((m) => mealToDto(m, byMealId.get(m.id)));
+    return Promise.all(meals.map((m) => mealToDto(m, byMealId.get(m.id))));
   },
 
   async getMeal(userId: string, mealId: string) {
@@ -328,7 +333,7 @@ export const consumerService = {
     }
 
     if (imageBuffer?.length) {
-      const { imageUrl } = saveMealPhoto(
+      const { imageUrl, thumbnailUrl } = await saveMealPhoto(
         imageBuffer,
         mimeType ?? "image/jpeg",
         dto.id,
@@ -336,6 +341,7 @@ export const consumerService = {
         req,
       );
       data.imageUrl = imageUrl;
+      data.thumbnailUrl = thumbnailUrl;
     }
 
     await mealsRepository.upsertMeal({

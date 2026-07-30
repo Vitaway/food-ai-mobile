@@ -31,12 +31,12 @@ import {
   filterMealsForCoach,
   resolveCoachCaseloadIds,
   resolveCoachQueueClientIds,
-  slaLevel,
   SLA_WARNING_MINUTES,
 } from "./coach-scope.util";
 import {
   deriveClassificationLabel,
   deriveMealComplexity,
+  mealSlaFields,
   slaMinutesRemaining,
 } from "./meal-metrics.util";
 import {
@@ -285,9 +285,7 @@ export const coachMealsService = {
         meal: {
           ...mealToCoachDto(meal, review),
           ...queuePickFieldsForDto(meal),
-          waitingMinutes: waitingMinutes(meal.submittedAt),
-          slaLevel: slaLevel(waitingMinutes(meal.submittedAt)),
-          slaMinutesRemaining: slaMinutesRemaining(meal.submittedAt),
+          ...mealSlaFields(meal),
           complexity: deriveMealComplexity(meal),
           classificationLabel: deriveClassificationLabel(meal),
           hasAllergies: allergenAssessment.allergenMatch || allergenAssessment.possibleAllergenMatch,
@@ -448,8 +446,7 @@ export const coachMealsService = {
       meal: {
         ...mealToCoachDto(meal, review),
         ...queuePickFieldsForDto(meal),
-        waitingMinutes: waitingMinutes(meal.submittedAt),
-        slaLevel: slaLevel(waitingMinutes(meal.submittedAt)),
+        ...mealSlaFields(meal),
       },
       client: toClientDto(consumer, clientMeals, reviewsByMealId, {
         inReviewCount: clientMeals.filter((m) => m.status === "in_review").length,
@@ -763,7 +760,7 @@ export const coachMealsService = {
         mealType: meal.mealType,
         status: meal.status,
         submittedAt: meal.submittedAt.toISOString(),
-        waitingMinutes: waitingMinutes(meal.submittedAt),
+        ...mealSlaFields(meal),
         imageUrl: typeof meal.data.imageUrl === "string" ? meal.data.imageUrl : null,
         assignedCoachIds: coachesByClient.get(meal.clientId) ?? [],
         reviewedAt: review?.reviewedAt?.toISOString() ?? meal.updatedAt.toISOString(),

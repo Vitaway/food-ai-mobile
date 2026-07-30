@@ -1,11 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { MealInsightsCarousel } from '@/components/meal/MealInsightsCarousel';
 import { MealPhotoHero } from '@/components/meal/MealPhotoHero';
 import { MealPipelineBanner } from '@/components/meal/MealPipelineBanner';
 import { AskCoachButton } from '@/components/chat/AskCoachButton';
@@ -20,11 +19,8 @@ import { useMeals } from '@/context/MealsContext';
 import type { MealSubmission, NutritionFacts } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useSinglePress } from '@/hooks/useSinglePress';
-import {
-  fetchCoachAuthoredInsights,
-  type CoachAuthoredInsight,
-} from '@/services/remote/consumerApi';
 import { formatMacroG } from '@/utils/formatMacro';
+import { mealMicronutrientRows } from '@/utils/mealMicronutrients';
 
 const RING = 74;
 const RING_R = 31;
@@ -128,22 +124,6 @@ export default function MealResultScreen() {
   const { getMeal } = useMeals();
   const meal = id ? getMeal(id) : undefined;
   const [showAllNutrients, setShowAllNutrients] = useState(false);
-  const [coachInsights, setCoachInsights] = useState<CoachAuthoredInsight[]>([]);
-
-  useEffect(() => {
-    if (!isApiConfigured() || !meal || !isMealReadable(meal.status)) return;
-    let cancelled = false;
-    void fetchCoachAuthoredInsights()
-      .then((items) => {
-        if (!cancelled) setCoachInsights(items);
-      })
-      .catch(() => {
-        if (!cancelled) setCoachInsights([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [meal?.id, meal?.status]);
 
   const ingredients = useMemo(() => {
     if (!meal?.items?.length) return [];
@@ -189,6 +169,7 @@ export default function MealResultScreen() {
   const carbsPct = Math.min(100, Math.round((carbs / 250) * 100));
   const fatPct = Math.min(100, Math.round((fat / 70) * 100));
   const kcalProgress = Math.min(1, kcal / 2000);
+  const microRows = showNutrition ? mealMicronutrientRows(meal.items) : [];
 
   const chatLabel = approved
     ? 'Ask about this review'
@@ -341,19 +322,14 @@ export default function MealResultScreen() {
             </View>
           ) : null}
 
-          {/* Tips & insights — sliding cards */}
-          {showNutrition ? (
-            <MealInsightsCarousel meal={meal} coachInsights={coachInsights} />
-          ) : null}
-
-          {/* Expandable nutrient summary */}
+          {/* Expandable nutrient summary — macros + non-zero micros */}
           {showNutrition && totals ? (
             <View className="overflow-hidden rounded-xl border border-ash-grey-100 bg-white">
               <Pressable
                 onPress={() => setShowAllNutrients((v) => !v)}
                 className="flex-row items-center gap-2 px-3.5 py-3 active:bg-ash-grey-50">
                 <Text className="flex-1 font-sans-semibold text-[13px] text-neutral-900">
-                  See macros detail
+                  See nutrition detail
                 </Text>
                 <Ionicons
                   name={showAllNutrients ? 'chevron-up' : 'chevron-down'}
@@ -363,6 +339,9 @@ export default function MealResultScreen() {
               </Pressable>
               {showAllNutrients ? (
                 <View className="gap-2 border-t border-ash-grey-100 px-3.5 py-3">
+                  <Text className="text-[11px] font-sans-bold uppercase tracking-[0.07em] text-neutral-400">
+                    Macros
+                  </Text>
                   {(
                     [
                       ['Energy', `${Math.round(kcal)} kcal`],
@@ -381,6 +360,32 @@ export default function MealResultScreen() {
                       </Text>
                     </View>
                   ))}
+
+                  {microRows.length > 0 ? (
+                    <>
+                      <Text className="mt-2 text-[11px] font-sans-bold uppercase tracking-[0.07em] text-neutral-400">
+                        Vitamins & minerals
+                      </Text>
+                      {microRows.map((row) => (
+                        <View key={row.key} className="flex-row items-center justify-between py-0.5">
+                          <Text className="text-xs text-neutral-500">{row.label}</Text>
+                          <Text className="text-xs font-sans-semibold tabular-nums text-neutral-800">
+                            {row.display}
+                          </Text>
+                        </View>
+                      ))}
+                    </>
+                  ) : (
+                    <>
+                      <Text className="mt-2 text-[11px] font-sans-bold uppercase tracking-[0.07em] text-neutral-400">
+                        Vitamins & minerals
+                      </Text>
+                      <Text className="text-xs leading-5 text-neutral-400">
+                        No micronutrient data for these foods yet. When your coach links items from
+                        the food database, vitamins and minerals show up here.
+                      </Text>
+                    </>
+                  )}
                 </View>
               ) : null}
             </View>

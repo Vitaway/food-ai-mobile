@@ -16,7 +16,9 @@ import type { Request } from "express";
 import type { User } from "../users/user.entity";
 import multer from "multer";
 import { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.dto";
+import { CreateRecipeDto, PreviewRecipeDto, UpdateRecipeDto } from "./recipe.dto";
 import { nutritionDbService } from "./nutrition-db.service";
+import { recipeService } from "./recipe.service";
 import { saveNutritionFoodImage } from "../../services/uploads.service";
 
 const imageUpload = multer({
@@ -26,6 +28,36 @@ const imageUpload = multer({
 
 @Controller("/nutrition-db")
 export class NutritionDbController {
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Get("/recipes")
+  listRecipes(@QueryParam("q") q?: string) {
+    return recipeService.listRecipes(q);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/recipes/preview")
+  previewRecipe(@Body() dto: PreviewRecipeDto) {
+    return recipeService.preview(dto);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Get("/recipes/:id")
+  getRecipe(@Param("id") id: string) {
+    return recipeService.getRecipe(id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/recipes")
+  createRecipe(@Body() dto: CreateRecipeDto, @CurrentUser() user: User) {
+    return recipeService.createRecipe(dto, user.id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Patch("/recipes/:id")
+  updateRecipe(@Param("id") id: string, @Body() dto: UpdateRecipeDto) {
+    return recipeService.updateRecipe(id, dto);
+  }
+
   @Authorized(["coach", "admin", "data_entry_staff", "consumer"])
   @Get("/foods")
   foods(

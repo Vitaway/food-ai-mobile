@@ -123,6 +123,8 @@ export function mealToCoachDto(
     status: meal.status,
     submittedAt: meal.submittedAt.toISOString(),
     imageUrl: sanitizeImageUrl(meal.data.imageUrl),
+    thumbnailUrl:
+      sanitizeImageUrl(meal.data.thumbnailUrl) ?? sanitizeImageUrl(meal.data.imageUrl),
     textInput: meal.data.textInput as string | undefined,
     note: meal.data.note as string | undefined,
     plateDiameterCm: meal.data.plateDiameterCm as number | null | undefined,
@@ -167,6 +169,8 @@ export function mealToConsumerDto(
     status: meal.status,
     submittedAt: meal.submittedAt.toISOString(),
     imageUrl: sanitizeImageUrl(meal.data.imageUrl),
+    thumbnailUrl:
+      sanitizeImageUrl(meal.data.thumbnailUrl) ?? sanitizeImageUrl(meal.data.imageUrl),
     textInput: meal.data.textInput as string | undefined,
     note: meal.data.note as string | undefined,
     plateDiameterCm: meal.data.plateDiameterCm as number | null | undefined,

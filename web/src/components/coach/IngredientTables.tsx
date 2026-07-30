@@ -6,7 +6,7 @@ import {
 } from '@/api/nutritionDbApi';
 import { FoodDbPicker } from '@/components/coach/FoodDbPicker';
 import { Select } from '@/components/ui/Select';
-import { nutritionFromPer100g } from '@/lib/nutrition';
+import { nutritionFromPer100g, micronutrientsFromPer100g } from '@/lib/nutrition';
 import {
   MANUAL_SERVING_UNITS,
   applyServingMeasure,
@@ -137,6 +137,11 @@ function applyFoodFromDb(food: NutritionFood): Partial<DetectedFoodItem> {
     nutritionPer100g: per100,
     estimatedWeightG: grams,
     nutrition: nutritionFromPer100g(per100, grams),
+    // Prefer full TFCT composition (snake_case) merged with legacy camel micros.
+    micronutrients: micronutrientsFromPer100g(
+      { ...(food.composition ?? {}), ...food.micronutrients },
+      grams,
+    ),
     servingUnit: measure.servingUnit,
     servingAmount: measure.servingAmount,
     servingGramsEquivalent: measure.servingGramsEquivalent,
@@ -208,6 +213,7 @@ function CoachIngredientRow({
       servingGramsEquivalent: updated.servingGramsEquivalent,
       estimatedWeightG: updated.estimatedWeightG,
       nutrition: updated.nutrition,
+      micronutrients: updated.micronutrients,
     });
   }
 

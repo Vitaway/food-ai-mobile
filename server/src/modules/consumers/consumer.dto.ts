@@ -1,6 +1,7 @@
 import {
   IsBoolean,
   IsArray,
+  IsEmail,
   IsIn,
   IsInt,
   IsNumber,
@@ -168,4 +169,21 @@ export class LogWaterDto {
   @IsString()
   @MaxLength(10)
   date?: string;
+}
+
+/** Public web form — Play Store account-deletion URL. */
+export class AccountDeletionRequestDto {
+  @IsEmail()
+  @MaxLength(255)
+  email!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
 }

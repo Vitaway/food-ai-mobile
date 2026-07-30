@@ -202,7 +202,7 @@ function fileSlug(report: ExportableReport): string {
 
 type AutoTableDoc = jsPDF & { lastAutoTable?: { finalY: number } };
 
-function drawHeader(doc: jsPDF, report: ExportableReport, miraLogo: string | null, vitawayLogo: string | null) {
+function drawHeader(doc: jsPDF, report: ExportableReport, miraLogo: string | null) {
   const pageW = doc.internal.pageSize.getWidth();
   const margin = 14;
 
@@ -212,15 +212,12 @@ function drawHeader(doc: jsPDF, report: ExportableReport, miraLogo: string | nul
   doc.rect(0, 28, pageW, 1.4, 'F');
 
   if (miraLogo) doc.addImage(miraLogo, 'PNG', margin, 6, 14, 14);
-  if (vitawayLogo) doc.addImage(vitawayLogo, 'PNG', margin + 17, 7.5, 28, 10);
 
+  const titleX = miraLogo ? margin + 18 : margin;
   doc.setTextColor(255, 255, 255);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('MiraFood', margin + 48, 12);
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('BY VITAWAY', margin + 48, 17);
+  doc.text('MiraFood', titleX, 14);
 
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(11);
@@ -386,7 +383,7 @@ function drawFooters(doc: jsPDF, report: ExportableReport) {
     doc.setFontSize(7);
     doc.setTextColor(...BRAND.muted);
     doc.text(
-      `Generated ${formatDateTime(report.createdAt)} · MiraFood by Vitaway · Confidential`,
+      `Generated ${formatDateTime(report.createdAt)} · MiraFood · Confidential`,
       margin,
       pageH - 4,
     );
@@ -398,12 +395,9 @@ export async function downloadReportPdf(report: ExportableReport): Promise<void>
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
   const margin = 14;
 
-  const [miraLogo, vitawayLogo] = await Promise.all([
-    loadImageDataUrl('/mirafood-logo.png'),
-    loadImageDataUrl('/partner-logos/vitaway.png'),
-  ]);
+  const [miraLogo] = await Promise.all([loadImageDataUrl('/mirafood-logo.png')]);
 
-  drawHeader(doc, report, miraLogo, vitawayLogo);
+  drawHeader(doc, report, miraLogo);
 
   let y = 36;
   doc.setTextColor(...BRAND.primaryRgb);
@@ -506,7 +500,7 @@ export async function downloadReportPdf(report: ExportableReport): Promise<void>
 export function downloadReportExcel(report: ExportableReport): void {
   const kpis = buildKpis(report);
   const summaryRows = [
-    ['MiraFood by Vitaway', reportTitle(report.variant)],
+    ['MiraFood', reportTitle(report.variant)],
     ['Period type', periodLabel(report.period)],
     ['Period start', formatDate(report.periodStart)],
     ['Period end', formatDate(report.periodEnd)],

@@ -130,6 +130,7 @@ export interface MealSubmission {
   status: MealSubmissionStatus;
   submittedAt: string;
   imageUrl?: string;
+  thumbnailUrl?: string;
   textInput?: string;
   note?: string;
   plateDiameterCm?: number | null;

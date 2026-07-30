@@ -408,6 +408,51 @@ export class EmailService {
       ],
     });
   }
+
+  /** Notify support when someone requests deletion via the public web form. */
+  async sendAccountDeletionRequestEmail(opts: {
+    email: string;
+    displayName?: string | null;
+    note?: string | null;
+    accountFound: boolean;
+    userId?: string | null;
+  }): Promise<void> {
+    const supportTo = process.env.SUPPORT_EMAIL?.trim() || "support@vitaway.org";
+    const name = opts.displayName?.trim() || "(not provided)";
+    const note = opts.note?.trim() || "(none)";
+    const accountLine = opts.accountFound
+      ? `Matching consumer account found${opts.userId ? ` (user id: ${opts.userId})` : ""}.`
+      : "No matching account found for this email (still acknowledge the request).";
+
+    await this.sendBrandedEmail({
+      to: supportTo,
+      subject: `[MiraFood] Account deletion request — ${opts.email}`,
+      title: "Account deletion request",
+      preheader: `Deletion request from ${opts.email}`,
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle()}">A user submitted an account deletion request from the MiraFood website.</p>
+        ${renderCredentialsBlock([
+          { label: "Email", value: opts.email },
+          { label: "Name", value: name },
+          { label: "Account", value: accountLine },
+          { label: "Note", value: note },
+        ])}
+        ${renderInfoCallout(
+          "Action",
+          "Verify identity using the email on file, then delete the consumer account (or confirm it was already removed). Respond within 30 days.",
+          "orange",
+        )}
+      `,
+      textParagraphs: [
+        "Account deletion request (web form)",
+        "",
+        `Email: ${opts.email}`,
+        `Name: ${name}`,
+        accountLine,
+        `Note: ${note}`,
+      ],
+    });
+  }
 }
 
 export const emailService = new EmailService();
