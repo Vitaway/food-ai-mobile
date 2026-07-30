@@ -20,6 +20,7 @@ import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto } from "./
 import { consumerService } from "./consumer.service";
 import { paymentsService } from "../payments/payments.service";
 import { reportsService } from "../reports/reports.service";
+import type { ReportPeriod } from "../reports/report-snapshot.entity";
 import { familySubscriptionService } from "../payments/family.service";
 import { coachingFeedService } from "./coaching-feed.service";
 import { accountLifecycleService } from "./account-lifecycle.service";
@@ -142,6 +143,33 @@ export class ConsumerController {
   async reports(@CurrentUser() user: User) {
     const profile = await consumerService.requireProfileForUser(user.id);
     return reportsService.listForConsumer(profile.id);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/reports/generate")
+  async generateReport(
+    @CurrentUser() user: User,
+    @QueryParam("period") period?: ReportPeriod,
+    @QueryParam("from") from?: string,
+    @QueryParam("to") to?: string,
+  ) {
+    const profile = await consumerService.requireProfileForUser(user.id);
+    const snapshot = await reportsService.generateConsumerSnapshot(profile.id, {
+      period: from || to ? period ?? "custom" : period ?? "weekly",
+      from,
+      to,
+    });
+    if (!snapshot) {
+      throw new BadRequestError("Unable to generate report");
+    }
+    return {
+      id: snapshot.id,
+      period: snapshot.period,
+      periodStart: snapshot.periodStart,
+      periodEnd: snapshot.periodEnd,
+      metrics: snapshot.metrics,
+      createdAt: snapshot.createdAt.toISOString(),
+    };
   }
 
   @Authorized(["consumer"])

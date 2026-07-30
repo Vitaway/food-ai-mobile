@@ -199,7 +199,7 @@ export async function addFamilyMember(email: string) {
 
 export type ConsumerReportSnapshot = {
   id: string;
-  period: 'weekly' | 'monthly';
+  period: 'weekly' | 'monthly' | 'custom';
   periodStart: string;
   periodEnd: string;
   metrics: Record<string, unknown>;
@@ -210,6 +210,18 @@ export async function fetchConsumerReports(): Promise<ConsumerReportSnapshot[]> 
   return apiRequest<ConsumerReportSnapshot[]>('/consumer/reports');
 }
 
+export async function generateConsumerReport(input: {
+  period: 'weekly' | 'monthly' | 'custom';
+  from?: string;
+  to?: string;
+}): Promise<ConsumerReportSnapshot> {
+  const query = new URLSearchParams({ period: input.period });
+  if (input.from) query.set('from', input.from);
+  if (input.to) query.set('to', input.to);
+  return apiRequest<ConsumerReportSnapshot>(`/consumer/reports/generate?${query.toString()}`, {
+    method: 'POST',
+  });
+}
 
 function mealPayload(meal: MealSubmission) {
   const { id, mealType, status, submittedAt, ...data } = meal;
