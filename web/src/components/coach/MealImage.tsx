@@ -3,6 +3,7 @@ import { resolveMediaUrl } from '@/lib/mediaUrls';
 
 type MealImageProps = {
   imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   alt: string;
   className?: string;
   imgClassName?: string;
@@ -12,13 +13,14 @@ type MealImageProps = {
 
 export function MealImage({
   imageUrl,
+  thumbnailUrl,
   alt,
   className,
   imgClassName,
   variant = 'default',
 }: MealImageProps) {
-  const src = resolveMediaUrl(imageUrl);
   const isThumb = variant === 'thumb';
+  const src = resolveMediaUrl(isThumb ? thumbnailUrl || imageUrl : imageUrl || thumbnailUrl);
 
   if (src) {
     return (
@@ -26,6 +28,8 @@ export function MealImage({
         <img
           src={src}
           alt={alt}
+          loading="lazy"
+          decoding="async"
           className={cn('h-full w-full object-cover', imgClassName)}
         />
       </div>

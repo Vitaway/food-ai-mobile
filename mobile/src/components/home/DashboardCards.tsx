@@ -46,7 +46,7 @@ export function LastMealCard({ meal, onPress }: LastMealCardProps) {
   const content = (
     <View className="flex-row gap-3">
       <ResolvedImage
-        uri={meal.imageUrl}
+        uri={meal.thumbnailUrl || meal.imageUrl}
         className="h-16 w-16 rounded-2xl"
         resizeMode="cover"
         fallback={

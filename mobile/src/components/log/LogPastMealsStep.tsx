@@ -102,7 +102,7 @@ export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMe
                 }}>
                 <View className="flex-row items-center gap-3 p-3">
                   <ResolvedImage
-                    uri={meal.imageUrl}
+                    uri={meal.thumbnailUrl || meal.imageUrl}
                     className="h-14 w-14 rounded-2xl"
                     resizeMode="cover"
                     fallback={

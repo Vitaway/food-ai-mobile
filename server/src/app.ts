@@ -76,7 +76,7 @@ app.use(
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
 const uploadsRoot = path.join(process.cwd(), "uploads");
-app.use("/uploads", requireUploadsAuth(), express.static(uploadsRoot, { maxAge: "7d", fallthrough: false }));
+app.use("/uploads", requireUploadsAuth(), express.static(uploadsRoot, { maxAge: "30d", fallthrough: false }));
 
 app.use("/api/v1/auth/login", authLoginRateLimit);
 app.use("/api/v1/auth/register", authRegisterRateLimit);

@@ -135,13 +135,14 @@ export function saveConsumerAvatar(
   return { avatarUrl: `${base}/uploads/avatars/${filename}` };
 }
 
-export function saveMealPhoto(
+/** Compress upload, store full-size + thumbnail, return both public URLs. */
+export async function saveMealPhoto(
   buffer: Buffer,
-  mimeType: string,
+  _mimeType: string,
   mealId: string,
   clientId: string,
   req?: Request,
-): { imageUrl: string } {
+): Promise<{ imageUrl: string; thumbnailUrl: string }> {
   if (!buffer.length) {
     throw new BadRequestError("Empty image file");
   }
@@ -149,16 +150,41 @@ export function saveMealPhoto(
     throw new BadRequestError("Image must be 8 MB or smaller");
   }
 
-  const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
   ensureMealPhotosDir();
 
   const safeMealId = mealId.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 48) || randomUUID();
-  const filename = `${clientId}-${safeMealId}-${randomUUID()}.${extensionForMime(mime)}`;
-  const filePath = path.join(MEAL_PHOTOS_DIR, filename);
-  fs.writeFileSync(filePath, buffer);
+  const baseName = `${clientId}-${safeMealId}-${randomUUID()}`;
+  const fullName = `${baseName}.jpg`;
+  const thumbName = `${baseName}-thumb.jpg`;
+  const fullPath = path.join(MEAL_PHOTOS_DIR, fullName);
+  const thumbPath = path.join(MEAL_PHOTOS_DIR, thumbName);
 
-  const base = publicApiBaseUrl(req);
-  return { imageUrl: `${base}/uploads/meals/${filename}` };
+  const sharp = (await import("sharp")).default;
+  const pipeline = sharp(buffer).rotate();
+
+  const [fullBuf, thumbBuf] = await Promise.all([
+    pipeline
+      .clone()
+      .resize({ width: 1600, height: 1600, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 82, mozjpeg: true })
+      .toBuffer(),
+    pipeline
+      .clone()
+      .resize({ width: 400, height: 400, fit: "inside", withoutEnlargement: true })
+      .jpeg({ quality: 72, mozjpeg: true })
+      .toBuffer(),
+  ]);
+
+  await Promise.all([
+    fs.promises.writeFile(fullPath, fullBuf),
+    fs.promises.writeFile(thumbPath, thumbBuf),
+  ]);
+
+  const apiBase = publicApiBaseUrl(req);
+  return {
+    imageUrl: `${apiBase}/uploads/meals/${fullName}`,
+    thumbnailUrl: `${apiBase}/uploads/meals/${thumbName}`,
+  };
 }
 
 /** Resolve a stored meal photo URL to a local buffer (for coach AI assist). */

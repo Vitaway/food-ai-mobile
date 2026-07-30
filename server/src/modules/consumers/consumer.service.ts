@@ -232,15 +232,15 @@ export const consumerService = {
     req?: import("express").Request,
   ) {
     const row = await this.requireProfileForUser(userId);
-    const { imageUrl } = saveMealPhoto(buffer, mimeType, mealId, row.id, req);
+    const { imageUrl, thumbnailUrl } = await saveMealPhoto(buffer, mimeType, mealId, row.id, req);
 
     const meal = await mealsRepository.findMealByIdForClient(mealId, row.id);
     if (meal) {
-      meal.data = { ...meal.data, imageUrl };
+      meal.data = { ...meal.data, imageUrl, thumbnailUrl };
       await mealsRepository.saveMeal(meal);
     }
 
-    return { mealId, imageUrl };
+    return { mealId, imageUrl, thumbnailUrl };
   },
 
   async updateDashboardCache(userId: string, patch: Record<string, unknown>) {
@@ -333,7 +333,7 @@ export const consumerService = {
     }
 
     if (imageBuffer?.length) {
-      const { imageUrl } = saveMealPhoto(
+      const { imageUrl, thumbnailUrl } = await saveMealPhoto(
         imageBuffer,
         mimeType ?? "image/jpeg",
         dto.id,
@@ -341,6 +341,7 @@ export const consumerService = {
         req,
       );
       data.imageUrl = imageUrl;
+      data.thumbnailUrl = thumbnailUrl;
     }
 
     await mealsRepository.upsertMeal({
