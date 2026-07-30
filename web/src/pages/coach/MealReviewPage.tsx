@@ -357,12 +357,15 @@ export function MealReviewPage() {
   const isOnCaseload = Boolean(
     coachProfile?.id && clientDetail?.assignedCoachIds.includes(coachProfile.id),
   );
-  const riskFlags = [
-    meal.fraudCheckResult === 'flag' ? 'Fraud flag' : null,
-    (meal.confidenceAvg ?? 1) < 0.8 ? 'Low AI confidence' : null,
-    meal.slaLevel === 'critical' ? 'SLA critical' : null,
-    allergies.length ? 'Client allergies on file' : null,
-  ].filter(Boolean) as string[];
+  const awaitingReview = meal.status === 'in_review';
+  const riskFlags = awaitingReview
+    ? ([
+        meal.fraudCheckResult === 'flag' ? 'Fraud flag' : null,
+        (meal.confidenceAvg ?? 1) < 0.8 ? 'Low AI confidence' : null,
+        meal.slaLevel === 'critical' ? 'SLA critical' : null,
+        allergies.length ? 'Client allergies on file' : null,
+      ].filter(Boolean) as string[])
+    : [];
 
   const pageTitle = resolveCoachMealTitle({
     mealName: reviewDraft?.mealName || meal.mealName,
@@ -382,7 +385,7 @@ export function MealReviewPage() {
         </div>
       ) : null}
 
-      {allergies.length ? (
+      {awaitingReview && allergies.length ? (
         <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
           <p className="font-semibold">Allergy alert</p>
           <p className="mt-1">Client reports: {allergies.join(', ')}. Verify ingredients carefully.</p>
@@ -411,10 +414,10 @@ export function MealReviewPage() {
           {formatMealType(meal.mealType)} · {formatRelativeTime(meal.submittedAt)}
         </span>
         <StatusBadge status={meal.status} />
-        <FlagBadge flagged={meal.fraudCheckResult === 'flag'} />
-        {meal.slaLevel === 'critical' ? (
+        {awaitingReview ? <FlagBadge flagged={meal.fraudCheckResult === 'flag'} /> : null}
+        {awaitingReview && meal.slaLevel === 'critical' ? (
           <StatusPill tone="bad">Waiting {meal.waitingMinutes}m</StatusPill>
-        ) : meal.slaLevel === 'warning' ? (
+        ) : awaitingReview && meal.slaLevel === 'warning' ? (
           <StatusPill tone="warn">
             {meal.slaMinutesRemaining != null
               ? `${meal.slaMinutesRemaining}m to SLA`
