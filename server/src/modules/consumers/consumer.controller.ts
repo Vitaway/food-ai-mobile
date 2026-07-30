@@ -16,7 +16,7 @@ import {
 import type { Request } from "express";
 import multer from "multer";
 import type { User } from "../users/user.entity";
-import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto } from "./consumer.dto";
+import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto, AccountDeletionRequestDto } from "./consumer.dto";
 import { consumerService } from "./consumer.service";
 import { paymentsService } from "../payments/payments.service";
 import { reportsService } from "../reports/reports.service";
@@ -207,6 +207,12 @@ export class ConsumerController {
   @Get("/data-export")
   exportData(@CurrentUser() user: User) {
     return accountLifecycleService.exportForUser(user.id);
+  }
+
+  /** Public — used by https://mirafood.vitaway.org/delete-account (Play Store). */
+  @Post("/account/deletion-request")
+  requestAccountDeletion(@Body() dto: AccountDeletionRequestDto) {
+    return accountLifecycleService.requestDeletionFromWeb(dto);
   }
 
   @Authorized(["consumer"])

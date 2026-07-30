@@ -22,7 +22,7 @@
       }
     },
     "android": {
-      "package": "com.vitaway.foodai",
+      "package": "com.mirafood.vitaway",
       "adaptiveIcon": {
         "backgroundColor": "#16304D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

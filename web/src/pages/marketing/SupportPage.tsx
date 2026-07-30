@@ -22,7 +22,7 @@ const faqs = [
   },
   {
     q: 'How do I delete my account?',
-    a: 'Open MiraFood → Profile → Data & privacy → Delete account. You can also follow the steps on our delete account page.',
+    a: 'Open MiraFood → Profile → Data & privacy → Delete account. Or use the web form at mirafood.vitaway.org/delete-account if you cannot open the app.',
   },
   {
     q: 'What permissions does the app need?',

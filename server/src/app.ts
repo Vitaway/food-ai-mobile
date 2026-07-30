@@ -16,6 +16,7 @@ import {
   requireUploadsAuth,
 } from "./middlewares/auth.middleware";
 import {
+  accountDeletionRequestRateLimit,
   authForgotPasswordRateLimit,
   authLoginRateLimit,
   authRegisterRateLimit,
@@ -83,6 +84,7 @@ app.use("/api/v1/auth/register", authRegisterRateLimit);
 app.use("/api/v1/auth/forgot-password", authForgotPasswordRateLimit);
 app.use("/api/v1/auth/verify-reset-code", authResetPasswordRateLimit);
 app.use("/api/v1/auth/reset-password", authResetPasswordRateLimit);
+app.use("/api/v1/consumer/account/deletion-request", accountDeletionRequestRateLimit);
 app.use("/api/v1/vision/plates/detect", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze-text", visionDetectRateLimit);
