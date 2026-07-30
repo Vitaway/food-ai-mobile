@@ -2,6 +2,8 @@
 
 Source of truth for patient onboarding, coach assessment, and nutrition target calculation.
 
+**Full formula reference (BMR, TDEE, macros, water, health score):** [nutrition-formulas.md](./nutrition-formulas.md)
+
 ## Responsibility split
 
 - **Patient onboarding:** intent and basics only — body measurements, goal, activity, meals, preferences, allergies.
