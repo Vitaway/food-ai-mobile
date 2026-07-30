@@ -7,10 +7,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { HomeWaterCard } from '@/components/home/HomeWaterCard';
 import { HomeHeroCard } from '@/components/home/HomeHeroCard';
 import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
-import { HomeQuickLogBar } from '@/components/home/HomeQuickLogBar';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
-import { ClinicalPlanStatusCard } from '@/components/home/ClinicalPlanStatusCard';
+import { CoachingFeedCard } from '@/components/home/CoachingFeedCard';
 import { isPipelineActive } from '@/constants/mealStatus';
 import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
@@ -172,8 +171,6 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE }}
           contentContainerClassName="gap-4">
-          <HomeQuickLogBar onPress={() => onAddMeal?.()} />
-
           <HomeQuickCategories
             onScan={() => onOpenScan?.()}
             onDescribe={() => onOpenDescribe?.()}
@@ -181,7 +178,7 @@ export default function HomeScreen() {
             onInsights={() => onOpenInsights?.()}
           />
 
-          {profile ? <ClinicalPlanStatusCard profile={profile} /> : null}
+          <CoachingFeedCard />
 
           <HomeWaterCard
             waterMl={dashboard.waterMl}
