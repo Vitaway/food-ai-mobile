@@ -170,6 +170,7 @@ export type SubscriptionPlan = {
   amount: number;
   currency: string;
   subscriptionType: 'individual' | 'corporate' | 'family';
+  intervalDays?: number;
 };
 
 export async function fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
@@ -208,6 +209,7 @@ export type ConsumerReportSnapshot = {
 export async function fetchConsumerReports(): Promise<ConsumerReportSnapshot[]> {
   return apiRequest<ConsumerReportSnapshot[]>('/consumer/reports');
 }
+
 
 function mealPayload(meal: MealSubmission) {
   const { id, mealType, status, submittedAt, ...data } = meal;

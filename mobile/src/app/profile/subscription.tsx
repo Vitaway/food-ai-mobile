@@ -17,18 +17,20 @@ import {
 
 const FALLBACK_PLANS: SubscriptionPlan[] = [
   {
+    code: 'individual_weekly',
+    label: 'Weekly',
+    amount: 5000,
+    currency: 'RWF',
+    subscriptionType: 'individual',
+    intervalDays: 7,
+  },
+  {
     code: 'individual_monthly',
-    label: 'Individual',
+    label: 'Monthly',
     amount: 15000,
     currency: 'RWF',
     subscriptionType: 'individual',
-  },
-  {
-    code: 'corporate_monthly',
-    label: 'Corporate',
-    amount: 50000,
-    currency: 'RWF',
-    subscriptionType: 'corporate',
+    intervalDays: 30,
   },
   {
     code: 'family_monthly',
@@ -36,8 +38,15 @@ const FALLBACK_PLANS: SubscriptionPlan[] = [
     amount: 35000,
     currency: 'RWF',
     subscriptionType: 'family',
+    intervalDays: 30,
   },
 ];
+
+function planPeriodLabel(plan: SubscriptionPlan): string {
+  if (plan.intervalDays === 7) return 'week';
+  if (plan.intervalDays === 30 || !plan.intervalDays) return 'month';
+  return `${plan.intervalDays} days`;
+}
 
 export default function SubscriptionScreen() {
   const handleBack = useProfileBack();
@@ -46,7 +55,6 @@ export default function SubscriptionScreen() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>(FALLBACK_PLANS);
   const [isLoading, setIsLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
-  const [organizationName, setOrganizationName] = useState('');
   const [familyMemberEmail, setFamilyMemberEmail] = useState('');
   const [family, setFamily] = useState<Awaited<ReturnType<typeof fetchFamilySubscription>>>(null);
 
@@ -62,7 +70,10 @@ export default function SubscriptionScreen() {
       .then(([sub, familyPlan, planList]) => {
         setData(sub);
         setFamily(familyPlan);
-        if (planList.length) setPlans(planList);
+        const publicOnly = (planList.length ? planList : FALLBACK_PLANS).filter(
+          (p) => p.subscriptionType !== 'corporate',
+        );
+        if (publicOnly.length) setPlans(publicOnly);
       })
       .catch(() => setError('Unable to load subscription details.'))
       .finally(() => setIsLoading(false));
@@ -77,8 +88,6 @@ export default function SubscriptionScreen() {
     try {
       const checkout = await createConsumerCheckout({
         planCode: plan.code,
-        organizationName:
-          plan.subscriptionType === 'corporate' ? organizationName.trim() || undefined : undefined,
       });
       if (!checkout.checkoutUrl) {
         toast.error('Checkout URL not available yet');
@@ -88,7 +97,7 @@ export default function SubscriptionScreen() {
       toast.success('Opening secure payment page');
       load();
     } catch {
-      toast.error('Could not start checkout');
+      toast.error('Could not start checkout. Your account was not charged.');
     } finally {
       setCheckingOut(false);
     }
@@ -115,14 +124,6 @@ export default function SubscriptionScreen() {
               </Text>
             </View>
 
-            <Text className="text-sm font-semibold text-ash-grey-700">Organization name (corporate)</Text>
-            <TextInput
-              value={organizationName}
-              onChangeText={setOrganizationName}
-              placeholder="Company or clinic name"
-              className="rounded-xl border border-ash-grey-200 px-3 py-2 text-sm"
-            />
-
             {plans.map((plan) => (
               <Pressable
                 key={plan.code}
@@ -131,7 +132,7 @@ export default function SubscriptionScreen() {
                 className="rounded-2xl border border-blue-spruce-100 bg-blue-spruce-50 p-4">
                 <Text className="font-sans-semibold text-blue-spruce-800">{plan.label}</Text>
                 <Text className="mt-1 text-sm text-blue-spruce-700">
-                  {plan.amount.toLocaleString()} {plan.currency} / month
+                  {plan.amount.toLocaleString()} {plan.currency} / {planPeriodLabel(plan)}
                 </Text>
               </Pressable>
             ))}
@@ -149,12 +150,13 @@ export default function SubscriptionScreen() {
                   onChangeText={setFamilyMemberEmail}
                   placeholder="Add member by email"
                   autoCapitalize="none"
+                  keyboardType="email-address"
                   className="rounded-xl border border-ash-grey-200 px-3 py-2 text-sm"
                 />
                 <Button
                   label="Add family member"
                   onPress={() => {
-                    void addFamilyMember(familyMemberEmail)
+                    void addFamilyMember(familyMemberEmail.trim())
                       .then(() => {
                         toast.success('Member added');
                         setFamilyMemberEmail('');
