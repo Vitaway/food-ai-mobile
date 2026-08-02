@@ -231,6 +231,7 @@ export const consumerService = {
     mimeType: string,
     req?: import("express").Request,
   ) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const { imageUrl, thumbnailUrl } = await saveMealPhoto(buffer, mimeType, mealId, row.id, req);
 
@@ -251,6 +252,7 @@ export const consumerService = {
   },
 
   async getDashboard(userId: string, date?: string) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const targetDate = date ?? todayKey();
     const meals = await mealsRepository.findMealsByClientId(row.id);
@@ -287,6 +289,7 @@ export const consumerService = {
   },
 
   async listMeals(userId: string) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const meals = await mealsRepository.findMealsByClientId(row.id);
     const { byMealId } = await mealsWithReviews(meals);
@@ -294,6 +297,7 @@ export const consumerService = {
   },
 
   async getMeal(userId: string, mealId: string) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const meal = await mealsRepository.findMealByIdForClient(mealId, row.id);
     if (!meal) {
@@ -379,6 +383,7 @@ export const consumerService = {
   },
 
   async logWater(userId: string, dto: LogWaterDto) {
+    await assertConsumerSubscription(userId);
     const amountMl = Math.round(dto.amountMl);
     if (!Number.isFinite(amountMl) || amountMl === 0 || Math.abs(amountMl) > 5000) {
       throw new BadRequestError("amountMl must be between -5000 and 5000 (not 0)");
@@ -435,6 +440,7 @@ export const consumerService = {
   },
 
   async getHealthScoreHistory(userId: string, days = 30) {
+    await assertConsumerSubscription(userId);
     const row = await this.requireProfileForUser(userId);
     const repo = AppDataSource.getRepository(ConsumerDailyHealthScore);
     const limit = Math.max(1, Math.min(90, days));

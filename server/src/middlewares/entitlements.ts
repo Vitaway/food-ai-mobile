@@ -9,63 +9,92 @@ import {
 } from "../modules/admin/module-entitlements.service";
 import type { ModuleKey } from "../modules/admin/module-catalog";
 
-const ALLOWED_STATUSES = new Set(["active", "trialing"]);
+/** Product access requires a paid active subscription (trialing does not grant access). */
+const ALLOWED_STATUSES = new Set(["active"]);
 
-async function subscriptionAccessForUser(userId: string): Promise<{
+export const SUBSCRIPTION_REQUIRED_MESSAGE = "An active subscription is required";
+
+function todayKey() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/** Active and not past renewsOn (inclusive end date). */
+export function subscriptionGrantsAccess(sub: Pick<Subscription, "status" | "renewsOn">): boolean {
+  if (!ALLOWED_STATUSES.has(sub.status)) return false;
+  if (!sub.renewsOn) return true;
+  return sub.renewsOn >= todayKey();
+}
+
+export async function getConsumerSubscriptionAccess(userId: string): Promise<{
   allowed: boolean;
   status: string | null;
+  renewsOn: string | null;
   reason: string | null;
 }> {
   const subRepo = AppDataSource.getRepository(Subscription);
   const memberRepo = AppDataSource.getRepository(FamilySubscriptionMember);
 
-  const owned = await subRepo.findOne({
+  const ownedSubs = await subRepo.find({
     where: { userId },
     order: { createdAt: "DESC" },
   });
-  if (owned && ALLOWED_STATUSES.has(owned.status)) {
-    return { allowed: true, status: owned.status, reason: null };
+  const grantingOwned = ownedSubs.find((sub) => subscriptionGrantsAccess(sub));
+  if (grantingOwned) {
+    return {
+      allowed: true,
+      status: grantingOwned.status,
+      renewsOn: grantingOwned.renewsOn,
+      reason: null,
+    };
   }
+  const owned = ownedSubs[0] ?? null;
 
   const membership = await memberRepo.findOne({ where: { userId } });
   if (membership) {
     const family = await subRepo.findOne({ where: { id: membership.subscriptionId } });
-    if (family && ALLOWED_STATUSES.has(family.status)) {
-      return { allowed: true, status: family.status, reason: null };
+    if (family && subscriptionGrantsAccess(family)) {
+      return { allowed: true, status: family.status, renewsOn: family.renewsOn, reason: null };
     }
     if (family) {
+      const expired = family.status === "active" && family.renewsOn && family.renewsOn < todayKey();
       return {
         allowed: false,
         status: family.status,
-        reason: `Family subscription is ${family.status}`,
+        renewsOn: family.renewsOn,
+        reason: expired
+          ? "Family subscription has expired"
+          : `Family subscription is ${family.status}`,
       };
     }
   }
 
   if (owned) {
+    const expired = owned.status === "active" && owned.renewsOn && owned.renewsOn < todayKey();
     return {
       allowed: false,
       status: owned.status,
-      reason: `Subscription is ${owned.status}`,
+      renewsOn: owned.renewsOn,
+      reason: expired ? "Subscription has expired" : `Subscription is ${owned.status}`,
     };
   }
 
-  // Soft grace: users without any subscription row can still use tracking until they cancel a paid plan.
+  // Soft grace only when enforcement is off (non-prod / emergency bypass).
   if (!env.ENFORCE_SUBSCRIPTIONS) {
-    return { allowed: true, status: null, reason: null };
+    return { allowed: true, status: null, renewsOn: null, reason: null };
   }
 
   return {
     allowed: false,
     status: null,
-    reason: "An active subscription is required",
+    renewsOn: null,
+    reason: SUBSCRIPTION_REQUIRED_MESSAGE,
   };
 }
 
 export async function assertConsumerSubscription(userId: string) {
-  const access = await subscriptionAccessForUser(userId);
+  const access = await getConsumerSubscriptionAccess(userId);
   if (!access.allowed) {
-    throw new ForbiddenError(access.reason ?? "Subscription required");
+    throw new ForbiddenError(access.reason ?? SUBSCRIPTION_REQUIRED_MESSAGE);
   }
   return access;
 }

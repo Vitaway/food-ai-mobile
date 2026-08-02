@@ -3,6 +3,7 @@ import type { User } from "../users/user.entity";
 import { consumerService } from "../consumers/consumer.service";
 import { reportsService, type ReportRangeInput } from "./reports.service";
 import type { ReportPeriod } from "./report-snapshot.entity";
+import { assertConsumerSubscription } from "../../middlewares/entitlements";
 
 @Controller("/reports")
 export class ReportsController {
@@ -41,6 +42,7 @@ export class ReportsController {
   @Authorized(["consumer"])
   @Get("/my")
   async myReports(@CurrentUser() user: User) {
+    await assertConsumerSubscription(user.id);
     const profile = await consumerService.requireProfileForUser(user.id);
     const existing = await reportsService.listForConsumer(profile.id);
     if (!existing.length) {
