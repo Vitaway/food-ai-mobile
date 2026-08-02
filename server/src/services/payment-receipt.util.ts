@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { resolveEmailLogoPath } from "./email-logo";
 
 export type PaymentReceiptInput = {
   receiptNumber: string;
@@ -31,10 +32,26 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
     const navy = "#023459";
     const green = "#1d9e75";
     const muted = "#696e5e";
+    const logoPath = resolveEmailLogoPath();
+    const logoSize = 52;
+    const headerHeight = 92;
+    const textLeft = logoPath ? 48 + logoSize + 14 : 48;
 
-    doc.rect(0, 0, doc.page.width, 92).fill(navy);
-    doc.fillColor("#ffffff").fontSize(22).font("Helvetica-Bold").text("MiraFood", 48, 28);
-    doc.fontSize(11).font("Helvetica").text("Payment receipt", 48, 56);
+    doc.rect(0, 0, doc.page.width, headerHeight).fill(navy);
+
+    if (logoPath) {
+      doc.image(logoPath, 48, (headerHeight - logoSize) / 2, {
+        width: logoSize,
+        height: logoSize,
+      });
+    }
+
+    doc
+      .fillColor("#ffffff")
+      .fontSize(22)
+      .font("Helvetica-Bold")
+      .text("MiraFood", textLeft, 28, { width: 280 });
+    doc.fontSize(11).font("Helvetica").text("Payment receipt", textLeft, 56, { width: 280 });
     doc.fontSize(10).text(input.receiptNumber, 360, 56, { width: 180, align: "right" });
 
     doc.fillColor(navy).fontSize(16).font("Helvetica-Bold").text("Thank you for your payment", 48, 120);
