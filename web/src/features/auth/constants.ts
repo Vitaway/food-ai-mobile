@@ -39,6 +39,8 @@ export const ADMIN_ROUTES = {
 export const CONSUMER_ROUTES = {
   dashboard: '/app',
   meals: '/app/meals',
+  subscription: '/app/subscription',
+  reports: '/app/reports',
   profile: '/app/profile',
 } as const;
 

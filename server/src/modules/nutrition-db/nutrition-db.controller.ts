@@ -58,6 +58,12 @@ export class NutritionDbController {
     return recipeService.updateRecipe(id, dto);
   }
 
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Patch("/recipes/:id/archive")
+  archiveRecipe(@Param("id") id: string) {
+    return recipeService.archiveRecipe(id);
+  }
+
   @Authorized(["coach", "admin", "data_entry_staff", "consumer"])
   @Get("/foods")
   foods(
@@ -68,10 +74,16 @@ export class NutritionDbController {
     @QueryParam("page") page?: number,
     @QueryParam("pageSize") pageSize?: number,
     @QueryParam("sourceType") sourceType?: string,
+    @QueryParam("excludeSourceTypes") excludeSourceTypes?: string | string[],
     @CurrentUser() user?: User,
   ) {
     const approvalFilter =
       approval ?? (user?.role === "coach" || user?.role === "admin" ? "all" : "approved");
+    const excluded = Array.isArray(excludeSourceTypes)
+      ? excludeSourceTypes
+      : typeof excludeSourceTypes === "string" && excludeSourceTypes.trim()
+        ? excludeSourceTypes.split(",").map((s) => s.trim()).filter(Boolean)
+        : undefined;
     return nutritionDbService.listFoods(
       q,
       category,
@@ -80,6 +92,7 @@ export class NutritionDbController {
       page,
       pageSize,
       sourceType,
+      excluded,
     );
   }
 

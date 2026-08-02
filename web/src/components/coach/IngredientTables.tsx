@@ -317,11 +317,18 @@ function CoachIngredientRow({
       </td>
       <td className={tdClass}>
         {fromDb ? (
-          <FoodDbPicker
-            valueId={item.nutritionFoodId}
-            valueLabel={item.label}
-            onSelect={handleFoodSelect}
-          />
+          <div className="min-w-[10rem] space-y-1">
+            <FoodDbPicker
+              valueId={item.nutritionFoodId}
+              valueLabel={item.label}
+              onSelect={handleFoodSelect}
+            />
+            {dbFood?.isRecipe || dbFood?.sourceType === 'recipe' ? (
+              <span className="inline-flex rounded-full bg-cinnamon-wood-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cinnamon-wood-800">
+                Recipe
+              </span>
+            ) : null}
+          </div>
         ) : (
           <input
             className={cn(inputClass, 'min-w-[8rem] font-medium')}

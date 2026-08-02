@@ -1,9 +1,20 @@
 import { apiRequest, ApiError, getApiAuthToken } from '@/lib/apiClient';
 import { emitUnauthorized } from '@/lib/authEvents';
+import {
+  emitSubscriptionRequired,
+  isSubscriptionRequiredMessage,
+} from '@/lib/subscriptionEvents';
 import { API_BASE_URL, getApiV1Url } from '@/constants/api';
 import type { MealSubmission, UserProfile } from '@/types';
 import { ensureServingFields } from '@/utils/servingUnits';
 import { prepareImageForUpload } from '@/utils/prepareUploadImage';
+
+function throwConsumerApiError(status: number, message: string): never {
+  if (status === 403 && isSubscriptionRequiredMessage(message)) {
+    emitSubscriptionRequired(message);
+  }
+  throw new ApiError(message, status);
+}
 
 export type ConsumerProfileResponse = {
   patientId: string;
@@ -67,7 +78,7 @@ export async function uploadConsumerAvatar(imageUri: string): Promise<ConsumerPr
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       `Upload failed (${response.status})`;
-    throw new ApiError(message, response.status);
+    throwConsumerApiError(response.status, message);
   }
 
   if (body.success === true && body.data) {
@@ -136,13 +147,26 @@ export async function fetchConsumerSubscription(): Promise<ConsumerSubscription 
   return apiRequest<ConsumerSubscription | null>('/consumer/subscription');
 }
 
+export type SubscriptionAccess = {
+  allowed: boolean;
+  status: string | null;
+  renewsOn: string | null;
+  reason: string | null;
+};
+
+export async function fetchSubscriptionAccess(): Promise<SubscriptionAccess> {
+  return apiRequest<SubscriptionAccess>('/consumer/subscription/access');
+}
+
 export type CheckoutResponse = {
   externalRef: string;
+  invoiceNumber?: string;
   amount: number;
   currency: string;
   checkoutUrl: string;
   status: string;
   subscriptionId: string;
+  planCode?: string;
 };
 
 export async function createConsumerCheckout(payload: {
@@ -164,6 +188,28 @@ export async function createConsumerCheckout(payload: {
   });
 }
 
+export type CheckoutStatusResponse = {
+  externalRef: string;
+  invoiceNumber: string | null;
+  status: string;
+  amount: number;
+  currency: string;
+  checkoutUrl: string | null;
+  subscription: {
+    id: string;
+    planCode: string;
+    status: string;
+    renewsOn: string | null;
+  } | null;
+};
+
+/** Reconcile pending IremboPay invoice after returning from the browser. */
+export async function fetchCheckoutStatus(externalRef: string): Promise<CheckoutStatusResponse> {
+  return apiRequest<CheckoutStatusResponse>(
+    `/payments/checkout/${encodeURIComponent(externalRef)}/status`,
+  );
+}
+
 export type SubscriptionPlan = {
   code: string;
   label: string;
@@ -175,6 +221,28 @@ export type SubscriptionPlan = {
 
 export async function fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
   return apiRequest<SubscriptionPlan[]>('/payments/plans');
+}
+
+export type ConsumerPaymentRow = {
+  id: string;
+  externalRef: string;
+  invoiceNumber: string | null;
+  planCode: string | null;
+  amount: number;
+  currency: string;
+  status: string;
+  provider: string;
+  createdAt: string;
+  processedAt: string | null;
+};
+
+export type ConsumerPaymentsResponse = {
+  subscription: ConsumerSubscription | null;
+  payments: ConsumerPaymentRow[];
+};
+
+export async function fetchConsumerPayments(): Promise<ConsumerPaymentsResponse> {
+  return apiRequest<ConsumerPaymentsResponse>('/consumer/payments');
 }
 
 export async function fetchFamilySubscription() {
@@ -299,7 +367,7 @@ async function postMealMultipart(payload: ReturnType<typeof mealPayload>, imageU
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       (response.status === 404 ? 'Route not found' : `Submit failed (${response.status})`);
-    throw new ApiError(message, response.status);
+    throwConsumerApiError(response.status, message);
   }
 
   if (body.success === true && body.data) {
@@ -395,7 +463,7 @@ export async function uploadMealPhoto(mealId: string, imageUri: string): Promise
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       `Upload failed (${response.status})`;
-    throw new ApiError(message, response.status);
+    throwConsumerApiError(response.status, message);
   }
 
   const imageUrl = body.data?.imageUrl;

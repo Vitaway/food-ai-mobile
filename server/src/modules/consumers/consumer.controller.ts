@@ -11,9 +11,10 @@ import {
   Post,
   QueryParam,
   Req,
+  Res,
   UseBefore,
 } from "routing-controllers";
-import type { Request } from "express";
+import type { Request, Response } from "express";
 import multer from "multer";
 import type { User } from "../users/user.entity";
 import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto, AccountDeletionRequestDto } from "./consumer.dto";
@@ -25,6 +26,10 @@ import { familySubscriptionService } from "../payments/family.service";
 import { coachingFeedService } from "./coaching-feed.service";
 import { accountLifecycleService } from "./account-lifecycle.service";
 import { coachInsightsService } from "../coaches/coach-insights.service";
+import {
+  assertConsumerSubscription,
+  getConsumerSubscriptionAccess,
+} from "../../middlewares/entitlements";
 
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -138,9 +143,37 @@ export class ConsumerController {
     return paymentsService.getMySubscription(user.id);
   }
 
+  /** Used by mobile AuthGuard — mirrors product entitlement check (incl. family). */
+  @Authorized(["consumer"])
+  @Get("/subscription/access")
+  subscriptionAccess(@CurrentUser() user: User) {
+    return getConsumerSubscriptionAccess(user.id);
+  }
+
+  @Authorized(["consumer"])
+  @Get("/payments")
+  myPayments(@CurrentUser() user: User) {
+    return paymentsService.listMyPayments(user.id);
+  }
+
+  @Authorized(["consumer"])
+  @Get("/payments/:id/receipt")
+  async paymentReceipt(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Res() res: Response,
+  ) {
+    const { filename, buffer } = await paymentsService.getReceiptPdfForUser(user.id, id);
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+    res.send(buffer);
+    return res;
+  }
+
   @Authorized(["consumer"])
   @Get("/reports")
   async reports(@CurrentUser() user: User) {
+    await assertConsumerSubscription(user.id);
     const profile = await consumerService.requireProfileForUser(user.id);
     return reportsService.listForConsumer(profile.id);
   }
@@ -153,6 +186,7 @@ export class ConsumerController {
     @QueryParam("from") from?: string,
     @QueryParam("to") to?: string,
   ) {
+    await assertConsumerSubscription(user.id);
     const profile = await consumerService.requireProfileForUser(user.id);
     const snapshot = await reportsService.generateConsumerSnapshot(profile.id, {
       period: from || to ? period ?? "custom" : period ?? "weekly",
@@ -180,14 +214,16 @@ export class ConsumerController {
 
   @Authorized(["consumer"])
   @Get("/coaching-feed")
-  coachingFeed(@CurrentUser() user: User) {
+  async coachingFeed(@CurrentUser() user: User) {
+    await assertConsumerSubscription(user.id);
     return coachingFeedService.listForConsumerUser(user.id);
   }
 
   /** Coach-authored insights only (no auto-generated tips). */
   @Authorized(["consumer"])
   @Get("/coach-insights")
-  coachInsights(@CurrentUser() user: User) {
+  async coachInsights(@CurrentUser() user: User) {
+    await assertConsumerSubscription(user.id);
     return coachInsightsService.listForConsumerUser(user.id);
   }
 

@@ -20,7 +20,7 @@ import { useMeals } from '@/context/MealsContext';
 import { useToast } from '@/context/ToastContext';
 import type { MealAnalysisPreview, MealSubmission } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
-import { getApiErrorMessage } from '@/utils/apiErrors';
+import { getApiErrorMessage, isSubscriptionRequiredError } from '@/utils/apiErrors';
 import {
   consumeLogMealTypeIntent,
   consumeLogMethodIntent,
@@ -315,7 +315,12 @@ export default function LogMealScreen() {
       toast.success('Sent to your coach for review.', 'Submitted');
       push(`/meal/${meal.id}`);
     } catch (error) {
-      toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
+      if (isSubscriptionRequiredError(error)) {
+        toast.error(getApiErrorMessage(error), 'Subscription needed');
+        push('/profile/subscription');
+      } else {
+        toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
+      }
     } finally {
       setSaving(false);
     }

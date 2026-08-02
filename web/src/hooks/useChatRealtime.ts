@@ -5,7 +5,7 @@ import type { ChatMessage } from '@/api/chatApi';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { useToast } from '@/context/ToastContext';
 import { chatKeys } from '@/hooks/useChatQueries';
-import { getApiBaseUrl } from '@/lib/apiClient';
+import { getWsBaseUrl } from '@/lib/apiClient';
 
 /** Shared across every mount of useChatRealtime so duplicate sockets don't multi-toast. */
 const toastedChatMessageIds = new Set<string>();
@@ -35,8 +35,13 @@ export function useChatRealtime() {
   useEffect(() => {
     if (!token) return;
 
-    const base = getApiBaseUrl().replace(/^http/, 'ws');
-    const ws = new WebSocket(`${base}/ws/chat?token=${encodeURIComponent(token)}`);
+    // Only coach/consumer chat sockets are supported server-side.
+    const role = useAuthStore.getState().session?.user.role;
+    if (role !== 'coach' && role !== 'consumer') {
+      return;
+    }
+
+    const ws = new WebSocket(`${getWsBaseUrl()}/ws/chat?token=${encodeURIComponent(token)}`);
     wsRef.current = ws;
 
     ws.onmessage = (event) => {

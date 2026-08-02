@@ -15,6 +15,8 @@ type FoodDbPickerProps = {
   valueLabel?: string;
   onSelect: (food: NutritionFood) => void;
   className?: string;
+  /** When true, hide recipe dishes (use for recipe ingredient pickers). */
+  excludeRecipes?: boolean;
 };
 
 type MenuPos = { top: number; left: number; width: number };
@@ -22,7 +24,13 @@ type MenuPos = { top: number; left: number; width: number };
 const PAGE_SIZE = 30;
 
 /** Searchable nutrition-DB food picker for coach review rows. */
-export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodDbPickerProps) {
+export function FoodDbPicker({
+  valueId,
+  valueLabel,
+  onSelect,
+  className,
+  excludeRecipes = false,
+}: FoodDbPickerProps) {
   const listId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -82,7 +90,7 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
 
   const { data, isFetching, isFetchingNextPage, isError, error, fetchNextPage, hasNextPage } =
     useInfiniteQuery({
-      queryKey: ['nutrition-db', 'picker', deferredSearch, category],
+      queryKey: ['nutrition-db', 'picker', deferredSearch, category, excludeRecipes],
       queryFn: ({ pageParam }) =>
         fetchNutritionFoodsPage({
           q: deferredSearch || undefined,
@@ -90,6 +98,7 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
           approval: 'approved',
           page: pageParam,
           pageSize: PAGE_SIZE,
+          excludeSourceTypes: excludeRecipes ? ['recipe'] : undefined,
         }),
       initialPageParam: 1,
       getNextPageParam: (last) => (last.page < last.totalPages ? last.page + 1 : undefined),
@@ -122,7 +131,7 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
             ref={menuRef}
             id={listId}
             role="listbox"
-            className="fixed z-[120] flex max-h-[22rem] flex-col overflow-hidden rounded-lg border border-ash-grey-200 bg-white shadow-xl"
+            className="fixed z-[400] flex max-h-[22rem] flex-col overflow-hidden rounded-lg border border-ash-grey-200 bg-white shadow-xl"
             style={{ top: pos.top, left: pos.left, width: pos.width }}>
             <div className="shrink-0 space-y-2 border-b border-ash-grey-100 px-3 py-2">
               <p className="text-[11px] leading-4 text-ash-grey-500">
@@ -179,7 +188,14 @@ export function FoodDbPicker({ valueId, valueLabel, onSelect, className }: FoodD
                         e.stopPropagation();
                         pick(food);
                       }}>
-                      <span className="font-medium text-ash-grey-900">{food.name}</span>
+                      <span className="flex items-center gap-2 font-medium text-ash-grey-900">
+                        {food.name}
+                        {food.isRecipe || food.sourceType === 'recipe' ? (
+                          <span className="rounded-full bg-cinnamon-wood-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-cinnamon-wood-800">
+                            Recipe
+                          </span>
+                        ) : null}
+                      </span>
                       <span className="text-[11px] text-ash-grey-500">
                         {food.foodGroupName ?? food.category}
                         {food.foodCode ? ` · #${food.foodCode}` : ''}

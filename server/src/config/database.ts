@@ -24,6 +24,7 @@ import { NutritionServingProfile } from "../modules/nutrition-db/nutrition-servi
 import { NutritionRecipeIngredient } from "../modules/nutrition-db/nutrition-recipe-ingredient.entity";
 import { ConsumerDailyHealthScore } from "../modules/consumers/daily-health-score.entity";
 import { Subscription } from "../modules/payments/subscription.entity";
+import { SubscriptionPlan } from "../modules/payments/subscription-plan.entity";
 import { PaymentTransaction } from "../modules/payments/payment-transaction.entity";
 import { ReportSnapshot } from "../modules/reports/report-snapshot.entity";
 import { FamilySubscriptionMember } from "../modules/payments/family-subscription-member.entity";
@@ -58,6 +59,7 @@ export const AppDataSource = new DataSource({
     NutritionRecipeIngredient,
     ConsumerDailyHealthScore,
     Subscription,
+    SubscriptionPlan,
     PaymentTransaction,
     FamilySubscriptionMember,
     Organization,

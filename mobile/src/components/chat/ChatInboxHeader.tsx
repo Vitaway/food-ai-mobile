@@ -15,11 +15,13 @@ export function ChatInboxHeader({ title = 'Chats', onBack }: ChatInboxHeaderProp
 
   return (
     <View
+      className="overflow-hidden rounded-b-[28px]"
       style={{
         backgroundColor: chatTheme.header,
         paddingTop: insets.top + 8,
         paddingBottom: 14,
         paddingHorizontal: 20,
+        borderCurve: 'continuous',
       }}>
       <View className="flex-row items-center gap-3">
         {onBack ? (

@@ -1,5 +1,9 @@
 import { API_BASE_URL, getApiV1Url } from '@/constants/api';
 import { emitUnauthorized } from '@/lib/authEvents';
+import {
+  emitSubscriptionRequired,
+  isSubscriptionRequiredMessage,
+} from '@/lib/subscriptionEvents';
 
 let authToken: string | null = null;
 
@@ -78,6 +82,9 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
       (typeof body.error === 'string' && body.error) ||
       (typeof body.message === 'string' && body.message) ||
       (response.status === 404 ? 'Route not found' : `Request failed (${response.status})`);
+    if (response.status === 403 && isSubscriptionRequiredMessage(message)) {
+      emitSubscriptionRequired(message);
+    }
     throw new ApiError(message, response.status);
   }
 

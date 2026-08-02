@@ -6,6 +6,7 @@ import { AppSplashScreen } from '@/components/splash/AppSplashScreen';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
 import { resolveAuthTarget } from '@/utils/authRouting';
 import { hasSeenPushPrompt, subscribePushPromptSeen } from '@/utils/pushPrompt';
 
@@ -14,6 +15,7 @@ function isAtTarget(target: string, root: string, second?: string): boolean {
   if (target === '/auth/login') return root === 'auth';
   if (target === '/(tabs)') return root === '(tabs)';
   if (target === '/notifications/enable') return root === 'notifications' && second === 'enable';
+  if (target === '/profile/subscription') return root === 'profile' && second === 'subscription';
   return false;
 }
 
@@ -25,16 +27,26 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const second = segments[1];
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { hasCompletedOnboarding, isBootstrapReady } = useProfile();
+  const { hasActiveSubscription, isSubscriptionReady } = useSubscriptionAccess();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
   const pendingAt = useRef(0);
+  const wasSubscriptionBlocked = useRef(false);
   const [pushPromptReady, setPushPromptReady] = useState(false);
   const [needsPushPrompt, setNeedsPushPrompt] = useState(false);
+
+  const needsSubscription =
+    requiresAuth && isAuthenticated && hasCompletedOnboarding && !hasActiveSubscription;
 
   const isBootstrapping =
     authLoading ||
     (requiresAuth && isAuthenticated && !isBootstrapReady) ||
-    (isAuthenticated && hasCompletedOnboarding && !pushPromptReady);
+    (isAuthenticated && hasCompletedOnboarding && !pushPromptReady) ||
+    (requiresAuth &&
+      isAuthenticated &&
+      hasCompletedOnboarding &&
+      !needsPushPrompt &&
+      !isSubscriptionReady);
 
   // Load push-prompt flag once per auth/onboarding session — not on every route change.
   useEffect(() => {
@@ -63,6 +75,19 @@ export function AuthGuard({ children }: PropsWithChildren) {
     });
   }, []);
 
+  // After paywall unlock, enter the app — replace() onto subscription leaves no useful back stack.
+  useEffect(() => {
+    if (needsSubscription) {
+      wasSubscriptionBlocked.current = true;
+      return;
+    }
+    if (!wasSubscriptionBlocked.current || isBootstrapping || !isSubscriptionReady) return;
+    wasSubscriptionBlocked.current = false;
+    if (root === 'profile' && second === 'subscription') {
+      router.replace('/(tabs)' as Href);
+    }
+  }, [needsSubscription, isBootstrapping, isSubscriptionReady, root, second, router]);
+
   useEffect(() => {
     if (isBootstrapping) return;
 
@@ -71,6 +96,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
       isAuthenticated,
       hasCompletedOnboarding,
       needsPushPrompt,
+      needsSubscription,
       root,
       authScreen,
       second,
@@ -95,6 +121,7 @@ export function AuthGuard({ children }: PropsWithChildren) {
     isAuthenticated,
     hasCompletedOnboarding,
     needsPushPrompt,
+    needsSubscription,
     root,
     authScreen,
     second,

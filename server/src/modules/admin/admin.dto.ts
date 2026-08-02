@@ -3,9 +3,11 @@ import {
   IsBoolean,
   IsEmail,
   IsIn,
+  IsNumber,
   IsOptional,
   IsString,
   MaxLength,
+  Min,
   MinLength,
 } from "class-validator";
 
@@ -324,4 +326,87 @@ export class SetClientCoachesDto {
   @IsArray()
   @IsString({ each: true })
   coachUserIds!: string[];
+}
+
+export class UpdateSubscriptionPlanDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  label?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  amount?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  intervalDays?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class CreateSubscriptionPlanDto {
+  @IsString()
+  @MaxLength(64)
+  code!: string;
+
+  @IsString()
+  @MaxLength(120)
+  label!: string;
+
+  @IsNumber()
+  @Min(1)
+  amount!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(3)
+  currency?: string;
+
+  @IsIn(["individual", "corporate", "family"])
+  subscriptionType!: "individual" | "corporate" | "family";
+
+  @IsNumber()
+  @Min(1)
+  intervalDays!: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublic?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  isActive?: boolean;
+}
+
+export class GrantSubscriptionDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  planCode?: string;
+
+  /** Inclusive access end date (YYYY-MM-DD). Prefer this or `months`. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  renewsOn?: string;
+
+  /** Grant N calendar months from today (used when renewsOn omitted). Defaults to 1. */
+  @IsOptional()
+  @IsNumber()
+  @Min(1)
+  months?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }

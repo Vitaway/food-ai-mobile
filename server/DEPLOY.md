@@ -48,6 +48,16 @@ ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-haiku-4-5
 APP_URL=https://mirafood.vitaway.org
 
+# IremboPay (see docs/irembopay-sandbox-qa.md) — secrets only on VPS, never commit
+IREMBO_PAY_BASE_URL=https://api.irembopay.com/payments
+IREMBO_PAY_SECRET_KEY=...
+IREMBO_PAY_PUBLIC_KEY=...
+IREMBO_PAYOUT_ACCOUNT=VITAWAY_HEALTH_RWF
+IREMBO_SERVICE_FEE_CODE=PC-8ccbd6ab27
+IREMBO_SHIPPING_PRODUCT_CODE=3f5490a204
+IREMBO_PAY_WIDGET=https://dashboard.irembopay.com/assets/payment/inline.js
+ENFORCE_SUBSCRIPTIONS=true
+
 SMTP_USER=...
 SMTP_PASS=...
 AUTO_RUN_MIGRATIONS=true

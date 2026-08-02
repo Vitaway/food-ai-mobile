@@ -13,6 +13,11 @@ export type RecipeIngredient = {
 export type NutritionRecipe = NutritionFood & {
   isRecipe?: boolean;
   cookedYieldG: number | null;
+  ingredientCount?: number;
+  defaultServing?: { unit: string; amount: number; gramsEquivalent: number } | null;
+  kcalPerServing?: number | null;
+  rawTotalG?: number | null;
+  yieldFactor?: number | null;
   ingredients: RecipeIngredient[];
   perServing?: Record<string, number> | null;
 };
@@ -85,4 +90,11 @@ export async function updateNutritionRecipe(id: string, payload: Partial<UpsertR
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function archiveNutritionRecipe(id: string) {
+  return apiRequest<{ ok: true; id: string }>(
+    `/nutrition-db/recipes/${encodeURIComponent(id)}/archive`,
+    { method: 'PATCH' },
+  );
 }

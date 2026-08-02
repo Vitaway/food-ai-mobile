@@ -57,6 +57,29 @@ const routingCases: Case[] = [
     input: { requiresAuth: true, isAuthenticated: true, hasCompletedOnboarding: false, root: 'auth', authScreen: 'login' },
     expected: '/onboarding',
   },
+  {
+    name: 'onboarded, no subscription, on tabs → subscription',
+    input: {
+      requiresAuth: true,
+      isAuthenticated: true,
+      hasCompletedOnboarding: true,
+      needsSubscription: true,
+      root: '(tabs)',
+    },
+    expected: '/profile/subscription',
+  },
+  {
+    name: 'onboarded, no subscription, already on subscription → stay',
+    input: {
+      requiresAuth: true,
+      isAuthenticated: true,
+      hasCompletedOnboarding: true,
+      needsSubscription: true,
+      root: 'profile',
+      second: 'subscription',
+    },
+    expected: null,
+  },
 ];
 
 let failed = 0;

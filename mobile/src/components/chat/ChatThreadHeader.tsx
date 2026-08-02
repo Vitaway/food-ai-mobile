@@ -23,11 +23,13 @@ export function ChatThreadHeader({
 
   return (
     <View
+      className="overflow-hidden rounded-b-[28px]"
       style={{
         backgroundColor: chatTheme.header,
         paddingTop: insets.top + 4,
         paddingBottom: 10,
         paddingHorizontal: 8,
+        borderCurve: 'continuous',
       }}>
       <View className="flex-row items-center gap-1">
         <Pressable

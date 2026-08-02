@@ -6,6 +6,23 @@ export function getApiBaseUrl() {
   return API_BASE;
 }
 
+/**
+ * WebSocket base matching production nginx (`/ws/...`) and Vite `/ws` proxy.
+ * Do not append under `/api/v1` — server attaches sockets at `/ws/chat`, etc.
+ */
+export function getWsBaseUrl() {
+  const api = API_BASE.replace(/\/$/, '');
+  if (api.startsWith('http://') || api.startsWith('https://')) {
+    const origin = api.replace(/\/api\/v1$/i, '');
+    return origin.replace(/^http/i, 'ws');
+  }
+  if (typeof window !== 'undefined') {
+    const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    return `${proto}://${window.location.host}`;
+  }
+  return 'ws://127.0.0.1:3011';
+}
+
 export class ApiError extends Error {
   constructor(
     message: string,

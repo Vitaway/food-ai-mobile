@@ -4,6 +4,8 @@ Source of truth for patient onboarding, coach assessment, and nutrition target c
 
 **Full formula reference (BMR, TDEE, macros, water, health score):** [nutrition-formulas.md](./nutrition-formulas.md)
 
+**Nutrition DB recipes (cooked-yield dishes):** [nutrition-recipes.md](./nutrition-recipes.md)
+
 ## Responsibility split
 
 - **Patient onboarding:** intent and basics only — body measurements, goal, activity, meals, preferences, allergies.

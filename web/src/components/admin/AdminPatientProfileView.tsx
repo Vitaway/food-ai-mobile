@@ -19,8 +19,10 @@ import {
   useAdminPatientSummary,
   useAdminPatientView,
   useAdminResetPassword,
+  useAdminUserBilling,
   useAdminUserDetail,
   useDeleteAdminUser,
+  useGrantAdminSubscription,
   useOrganizations,
   useSetAdminClientCoaches,
   useUpdateAdminConsumerProfile,
@@ -36,7 +38,194 @@ import type { MealSubmission } from '@/types';
 
 const MEALS_PAGE_SIZE = 10;
 
-type PatientTab = 'overview' | 'assessment' | 'meals' | 'notes' | 'settings';
+type PatientTab = 'overview' | 'assessment' | 'meals' | 'subscription' | 'notes' | 'settings';
+
+function defaultRenewsOnPlusMonths(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function PatientSubscriptionTab({ userId }: { userId: string }) {
+  const toast = useToast();
+  const { data, isLoading, isError } = useAdminUserBilling(userId);
+  const grantSubscription = useGrantAdminSubscription(userId);
+  const [grantPlanCode, setGrantPlanCode] = useState('individual_monthly');
+  const [grantRenewsOn, setGrantRenewsOn] = useState(() => defaultRenewsOnPlusMonths(1));
+  const [grantNote, setGrantNote] = useState('');
+
+  if (isLoading) {
+    return <p className="text-sm text-ash-grey-500">Loading subscription & payments…</p>;
+  }
+  if (isError || !data) {
+    return (
+      <p className="text-sm text-red-600">
+        Could not load billing. Rebuild/restart the API if this endpoint is missing.
+      </p>
+    );
+  }
+
+  const sub = data.subscription;
+
+  return (
+    <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-2">
+        <DashboardPanel title="Current subscription">
+          <dl className="grid gap-3 px-3 py-3 text-sm sm:px-4">
+            <div className="flex justify-between gap-3">
+              <dt className="text-ash-grey-500">Plan</dt>
+              <dd className="font-medium text-ash-grey-900">{sub?.planCode ?? 'None'}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ash-grey-500">Status</dt>
+              <dd className="font-medium capitalize text-ash-grey-900">{sub?.status ?? 'inactive'}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ash-grey-500">Type</dt>
+              <dd className="font-medium capitalize text-ash-grey-900">
+                {sub?.subscriptionType ?? '—'}
+              </dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ash-grey-500">Access until</dt>
+              <dd className="font-medium text-ash-grey-900">
+                {sub?.renewsOn ? new Date(sub.renewsOn).toLocaleDateString() : '—'}
+              </dd>
+            </div>
+            {sub?.metadata?.grantedByAdminId ? (
+              <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-ash-grey-700">
+                Manually granted by admin
+                {typeof sub.metadata.grantNote === 'string' && sub.metadata.grantNote
+                  ? ` — ${sub.metadata.grantNote}`
+                  : ''}
+              </div>
+            ) : null}
+          </dl>
+        </DashboardPanel>
+
+        <DashboardPanel title="Mark as paid">
+          <div className="grid gap-3 px-3 py-3 sm:px-4">
+            <div>
+              <FieldLabel>Plan</FieldLabel>
+              <Select
+                aria-label="Grant plan"
+                value={grantPlanCode}
+                onChange={setGrantPlanCode}
+                options={[
+                  { value: 'individual_weekly', label: 'Weekly' },
+                  { value: 'individual_monthly', label: 'Monthly' },
+                  { value: 'family_monthly', label: 'Family' },
+                ]}
+              />
+            </div>
+            <TextField
+              label="Access until"
+              type="date"
+              value={grantRenewsOn}
+              onChange={(e) => setGrantRenewsOn(e.target.value)}
+            />
+            <TextField
+              label="Note (optional)"
+              value={grantNote}
+              onChange={(e) => setGrantNote(e.target.value)}
+              placeholder="e.g. Bank transfer March"
+            />
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setGrantRenewsOn(defaultRenewsOnPlusMonths(1))}>
+                +1 month
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => setGrantRenewsOn(defaultRenewsOnPlusMonths(3))}>
+                +3 months
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                disabled={grantSubscription.isPending || !grantRenewsOn}
+                onClick={() => {
+                  void grantSubscription
+                    .mutateAsync({
+                      planCode: grantPlanCode,
+                      renewsOn: grantRenewsOn,
+                      note: grantNote.trim() || undefined,
+                    })
+                    .then(() => {
+                      toast.success('Marked as paid through the selected date.');
+                      setGrantNote('');
+                    })
+                    .catch((err) =>
+                      toast.error(getApiErrorMessage(err, 'Could not grant subscription')),
+                    );
+                }}>
+                {grantSubscription.isPending ? 'Saving…' : 'Mark as paid'}
+              </Button>
+            </div>
+          </div>
+        </DashboardPanel>
+      </div>
+
+      <DashboardPanel title="Payment history">
+        <div className="px-3 py-3 sm:px-4">
+          {data.payments.length ? (
+            <div className="space-y-2">
+              {data.payments.map((p) => (
+                <div
+                  key={p.id}
+                  className="grid gap-1 rounded-xl border border-ash-grey-100 px-3 py-2 text-sm md:grid-cols-5 md:items-center">
+                  <span className="truncate font-medium text-ash-grey-900">
+                    {p.invoiceNumber ?? p.externalRef}
+                  </span>
+                  <span>{p.planCode ?? '—'}</span>
+                  <span>
+                    {p.amount.toLocaleString()} {p.currency}
+                  </span>
+                  <span className="capitalize">
+                    {p.status}
+                    {p.provider === 'irembopay' ? ' · Irembo' : ` · ${p.provider}`}
+                  </span>
+                  <span className="text-ash-grey-500">
+                    {new Date(p.createdAt).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-ash-grey-500">No payment transactions yet.</p>
+          )}
+        </div>
+      </DashboardPanel>
+
+      {data.subscriptions.length > 1 ? (
+        <DashboardPanel title="Subscription records">
+          <div className="space-y-2 px-3 py-3 sm:px-4">
+            {data.subscriptions.map((row) => (
+              <div
+                key={row.id}
+                className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-ash-grey-100 px-3 py-2 text-sm">
+                <span className="font-medium">{row.planCode}</span>
+                <span className="capitalize">{row.status}</span>
+                <span>
+                  Until {row.renewsOn ? new Date(row.renewsOn).toLocaleDateString() : '—'}
+                </span>
+                <span className="text-ash-grey-500">
+                  {row.grantedByAdmin ? 'Admin grant' : 'Checkout'} ·{' '}
+                  {new Date(row.createdAt).toLocaleDateString()}
+                </span>
+              </div>
+            ))}
+          </div>
+        </DashboardPanel>
+      ) : null}
+    </div>
+  );
+}
 
 type AdminPatientProfileViewProps = {
   userId: string;
@@ -589,6 +778,7 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
           { id: 'overview', label: 'Overview' },
           { id: 'assessment', label: 'Clinical assessment' },
           { id: 'meals', label: 'Meals', count: meals.length || undefined },
+          { id: 'subscription', label: 'Subscription' },
           { id: 'notes', label: 'Admin notes' },
           { id: 'settings', label: 'Settings' },
         ]}
@@ -630,6 +820,8 @@ export function AdminPatientProfileView({ userId, patientId }: AdminPatientProfi
       {tab === 'assessment' ? (
         <ClinicalAssessmentPanel clientId={patientId} adminUserId={userId} />
       ) : null}
+
+      {tab === 'subscription' ? <PatientSubscriptionTab userId={userId} /> : null}
 
       {tab === 'meals' ? (
         <DashboardPanel title="Meal history">

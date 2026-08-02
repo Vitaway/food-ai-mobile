@@ -52,6 +52,7 @@ function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
     foodGroupName: food.foodGroupName,
     recipeNote: food.recipeNote,
     sourceType: food.sourceType,
+    isRecipe: food.sourceType === "recipe",
     applicableCountries: food.applicableCountries,
     nameSw: food.nameSw,
     nameRw: food.nameRw,
@@ -107,6 +108,7 @@ export const nutritionDbService = {
     page?: number,
     pageSize?: number,
     sourceType?: string,
+    excludeSourceTypes?: string[],
   ) {
     const qb = foodRepo.createQueryBuilder("food").orderBy("food.name", "ASC");
     if (!includeInactive) {
@@ -158,6 +160,14 @@ export const nutritionDbService = {
     if (sourceType?.trim()) {
       qb.andWhere("food.source_type = :sourceType", { sourceType: sourceType.trim() });
     }
+    const excluded = (excludeSourceTypes ?? [])
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (excluded.length) {
+      qb.andWhere("food.source_type NOT IN (:...excludeSourceTypes)", {
+        excludeSourceTypes: excluded,
+      });
+    }
 
     const paginate = page != null || pageSize != null;
     const safePage = Math.max(1, page ?? 1);
@@ -194,10 +204,13 @@ export const nutritionDbService = {
       items = items
         .map((food) => ({ food, score: scoreNutritionFood(trimmedQuery, food) }))
         .filter((row) => row.score > 0)
-        .sort(
-          (a, b) =>
-            b.score - a.score || a.food.name.localeCompare(b.food.name),
-        )
+        .sort((a, b) => {
+          if (b.score !== a.score) return b.score - a.score;
+          const aRecipe = a.food.isRecipe || a.food.sourceType === "recipe" ? 1 : 0;
+          const bRecipe = b.food.isRecipe || b.food.sourceType === "recipe" ? 1 : 0;
+          if (bRecipe !== aRecipe) return bRecipe - aRecipe;
+          return a.food.name.localeCompare(b.food.name);
+        })
         .map((row) => row.food);
     }
 
@@ -233,10 +246,29 @@ export const nutritionDbService = {
     return mapFood(food, servings);
   },
 
+  /**
+   * Resolve a vision/meal label to the best approved active food.
+   * Merges a general search with a recipe-only search so dishes are not
+   * crowded out of the candidate window by TFCT ingredient noise, then
+   * applies recipe-aware ranking (see nutrition-lookup.util).
+   */
   async lookupByName(name: string) {
-    const foods = await this.listFoods(name.trim(), undefined, true);
-    const items = Array.isArray(foods) ? foods : foods.items;
-    return bestNutritionFoodMatch(name, items);
+    const q = name.trim();
+    if (!q) return null;
+
+    const [general, recipesOnly] = await Promise.all([
+      this.listFoods(q, undefined, false, "approved"),
+      this.listFoods(q, undefined, false, "approved", undefined, undefined, "recipe"),
+    ]);
+
+    const generalItems = Array.isArray(general) ? general : general.items;
+    const recipeItems = Array.isArray(recipesOnly) ? recipesOnly : recipesOnly.items;
+
+    const byId = new Map<string, (typeof generalItems)[number]>();
+    for (const food of generalItems) byId.set(food.id, food);
+    for (const food of recipeItems) byId.set(food.id, food);
+
+    return bestNutritionFoodMatch(q, [...byId.values()]);
   },
 
   async lookupByBarcode(barcode: string) {
