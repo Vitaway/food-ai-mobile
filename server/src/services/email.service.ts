@@ -410,6 +410,85 @@ export class EmailService {
   }
 
   /** Notify support when someone requests deletion via the public web form. */
+  async sendPaymentReceiptEmail(
+    to: string,
+    opts: {
+      displayName?: string | null;
+      planLabel: string;
+      amount: number;
+      currency: string;
+      renewsOn: string | null;
+      receiptNumber: string;
+      invoiceNumber?: string | null;
+      pdfBuffer: Buffer;
+    },
+  ): Promise<void> {
+    const firstName = opts.displayName?.trim().split(/\s+/)[0] || "";
+    const greeting = firstName ? `Hi ${firstName},` : "Hi there,";
+    const appUrl = env.APP_URL.replace(/\/$/, "");
+    const amountLabel = `${Math.round(opts.amount).toLocaleString("en-RW")} ${opts.currency}`;
+    const accessLine = opts.renewsOn
+      ? `Your subscription is active until ${new Date(opts.renewsOn).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "long",
+          year: "numeric",
+        })}.`
+      : "Your subscription is now active.";
+
+    await this.sendBrandedEmail({
+      to,
+      subject: `Payment confirmed — MiraFood ${opts.planLabel}`,
+      title: "Payment confirmed",
+      preheader: `We received ${amountLabel} for your ${opts.planLabel} plan.`,
+      appUrl,
+      attachments: [
+        {
+          filename: `${opts.receiptNumber}.pdf`,
+          content: opts.pdfBuffer,
+          contentType: "application/pdf",
+        },
+      ],
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">${greeting}</p>
+        <p style="${vitawayParagraphStyle()}">Thank you. We’ve successfully received your MiraFood subscription payment.</p>
+        ${renderCredentialsBlock([
+          { label: "Plan", value: opts.planLabel },
+          { label: "Amount paid", value: amountLabel },
+          { label: "Receipt", value: opts.receiptNumber },
+          ...(opts.invoiceNumber
+            ? [{ label: "Invoice", value: opts.invoiceNumber }]
+            : []),
+          ...(opts.renewsOn
+            ? [
+                {
+                  label: "Access until",
+                  value: new Date(opts.renewsOn).toLocaleDateString("en-GB"),
+                },
+              ]
+            : []),
+        ])}
+        ${renderInfoCallout("You're all set", `${accessLine} Open the MiraFood app to log meals, track water, and view coach feedback.`, "green")}
+        ${renderEmailButton("Open MiraFood", appUrl)}
+        <p style="${vitawayParagraphStyle("margin:0;font-size:14px;")}">A PDF receipt is attached to this email for your records. If you have any questions, reply to this message or visit Support.</p>
+      `,
+      textParagraphs: [
+        greeting,
+        "",
+        "Thank you. We’ve successfully received your MiraFood subscription payment.",
+        "",
+        `Plan: ${opts.planLabel}`,
+        `Amount paid: ${amountLabel}`,
+        `Receipt: ${opts.receiptNumber}`,
+        opts.invoiceNumber ? `Invoice: ${opts.invoiceNumber}` : "",
+        accessLine,
+        "",
+        "A PDF receipt is attached.",
+        "",
+        appUrl,
+      ].filter(Boolean),
+    });
+  }
+
   async sendAccountDeletionRequestEmail(opts: {
     email: string;
     displayName?: string | null;
