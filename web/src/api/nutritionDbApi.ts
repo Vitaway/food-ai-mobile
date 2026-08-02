@@ -10,6 +10,8 @@ export type NutritionFood = {
   foodGroupName?: string | null;
   recipeNote?: string | null;
   sourceType?: string | null;
+  isRecipe?: boolean;
+  cookedYieldG?: number | null;
   applicableCountries?: string | null;
   nameSw?: string | null;
   nameRw?: string | null;
@@ -63,6 +65,7 @@ export async function fetchNutritionFoods(params?: {
   includeInactive?: boolean;
   approval?: 'approved' | 'pending' | 'all' | 'rejected';
   sourceType?: string;
+  excludeSourceTypes?: string[];
   page?: number;
   pageSize?: number;
 }) {
@@ -73,6 +76,9 @@ export async function fetchNutritionFoods(params?: {
   if (params?.approval) search.set('approval', params.approval);
   else if (params?.includeInactive) search.set('approval', 'all');
   if (params?.sourceType) search.set('sourceType', params.sourceType);
+  if (params?.excludeSourceTypes?.length) {
+    search.set('excludeSourceTypes', params.excludeSourceTypes.join(','));
+  }
   if (params?.page != null) search.set('page', String(params.page));
   if (params?.pageSize != null) search.set('pageSize', String(params.pageSize));
   const suffix = search.toString() ? `?${search.toString()}` : '';
@@ -85,6 +91,7 @@ export async function fetchNutritionFoodsPage(params?: {
   includeInactive?: boolean;
   approval?: 'approved' | 'pending' | 'all' | 'rejected';
   sourceType?: string;
+  excludeSourceTypes?: string[];
   page?: number;
   pageSize?: number;
 }): Promise<NutritionFoodsPage> {

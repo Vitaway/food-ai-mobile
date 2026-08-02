@@ -472,6 +472,7 @@ export function NutritionDbPage() {
         includeInactive: true,
         page,
         pageSize: NUTRITION_FOODS_PAGE_SIZE,
+        excludeSourceTypes: ['recipe'],
       }),
     placeholderData: (previous) => previous,
   });
