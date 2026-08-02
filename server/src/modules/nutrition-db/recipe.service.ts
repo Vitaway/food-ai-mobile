@@ -30,7 +30,19 @@ async function loadIngredientFoods(ids: string[]) {
   if (foods.length !== unique.length) {
     throw new BadRequestError("One or more ingredient foods were not found");
   }
+  const nestedRecipe = foods.find((f) => f.sourceType === "recipe");
+  if (nestedRecipe) {
+    throw new BadRequestError(
+      `Cannot use a recipe ("${nestedRecipe.name}") as an ingredient. Pick a single food instead.`,
+    );
+  }
   return new Map(foods.map((f) => [f.id, f]));
+}
+
+function kcalFromComposition(composition: Record<string, number> | null | undefined): number {
+  if (!composition) return 0;
+  const n = Number(composition.energy_kcal ?? composition.caloriesKcal ?? 0);
+  return Number.isFinite(n) ? n : 0;
 }
 
 async function computeComposition(
@@ -138,10 +150,41 @@ async function mapRecipe(food: NutritionFood) {
     perServing = preview.perServing;
   }
 
+  const kcalPer100 =
+    perServing != null && servingWeightG
+      ? null
+      : kcalFromComposition(food.nutritionPer100g);
+  const kcalPerServing =
+    perServing != null
+      ? Number(perServing.energy_kcal ?? perServing.caloriesKcal ?? 0) ||
+        (servingWeightG
+          ? Math.round((kcalFromComposition(food.nutritionPer100g) * servingWeightG) / 100)
+          : null)
+      : servingWeightG
+        ? Math.round((kcalFromComposition(food.nutritionPer100g) * servingWeightG) / 100)
+        : kcalPer100;
+
+  const rawTotalG = ingredientRows.reduce((sum, row) => sum + Number(row.rawWeightG || 0), 0);
+  const yieldFactor =
+    cookedYieldG && cookedYieldG > 0 && rawTotalG > 0
+      ? Math.round((cookedYieldG / rawTotalG) * 1000) / 1000
+      : null;
+
   return {
     ...base,
     cookedYieldG,
     isRecipe: true,
+    ingredientCount: ingredientRows.length,
+    defaultServing: defaultServing
+      ? {
+          unit: defaultServing.unit,
+          amount: defaultServing.amount,
+          gramsEquivalent: defaultServing.gramsEquivalent,
+        }
+      : null,
+    kcalPerServing: kcalPerServing != null && Number.isFinite(kcalPerServing) ? kcalPerServing : null,
+    rawTotalG: Math.round(rawTotalG * 100) / 100,
+    yieldFactor,
     ingredients: ingredientRows.map((row) => {
       const ing = byId.get(row.ingredientFoodId);
       return {
@@ -260,5 +303,13 @@ export const recipeService = {
       await replaceServings(id, dto.servings);
     }
     return this.getRecipe(id);
+  },
+
+  async archiveRecipe(id: string) {
+    const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
+    if (!food) throw new NotFoundError("Recipe not found");
+    food.isActive = false;
+    await foodRepo.save(food);
+    return { ok: true as const, id: food.id };
   },
 };
