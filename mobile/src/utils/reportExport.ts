@@ -1,7 +1,41 @@
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import { Share, Platform } from 'react-native';
+import * as FileSystem from 'expo-file-system/legacy';
 
 import type { ConsumerReportSnapshot } from '@/services/remote/consumerApi';
+
+type ExpoSharingModule = typeof import('expo-sharing');
+
+/** Lazy load — older dev clients may not include the ExpoSharing native module. */
+function tryGetSharing(): ExpoSharingModule | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    return require('expo-sharing') as ExpoSharingModule;
+  } catch {
+    return null;
+  }
+}
+
+async function shareFile(uri: string, options: {
+  mimeType: string;
+  dialogTitle: string;
+  UTI?: string;
+}): Promise<boolean> {
+  const Sharing = tryGetSharing();
+  if (Sharing) {
+    const canShare = await Sharing.isAvailableAsync().catch(() => false);
+    if (canShare) {
+      await Sharing.shareAsync(uri, options);
+      return true;
+    }
+  }
+
+  await Share.share({
+    url: Platform.OS === 'ios' ? uri : uri.startsWith('file://') ? uri : `file://${uri}`,
+    title: options.dialogTitle,
+    message: options.dialogTitle,
+  });
+  return true;
+}
 
 function formatLabel(key: string): string {
   return key
@@ -166,16 +200,47 @@ export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string 
 </html>`;
 }
 
+async function tryPrintToPdf(html: string): Promise<string | null> {
+  try {
+    // Lazy require — avoids crash when ExpoPrint native module is missing from the binary.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const Print = require('expo-print') as typeof import('expo-print');
+    if (!Print?.printToFileAsync) return null;
+    const file = await Print.printToFileAsync({ html, base64: false });
+    return file?.uri ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function shareHtmlFallback(html: string, title: string): Promise<void> {
+  const dir = FileSystem.cacheDirectory ?? FileSystem.documentDirectory;
+  if (!dir) {
+    await Share.share({ message: title, title });
+    throw new Error('Could not save report file on this device');
+  }
+  const path = `${dir}mirafood-report-${Date.now()}.html`;
+  await FileSystem.writeAsStringAsync(path, html);
+  await shareFile(path, {
+    mimeType: 'text/html',
+    dialogTitle: title,
+    UTI: 'public.html',
+  });
+}
+
 export async function shareConsumerReportPdf(report: ConsumerReportSnapshot): Promise<void> {
   const html = buildConsumerReportHtml(report);
-  const file = await Print.printToFileAsync({ html, base64: false });
-  const canShare = await Sharing.isAvailableAsync();
-  if (!canShare) {
-    throw new Error('Sharing is not available on this device');
+  const pdfUri = await tryPrintToPdf(html);
+
+  if (pdfUri) {
+    await shareFile(pdfUri, {
+      mimeType: 'application/pdf',
+      UTI: 'com.adobe.pdf',
+      dialogTitle: 'Download nutrition report',
+    });
+    return;
   }
-  await Sharing.shareAsync(file.uri, {
-    mimeType: 'application/pdf',
-    UTI: 'com.adobe.pdf',
-    dialogTitle: 'Download nutrition report',
-  });
+
+  // Dev client without ExpoPrint: share HTML report so the app still works.
+  await shareHtmlFallback(html, 'Download nutrition report');
 }

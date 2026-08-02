@@ -22,6 +22,12 @@ export default defineConfig(({ mode }) => {
           changeOrigin: true,
           ws: true,
         },
+        // Server attaches WS at /ws/* (not under /api/v1) — match production nginx.
+        '/ws': {
+          target: apiProxyTarget,
+          changeOrigin: true,
+          ws: true,
+        },
         '/uploads': {
           target: apiProxyTarget,
           changeOrigin: true,

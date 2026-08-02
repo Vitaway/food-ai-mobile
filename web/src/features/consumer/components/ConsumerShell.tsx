@@ -7,6 +7,8 @@ import { useConsumerDashboard } from '@/features/consumer/hooks/useConsumerQueri
 const nav = [
   { to: CONSUMER_ROUTES.dashboard, label: 'Today', end: true },
   { to: CONSUMER_ROUTES.meals, label: 'Meals', end: false },
+  { to: CONSUMER_ROUTES.subscription, label: 'Subscription', end: false },
+  { to: CONSUMER_ROUTES.reports, label: 'Reports', end: false },
   { to: CONSUMER_ROUTES.profile, label: 'Profile', end: false },
 ];
 

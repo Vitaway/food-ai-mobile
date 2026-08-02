@@ -31,6 +31,8 @@ import {
   ConsumerMealsPage,
   ConsumerMealDetailPage,
   ConsumerProfilePage,
+  ConsumerSubscriptionPage,
+  ConsumerReportsPage,
 } from '@/pages/consumer';
 import { ConsumerRoute } from '@/features/consumer/components/ConsumerRoute';
 import { ConsumerShell } from '@/features/consumer/components/ConsumerShell';
@@ -175,6 +177,8 @@ function App() {
           <Route index element={<ConsumerOverviewPage />} />
           <Route path="meals" element={<ConsumerMealsPage />} />
           <Route path="meals/:id" element={<ConsumerMealDetailPage />} />
+          <Route path="subscription" element={<ConsumerSubscriptionPage />} />
+          <Route path="reports" element={<ConsumerReportsPage />} />
           <Route path="profile" element={<ConsumerProfilePage />} />
           <Route path="*" element={<Navigate to="/app" replace />} />
         </Route>

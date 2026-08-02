@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '@/features/auth/stores/authStore';
 import { useToast } from '@/context/ToastContext';
 import { coachKeys } from '@/hooks/useCoachQueries';
-import { getApiBaseUrl } from '@/lib/apiClient';
+import { getWsBaseUrl } from '@/lib/apiClient';
 
 type QueuePayload = {
   type?: string;
@@ -37,8 +37,9 @@ export function useCoachQueueRealtime() {
   useEffect(() => {
     if (!token) return;
 
-    const base = getApiBaseUrl().replace(/^http/, 'ws');
-    const ws = new WebSocket(`${base}/ws/coach-queue?token=${encodeURIComponent(token)}`);
+    const ws = new WebSocket(
+      `${getWsBaseUrl()}/ws/coach-queue?token=${encodeURIComponent(token)}`,
+    );
     wsRef.current = ws;
 
     ws.onmessage = (event) => {
