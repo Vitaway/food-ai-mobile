@@ -9,6 +9,7 @@ export type PlanDefinition = {
   public?: boolean;
 };
 
+/** Seed / fallback catalog — runtime prices come from `subscription_plans` table. */
 export const PLAN_CATALOG: PlanDefinition[] = [
   {
     code: "individual_weekly",
@@ -49,20 +50,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
   },
 ];
 
+/** Sync fallback only (prefer subscriptionPlansService.getByCode). */
 export function getPlanByCode(planCode: string): PlanDefinition | null {
   return PLAN_CATALOG.find((p) => p.code === planCode) ?? null;
-}
-
-/** Consumer-facing plans: Weekly, Monthly, Family only (no Corporate). */
-export function listPublicPlans() {
-  return PLAN_CATALOG.filter((p) => p.public !== false).map(
-    ({ code, label, amount, currency, subscriptionType, intervalDays }) => ({
-      code,
-      label,
-      amount,
-      currency,
-      subscriptionType,
-      intervalDays,
-    }),
-  );
 }
