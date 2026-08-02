@@ -1,11 +1,13 @@
 import { LiveToastBridge } from '@/components/notifications/LiveToastBridge';
 import { NotificationMealSync } from '@/components/notifications/NotificationEffects';
 import { PushNotificationSetup } from '@/components/notifications/PushNotificationSetup';
+import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 import { AuthProvider } from '@/context/AuthContext';
 import { ChatProvider } from '@/context/ChatContext';
 import { NotificationProvider } from '@/context/NotificationContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { MealsProvider } from '@/context/MealsContext';
+import { SubscriptionAccessProvider } from '@/context/SubscriptionAccessContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { IconoirProviderRoot } from '@/components/ui/IconoirIcon';
 import { createContext, useContext, type PropsWithChildren } from 'react';
@@ -21,18 +23,21 @@ export function AppProviders({ children }: PropsWithChildren) {
         <IconoirProviderRoot>
           <ToastProvider>
             <AuthProvider>
-              <NotificationProvider>
-                <ChatProvider>
-                  <ProfileProvider>
-                    <MealsProvider>
-                      <NotificationMealSync />
-                      <PushNotificationSetup />
-                      <LiveToastBridge />
-                      <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
-                    </MealsProvider>
-                  </ProfileProvider>
-                </ChatProvider>
-              </NotificationProvider>
+              <SubscriptionAccessProvider>
+                <NotificationProvider>
+                  <ChatProvider>
+                    <ProfileProvider>
+                      <MealsProvider>
+                        <NotificationMealSync />
+                        <PushNotificationSetup />
+                        <LiveToastBridge />
+                        <SubscriptionGate />
+                        <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
+                      </MealsProvider>
+                    </ProfileProvider>
+                  </ChatProvider>
+                </NotificationProvider>
+              </SubscriptionAccessProvider>
             </AuthProvider>
           </ToastProvider>
         </IconoirProviderRoot>

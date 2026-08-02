@@ -1,5 +1,10 @@
 import { ApiError } from '@/lib/apiClient';
 import { API_BASE_URL } from '@/constants/api';
+import { isSubscriptionRequiredMessage } from '@/lib/subscriptionEvents';
+
+export function isSubscriptionRequiredError(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 403 && isSubscriptionRequiredMessage(error.message);
+}
 
 export function getApiErrorMessage(error: unknown, fallback = 'Something went wrong'): string {
   if (error instanceof ApiError) {
@@ -10,6 +15,9 @@ export function getApiErrorMessage(error: unknown, fallback = 'Something went wr
       return error.message === 'Request failed (401)'
         ? 'Invalid email or password.'
         : error.message;
+    }
+    if (isSubscriptionRequiredError(error)) {
+      return 'An active subscription is required. Open Subscription to continue.';
     }
     if (error.status === 0) {
       return error.message || 'Cannot reach the API. Check that the server is running.';

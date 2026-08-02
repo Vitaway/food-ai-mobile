@@ -3,6 +3,8 @@ export type AuthRouteContext = {
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
   needsPushPrompt?: boolean;
+  /** When true, user must stay on subscription paywall until they have access. */
+  needsSubscription?: boolean;
   root: string;
   authScreen?: string;
   second?: string;
@@ -12,6 +14,10 @@ function isIndexRoute(root: string) {
   return !root || root === 'index';
 }
 
+function isSubscriptionRoute(root: string, second?: string) {
+  return root === 'profile' && second === 'subscription';
+}
+
 /** Pure routing resolver used by AuthGuard — exported for verification tests. */
 export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   const {
@@ -19,6 +25,7 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
     isAuthenticated,
     hasCompletedOnboarding,
     needsPushPrompt = false,
+    needsSubscription = false,
     root,
     authScreen,
     second,
@@ -27,6 +34,7 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   const inOnboarding = root === 'onboarding';
   const inPushEnable = root === 'notifications' && second === 'enable';
   const onResetPassword = authScreen === 'reset-password';
+  const onSubscription = isSubscriptionRoute(root, second);
 
   if (!requiresAuth) {
     if (!hasCompletedOnboarding && !inOnboarding) return '/onboarding';
@@ -49,6 +57,11 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   if (needsPushPrompt) {
     if (inPushEnable) return null;
     return '/notifications/enable';
+  }
+
+  if (needsSubscription) {
+    if (onSubscription) return null;
+    return '/profile/subscription';
   }
 
   if (inPushEnable) return '/(tabs)';
