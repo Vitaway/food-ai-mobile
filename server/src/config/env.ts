@@ -62,8 +62,14 @@ export const env = {
   PLATE_GEOMETRY_DISTANCE_WEIGHT: Number(process.env.PLATE_GEOMETRY_DISTANCE_WEIGHT ?? 0.72),
   AUTO_RUN_MIGRATIONS: process.env.AUTO_RUN_MIGRATIONS !== "false",
   TYPEORM_QUERY_LOG: process.env.TYPEORM_QUERY_LOG === "true",
-  /** When true, consumers without any subscription row are blocked. Cancelled/past_due always blocked. */
-  ENFORCE_SUBSCRIPTIONS: process.env.ENFORCE_SUBSCRIPTIONS === "true",
+  /**
+   * When true, consumers need an active subscription for product APIs.
+   * Defaults on in production; set ENFORCE_SUBSCRIPTIONS=false for emergency bypass.
+   */
+  ENFORCE_SUBSCRIPTIONS:
+    process.env.ENFORCE_SUBSCRIPTIONS === "true" ||
+    (process.env.ENFORCE_SUBSCRIPTIONS !== "false" &&
+      (process.env.NODE_ENV ?? "development") === "production"),
   /** When true, coach clinical/coaching routes require org module entitlements. */
   ENFORCE_ORG_MODULES: process.env.ENFORCE_ORG_MODULES === "true",
   /** Require email OTP after password for coach/admin roles. Defaults on in production. */
@@ -90,16 +96,58 @@ export const env = {
     "",
   ),
   MOBILE_APP_SCHEME: process.env.MOBILE_APP_SCHEME ?? "mirafood",
-  iremboPay: {
-    apiUrl: (process.env.IREMBOPAY_API_URL ?? "https://api.irembopay.com").replace(/\/$/, ""),
-    checkoutBaseUrl: (process.env.IREMBOPAY_CHECKOUT_URL ?? "https://pay.irembopay.com/checkout").replace(
-      /\/$/,
-      "",
-    ),
-    apiKey: process.env.IREMBOPAY_API_KEY ?? "",
-    webhookSecret: process.env.IREMBOPAY_WEBHOOK_SECRET ?? "",
-    merchantId: process.env.IREMBOPAY_MERCHANT_ID ?? "",
-  },
+  iremboPay: (() => {
+    const isProd = (process.env.NODE_ENV ?? "development") === "production";
+    const secretKey =
+      process.env.IREMBO_PAY_SECRET_KEY?.trim() ||
+      process.env.IREMBOPAY_SECRET_KEY?.trim() ||
+      process.env.IREMBOPAY_API_KEY?.trim() ||
+      "";
+    const publicKey =
+      process.env.IREMBO_PAY_PUBLIC_KEY?.trim() ||
+      process.env.IREMBOPAY_PUBLIC_KEY?.trim() ||
+      "";
+    /** Prefer IREMBO_PAY_BASE_URL (…/payments). Legacy IREMBOPAY_API_URL was host-only. */
+    const rawBase =
+      process.env.IREMBO_PAY_BASE_URL?.trim() ||
+      process.env.IREMBOPAY_API_URL?.trim() ||
+      (isProd ? "https://api.irembopay.com/payments" : "https://api.sandbox.irembopay.com/payments");
+    let baseUrl = rawBase.replace(/\/$/, "");
+    // If legacy host-only URL, append /payments so paths are /invoices not /payments/invoices twice.
+    if (!/\/payments$/i.test(baseUrl)) {
+      baseUrl = `${baseUrl}/payments`;
+    }
+    const payoutAccount =
+      process.env.IREMBO_PAYOUT_ACCOUNT?.trim() ||
+      process.env.IREMBOPAY_PAYMENT_ACCOUNT?.trim() ||
+      "";
+    const serviceFeeCode =
+      process.env.IREMBO_SERVICE_FEE_CODE?.trim() ||
+      process.env.IREMBOPAY_PRODUCT_MONTHLY?.trim() ||
+      "";
+    const shippingProductCode =
+      process.env.IREMBO_SHIPPING_PRODUCT_CODE?.trim() || "";
+    const widgetUrl =
+      process.env.IREMBO_PAY_WIDGET?.trim() ||
+      "https://dashboard.irembopay.com/assets/payment/inline.js";
+    return {
+      /** e.g. https://api.irembopay.com/payments — client calls {baseUrl}/invoices */
+      baseUrl,
+      secretKey,
+      publicKey,
+      webhookSecret: secretKey,
+      payoutAccount,
+      serviceFeeCode,
+      shippingProductCode,
+      widgetUrl,
+      /** @deprecated use baseUrl */
+      apiUrl: baseUrl,
+      /** @deprecated use payoutAccount */
+      paymentAccountIdentifier: payoutAccount,
+      /** @deprecated use secretKey */
+      apiKey: secretKey,
+    };
+  })(),
   email: {
     service: process.env.SMTP_SERVICE ?? "",
     host: process.env.SMTP_HOST ?? "",
