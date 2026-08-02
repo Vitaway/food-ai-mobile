@@ -3,7 +3,6 @@ import { useAuth } from '@/features/auth';
 import { ADMIN_ROUTES, AUTH_ROUTES, CONSUMER_ROUTES } from '@/features/auth/constants';
 import { useAdminMetrics } from '@/features/admin/hooks/useAdminQueries';
 import { useChatUnreadCount } from '@/hooks/useChatQueries';
-import { useChatRealtime } from '@/hooks/useChatRealtime';
 import { DashboardSidebarLayout, type SidebarNavItem } from '@/components/layout/DashboardSidebarLayout';
 import {
   selectIsOrganizationAdmin,
@@ -20,7 +19,7 @@ const platformNavRoutes = [
   { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
   { to: ADMIN_ROUTES.foodDb, label: 'Food database', end: false },
   { to: ADMIN_ROUTES.modules, label: 'Module entitlements', end: false },
-  { to: ADMIN_ROUTES.payments, label: 'Payments', end: false },
+  { to: ADMIN_ROUTES.payments, label: 'Billing & plans', end: false },
   { to: ADMIN_ROUTES.reports, label: 'Reports', end: false },
   { to: ADMIN_ROUTES.referrals, label: 'Referrals', end: false },
   { to: ADMIN_ROUTES.system, label: 'Audit & system', end: false },
@@ -84,7 +83,6 @@ function NavCountBadge({ count }: { count: number }) {
 }
 
 export function AdminShell() {
-  useChatRealtime();
   const { data: metrics } = useAdminMetrics();
   const { data: chatUnread } = useChatUnreadCount();
   const { user, logout } = useAuth();

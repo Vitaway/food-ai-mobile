@@ -301,6 +301,86 @@ export async function fetchAdminUserDetail(userId: string): Promise<AdminUserDet
   return apiRequest<AdminUserDetail>(`/admin/users/${userId}`);
 }
 
+export type GrantAdminSubscriptionPayload = {
+  planCode?: string;
+  renewsOn?: string;
+  months?: number;
+  note?: string;
+};
+
+export async function grantAdminSubscription(
+  userId: string,
+  payload: GrantAdminSubscriptionPayload,
+) {
+  return apiRequest<AdminUserDetail['subscription']>(
+    `/admin/users/${userId}/subscription/grant`,
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+}
+
+export type CreateAdminSubscriptionPlanPayload = {
+  code: string;
+  label: string;
+  amount: number;
+  currency?: string;
+  subscriptionType: 'individual' | 'corporate' | 'family';
+  intervalDays: number;
+  isPublic?: boolean;
+  isActive?: boolean;
+};
+
+export async function createAdminSubscriptionPlan(payload: CreateAdminSubscriptionPlanPayload) {
+  return apiRequest('/admin/subscription-plans', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export type AdminUserBilling = {
+  subscription: {
+    id: string;
+    planCode: string;
+    subscriptionType: string;
+    status: string;
+    renewsOn: string | null;
+    trialEndsOn: string | null;
+    organizationId: string | null;
+    metadata: Record<string, unknown>;
+    createdAt: string;
+    updatedAt: string;
+  } | null;
+  subscriptions: Array<{
+    id: string;
+    planCode: string;
+    subscriptionType: string;
+    status: string;
+    renewsOn: string | null;
+    createdAt: string;
+    grantedByAdmin: boolean;
+    grantNote: string | null;
+  }>;
+  payments: Array<{
+    id: string;
+    externalRef: string;
+    invoiceNumber: string | null;
+    planCode: string | null;
+    amount: number;
+    currency: string;
+    status: string;
+    provider: string;
+    paymentLinkUrl: string | null;
+    createdAt: string;
+    processedAt: string | null;
+  }>;
+};
+
+export async function fetchAdminUserBilling(userId: string): Promise<AdminUserBilling> {
+  return apiRequest<AdminUserBilling>(`/admin/users/${userId}/billing`);
+}
+
 export async function setAdminClientCoaches(userId: string, coachUserIds: string[]) {
   return apiRequest<{ clientId: string; assignedCoachIds: string[] }>(
     `/admin/users/${userId}/coaches`,

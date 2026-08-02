@@ -11,6 +11,8 @@ import {
   fetchAdminSystem,
   fetchAdminUsers,
   fetchAdminUserDetail,
+  grantAdminSubscription,
+  fetchAdminUserBilling,
   setAdminClientCoaches,
   fetchAdminReviewQueue,
   adminForceReleaseMealPick,
@@ -208,6 +210,27 @@ export function useUpdateAdminUser() {
       // Invalidate all org detail/metrics queries — org id may change or clear.
       void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'organizations'] });
     },
+  });
+}
+
+export function useGrantAdminSubscription(userId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: import('@/features/admin/api/adminApi').GrantAdminSubscriptionPayload) =>
+      grantAdminSubscription(userId, payload),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.user(userId) });
+      void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
+      void qc.invalidateQueries({ queryKey: [...adminKeys.user(userId), 'billing'] });
+    },
+  });
+}
+
+export function useAdminUserBilling(userId: string | null) {
+  return useQuery({
+    queryKey: [...adminKeys.user(userId ?? ''), 'billing'],
+    queryFn: () => fetchAdminUserBilling(userId!),
+    enabled: Boolean(userId),
   });
 }
 

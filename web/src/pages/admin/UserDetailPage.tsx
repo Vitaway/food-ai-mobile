@@ -13,12 +13,19 @@ import { ADMIN_ROUTES } from '@/features/auth/constants';
 import {
   useAdminResetPassword,
   useAdminUserDetail,
+  useGrantAdminSubscription,
   useUpdateAdminCoachProfile,
   useUpdateAdminUser,
 } from '@/features/admin/hooks/useAdminQueries';
 import { useToast } from '@/context/ToastContext';
 import { getApiErrorMessage } from '@/lib/apiErrors';
 import { useConfirmDialog } from '@/hooks/useConfirmDialog';
+
+function defaultRenewsOnPlusMonths(months: number): string {
+  const d = new Date();
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
 
 const USER_ROLE_OPTIONS = [
   { value: 'consumer', label: 'Patient / consumer' },
@@ -53,10 +60,14 @@ export function AdminUserDetailPage() {
   const updateUser = useUpdateAdminUser();
   const updateCoach = useUpdateAdminCoachProfile();
   const resetPassword = useAdminResetPassword();
+  const grantSubscription = useGrantAdminSubscription(id ?? '');
 
   const [accountDraft, setAccountDraft] = useState<Record<string, string>>({});
   const [coachDraft, setCoachDraft] = useState<Record<string, string>>({});
   const [showAccountPanel, setShowAccountPanel] = useState(false);
+  const [grantPlanCode, setGrantPlanCode] = useState('individual_monthly');
+  const [grantRenewsOn, setGrantRenewsOn] = useState(() => defaultRenewsOnPlusMonths(1));
+  const [grantNote, setGrantNote] = useState('');
 
   const user = data?.user;
   const coachProfile = data?.coachProfile;
@@ -356,14 +367,99 @@ export function AdminUserDetailPage() {
                     <dt className="text-ash-grey-500">Billing status</dt>
                     <dd className="font-medium capitalize text-ash-grey-900">{data.subscription.status}</dd>
                   </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-ash-grey-500">Access until</dt>
+                    <dd className="font-medium text-ash-grey-900">
+                      {data.subscription.renewsOn
+                        ? new Date(data.subscription.renewsOn).toLocaleDateString()
+                        : '—'}
+                    </dd>
+                  </div>
                 </>
-              ) : null}
+              ) : (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ash-grey-500">Subscription</dt>
+                  <dd className="font-medium text-ash-grey-900">None</dd>
+                </div>
+              )}
               <div className="rounded-xl border border-ash-grey-200 bg-ash-grey-50 px-4 py-3 text-ash-grey-600">
                 Use <strong className="text-ash-grey-800">Email new password</strong> above to send a
                 temporary password. The user is signed out everywhere automatically.
               </div>
             </dl>
           </DashboardPanel>
+
+          {user.role === 'consumer' ? (
+            <DashboardPanel title="Mark paid subscription">
+              <div className="grid gap-3 px-3 py-3 sm:grid-cols-2 sm:px-4">
+                <div>
+                  <FieldLabel>Plan</FieldLabel>
+                  <Select
+                    aria-label="Grant plan"
+                    value={grantPlanCode}
+                    onChange={setGrantPlanCode}
+                    options={[
+                      { value: 'individual_weekly', label: 'Weekly' },
+                      { value: 'individual_monthly', label: 'Monthly' },
+                      { value: 'family_monthly', label: 'Family' },
+                    ]}
+                  />
+                </div>
+                <TextField
+                  label="Access until"
+                  type="date"
+                  value={grantRenewsOn}
+                  onChange={(e) => setGrantRenewsOn(e.target.value)}
+                />
+                <div className="sm:col-span-2">
+                  <TextField
+                    label="Note (optional)"
+                    value={grantNote}
+                    onChange={(e) => setGrantNote(e.target.value)}
+                    placeholder="e.g. Paid via bank transfer for March"
+                  />
+                </div>
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setGrantRenewsOn(defaultRenewsOnPlusMonths(1))}>
+                    +1 month
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setGrantRenewsOn(defaultRenewsOnPlusMonths(3))}>
+                    +3 months
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={grantSubscription.isPending || !grantRenewsOn}
+                    onClick={() => {
+                      if (!id) return;
+                      void grantSubscription
+                        .mutateAsync({
+                          planCode: grantPlanCode,
+                          renewsOn: grantRenewsOn,
+                          note: grantNote.trim() || undefined,
+                        })
+                        .then(() => {
+                          toast.success('Subscription marked active through the selected date.');
+                          setGrantNote('');
+                        })
+                        .catch((err) =>
+                          toast.error(getApiErrorMessage(err, 'Could not grant subscription')),
+                        );
+                    }}>
+                    {grantSubscription.isPending ? 'Saving…' : 'Mark as paid'}
+                  </Button>
+                </div>
+              </div>
+            </DashboardPanel>
+          ) : null}
         </div>
       ) : null}
 

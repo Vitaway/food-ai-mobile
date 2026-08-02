@@ -31,6 +31,9 @@ import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
   SetClientCoachesDto,
+  UpdateSubscriptionPlanDto,
+  CreateSubscriptionPlanDto,
+  GrantSubscriptionDto,
 } from "./admin.dto";
 import { moduleEntitlementsService } from "./module-entitlements.service";
 import { organizationsService } from "./organizations.service";
@@ -38,6 +41,8 @@ import { coachMealsService } from "../meals/coach-meals.service";
 import { clinicalAssessmentService } from "../consumers/clinical-assessment.service";
 import { adminPatientService } from "./admin-patient.service";
 import { ConfirmClinicalAssessmentDto, SaveClinicalAssessmentDto } from "../coaches/coach.dto";
+import { subscriptionPlansService } from "../payments/subscription-plans.service";
+import { paymentsService } from "../payments/payments.service";
 
 const ADMIN_OR_ORG = ["admin", "organization_admin"] as const;
 
@@ -392,5 +397,44 @@ export class AdminController {
     @Req() req: Request,
   ) {
     return moduleEntitlementsService.ensureAccount(admin.id, dto.organizationKey, req);
+  }
+
+  @Authorized(["admin"])
+  @Get("/subscription-plans")
+  listSubscriptionPlans() {
+    return subscriptionPlansService.listAllAdmin();
+  }
+
+  @Authorized(["admin"])
+  @Post("/subscription-plans")
+  createSubscriptionPlan(@Body() dto: CreateSubscriptionPlanDto) {
+    return subscriptionPlansService.createPlan(dto);
+  }
+
+  @Authorized(["admin"])
+  @Patch("/subscription-plans/:code")
+  updateSubscriptionPlan(
+    @Param("code") code: string,
+    @Body() dto: UpdateSubscriptionPlanDto,
+  ) {
+    return subscriptionPlansService.updatePlan(code, dto);
+  }
+
+  /** Patient billing: subscription + payment history. */
+  @Authorized(["admin"])
+  @Get("/users/:id/billing")
+  userBilling(@Param("id") id: string) {
+    return paymentsService.getUserBilling(id);
+  }
+
+  /** Mark consumer as paid through renewsOn (manual / offline payment). */
+  @Authorized(["admin"])
+  @Post("/users/:id/subscription/grant")
+  grantSubscription(
+    @CurrentUser() admin: User,
+    @Param("id") id: string,
+    @Body() dto: GrantSubscriptionDto,
+  ) {
+    return paymentsService.grantSubscription(admin.id, id, dto);
   }
 }
