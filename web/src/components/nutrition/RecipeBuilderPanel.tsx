@@ -222,10 +222,6 @@ export function RecipeBuilderPanel() {
   const energyTotal = energyLines.reduce((s, l) => s + l.kcal, 0);
   const topEnergy = [...energyLines].sort((a, b) => b.kcal - a.kcal)[0];
   const topPct = topEnergy && energyTotal > 0 ? (topEnergy.kcal / energyTotal) * 100 : 0;
-  const saltMissing =
-    form.ingredients.length > 0 &&
-    !/porridge|juice/i.test(form.name) &&
-    !form.ingredients.some((i) => /salt/i.test(i.name));
   const inheritedAllergens = previewMeta?.inheritedAllergens ?? [];
   const servingsProduced =
     cookedYieldG > 0 && servingWeightG > 0
@@ -461,12 +457,6 @@ export function RecipeBuilderPanel() {
               Ingredients <span className="font-normal normal-case">— as purchased; edible via EPF</span>
             </h3>
             <FoodDbPicker excludeRecipes onSelect={addIngredient} />
-            {saltMissing ? (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800">
-                Salt not entered. Cooks routinely forget it, and sodium is clinically critical for this
-                dish.
-              </div>
-            ) : null}
             {inheritedAllergens.length ? (
               <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
                 Dish carries <strong>{inheritedAllergens.join(', ')}</strong> from its ingredients.
