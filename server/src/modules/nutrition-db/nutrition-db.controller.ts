@@ -19,6 +19,7 @@ import { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.d
 import { CreateRecipeDto, PreviewRecipeDto, UpdateRecipeDto } from "./recipe.dto";
 import { nutritionDbService } from "./nutrition-db.service";
 import { recipeService } from "./recipe.service";
+import { parseCsvQueryParam } from "./query-param.util";
 import { saveNutritionFoodImage } from "../../services/uploads.service";
 
 const imageUpload = multer({
@@ -74,16 +75,13 @@ export class NutritionDbController {
     @QueryParam("page") page?: number,
     @QueryParam("pageSize") pageSize?: number,
     @QueryParam("sourceType") sourceType?: string,
-    @QueryParam("excludeSourceTypes") excludeSourceTypes?: string | string[],
+    // Must stay typed as string — see parseCsvQueryParam.
+    @QueryParam("excludeSourceTypes") excludeSourceTypes?: string,
     @CurrentUser() user?: User,
   ) {
     const approvalFilter =
       approval ?? (user?.role === "coach" || user?.role === "admin" ? "all" : "approved");
-    const excluded = Array.isArray(excludeSourceTypes)
-      ? excludeSourceTypes
-      : typeof excludeSourceTypes === "string" && excludeSourceTypes.trim()
-        ? excludeSourceTypes.split(",").map((s) => s.trim()).filter(Boolean)
-        : undefined;
+    const excluded = parseCsvQueryParam(excludeSourceTypes);
     return nutritionDbService.listFoods(
       q,
       category,
