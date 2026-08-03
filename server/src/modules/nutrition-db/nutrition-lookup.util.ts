@@ -5,6 +5,7 @@ export type NutritionFoodRow = {
   nameSw?: string | null;
   nameRw?: string | null;
   nameLocalOther?: string | null;
+  searchSynonyms?: string[] | null;
   nutritionPer100g: Record<string, number>;
   micronutrients: Record<string, number>;
   composition?: Record<string, number>;
@@ -65,11 +66,16 @@ export function scoreNameMatch(query: string, foodName: string, brand?: string |
 export function scoreNutritionFoodBase(query: string, food: NutritionFoodRow): number {
   const trimmed = query.trim();
   if (!trimmed) return 0;
+  const synonymScores = (food.searchSynonyms ?? []).map((syn) =>
+    scoreNameMatch(trimmed, syn, food.brand),
+  );
   return Math.max(
     scoreNameMatch(trimmed, food.name, food.brand),
     food.nameSw ? scoreNameMatch(trimmed, food.nameSw, food.brand) : 0,
     food.nameRw ? scoreNameMatch(trimmed, food.nameRw, food.brand) : 0,
     food.nameLocalOther ? scoreNameMatch(trimmed, food.nameLocalOther, food.brand) : 0,
+    ...synonymScores,
+    0,
   );
 }
 

@@ -1,11 +1,13 @@
 import {
   calculateRecipeNutrition,
+  edibleWeightG,
   nutrientsForRawWeight,
   sumNutrientMaps,
 } from "./recipe-yield.util";
+import { applyRetention } from "./retention.util";
 
 describe("recipe-yield.util", () => {
-  const cassava = { energy_kcal: 100, protein_g: 10, iron_mg: 2 };
+  const cassava = { energy_kcal: 100, protein_g: 10, iron_mg: 2, vitamin_c_mg: 100 };
   const oil = { energy_kcal: 900, fat_g: 100 };
 
   it("scales per-100g by raw weight", () => {
@@ -13,7 +15,13 @@ describe("recipe-yield.util", () => {
       energy_kcal: 200,
       protein_g: 20,
       iron_mg: 4,
+      vitamin_c_mg: 200,
     });
+  });
+
+  it("applies edible portion factor", () => {
+    expect(edibleWeightG(200, 0.5)).toBe(100);
+    expect(nutrientsForRawWeight(cassava, 200, 0.5).energy_kcal).toBe(100);
   });
 
   it("sums ingredient nutrient maps", () => {
@@ -28,9 +36,6 @@ describe("recipe-yield.util", () => {
   });
 
   it("applies cooked yield then serving weight", () => {
-    // Raw: 100g cassava + 10g oil → 190 kcal total
-    // Cooked yield 80g → 190/80 per gram → ×100 = 237.5 kcal/100g
-    // Serving 250g cup → 190/80 * 250 = 593.75 kcal
     const result = calculateRecipeNutrition({
       ingredients: [
         { compositionPer100g: cassava, rawWeightG: 100 },
@@ -44,6 +49,26 @@ describe("recipe-yield.util", () => {
     expect(result.per100g.energy_kcal).toBe(237.5);
     expect(result.perServing?.energy_kcal).toBe(593.75);
     expect(result.perServing?.fat_g).toBe(31.25);
+    expect(result.rawEdibleTotalG).toBe(110);
+    expect(result.yieldFactor).toBeCloseTo(80 / 110, 5);
+  });
+
+  it("applies retention for boiled water discarded", () => {
+    const retained = applyRetention({ vitamin_c_mg: 100, protein_g: 10 }, "Boiled, water discarded");
+    expect(retained.vitamin_c_mg).toBe(45);
+    expect(retained.protein_g).toBe(10);
+  });
+
+  it("skips non-default variant lines", () => {
+    const result = calculateRecipeNutrition({
+      ingredients: [
+        { compositionPer100g: cassava, rawWeightG: 100, includeInComposition: true },
+        { compositionPer100g: oil, rawWeightG: 50, includeInComposition: false },
+      ],
+      cookedYieldG: 100,
+    });
+    expect(result.totalNutrients.energy_kcal).toBe(100);
+    expect(result.totalNutrients.fat_g).toBeUndefined();
   });
 
   it("returns empty per-100g when cooked yield is zero", () => {
