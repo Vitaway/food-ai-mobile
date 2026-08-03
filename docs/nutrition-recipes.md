@@ -55,6 +55,12 @@ nutrition_foods (source_type='recipe', cooked_yield_g, nutrition_per100g)
 - A parallel `sourceType=recipe` search ensures dishes are not crowded out of the TFCT candidate window.
 - Recipes get a modest score boost once the lexical match is already plausible; exact ingredient queries still win over loosely related recipes.
 
-## Out of scope (Phase 2)
+## Rich clinical layer (Phases A–C)
 
-Cooking-method retention factors, edible portion (EPF), draft/pending/verified workflow, version freeze, allergen inheritance UI, recipe images.
+- Foods: prep state, EPF, synonyms, allergens, unknown nutrients (`?`), Atwater check, draft → submit → verified.
+- Recipes: edible = raw × EPF, cooking-method retention (provisional), energy strip, salt gate, allergen inheritance, version freeze on submit.
+- **Nutrition review** queue at `/coach/nutrition-review` and `/admin/nutrition-review`.
+
+## Meal plans
+
+See [meal-plans-design.md](./meal-plans-design.md) (Phase D — after the food DB is trustworthy).
