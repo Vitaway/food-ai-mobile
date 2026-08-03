@@ -7,6 +7,32 @@ import type { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition
 import { SERVING_UNITS, normalizeServingUnit } from "./serving-units.util";
 import { bestNutritionFoodMatch, normalizeSearchLabel, scoreNutritionFood } from "./nutrition-lookup.util";
 import {
+  CLINICAL_NUTRIENT_PANEL,
+  atwaterEnergyCheck,
+  displayApprovalStatus,
+  nutrientCompleteness,
+  readClinicalNutrient,
+} from "./clinical-nutrients.util";
+
+const CLINICAL_KEYS = CLINICAL_NUTRIENT_PANEL.map((n) => n.key) as string[];
+
+/** Replace curated clinical keys; strip unknowns so "?" never stores as a leftover number. */
+function mergeClinicalComposition(
+  existing: Record<string, number>,
+  incoming: Record<string, number>,
+  nutrientsUnknown?: string[],
+): Record<string, number> {
+  const next = { ...existing };
+  for (const key of CLINICAL_KEYS) {
+    delete next[key];
+  }
+  Object.assign(next, incoming);
+  for (const key of nutrientsUnknown ?? []) {
+    delete next[key];
+  }
+  return next;
+}
+import {
   composeTfctFromLegacy,
   toLegacyMicronutrients,
   toLegacyNutritionPer100g,
@@ -43,6 +69,14 @@ function normalizeServing(serving: NutritionServingProfile) {
 
 function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
   const composition = food.nutritionPer100g ?? {};
+  const nutrientsUnknown = Array.isArray(food.nutrientsUnknown) ? food.nutrientsUnknown : [];
+  const completeness = nutrientCompleteness(composition, nutrientsUnknown);
+  const energyCheck = atwaterEnergyCheck({
+    energyKcal: readClinicalNutrient(composition, "energy_kcal"),
+    proteinG: readClinicalNutrient(composition, "protein_g"),
+    carbG: readClinicalNutrient(composition, "carb_g"),
+    fatG: readClinicalNutrient(composition, "fat_g"),
+  });
   return {
     id: food.id,
     foodCode: food.foodCode,
@@ -65,9 +99,25 @@ function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
     packageSizeG: food.packageSizeG != null ? Number(food.packageSizeG) : null,
     labelSource: food.labelSource,
     cookedYieldG: food.cookedYieldG != null ? Number(food.cookedYieldG) : null,
+    preparationState: food.preparationState ?? null,
+    ediblePortionFactor:
+      food.ediblePortionFactor != null ? Number(food.ediblePortionFactor) : 1,
+    searchSynonyms: Array.isArray(food.searchSynonyms) ? food.searchSynonyms : [],
+    allergens: Array.isArray(food.allergens) ? food.allergens : [],
+    nutrientsUnknown,
     source: food.source,
     sourceVersion: food.sourceVersion,
+    sourceReference: food.sourceReference ?? null,
+    cookingMethod: food.cookingMethod ?? null,
+    recipeVersion: food.recipeVersion ?? 1,
+    hasFrozenSnapshot: food.frozenSnapshot != null,
     approvalStatus: food.approvalStatus ?? "approved",
+    displayStatus: displayApprovalStatus(food.approvalStatus, food.isActive),
+    fieldCompleteness: completeness,
+    energyCheck,
+    sodiumMissing:
+      !nutrientsUnknown.includes("sodium_mg") &&
+      readClinicalNutrient(composition, "sodium_mg") == null,
     submittedByUserId: food.submittedByUserId,
     verifiedByUserId: food.verifiedByUserId,
     /** Full TFCT composition — snake_case keys matching the spreadsheet. */
@@ -104,7 +154,7 @@ export const nutritionDbService = {
     query?: string,
     category?: string,
     includeInactive = false,
-    approvalFilter: "approved" | "pending" | "rejected" | "all" = "approved",
+    approvalFilter: "approved" | "pending" | "rejected" | "draft" | "all" = "approved",
     page?: number,
     pageSize?: number,
     sourceType?: string,
@@ -120,6 +170,8 @@ export const nutritionDbService = {
       qb.andWhere("food.approval_status = 'pending'");
     } else if (approvalFilter === "rejected") {
       qb.andWhere("food.approval_status = 'rejected'");
+    } else if (approvalFilter === "draft") {
+      qb.andWhere("food.approval_status = 'draft'");
     }
 
     const trimmedQuery = query?.trim() ?? "";
@@ -136,6 +188,7 @@ export const nutritionDbService = {
         "food.name_local_other ILIKE :full",
         "food.food_code ILIKE :full",
         "food.barcode ILIKE :full",
+        "EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(food.search_synonyms, '[]'::jsonb)) syn WHERE syn ILIKE :full)",
       ];
       const params: Record<string, string> = { full: `%${trimmedQuery}%` };
       tokens.forEach((token, index) => {
@@ -147,6 +200,7 @@ export const nutritionDbService = {
           `food.name_sw ILIKE :${key}`,
           `food.name_rw ILIKE :${key}`,
           `food.name_local_other ILIKE :${key}`,
+          `EXISTS (SELECT 1 FROM jsonb_array_elements_text(COALESCE(food.search_synonyms, '[]'::jsonb)) syn WHERE syn ILIKE :${key})`,
         );
       });
       qb.andWhere(`(${ors.join(" OR ")})`, params);
@@ -297,19 +351,30 @@ export const nutritionDbService = {
     });
     // Allow explicit composition (snake_case) to override
     const fromComposition = toTfctComposition(dto.composition);
-    const merged = { ...composition, ...fromComposition };
+    const unknowns = Array.isArray(dto.nutrientsUnknown)
+      ? dto.nutrientsUnknown.map((s) => s.trim()).filter(Boolean)
+      : [];
+    const merged = mergeClinicalComposition({}, { ...composition, ...fromComposition }, unknowns);
+
+    // Coach: asDraft → draft; otherwise pending. Admin/staff: approved + active.
+    let approvalStatus: NutritionFood["approvalStatus"] = "approved";
+    let isActive = true;
+    if (coachSubmitted) {
+      approvalStatus = dto.asDraft === true ? "draft" : "pending";
+      isActive = false;
+    }
 
     const food = foodRepo.create({
       name: dto.name.trim(),
       category: dto.category.trim(),
       brand: dto.brand?.trim() || null,
-      isActive: coachSubmitted ? false : true,
-      approvalStatus: coachSubmitted ? "pending" : "approved",
+      isActive,
+      approvalStatus,
       submittedByUserId: submittedByUserId ?? null,
       nutritionPer100g: merged,
       micronutrients: {},
       barcode: dto.barcode?.trim() || null,
-      sourceType: dto.sourceType?.trim() || (coachSubmitted ? "custom_local" : "custom_local"),
+      sourceType: dto.sourceType?.trim() || "custom_local",
       applicableCountries: dto.applicableCountries?.trim() || null,
       nameSw: dto.nameSw?.trim() || null,
       nameRw: dto.nameRw?.trim() || null,
@@ -320,6 +385,21 @@ export const nutritionDbService = {
           ? String(dto.packageSizeG)
           : null,
       labelSource: dto.labelSource?.trim() || null,
+      preparationState: dto.preparationState?.trim() || null,
+      ediblePortionFactor:
+        dto.ediblePortionFactor != null && Number.isFinite(dto.ediblePortionFactor)
+          ? String(dto.ediblePortionFactor)
+          : "1",
+      searchSynonyms: Array.isArray(dto.searchSynonyms)
+        ? dto.searchSynonyms.map((s) => s.trim()).filter(Boolean)
+        : [],
+      allergens: Array.isArray(dto.allergens)
+        ? dto.allergens.map((s) => s.trim()).filter(Boolean)
+        : [],
+      nutrientsUnknown: unknowns,
+      source: dto.source?.trim() || null,
+      sourceVersion: dto.sourceVersion?.trim() || null,
+      sourceReference: dto.sourceReference?.trim() || null,
     });
     await foodRepo.save(food);
     if (dto.servings?.length) {
@@ -362,6 +442,25 @@ export const nutritionDbService = {
     return this.getFood(id);
   },
 
+  async submitFoodForReview(id: string, userId: string) {
+    const food = await foodRepo.findOne({ where: { id } });
+    if (!food) throw new NotFoundError("Nutrition food not found");
+    food.approvalStatus = "pending";
+    food.isActive = false;
+    food.submittedByUserId = userId;
+    await foodRepo.save(food);
+    return this.getFood(id);
+  },
+
+  async returnFoodToDraft(id: string) {
+    const food = await foodRepo.findOne({ where: { id } });
+    if (!food) throw new NotFoundError("Nutrition food not found");
+    food.approvalStatus = "draft";
+    food.isActive = false;
+    await foodRepo.save(food);
+    return this.getFood(id);
+  },
+
   async updateFood(id: string, dto: UpdateNutritionFoodDto) {
     const food = await foodRepo.findOne({ where: { id } });
     if (!food) throw new NotFoundError("Nutrition food not found");
@@ -386,20 +485,58 @@ export const nutritionDbService = {
     }
     if (dto.labelSource !== undefined) food.labelSource = dto.labelSource?.trim() || null;
     if (dto.imageConfirmed !== undefined) food.imageConfirmed = dto.imageConfirmed;
+    if (dto.preparationState !== undefined) {
+      food.preparationState = dto.preparationState?.trim() || null;
+    }
+    if (dto.ediblePortionFactor !== undefined) {
+      food.ediblePortionFactor =
+        dto.ediblePortionFactor != null && Number.isFinite(dto.ediblePortionFactor)
+          ? String(dto.ediblePortionFactor)
+          : "1";
+    }
+    if (dto.searchSynonyms !== undefined) {
+      food.searchSynonyms = dto.searchSynonyms.map((s) => s.trim()).filter(Boolean);
+    }
+    if (dto.allergens !== undefined) {
+      food.allergens = dto.allergens.map((s) => s.trim()).filter(Boolean);
+    }
+    if (dto.nutrientsUnknown !== undefined) {
+      food.nutrientsUnknown = dto.nutrientsUnknown.map((s) => s.trim()).filter(Boolean);
+    }
+    if (dto.source !== undefined) food.source = dto.source?.trim() || null;
+    if (dto.sourceVersion !== undefined) food.sourceVersion = dto.sourceVersion?.trim() || null;
+    if (dto.sourceReference !== undefined) {
+      food.sourceReference = dto.sourceReference?.trim() || null;
+    }
+    if (dto.asDraft === true) {
+      food.approvalStatus = "draft";
+      food.isActive = false;
+    } else if (dto.submitForReview === true) {
+      food.approvalStatus = "pending";
+      food.isActive = false;
+    }
 
     if (
       dto.nutritionPer100g !== undefined ||
       dto.micronutrients !== undefined ||
       dto.composition !== undefined
     ) {
-      const base = { ...(food.nutritionPer100g ?? {}) };
       const fromLegacy = composeTfctFromLegacy({
         nutritionPer100g: dto.nutritionPer100g,
         micronutrients: dto.micronutrients,
       });
       const fromComposition = toTfctComposition(dto.composition);
-      food.nutritionPer100g = { ...base, ...fromLegacy, ...fromComposition };
+      food.nutritionPer100g = mergeClinicalComposition(
+        food.nutritionPer100g ?? {},
+        { ...fromLegacy, ...fromComposition },
+        Array.isArray(food.nutrientsUnknown) ? food.nutrientsUnknown : [],
+      );
       food.micronutrients = {};
+    } else if (dto.nutrientsUnknown !== undefined) {
+      // Unknown toggled without a full composition rewrite — still strip those keys.
+      const next = { ...(food.nutritionPer100g ?? {}) };
+      for (const key of food.nutrientsUnknown) delete next[key];
+      food.nutritionPer100g = next;
     }
 
     await foodRepo.save(food);

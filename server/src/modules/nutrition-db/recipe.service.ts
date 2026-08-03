@@ -7,9 +7,11 @@ import { NutritionRecipeIngredient } from "./nutrition-recipe-ingredient.entity"
 import { normalizeServingUnit } from "./serving-units.util";
 import {
   calculateRecipeNutrition,
+  edibleWeightG,
   pickTfctRecipeComposition,
 } from "./recipe-yield.util";
-import type { CreateRecipeDto, PreviewRecipeDto, UpdateRecipeDto } from "./recipe.dto";
+import { RETENTION_PROVISIONAL, retentionForMethod } from "./retention.util";
+import type { CreateRecipeDto, PreviewRecipeDto, UpdateRecipeDto, RecipeIngredientDto } from "./recipe.dto";
 import { nutritionDbService } from "./nutrition-db.service";
 
 const foodRepo = AppDataSource.getRepository(NutritionFood);
@@ -45,10 +47,19 @@ function kcalFromComposition(composition: Record<string, number> | null | undefi
   return Number.isFinite(n) ? n : 0;
 }
 
+function includeLine(ing: {
+  variantGroup?: string | null;
+  isVariantDefault?: boolean | null;
+}): boolean {
+  if (!ing.variantGroup) return true;
+  return Boolean(ing.isVariantDefault);
+}
+
 async function computeComposition(
-  ingredients: Array<{ ingredientFoodId: string; rawWeightG: number }>,
+  ingredients: RecipeIngredientDto[],
   cookedYieldG: number,
   servingWeightG?: number,
+  cookingMethod?: string | null,
 ) {
   if (cookedYieldG <= 0) throw new BadRequestError("Cooked yield weight must be greater than zero");
   if (!ingredients.length) throw new BadRequestError("Add at least one ingredient");
@@ -60,32 +71,53 @@ async function computeComposition(
       return {
         compositionPer100g: food.nutritionPer100g ?? {},
         rawWeightG: ing.rawWeightG,
+        ediblePortionFactor:
+          food.ediblePortionFactor != null ? Number(food.ediblePortionFactor) : 1,
+        includeInComposition: includeLine(ing),
       };
     }),
     cookedYieldG,
     servingWeightG,
+    cookingMethod,
   });
+
+  const inheritedAllergens = [
+    ...new Set(
+      ingredients
+        .filter((ing) => includeLine(ing))
+        .flatMap((ing) => {
+          const food = byId.get(ing.ingredientFoodId)!;
+          return Array.isArray(food.allergens) ? food.allergens : [];
+        }),
+    ),
+  ];
 
   return {
     ...calc,
     per100g: pickTfctRecipeComposition(calc.per100g),
+    retention: retentionForMethod(cookingMethod),
+    retentionProvisional: RETENTION_PROVISIONAL,
+    inheritedAllergens,
     ingredients: ingredients.map((ing) => {
       const food = byId.get(ing.ingredientFoodId)!;
+      const epf = food.ediblePortionFactor != null ? Number(food.ediblePortionFactor) : 1;
       return {
         ingredientFoodId: food.id,
         name: food.name,
         nameRw: food.nameRw,
         rawWeightG: ing.rawWeightG,
+        edibleWeightG: edibleWeightG(ing.rawWeightG, epf),
+        ediblePortionFactor: epf,
+        allergens: Array.isArray(food.allergens) ? food.allergens : [],
+        variantGroup: ing.variantGroup ?? null,
+        isVariantDefault: ing.isVariantDefault ?? true,
         compositionPer100g: food.nutritionPer100g ?? {},
       };
     }),
   };
 }
 
-async function replaceIngredients(
-  recipeFoodId: string,
-  ingredients: Array<{ ingredientFoodId: string; rawWeightG: number; sortOrder?: number }>,
-) {
+async function replaceIngredients(recipeFoodId: string, ingredients: RecipeIngredientDto[]) {
   await ingredientRepo.delete({ recipeFoodId });
   const rows = ingredients.map((ing, idx) =>
     ingredientRepo.create({
@@ -93,6 +125,8 @@ async function replaceIngredients(
       ingredientFoodId: ing.ingredientFoodId,
       rawWeightG: String(ing.rawWeightG),
       sortOrder: ing.sortOrder ?? idx,
+      variantGroup: ing.variantGroup?.trim() || null,
+      isVariantDefault: ing.isVariantDefault ?? true,
     }),
   );
   await ingredientRepo.save(rows);
@@ -106,9 +140,7 @@ async function replaceServings(
   if (!servings.length) return;
   const payload = servings.map((serving, idx) => {
     const unit = normalizeRecipeUnit(serving.unit);
-    if (!RECIPE_UNITS.has(unit) && unit !== "serving" && unit !== "portion" && unit !== "g") {
-      // Allow cup/plate/bowl/tbsp/piece primarily; still accept normalized household units.
-    }
+    void RECIPE_UNITS;
     return servingRepo.create({
       foodId,
       unit,
@@ -118,6 +150,27 @@ async function replaceServings(
     });
   });
   await servingRepo.save(payload);
+}
+
+function freezeSnapshot(
+  food: NutritionFood,
+  computed: Awaited<ReturnType<typeof computeComposition>>,
+  ingredients: RecipeIngredientDto[],
+) {
+  return {
+    version: food.recipeVersion ?? 1,
+    frozenAt: new Date().toISOString(),
+    cookingMethod: food.cookingMethod,
+    cookedYieldG: food.cookedYieldG != null ? Number(food.cookedYieldG) : null,
+    per100g: computed.per100g,
+    ingredients: ingredients.map((ing) => ({
+      ingredientFoodId: ing.ingredientFoodId,
+      rawWeightG: ing.rawWeightG,
+      variantGroup: ing.variantGroup ?? null,
+      isVariantDefault: ing.isVariantDefault ?? true,
+    })),
+    inheritedAllergens: computed.inheritedAllergens,
+  };
 }
 
 async function mapRecipe(food: NutritionFood) {
@@ -136,43 +189,37 @@ async function mapRecipe(food: NutritionFood) {
   const cookedYieldG = food.cookedYieldG != null ? Number(food.cookedYieldG) : null;
   const defaultServing = base.servings.find((s) => s.isDefault) ?? base.servings[0];
   const servingWeightG = defaultServing?.gramsEquivalent ?? undefined;
+  const dtoLines: RecipeIngredientDto[] = ingredientRows.map((r) => ({
+    ingredientFoodId: r.ingredientFoodId,
+    rawWeightG: Number(r.rawWeightG),
+    sortOrder: r.sortOrder,
+    variantGroup: r.variantGroup ?? undefined,
+    isVariantDefault: r.isVariantDefault,
+  }));
 
-  let perServing: Record<string, number> | null = null;
+  let preview: Awaited<ReturnType<typeof computeComposition>> | null = null;
   if (cookedYieldG && cookedYieldG > 0 && ingredientRows.length) {
-    const preview = await computeComposition(
-      ingredientRows.map((r) => ({
-        ingredientFoodId: r.ingredientFoodId,
-        rawWeightG: Number(r.rawWeightG),
-      })),
+    preview = await computeComposition(
+      dtoLines,
       cookedYieldG,
       servingWeightG,
+      food.cookingMethod,
     );
-    perServing = preview.perServing;
   }
 
-  const kcalPer100 =
-    perServing != null && servingWeightG
-      ? null
-      : kcalFromComposition(food.nutritionPer100g);
+  const perServing = preview?.perServing ?? null;
   const kcalPerServing =
     perServing != null
-      ? Number(perServing.energy_kcal ?? perServing.caloriesKcal ?? 0) ||
-        (servingWeightG
-          ? Math.round((kcalFromComposition(food.nutritionPer100g) * servingWeightG) / 100)
-          : null)
+      ? Number(perServing.energy_kcal ?? perServing.caloriesKcal ?? 0) || null
       : servingWeightG
         ? Math.round((kcalFromComposition(food.nutritionPer100g) * servingWeightG) / 100)
-        : kcalPer100;
-
-  const rawTotalG = ingredientRows.reduce((sum, row) => sum + Number(row.rawWeightG || 0), 0);
-  const yieldFactor =
-    cookedYieldG && cookedYieldG > 0 && rawTotalG > 0
-      ? Math.round((cookedYieldG / rawTotalG) * 1000) / 1000
-      : null;
+        : null;
 
   return {
     ...base,
     cookedYieldG,
+    cookingMethod: food.cookingMethod ?? "Raw",
+    recipeVersion: food.recipeVersion ?? 1,
     isRecipe: true,
     ingredientCount: ingredientRows.length,
     defaultServing: defaultServing
@@ -183,16 +230,27 @@ async function mapRecipe(food: NutritionFood) {
         }
       : null,
     kcalPerServing: kcalPerServing != null && Number.isFinite(kcalPerServing) ? kcalPerServing : null,
-    rawTotalG: Math.round(rawTotalG * 100) / 100,
-    yieldFactor,
+    rawEdibleTotalG: preview?.rawEdibleTotalG ?? null,
+    yieldFactor: preview?.yieldFactor ?? null,
+    retention: preview?.retention ?? retentionForMethod(food.cookingMethod),
+    retentionProvisional: RETENTION_PROVISIONAL,
+    inheritedAllergens: preview?.inheritedAllergens ?? [],
+    energyByIngredient: preview?.energyByIngredient ?? [],
     ingredients: ingredientRows.map((row) => {
       const ing = byId.get(row.ingredientFoodId);
+      const epf = ing?.ediblePortionFactor != null ? Number(ing.ediblePortionFactor) : 1;
+      const raw = Number(row.rawWeightG);
       return {
         id: row.id,
         ingredientFoodId: row.ingredientFoodId,
         name: ing?.name ?? "Unknown",
         nameRw: ing?.nameRw ?? null,
-        rawWeightG: Number(row.rawWeightG),
+        rawWeightG: raw,
+        edibleWeightG: edibleWeightG(raw, epf),
+        ediblePortionFactor: epf,
+        allergens: Array.isArray(ing?.allergens) ? ing!.allergens : [],
+        variantGroup: row.variantGroup,
+        isVariantDefault: row.isVariantDefault,
         sortOrder: row.sortOrder,
       };
     }),
@@ -201,12 +259,19 @@ async function mapRecipe(food: NutritionFood) {
 }
 
 export const recipeService = {
-  async listRecipes(query?: string) {
+  async listRecipes(query?: string, approval?: "approved" | "pending" | "draft" | "all") {
     const qb = foodRepo
       .createQueryBuilder("food")
       .where("food.source_type = :source", { source: "recipe" })
-      .andWhere("food.is_active = true")
       .orderBy("food.name", "ASC");
+    if (approval === "all" || approval == null) {
+      // coach/admin see active + drafts/pending when listing; default active approved-ish
+      qb.andWhere("(food.is_active = true OR food.approval_status IN ('draft','pending'))");
+    } else if (approval === "approved") {
+      qb.andWhere("food.is_active = true").andWhere("food.approval_status = 'approved'");
+    } else {
+      qb.andWhere("food.approval_status = :approval", { approval });
+    }
     if (query?.trim()) {
       const q = `%${query.trim().toLowerCase()}%`;
       qb.andWhere(
@@ -218,6 +283,14 @@ export const recipeService = {
     return Promise.all(foods.map((f) => mapRecipe(f)));
   },
 
+  async listPendingRecipes() {
+    const foods = await foodRepo.find({
+      where: { sourceType: "recipe", approvalStatus: "pending" },
+      order: { updatedAt: "DESC" },
+    });
+    return Promise.all(foods.map((f) => mapRecipe(f)));
+  },
+
   async getRecipe(id: string) {
     const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
     if (!food) throw new NotFoundError("Recipe not found");
@@ -225,38 +298,86 @@ export const recipeService = {
   },
 
   async preview(dto: PreviewRecipeDto) {
-    const result = await computeComposition(dto.ingredients, dto.cookedYieldG, dto.servingWeightG);
+    const result = await computeComposition(
+      dto.ingredients,
+      dto.cookedYieldG,
+      dto.servingWeightG,
+      dto.cookingMethod,
+    );
     return {
       cookedYieldG: dto.cookedYieldG,
       servingWeightG: dto.servingWeightG ?? null,
+      cookingMethod: dto.cookingMethod ?? "Raw",
       totalNutrients: result.totalNutrients,
       per100g: result.per100g,
       perServing: result.perServing,
-      ingredients: result.ingredients.map(({ ingredientFoodId, name, nameRw, rawWeightG }) => ({
-        ingredientFoodId,
-        name,
-        nameRw,
-        rawWeightG,
-      })),
+      rawEdibleTotalG: result.rawEdibleTotalG,
+      yieldFactor: result.yieldFactor,
+      retention: result.retention,
+      retentionProvisional: result.retentionProvisional,
+      inheritedAllergens: result.inheritedAllergens,
+      energyByIngredient: result.energyByIngredient,
+      ingredients: result.ingredients.map(
+        ({
+          ingredientFoodId,
+          name,
+          nameRw,
+          rawWeightG,
+          edibleWeightG: edibleG,
+          allergens,
+          variantGroup,
+          isVariantDefault,
+        }) => ({
+          ingredientFoodId,
+          name,
+          nameRw,
+          rawWeightG,
+          edibleWeightG: edibleG,
+          allergens,
+          variantGroup,
+          isVariantDefault,
+        }),
+      ),
     };
   },
 
   async createRecipe(dto: CreateRecipeDto, submittedByUserId?: string) {
-    const computed = await computeComposition(dto.ingredients, dto.cookedYieldG);
+    const computed = await computeComposition(
+      dto.ingredients,
+      dto.cookedYieldG,
+      undefined,
+      dto.cookingMethod,
+    );
+    const submit = dto.submitForReview === true;
+    const draft = dto.asDraft === true || !submit;
     const food = foodRepo.create({
       name: dto.name.trim(),
       nameRw: dto.nameRw?.trim() || null,
       category: (dto.category?.trim() || "Traditional dishes").trim(),
       brand: null,
-      isActive: true,
-      approvalStatus: "approved",
+      isActive: !draft && !submit ? true : false,
+      approvalStatus: submit ? "pending" : draft ? "draft" : "approved",
       submittedByUserId: submittedByUserId ?? null,
       sourceType: "recipe",
       nutritionPer100g: computed.per100g,
       micronutrients: {},
       cookedYieldG: String(dto.cookedYieldG),
+      cookingMethod: dto.cookingMethod?.trim() || "Raw",
+      allergens: computed.inheritedAllergens,
+      recipeVersion: 1,
       barcode: null,
     });
+    // Admin path: neither asDraft nor submitForReview → publish immediately
+    if (dto.asDraft !== true && dto.submitForReview !== true) {
+      food.isActive = true;
+      food.approvalStatus = "approved";
+      food.frozenSnapshot = freezeSnapshot(food, computed, dto.ingredients);
+      food.recipeVersion = 1;
+    } else if (submit) {
+      // Freeze once on submit-for-review create (caller must not also call /submit).
+      food.frozenSnapshot = freezeSnapshot(food, computed, dto.ingredients);
+      food.recipeVersion = 1;
+    }
     await foodRepo.save(food);
     await replaceIngredients(food.id, dto.ingredients);
     if (dto.servings?.length) {
@@ -276,24 +397,51 @@ export const recipeService = {
     if (dto.name != null) food.name = dto.name.trim();
     if (dto.nameRw !== undefined) food.nameRw = dto.nameRw?.trim() || null;
     if (dto.category != null) food.category = dto.category.trim();
+    if (dto.cookingMethod !== undefined) {
+      food.cookingMethod = dto.cookingMethod?.trim() || "Raw";
+    }
 
     const existingIngredients = await ingredientRepo.find({
       where: { recipeFoodId: id },
       order: { sortOrder: "ASC" },
     });
-    const ingredients =
+    const ingredients: RecipeIngredientDto[] =
       dto.ingredients ??
       existingIngredients.map((r) => ({
         ingredientFoodId: r.ingredientFoodId,
         rawWeightG: Number(r.rawWeightG),
         sortOrder: r.sortOrder,
+        variantGroup: r.variantGroup ?? undefined,
+        isVariantDefault: r.isVariantDefault,
       }));
     const cookedYieldG =
       dto.cookedYieldG != null ? dto.cookedYieldG : Number(food.cookedYieldG ?? 0);
 
-    const computed = await computeComposition(ingredients, cookedYieldG);
+    const computed = await computeComposition(
+      ingredients,
+      cookedYieldG,
+      undefined,
+      food.cookingMethod,
+    );
     food.cookedYieldG = String(cookedYieldG);
     food.nutritionPer100g = computed.per100g;
+    food.allergens = computed.inheritedAllergens;
+
+    if (dto.asDraft === true) {
+      food.approvalStatus = "draft";
+      food.isActive = false;
+    } else if (dto.submitForReview === true) {
+      food.approvalStatus = "pending";
+      food.isActive = false;
+      // Bump only on re-submit after a prior freeze; first submit stays v1.
+      if (food.frozenSnapshot) {
+        food.recipeVersion = (food.recipeVersion ?? 1) + 1;
+      } else {
+        food.recipeVersion = food.recipeVersion || 1;
+      }
+      food.frozenSnapshot = freezeSnapshot(food, computed, ingredients);
+    }
+
     await foodRepo.save(food);
 
     if (dto.ingredients) {
@@ -305,11 +453,73 @@ export const recipeService = {
     return this.getRecipe(id);
   },
 
+  async submitRecipe(id: string, userId: string) {
+    const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
+    if (!food) throw new NotFoundError("Recipe not found");
+    const ingredients = await ingredientRepo.find({
+      where: { recipeFoodId: id },
+      order: { sortOrder: "ASC" },
+    });
+    const dtoLines: RecipeIngredientDto[] = ingredients.map((r) => ({
+      ingredientFoodId: r.ingredientFoodId,
+      rawWeightG: Number(r.rawWeightG),
+      sortOrder: r.sortOrder,
+      variantGroup: r.variantGroup ?? undefined,
+      isVariantDefault: r.isVariantDefault,
+    }));
+    const cooked = Number(food.cookedYieldG ?? 0);
+    const computed = await computeComposition(dtoLines, cooked, undefined, food.cookingMethod);
+    food.approvalStatus = "pending";
+    food.isActive = false;
+    food.submittedByUserId = userId;
+    if (food.frozenSnapshot) {
+      food.recipeVersion = (food.recipeVersion ?? 1) + 1;
+    } else {
+      food.recipeVersion = food.recipeVersion || 1;
+    }
+    food.frozenSnapshot = freezeSnapshot(food, computed, dtoLines);
+    food.nutritionPer100g = computed.per100g;
+    food.allergens = computed.inheritedAllergens;
+    await foodRepo.save(food);
+    return this.getRecipe(id);
+  },
+
+  async returnRecipeToDraft(id: string) {
+    const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
+    if (!food) throw new NotFoundError("Recipe not found");
+    food.approvalStatus = "draft";
+    food.isActive = false;
+    await foodRepo.save(food);
+    return this.getRecipe(id);
+  },
+
+  async approveRecipe(id: string, adminUserId: string) {
+    const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
+    if (!food) throw new NotFoundError("Recipe not found");
+    food.approvalStatus = "approved";
+    food.isActive = true;
+    food.verifiedByUserId = adminUserId;
+    await foodRepo.save(food);
+    return this.getRecipe(id);
+  },
+
   async archiveRecipe(id: string) {
     const food = await foodRepo.findOne({ where: { id, sourceType: "recipe" } });
     if (!food) throw new NotFoundError("Recipe not found");
     food.isActive = false;
     await foodRepo.save(food);
     return { ok: true as const, id: food.id };
+  },
+
+  async reviewQueue() {
+    const [pendingFoods, pendingRecipes] = await Promise.all([
+      nutritionDbService.listPendingFoods(),
+      this.listPendingRecipes(),
+    ]);
+    return {
+      foods: pendingFoods,
+      recipes: pendingRecipes,
+      total: pendingFoods.length + pendingRecipes.length,
+    };
   },
 };

@@ -23,16 +23,26 @@ export type NutritionFood = {
   barcode: string | null;
   packageSizeG?: number | null;
   labelSource?: string | null;
+  preparationState?: string | null;
+  ediblePortionFactor?: number;
+  searchSynonyms?: string[];
+  allergens?: string[];
+  nutrientsUnknown?: string[];
   source?: string | null;
   sourceVersion?: string | null;
-  approvalStatus?: 'approved' | 'pending' | 'rejected';
+  sourceReference?: string | null;
+  cookingMethod?: string | null;
+  recipeVersion?: number;
+  hasFrozenSnapshot?: boolean;
+  approvalStatus?: 'draft' | 'approved' | 'pending' | 'rejected';
+  displayStatus?: 'Draft' | 'Pending' | 'Verified' | 'Rejected' | 'Archived';
+  fieldCompleteness?: { filled: number; total: number; unknown: number };
+  energyCheck?: { declared: number; calculated: number; deltaPct: number } | null;
+  sodiumMissing?: boolean;
   submittedByUserId?: string | null;
   verifiedByUserId?: string | null;
-  /** Full TFCT per-100g panel — snake_case keys matching the spreadsheet. */
   composition?: Record<string, number>;
-  /** CamelCase macros for forms / meal UI. */
   nutritionPer100g: Record<string, number>;
-  /** CamelCase micros for forms. */
   micronutrients: Record<string, number>;
   servings: Array<{ id: string; unit: string; amount: number; gramsEquivalent: number; isDefault: boolean }>;
   updatedAt: string;
@@ -52,18 +62,36 @@ export type UpsertNutritionFoodPayload = {
   name: string;
   category: string;
   brand?: string;
+  nameRw?: string;
   isActive?: boolean;
   nutritionPer100g?: Record<string, number>;
   micronutrients?: Record<string, number>;
+  composition?: Record<string, number>;
   barcode?: string;
+  preparationState?: string;
+  ediblePortionFactor?: number;
+  searchSynonyms?: string[];
+  allergens?: string[];
+  nutrientsUnknown?: string[];
+  source?: string;
+  sourceReference?: string;
+  sourceVersion?: string;
+  asDraft?: boolean;
+  submitForReview?: boolean;
   servings?: Array<{ unit: string; amount?: number; gramsEquivalent: number; isDefault?: boolean }>;
+};
+
+export type NutritionReviewQueue = {
+  foods: NutritionFood[];
+  recipes: Array<NutritionFood & { cookingMethod?: string; yieldFactor?: number | null }>;
+  total: number;
 };
 
 export async function fetchNutritionFoods(params?: {
   q?: string;
   category?: string;
   includeInactive?: boolean;
-  approval?: 'approved' | 'pending' | 'all' | 'rejected';
+  approval?: 'approved' | 'pending' | 'all' | 'rejected' | 'draft';
   sourceType?: string;
   excludeSourceTypes?: string[];
   page?: number;
@@ -89,7 +117,7 @@ export async function fetchNutritionFoodsPage(params?: {
   q?: string;
   category?: string;
   includeInactive?: boolean;
-  approval?: 'approved' | 'pending' | 'all' | 'rejected';
+  approval?: 'approved' | 'pending' | 'all' | 'rejected' | 'draft';
   sourceType?: string;
   excludeSourceTypes?: string[];
   page?: number;
@@ -140,6 +168,22 @@ export async function updateNutritionFood(id: string, payload: Partial<UpsertNut
     method: 'PATCH',
     body: JSON.stringify(payload),
   });
+}
+
+export async function submitNutritionFood(id: string) {
+  return apiRequest<NutritionFood>(`/nutrition-db/foods/${id}/submit`, { method: 'POST' });
+}
+
+export async function returnNutritionFood(id: string) {
+  return apiRequest<NutritionFood>(`/nutrition-db/foods/${id}/return`, { method: 'POST' });
+}
+
+export async function approveNutritionFoodDb(id: string) {
+  return apiRequest<NutritionFood>(`/nutrition-db/foods/${id}/approve`, { method: 'POST' });
+}
+
+export async function fetchNutritionReviewQueue() {
+  return apiRequest<NutritionReviewQueue>('/nutrition-db/review-queue');
 }
 
 export async function uploadNutritionFoodImage(foodId: string, file: File) {

@@ -99,7 +99,44 @@ export class NutritionFood {
   sourceVersion!: string | null;
 
   @Column({ type: "varchar", name: "approval_status", length: 16, default: "approved" })
-  approvalStatus!: "approved" | "pending" | "rejected";
+  approvalStatus!: "draft" | "approved" | "pending" | "rejected";
+
+  @Column({ type: "varchar", name: "preparation_state", length: 64, nullable: true })
+  preparationState!: string | null;
+
+  /** Fraction of as-purchased weight that is edible (0–1+). Default 1. */
+  @Column({
+    type: "numeric",
+    name: "edible_portion_factor",
+    precision: 6,
+    scale: 4,
+    default: 1,
+  })
+  ediblePortionFactor!: string;
+
+  @Column({ type: "jsonb", name: "search_synonyms", default: [] })
+  searchSynonyms!: string[];
+
+  @Column({ type: "jsonb", default: [] })
+  allergens!: string[];
+
+  /** Clinical nutrient keys explicitly marked unknown (not zero). */
+  @Column({ type: "jsonb", name: "nutrients_unknown", default: [] })
+  nutrientsUnknown!: string[];
+
+  @Column({ type: "varchar", name: "source_reference", length: 160, nullable: true })
+  sourceReference!: string | null;
+
+  /** Recipes: cooking method drives retention factors. */
+  @Column({ type: "varchar", name: "cooking_method", length: 64, nullable: true })
+  cookingMethod!: string | null;
+
+  @Column({ type: "int", name: "recipe_version", default: 1 })
+  recipeVersion!: number;
+
+  /** Frozen composition + ingredients snapshot on submit/publish. */
+  @Column({ type: "jsonb", name: "frozen_snapshot", nullable: true })
+  frozenSnapshot!: Record<string, unknown> | null;
 
   @Column({ type: "uuid", name: "submitted_by_user_id", nullable: true })
   submittedByUserId!: string | null;

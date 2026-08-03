@@ -39,15 +39,23 @@ type AdminDbTab = 'foods' | 'recipes';
 
 function statusTone(food: NutritionFood): 'good' | 'warn' | 'bad' | 'muted' {
   if (food.approvalStatus === 'pending') return 'warn';
+  if (food.approvalStatus === 'draft') return 'muted';
   if (food.approvalStatus === 'rejected' || !food.isActive) return 'bad';
   return 'good';
 }
 
 function statusLabel(food: NutritionFood) {
-  if (food.approvalStatus === 'pending') return 'Pending';
-  if (food.approvalStatus === 'rejected') return 'Rejected';
-  if (!food.isActive) return 'Archived';
-  return 'Approved';
+  return food.displayStatus ?? (
+    food.approvalStatus === 'pending'
+      ? 'Pending'
+      : food.approvalStatus === 'draft'
+        ? 'Draft'
+        : food.approvalStatus === 'rejected'
+          ? 'Rejected'
+          : !food.isActive
+            ? 'Archived'
+            : 'Verified'
+  );
 }
 
 export function AdminFoodDbPage() {
@@ -197,6 +205,29 @@ export function AdminFoodDbPage() {
             g · C {food.nutritionPer100g.carbsG ?? 0}g · F {food.nutritionPer100g.fatG ?? 0}g
           </span>
         ),
+      },
+      {
+        key: 'fields',
+        header: 'Fields',
+        cell: (food) => {
+          const filled = food.fieldCompleteness?.filled ?? 0;
+          const total = food.fieldCompleteness?.total ?? 15;
+          return (
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5">
+                {Array.from({ length: Math.min(total, 15) }, (_, i) => (
+                  <i
+                    key={i}
+                    className={`block h-1.5 w-1.5 rounded-full ${i < filled ? 'bg-emerald-500' : 'bg-ash-grey-200'}`}
+                  />
+                ))}
+              </div>
+              <span className="font-mono text-xs text-ash-grey-500">
+                {filled}/{total}
+              </span>
+            </div>
+          );
+        },
       },
       {
         key: 'status',

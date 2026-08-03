@@ -101,6 +101,51 @@ export class CreateNutritionFoodDto {
   labelSource?: string;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  preparationState?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ediblePortionFactor?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  searchSynonyms?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allergens?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  nutrientsUnknown?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  sourceReference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  sourceVersion?: string;
+
+  /** When true (coach), save as draft instead of pending. */
+  @IsOptional()
+  @IsBoolean()
+  asDraft?: boolean;
+
+  @IsOptional()
   @IsArray()
   servings?: UpsertNutritionServingDto[];
 }
@@ -185,6 +230,55 @@ export class UpdateNutritionFoodDto {
   @IsOptional()
   @IsBoolean()
   imageConfirmed?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  preparationState?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  ediblePortionFactor?: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  searchSynonyms?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  allergens?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  nutrientsUnknown?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  source?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  sourceReference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  sourceVersion?: string;
+
+  /** Coach: save draft without submitting, or submit for review. */
+  @IsOptional()
+  @IsBoolean()
+  asDraft?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  submitForReview?: boolean;
 
   @IsOptional()
   @IsArray()

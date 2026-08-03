@@ -1,10 +1,15 @@
 import { TFCT_NUTRIENT_KEYS, type TfctNutrientKey } from "./tfct-nutrients";
+import { applyRetention } from "./retention.util";
 
 export type RecipeIngredientInput = {
   /** Per-100g composition (TFCT snake_case preferred). */
   compositionPer100g: Record<string, number>;
-  /** Raw ingredient weight in grams. */
+  /** As-purchased / raw weight in grams. */
   rawWeightG: number;
+  /** Edible portion factor (default 1). edibleG = rawWeightG * epf. */
+  ediblePortionFactor?: number;
+  /** Skip non-default variant lines. */
+  includeInComposition?: boolean;
 };
 
 function asNumber(value: unknown): number {
@@ -12,17 +17,22 @@ function asNumber(value: unknown): number {
   return Number.isFinite(n) ? n : 0;
 }
 
-/** Scale a per-100g composition by raw weight (g). */
+export function edibleWeightG(rawWeightG: number, ediblePortionFactor = 1): number {
+  const epf = Number.isFinite(ediblePortionFactor) ? Math.max(0, ediblePortionFactor) : 1;
+  return Math.max(0, rawWeightG) * epf;
+}
+
+/** Scale a per-100g composition by edible weight (g). */
 export function nutrientsForRawWeight(
   compositionPer100g: Record<string, number>,
   rawWeightG: number,
+  ediblePortionFactor = 1,
 ): Record<string, number> {
-  const factor = Math.max(0, rawWeightG) / 100;
+  const factor = edibleWeightG(rawWeightG, ediblePortionFactor) / 100;
   const out: Record<string, number> = {};
   for (const key of TFCT_NUTRIENT_KEYS) {
     const n = asNumber(compositionPer100g[key]);
     if (n === 0 && compositionPer100g[key] == null) {
-      // Also accept any other finite keys already on the row.
       continue;
     }
     if (n !== 0 || compositionPer100g[key] != null) {
@@ -56,32 +66,61 @@ export function sumNutrientMaps(maps: Record<string, number>[]): Record<string, 
 
 /**
  * Clinical cooked-yield pipeline:
- * 1. Sum nutrients from raw ingredient weights
- * 2. Divide by cooked yield weight → per-gram
- * 3. ×100 → per-100g of cooked dish
- * 4. × servingWeightG → per-serving
+ * 1. Sum nutrients from edible weights (raw × EPF)
+ * 2. Apply cooking-method retention to heat-labile micros
+ * 3. Divide by cooked yield weight → per-gram
+ * 4. ×100 → per-100g of cooked dish
+ * 5. × servingWeightG → per-serving
  */
 export function calculateRecipeNutrition(opts: {
   ingredients: RecipeIngredientInput[];
   cookedYieldG: number;
   servingWeightG?: number;
+  cookingMethod?: string | null;
 }): {
   totalNutrients: Record<string, number>;
+  totalBeforeRetention: Record<string, number>;
   perGram: Record<string, number>;
   per100g: Record<string, number>;
   perServing: Record<string, number> | null;
+  rawEdibleTotalG: number;
+  yieldFactor: number | null;
+  energyByIngredient: Array<{ index: number; kcal: number; edibleG: number }>;
 } {
-  const totals = sumNutrientMaps(
-    opts.ingredients.map((ing) => nutrientsForRawWeight(ing.compositionPer100g, ing.rawWeightG)),
-  );
+  const active = opts.ingredients.filter((ing) => ing.includeInComposition !== false);
+  const lineMaps = active.map((ing, index) => {
+    const edibleG = edibleWeightG(ing.rawWeightG, ing.ediblePortionFactor ?? 1);
+    const map = nutrientsForRawWeight(
+      ing.compositionPer100g,
+      ing.rawWeightG,
+      ing.ediblePortionFactor ?? 1,
+    );
+    return { index, edibleG, map };
+  });
+
+  const rawEdibleTotalG = lineMaps.reduce((sum, row) => sum + row.edibleG, 0);
+  const totalBeforeRetention = sumNutrientMaps(lineMaps.map((row) => row.map));
+  const totals = applyRetention(totalBeforeRetention, opts.cookingMethod);
+
+  const energyByIngredient = lineMaps.map((row) => ({
+    index: row.index,
+    edibleG: row.edibleG,
+    kcal: asNumber(row.map.energy_kcal ?? row.map.caloriesKcal),
+  }));
 
   const cooked = Math.max(0, opts.cookedYieldG);
+  const yieldFactor = rawEdibleTotalG > 0 && cooked > 0 ? cooked / rawEdibleTotalG : null;
+
   if (cooked <= 0) {
     return {
       totalNutrients: totals,
+      totalBeforeRetention,
       perGram: {},
       per100g: {},
       perServing: null,
+      rawEdibleTotalG,
+      yieldFactor,
+      energyByIngredient,
     };
   }
 
@@ -102,7 +141,16 @@ export function calculateRecipeNutrition(opts: {
     }
   }
 
-  return { totalNutrients: totals, perGram, per100g, perServing };
+  return {
+    totalNutrients: totals,
+    totalBeforeRetention,
+    perGram,
+    per100g,
+    perServing,
+    rawEdibleTotalG,
+    yieldFactor,
+    energyByIngredient,
+  };
 }
 
 /** Keep only known TFCT keys with finite values (for DB storage). */
