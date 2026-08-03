@@ -37,7 +37,7 @@ export class NutritionRecipeIngredient {
   @Column({ type: "numeric", name: "raw_weight_g", precision: 10, scale: 2 })
   rawWeightG!: string;
 
-  /** Optional variant group (e.g. Protein) — only the default line counts in composition. */
+  /** Optional variant group (e.g. Protein); only the default line counts in composition. */
   @Column({ type: "varchar", name: "variant_group", length: 64, nullable: true })
   variantGroup!: string | null;
 

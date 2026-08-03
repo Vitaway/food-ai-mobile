@@ -1,7 +1,7 @@
 import type { MealAnalysisPreview, NutritionFacts } from '@/types';
 import { isNegligibleCalorieLabel, ZERO_NUTRITION } from '@/utils/negligibleFoodItems';
 
-/** Retired server fallback — must never be shown to users. */
+/** Retired server fallback; must never be shown to users. */
 export function isLegacyPlaceholderNutrition(
   nutrition: NutritionFacts,
   estimatedWeightG: number,
@@ -89,7 +89,7 @@ export function sanitizeMealAnalysis(analysis: MealAnalysisPreview): MealAnalysi
     confidenceAvg: Math.min(analysis.confidenceAvg, 0.35),
     healthFlag: 'yellow',
     healthMessage:
-      'No food detected — dishware and empty containers have no nutrition. Add a description or send to your coach.',
+      'No food detected; dishware and empty containers have no nutrition. Add a description or send to your coach.',
     petals: items.map((item) => ({
       label: item.label,
       percent: totalWeightG > 0 ? Math.round((item.estimatedWeightG / totalWeightG) * 100) : 100,

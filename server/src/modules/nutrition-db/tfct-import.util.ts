@@ -53,7 +53,7 @@ function resolveTfctJsonPath() {
 export function loadTfctFoodRows(): TfctFoodRow[] {
   const filePath = resolveTfctJsonPath();
   if (!filePath) {
-    logger.warn("TFCT food composition JSON not found — skipping import");
+    logger.warn("TFCT food composition JSON not found; skipping import");
     return [];
   }
   const raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as TfctFoodRow[];

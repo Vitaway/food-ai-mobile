@@ -182,7 +182,7 @@ export function RecipeBuilderPanel() {
     onSuccess: ({ recipe, submitted }) => {
       toast.success(
         submitted
-          ? `${recipe.name} submitted — version ${recipe.recipeVersion ?? 1} frozen`
+          ? `${recipe.name} submitted; version ${recipe.recipeVersion ?? 1} frozen`
           : editing
             ? 'Draft saved'
             : 'Recipe draft saved',
@@ -293,7 +293,7 @@ export function RecipeBuilderPanel() {
 
   function addIngredient(food: NutritionFood) {
     if (food.isRecipe || food.sourceType === 'recipe') {
-      toast.error('Pick a single food — recipes cannot be nested as ingredients.');
+      toast.error('Pick a single food; recipes cannot be nested as ingredients.');
       return;
     }
     setForm((prev) => {
@@ -494,7 +494,7 @@ export function RecipeBuilderPanel() {
                   <p className="text-xs text-amber-800">
                     Top energy contributor is only{' '}
                     {((topEnergy.edibleG / Math.max(rawTotalG, 1)) * 100).toFixed(0)}% of weight but{' '}
-                    {topPct.toFixed(0)}% of energy — correct for a fat/flour, worth a second look
+                    {topPct.toFixed(0)}% of energy; correct for a fat/flour, worth a second look
                     otherwise.
                   </p>
                 ) : null}
@@ -609,7 +609,7 @@ export function RecipeBuilderPanel() {
             <h3 className="text-xs font-semibold uppercase tracking-wide text-ash-grey-500">
               Serving profiles{' '}
               <span className="font-normal normal-case">
-                — a cup of stew and a cup of porridge are different weights
+               ; a cup of stew and a cup of porridge are different weights
               </span>
             </h3>
             <div className="space-y-2">
@@ -730,7 +730,7 @@ export function RecipeBuilderPanel() {
             <div className="rounded-lg border border-blue-spruce-200 bg-blue-spruce-50 px-3 py-2 text-sm text-blue-spruce-900">
               Retention applied for <strong>{form.cookingMethod.toLowerCase()}</strong>
               {previewMeta.retentionProvisional
-                ? ' — factors are provisional and must be verified against a published source before clinical launch.'
+                ? '; factors are provisional and must be verified against a published source before clinical launch.'
                 : '.'}
             </div>
           ) : null}

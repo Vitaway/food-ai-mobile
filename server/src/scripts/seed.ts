@@ -30,7 +30,7 @@ async function upsertSeedUser(opts: {
       avatarUrl: null,
       isActive: true,
       organizationId: opts.organizationId ?? null,
-      // Marks account as pre-verified — staff MFA / email OTP is skipped on login.
+      // Marks account as pre-verified; staff MFA / email OTP is skipped on login.
       registrationSource: "seed",
     });
     await usersRepository.save(user);
@@ -134,7 +134,7 @@ async function seed() {
       "Keeping existing meals and consumer profiles (pass --wipe-demo only on local/dev to clear them)",
     );
   } else {
-    logger.info("Users-only seed — keeping meals and consumer profiles");
+    logger.info("Users-only seed; keeping meals and consumer profiles");
   }
 
   const org = await ensureSeedOrganization("Vitaway");

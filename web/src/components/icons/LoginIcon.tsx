@@ -2,7 +2,7 @@ type LoginIconProps = {
   className?: string;
 };
 
-/** Simple lock / login glyph — no icon package. */
+/** Simple lock / login glyph; no icon package. */
 export function LoginIcon({ className }: LoginIconProps) {
   return (
     <svg

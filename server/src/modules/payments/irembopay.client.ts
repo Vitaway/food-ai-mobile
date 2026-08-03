@@ -93,7 +93,7 @@ export type CreateIremboInvoiceInput = {
   expiryAt?: string;
 };
 
-/** Create invoice — BASE_URL already includes /payments, so path is /invoices. */
+/** Create invoice; BASE_URL already includes /payments, so path is /invoices. */
 export async function createIremboInvoice(input: CreateIremboInvoiceInput): Promise<IremboInvoice> {
   return iremboRequest<IremboInvoice>("POST", "/invoices", {
     transactionId: input.transactionId,

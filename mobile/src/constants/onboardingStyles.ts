@@ -1,4 +1,4 @@
-/** Accent palettes for onboarding — navy structure + green/orange highlights. */
+/** Accent palettes for onboarding; navy structure + green/orange highlights. */
 export type OnboardingAccent = 'blue' | 'green' | 'orange';
 
 const accent = {

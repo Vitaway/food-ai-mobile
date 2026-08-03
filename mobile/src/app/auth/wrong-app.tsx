@@ -16,7 +16,7 @@ function roleCopy(role: string | undefined) {
   if (role === 'admin' || role === 'super_admin' || role === 'organization_admin') {
     return {
       title: 'Admin accounts use the web dashboard',
-      body: 'Admin tools are not available in the mobile app. Sign in on the web to manage coaches, users, and settings — or create a separate patient account here.',
+      body: 'Admin tools are not available in the mobile app. Sign in on the web to manage coaches, users, and settings; or create a separate patient account here.',
       cta: 'Open admin dashboard',
       path: '/login',
     };
@@ -25,7 +25,7 @@ function roleCopy(role: string | undefined) {
   if (role === 'coach' || role === 'nutrition_coach' || role === 'data_entry_staff') {
     return {
       title: 'Coach accounts use the web dashboard',
-      body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard — not in the consumer mobile app.',
+      body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard; not in the consumer mobile app.',
       cta: 'Open coach dashboard',
       path: '/login',
     };

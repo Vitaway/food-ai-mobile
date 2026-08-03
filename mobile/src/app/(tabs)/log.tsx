@@ -279,7 +279,7 @@ export default function LogMealScreen() {
 
   const handlePhotoContinue = useCallback(async () => {
     if (saving) return;
-    // Description is optional for photo logs — photo alone is enough to submit to coach.
+    // Description is optional for photo logs; photo alone is enough to submit to coach.
     await prepareCoachSubmit(mealDescription.trim());
   }, [mealDescription, prepareCoachSubmit, saving]);
 

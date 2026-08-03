@@ -235,7 +235,7 @@ export function ForgotPasswordPage() {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@vitaway.org"
-          hint="You'll enter the code here — no email link required."
+          hint="You'll enter the code here; no email link required."
         />
         <p className="text-center text-sm text-ash-grey-500">
           <Link to={AUTH_ROUTES.login} className="text-blue-spruce-600 hover:underline">

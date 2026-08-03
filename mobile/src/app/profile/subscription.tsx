@@ -315,7 +315,7 @@ export default function SubscriptionScreen() {
       if (checkoutStatus?.status === 'succeeded') {
         setPendingCheckoutRef(null);
         setUpgradeOpen(false);
-        toast.success('Payment confirmed — subscription active');
+        toast.success('Payment confirmed; subscription active');
       } else if (allowed && ref) {
         setPendingCheckoutRef(null);
         setUpgradeOpen(false);

@@ -103,7 +103,7 @@ export class NutritionDbController {
     @QueryParam("page") page?: number,
     @QueryParam("pageSize") pageSize?: number,
     @QueryParam("sourceType") sourceType?: string,
-    // Must stay typed as string — see parseCsvQueryParam.
+    // Must stay typed as string; see parseCsvQueryParam.
     @QueryParam("excludeSourceTypes") excludeSourceTypes?: string,
     @CurrentUser() user?: User,
   ) {

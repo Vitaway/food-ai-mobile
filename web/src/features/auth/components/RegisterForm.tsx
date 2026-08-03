@@ -48,7 +48,7 @@ export function RegisterForm({ register, toast, onValidityChange }: RegisterForm
     register.mutate(
       { displayName, email, password, rememberMe },
       {
-        onSuccess: () => toast.success('Account created — welcome to MiraFood.', 'Welcome'),
+        onSuccess: () => toast.success('Account created; welcome to MiraFood.', 'Welcome'),
         onError: (error) =>
           toast.error(getApiErrorMessage(error, 'Registration failed'), 'Registration failed'),
       },

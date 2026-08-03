@@ -75,7 +75,7 @@ export const apiPlateDetectionService: PlateDetectionService = {
     if (!response.ok || !body.success) {
       const detail =
         response.status === 413
-          ? 'Photo is too large for the server. Try again — the app will compress it automatically.'
+          ? 'Photo is too large for the server. Try again; the app will compress it automatically.'
           : (typeof body.error === 'string' && body.error) || `HTTP ${response.status}`;
       throw new Error(detail);
     }

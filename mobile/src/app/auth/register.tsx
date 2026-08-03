@@ -53,7 +53,7 @@ export default function RegisterScreen() {
         referralCode.trim() || undefined,
         registrationSource,
       );
-      toast.success('Account created — finish your health profile next.', 'Welcome');
+      toast.success('Account created; finish your health profile next.', 'Welcome');
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Registration failed'), 'Registration failed');
     } finally {

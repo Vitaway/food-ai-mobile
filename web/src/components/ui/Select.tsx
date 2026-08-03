@@ -81,7 +81,7 @@ function CheckIcon({ className }: { className?: string }) {
   );
 }
 
-/** Brand Select — use everywhere for consistent dropdowns. */
+/** Brand Select; use everywhere for consistent dropdowns. */
 export function Select({
   value,
   onChange,

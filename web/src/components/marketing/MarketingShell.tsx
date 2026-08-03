@@ -119,7 +119,7 @@ export function MarketingShell() {
       {/* Announcement */}
       {isHome ? (
         <div className="bg-blue-spruce-600 px-4 py-2.5 text-center text-sm font-normal text-white">
-          <span>Coach-verified nutrition for patients, coaches, and clinics — </span>
+          <span>Coach-verified nutrition for patients, coaches, and clinics; </span>
           <Link to="/clinical-evidence" className="underline underline-offset-2 hover:text-blue-spruce-100">
             See our clinical approach
           </Link>

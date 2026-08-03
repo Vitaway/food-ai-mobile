@@ -2,7 +2,7 @@ import type { UserProfile } from '@/types';
 
 type ProfileLike = Partial<UserProfile> | Record<string, unknown>;
 
-/** True when health targets were saved — even if onboardingComplete was never persisted. */
+/** True when health targets were saved; even if onboardingComplete was never persisted. */
 export function deriveOnboardingComplete(profile: ProfileLike | null | undefined): boolean {
   if (!profile || typeof profile !== 'object') return false;
   if (profile.onboardingComplete === true) return true;

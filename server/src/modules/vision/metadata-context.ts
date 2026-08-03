@@ -93,7 +93,7 @@ export function buildAnalysisContext(metadata: Record<string, unknown>): Record<
       measureOuterRimNotFoodArea: true,
       topDownShotsAreMostAccurate: true,
       avoidExtremeCloseUp:
-        "Within 20 cm causes large errors — hold phone at arm's length",
+        "Within 20 cm causes large errors; hold phone at arm's length",
     },
   };
 }

@@ -1,7 +1,7 @@
 import type { DetectedFoodItem } from '@/types';
 import { scaleItemNutrition } from '@/lib/nutrition';
 
-/** Practical East African catalog — aligned with server `serving-units.util.ts`. */
+/** Practical East African catalog; aligned with server `serving-units.util.ts`. */
 export const MANUAL_SERVING_UNITS = [
   'g',
   'kg',

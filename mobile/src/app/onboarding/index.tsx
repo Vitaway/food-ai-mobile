@@ -217,7 +217,7 @@ export default function OnboardingScreen() {
     },
     photo: {
       title: 'Add a profile photo',
-      description: 'Optional — helps your coach recognize you. You can add one later.',
+      description: 'Optional; helps your coach recognize you. You can add one later.',
     },
     profile: {
       title: 'Tell us about you',
@@ -225,7 +225,7 @@ export default function OnboardingScreen() {
     },
     sex: {
       title: 'How do you identify?',
-      description: 'Optional — used only to refine your metabolic estimates.',
+      description: 'Optional; used only to refine your metabolic estimates.',
     },
     body: {
       title: 'Your body metrics',
@@ -249,11 +249,11 @@ export default function OnboardingScreen() {
     },
     preferences: {
       title: 'Dietary preferences',
-      description: 'Optional — select any that apply to your lifestyle.',
+      description: 'Optional; select any that apply to your lifestyle.',
     },
     allergies: {
       title: 'Allergies',
-      description: 'Optional — we use these to filter meal suggestions.',
+      description: 'Optional; we use these to filter meal suggestions.',
     },
     summary: {
       title: 'Your plan is ready',

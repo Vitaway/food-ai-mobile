@@ -60,7 +60,7 @@ Flag: BMI **> 40** → `bmi_over_40_coach_review` (still uses actual weight in M
 
 ## 3. BMR (basal metabolic rate)
 
-### Adults (age ≥ 18) — Mifflin–St Jeor
+### Adults (age ≥ 18); Mifflin–St Jeor
 
 \[
 \mathrm{base} = 10\,W + 6.25\,H - 5\,A
@@ -76,7 +76,7 @@ Where \(W\) = kg, \(H\) = cm, \(A\) = years.
 
 Rounded: `Math.round(bmr)`.
 
-### Pediatrics (age < 18) — Schofield (weight-based)
+### Pediatrics (age < 18); Schofield (weight-based)
 
 | Age | Boys | Girls |
 |-----|------|-------|
@@ -236,7 +236,7 @@ C \approx 4\cdot P + 4\cdot \mathrm{carbs} + 9\cdot F
 \mathrm{waterTargetMl} = \mathrm{round}(W \times 35)
 \]
 
-(~35 ml per kg). Flagged for clinical review if fluid restriction / kidney / heart disease — never override a prescribed restriction automatically.
+(~35 ml per kg). Flagged for clinical review if fluid restriction / kidney / heart disease; never override a prescribed restriction automatically.
 
 ---
 

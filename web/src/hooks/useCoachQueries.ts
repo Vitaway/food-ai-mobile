@@ -273,7 +273,7 @@ export function useSaveReviewDraft() {
       trainingNote?: string;
     }) => saveReviewDraft(mealId, { ...payload, items: payload.items ?? [] }),
     onSuccess: (data, vars) => {
-      // Update cache in place — do NOT invalidate/refetch (that was resetting the live editor).
+      // Update cache in place; do NOT invalidate/refetch (that was resetting the live editor).
       qc.setQueryData(coachKeys.reviewDraft(vars.mealId), data);
     },
   });

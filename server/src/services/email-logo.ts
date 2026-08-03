@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-/** Same asset as web/public/mirafood-logo.png — used for inline CID email attachments. */
+/** Same asset as web/public/mirafood-logo.png; used for inline CID email attachments. */
 const LOGO_CANDIDATE_PATHS = [
   path.join(__dirname, "../../../web/public/mirafood-logo.png"),
   path.join(__dirname, "../../assets/mirafood-logo.png"),

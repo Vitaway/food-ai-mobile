@@ -1,6 +1,6 @@
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
-/** Max long edge for vision uploads — enough for plate detection, keeps payloads under nginx limits. */
+/** Max long edge for vision uploads; enough for plate detection, keeps payloads under nginx limits. */
 const MAX_UPLOAD_EDGE = 1600;
 const UPLOAD_JPEG_QUALITY = 0.82;
 

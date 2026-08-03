@@ -96,7 +96,7 @@ function PatientSubscriptionTab({ userId }: { userId: string }) {
               <div className="rounded-xl border border-amber-100 bg-amber-50 px-3 py-2 text-ash-grey-700">
                 Manually granted by admin
                 {typeof sub.metadata.grantNote === 'string' && sub.metadata.grantNote
-                  ? ` — ${sub.metadata.grantNote}`
+                  ? `; ${sub.metadata.grantNote}`
                   : ''}
               </div>
             ) : null}

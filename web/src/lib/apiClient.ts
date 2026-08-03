@@ -8,7 +8,7 @@ export function getApiBaseUrl() {
 
 /**
  * WebSocket base matching production nginx (`/ws/...`) and Vite `/ws` proxy.
- * Do not append under `/api/v1` — server attaches sockets at `/ws/chat`, etc.
+ * Do not append under `/api/v1`; server attaches sockets at `/ws/chat`, etc.
  */
 export function getWsBaseUrl() {
   const api = API_BASE.replace(/\/$/, '');

@@ -88,7 +88,7 @@ function normalizeRemoteProfile(
     phone: raw.phone ?? existing?.phone ?? null,
     avatarUrl: raw.avatarUrl,
     dateOfBirth: raw.dateOfBirth ?? existing?.dateOfBirth,
-    // Never invent body metrics for authenticated users — incomplete profiles stay incomplete.
+    // Never invent body metrics for authenticated users; incomplete profiles stay incomplete.
     age: typeof raw.age === 'number' ? raw.age : existing?.age ?? 0,
     sex: (raw.sex ?? existing?.sex ?? null) as UserSex,
     heightCm: typeof raw.heightCm === 'number' ? raw.heightCm : existing?.heightCm ?? 0,
@@ -369,7 +369,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
           const remote = await uploadConsumerAvatar(avatarUrl);
           avatarUrl = remote.profile.avatarUrl ?? avatarUrl;
         } catch {
-          // Photo is optional — never block onboarding Finish on upload failure.
+          // Photo is optional; never block onboarding Finish on upload failure.
           avatarUrl = undefined;
         }
       }

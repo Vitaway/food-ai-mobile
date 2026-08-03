@@ -1,4 +1,4 @@
-/** MiraFood / Vitaway design tokens — aligned with web + mobile palette */
+/** MiraFood / Vitaway design tokens; aligned with web + mobile palette */
 export const EMAIL_BRAND = {
   navy: "#16304D",
   navyMid: "#1A3A5C",

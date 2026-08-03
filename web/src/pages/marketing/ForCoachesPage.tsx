@@ -17,7 +17,7 @@ import { appImage } from '@/constants/appImages';
 const coachSteps = [
   {
     title: 'Open your queue',
-    desc: 'Filters for flagged and low-confidence meals — focus on what needs attention first.',
+    desc: 'Filters for flagged and low-confidence meals; focus on what needs attention first.',
   },
   {
     title: 'Review the meal',
@@ -37,7 +37,7 @@ const coachOutcomes = [
   {
     value: 'Minutes',
     label: 'Per typical review',
-    detail: 'Structured queue — not a full dietary recall interview every time.',
+    detail: 'Structured queue; not a full dietary recall interview every time.',
   },
   {
     value: 'Full context',
@@ -107,7 +107,7 @@ function CoachesBand() {
             Built for how coaches actually work
           </h2>
           <p className="mt-4 text-base leading-relaxed text-white/80 sm:text-lg">
-            MiraFood feels like a structured nutrition consult — verify AI output, edit portions, and
+            MiraFood feels like a structured nutrition consult; verify AI output, edit portions, and
             keep your queue moving without losing clinical judgment.
           </p>
         </div>
@@ -132,7 +132,7 @@ export function ForCoachesPage() {
     <div className="bg-white">
       <MarketingPageHero
         title="For coaches"
-        description="Review client meals like a structured nutrition consult — verify AI output, edit portions, and keep your queue moving from a clean web dashboard."
+        description="Review client meals like a structured nutrition consult; verify AI output, edit portions, and keep your queue moving from a clean web dashboard."
       />
 
       <PartnerLogosStrip />
@@ -145,7 +145,7 @@ export function ForCoachesPage() {
                 Built for your workflow
               </h2>
               <p className="mt-4 text-base leading-relaxed text-ash-grey-600 sm:text-lg">
-                MiraFood fits clinical nutrition practice — it does not replace your judgment. AI
+                MiraFood fits clinical nutrition practice; it does not replace your judgment. AI
                 speeds the first pass; you stay in control of every approved number.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-ash-grey-700">
@@ -185,7 +185,7 @@ export function ForCoachesPage() {
               How it works for coaches
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-ash-grey-600">
-              From queue to verified diary data — a clear path for every review.
+              From queue to verified diary data; a clear path for every review.
             </p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -217,7 +217,7 @@ export function ForCoachesPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-blue-spruce-950/50 via-transparent to-transparent" />
               <p className="absolute bottom-5 left-5 right-5 text-sm text-white/90 sm:bottom-6 sm:left-6 sm:text-base">
-                Designed for coaches — AI speed with human accountability on every meal.
+                Designed for coaches; AI speed with human accountability on every meal.
               </p>
             </div>
             <div>

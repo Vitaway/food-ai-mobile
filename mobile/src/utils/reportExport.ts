@@ -5,7 +5,7 @@ import type { ConsumerReportSnapshot } from '@/services/remote/consumerApi';
 
 type ExpoSharingModule = typeof import('expo-sharing');
 
-/** Lazy load — older dev clients may not include the ExpoSharing native module. */
+/** Lazy load; older dev clients may not include the ExpoSharing native module. */
 function tryGetSharing(): ExpoSharingModule | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -102,7 +102,7 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
-/** MiraFood-only patient report HTML — no Vitaway logo or partner branding. */
+/** MiraFood-only patient report HTML; no Vitaway logo or partner branding. */
 export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string {
   const kpis = [
     { label: 'Health score', value: str(metricPath(report.metrics, ['currentHealthScore'])) },
@@ -202,7 +202,7 @@ export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string 
 
 async function tryPrintToPdf(html: string): Promise<string | null> {
   try {
-    // Lazy require — avoids crash when ExpoPrint native module is missing from the binary.
+    // Lazy require; avoids crash when ExpoPrint native module is missing from the binary.
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     const Print = require('expo-print') as typeof import('expo-print');
     if (!Print?.printToFileAsync) return null;

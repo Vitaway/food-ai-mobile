@@ -118,10 +118,10 @@ function buildAnalysis(name: string, rawItems: Array<{ label: string; weightG: n
     healthFlag,
     healthMessage:
       healthFlag === 'green'
-        ? 'Well-balanced meal — great choice!'
+        ? 'Well-balanced meal; great choice!'
         : healthFlag === 'orange'
-          ? 'High carbohydrate meal — balance your next meal.'
-          : 'Good start — consider adding more protein.',
+          ? 'High carbohydrate meal; balance your next meal.'
+          : 'Good start; consider adding more protein.',
   };
 }
 
@@ -157,7 +157,7 @@ export function mockAnalyzeText(text: string): MealAnalysisPreview {
       confidenceAvg: 0.4,
       petals: [{ label: cleaned, percent: 100, color: '#9ca3af' }],
       healthFlag: 'yellow',
-      healthMessage: 'No meaningful nutrition — empty container or zero-calorie item.',
+      healthMessage: 'No meaningful nutrition; empty container or zero-calorie item.',
     };
   }
 
@@ -174,7 +174,7 @@ export function mockAnalyzeText(text: string): MealAnalysisPreview {
   return buildAnalysis(cleaned, items.length ? items : [{ label: 'Custom meal', weightG: 200, emoji: '🍽️' }], 0.82);
 }
 
-/** Local dev mock — when the user adds a description with a photo, honor the text for food identity. */
+/** Local dev mock; when the user adds a description with a photo, honor the text for food identity. */
 export function mockAnalyzeMeal(input: {
   imageUri?: string;
   text?: string;
@@ -199,7 +199,7 @@ export function mockAnalyzeMeal(input: {
   throw new Error('Add a photo or describe your meal');
 }
 
-/** Minimal preview when AI cannot analyze — coach reviews photo + description manually. */
+/** Minimal preview when AI cannot analyze; coach reviews photo + description manually. */
 export function createCoachReviewStub(description: string): MealAnalysisPreview {
   const cleaned = description.trim() || 'Meal';
   const title = cleaned.length > 48 ? `${cleaned.slice(0, 45)}…` : cleaned;

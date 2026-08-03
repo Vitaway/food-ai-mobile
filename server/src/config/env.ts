@@ -18,7 +18,7 @@ function parseOrigins(raw: string): string[] {
     .filter(Boolean);
 }
 
-/** Prefer POSTGRES_PASSWORD — URL-encoded; host defaults to Docker service or localhost dev ports. */
+/** Prefer POSTGRES_PASSWORD; URL-encoded; host defaults to Docker service or localhost dev ports. */
 function buildDatabaseUrl(): string {
   const password = process.env.POSTGRES_PASSWORD;
   if (password) {
@@ -32,7 +32,7 @@ function buildDatabaseUrl(): string {
   return required("DATABASE_URL", "postgresql://postgres:postgres@127.0.0.1:5433/mirafood");
 }
 
-/** Prefer REDIS_PASSWORD — URL-encoded; host defaults to Docker service or localhost dev ports. */
+/** Prefer REDIS_PASSWORD; URL-encoded; host defaults to Docker service or localhost dev ports. */
 function buildRedisUrl(): string {
   const password = process.env.REDIS_PASSWORD;
   if (password) {
@@ -55,7 +55,7 @@ export const env = {
     process.env.CORS_ORIGIN ??
       "http://localhost:5173,http://127.0.0.1:5173,http://localhost:8081,http://127.0.0.1:8081",
   ),
-  /** Anthropic Claude API — used for plate detection + meal analysis. */
+  /** Anthropic Claude API; used for plate detection + meal analysis. */
   ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
   ANTHROPIC_MODEL: process.env.ANTHROPIC_MODEL ?? "claude-haiku-4-5",
   ANTHROPIC_TEMPERATURE: Number(process.env.ANTHROPIC_TEMPERATURE ?? 0.05),
@@ -131,7 +131,7 @@ export const env = {
       process.env.IREMBO_PAY_WIDGET?.trim() ||
       "https://dashboard.irembopay.com/assets/payment/inline.js";
     return {
-      /** e.g. https://api.irembopay.com/payments — client calls {baseUrl}/invoices */
+      /** e.g. https://api.irembopay.com/payments; client calls {baseUrl}/invoices */
       baseUrl,
       secretKey,
       publicKey,

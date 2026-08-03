@@ -32,7 +32,7 @@ export function formatGlasses(glasses: number): string {
   return String(toWholeGlasses(glasses));
 }
 
-/** @deprecated Alias — same as formatGlasses (whole glasses only). */
+/** @deprecated Alias; same as formatGlasses (whole glasses only). */
 export function formatGlassesWhole(glasses: number): string {
   return formatGlasses(glasses);
 }

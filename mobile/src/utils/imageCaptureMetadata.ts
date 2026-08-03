@@ -2,7 +2,7 @@ import Constants from 'expo-constants';
 import type * as ImagePicker from 'expo-image-picker';
 import { Dimensions, Platform } from 'react-native';
 
-/** Standard dish sizes (outer rim, cm) — sent to vision model as calibration anchors. */
+/** Standard dish sizes (outer rim, cm); sent to vision model as calibration anchors. */
 export const DISH_REFERENCE_SIZES_CM = {
   sidePlate: { min: 17, max: 20, typical: 19 },
   dinnerPlate: { min: 25, max: 27, typical: 26 },

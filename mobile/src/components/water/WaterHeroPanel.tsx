@@ -83,7 +83,7 @@ export function WaterHeroPanel({
           <Text className="mt-3 text-sm text-white/85">
             {remainingCups > 0
               ? `${formatGlasses(remainingCups)} ${glassNoun(remainingCups)} to go · ${progressPct}% of goal`
-              : 'Daily goal reached — nice work!'}
+              : 'Daily goal reached; nice work!'}
           </Text>
           <Text className="mt-1 text-xs text-white/55">
             {waterMl} ml logged · 1 glass = {WATER_CUP_ML} ml

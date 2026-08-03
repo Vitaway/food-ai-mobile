@@ -120,7 +120,7 @@ function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
       readClinicalNutrient(composition, "sodium_mg") == null,
     submittedByUserId: food.submittedByUserId,
     verifiedByUserId: food.verifiedByUserId,
-    /** Full TFCT composition — snake_case keys matching the spreadsheet. */
+    /** Full TFCT composition; snake_case keys matching the spreadsheet. */
     composition,
     /** CamelCase macros for meal analysis / existing UI. */
     nutritionPer100g: toLegacyNutritionPer100g(composition),
@@ -533,7 +533,7 @@ export const nutritionDbService = {
       );
       food.micronutrients = {};
     } else if (dto.nutrientsUnknown !== undefined) {
-      // Unknown toggled without a full composition rewrite — still strip those keys.
+      // Unknown toggled without a full composition rewrite; still strip those keys.
       const next = { ...(food.nutritionPer100g ?? {}) };
       for (const key of food.nutrientsUnknown) delete next[key];
       food.nutritionPer100g = next;

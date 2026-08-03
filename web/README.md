@@ -1,14 +1,14 @@
 # MiraFood Coach Dashboard (Web)
 
-Coaches dashboard for reviewing client meals — matches the MiraFood mobile design system.
+Coaches dashboard for reviewing client meals; matches the MiraFood mobile design system.
 
 ## Stack
 
 - **React 19** + **TypeScript**
 - **Vite**
 - **Tailwind CSS v4** (Nata Sans, navy/green/orange palette from mobile)
-- **Zustand** — UI state (filters, review drafts)
-- **TanStack React Query** — server state (queue, stats, review actions)
+- **Zustand**; UI state (filters, review drafts)
+- **TanStack React Query**; server state (queue, stats, review actions)
 
 ## Run locally
 
@@ -26,10 +26,10 @@ Uses the MiraFood Node API (`server/`) via `VITE_API_BASE_URL`.
 
 | Route | Description |
 |-------|-------------|
-| `/` | Overview — stats + recent queue |
+| `/` | Overview; stats + recent queue |
 | `/queue` | Full review queue with filters |
-| `/queue/:id` | Meal detail — approve / reject / edit ingredients |
-| `/profile` | Coach profile — update details & password |
+| `/queue/:id` | Meal detail; approve / reject / edit ingredients |
+| `/profile` | Coach profile; update details & password |
 
 ## Project structure
 

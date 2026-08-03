@@ -8,7 +8,7 @@ Source of truth for patient onboarding, coach assessment, and nutrition target c
 
 ## Responsibility split
 
-- **Patient onboarding:** intent and basics only — body measurements, goal, activity, meals, preferences, allergies.
+- **Patient onboarding:** intent and basics only; body measurements, goal, activity, meals, preferences, allergies.
 - **Coach assessment:** verifies calculation inputs and records pregnancy/lactation, diagnosed conditions, restrictions, lifestyle, and notes.
 - **Server NCE:** owns BMR, TDEE, calorie, macro, water targets, formula metadata, and safety flags.
 
@@ -36,9 +36,9 @@ Patient-only targets use maintenance TDEE. Goal deficits/surpluses apply only af
 ## APIs
 
 - `GET /api/v1/coach/clients/:id/clinical-assessment`
-- `PATCH /api/v1/coach/clients/:id/clinical-assessment` — save draft and produce provisional preview
+- `PATCH /api/v1/coach/clients/:id/clinical-assessment`; save draft and produce provisional preview
 - `POST /api/v1/coach/clients/:id/clinical-assessment/confirm`
-- `GET /api/v1/admin/clinical-assessments` — workflow queue
+- `GET /api/v1/admin/clinical-assessments`; workflow queue
 
 ## Other calculation safeguards
 

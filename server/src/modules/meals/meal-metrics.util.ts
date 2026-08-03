@@ -14,7 +14,7 @@ export function slaMinutesRemaining(submittedAt: Date, targetMinutes = SLA_TARGE
   return Math.max(0, targetMinutes - waited);
 }
 
-/** Queue SLA urgency — cleared once the meal is approved/rejected (no longer waiting). */
+/** Queue SLA urgency; cleared once the meal is approved/rejected (no longer waiting). */
 export function mealSlaFields(
   meal: Pick<MealSubmission, "status" | "submittedAt">,
   now = new Date(),

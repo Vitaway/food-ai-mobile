@@ -13,7 +13,7 @@ export type SearchInputSize = 'sm' | 'md';
 type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type' | 'size' | 'onChange'> & {
   value?: string;
   onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
-  /** Prefer for new code — receives the string value directly. */
+  /** Prefer for new code; receives the string value directly. */
   onValueChange?: (value: string) => void;
   onClear?: () => void;
   size?: SearchInputSize;
@@ -66,7 +66,7 @@ function ClearIcon({ className }: { className?: string }) {
   );
 }
 
-/** Brand search field — pill shell with offset spruce shadow. Use for all search UIs. */
+/** Brand search field; pill shell with offset spruce shadow. Use for all search UIs. */
 export const SearchInput = forwardRef(function SearchInput(
   {
     value,
