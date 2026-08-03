@@ -14,6 +14,7 @@ const navRoutes = [
   { to: '/coach/clients', label: 'Clients', end: false },
   { to: '/coach/insights', label: 'Insights', end: false },
   { to: '/coach/nutrition-db', label: 'Nutrition DB', end: false },
+  { to: '/coach/nutrition-review', label: 'Nutrition review', end: false },
   { to: '/coach/reports', label: 'Reports', end: false },
   { to: '/coach/messages', label: 'Messages', end: false },
   { to: '/coach/team', label: 'Team', end: false },

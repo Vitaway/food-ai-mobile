@@ -18,6 +18,7 @@ const platformNavRoutes = [
   { to: ADMIN_ROUTES.assessments, label: 'Clinical assessments', end: false },
   { to: ADMIN_ROUTES.messages, label: 'Messages', end: false },
   { to: ADMIN_ROUTES.foodDb, label: 'Food database', end: false },
+  { to: ADMIN_ROUTES.nutritionReview, label: 'Nutrition review', end: false },
   { to: ADMIN_ROUTES.modules, label: 'Module entitlements', end: false },
   { to: ADMIN_ROUTES.payments, label: 'Billing & plans', end: false },
   { to: ADMIN_ROUTES.reports, label: 'Reports', end: false },

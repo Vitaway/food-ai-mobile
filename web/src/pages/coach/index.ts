@@ -10,5 +10,6 @@ export { PastReviewDetailPage } from './PastReviewDetailPage';
 export { MessagesPage } from './MessagesPage';
 export { ChatThreadPage } from './ChatThreadPage';
 export { NutritionDbPage } from './NutritionDbPage';
+export { NutritionReviewPage } from './NutritionReviewPage';
 export { InsightsPage } from './InsightsPage';
 export { ReportsPage } from './ReportsPage';
