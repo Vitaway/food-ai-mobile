@@ -1,6 +1,7 @@
 import {
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
@@ -22,6 +23,15 @@ export class RecipeIngredientDto {
   @IsOptional()
   @IsNumber()
   sortOrder?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  variantGroup?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isVariantDefault?: boolean;
 }
 
 export class CreateRecipeDto {
@@ -42,6 +52,19 @@ export class CreateRecipeDto {
   @IsNumber()
   @Min(0.01)
   cookedYieldG!: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cookingMethod?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  asDraft?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  submitForReview?: boolean;
 
   @IsArray()
   @ArrayMinSize(1)
@@ -78,6 +101,19 @@ export class UpdateRecipeDto {
   cookedYieldG?: number;
 
   @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cookingMethod?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  asDraft?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  submitForReview?: boolean;
+
+  @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
   @ValidateNested({ each: true })
@@ -106,4 +142,9 @@ export class PreviewRecipeDto {
   @IsNumber()
   @Min(0.01)
   servingWeightG?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  cookingMethod?: string;
 }

@@ -30,9 +30,15 @@ const imageUpload = multer({
 @Controller("/nutrition-db")
 export class NutritionDbController {
   @Authorized(["coach", "admin", "data_entry_staff"])
+  @Get("/review-queue")
+  reviewQueue() {
+    return recipeService.reviewQueue();
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
   @Get("/recipes")
   listRecipes(@QueryParam("q") q?: string) {
-    return recipeService.listRecipes(q);
+    return recipeService.listRecipes(q, "all");
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])
@@ -50,13 +56,35 @@ export class NutritionDbController {
   @Authorized(["coach", "admin", "data_entry_staff"])
   @Post("/recipes")
   createRecipe(@Body() dto: CreateRecipeDto, @CurrentUser() user: User) {
-    return recipeService.createRecipe(dto, user.id);
+    const payload =
+      user.role === "coach" && dto.asDraft !== true && dto.submitForReview !== true
+        ? { ...dto, asDraft: true }
+        : dto;
+    return recipeService.createRecipe(payload, user.id);
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])
   @Patch("/recipes/:id")
   updateRecipe(@Param("id") id: string, @Body() dto: UpdateRecipeDto) {
     return recipeService.updateRecipe(id, dto);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/recipes/:id/submit")
+  submitRecipe(@Param("id") id: string, @CurrentUser() user: User) {
+    return recipeService.submitRecipe(id, user.id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/recipes/:id/return")
+  returnRecipe(@Param("id") id: string) {
+    return recipeService.returnRecipeToDraft(id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/recipes/:id/approve")
+  approveRecipe(@Param("id") id: string, @CurrentUser() user: User) {
+    return recipeService.approveRecipe(id, user.id);
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])
@@ -71,7 +99,7 @@ export class NutritionDbController {
     @QueryParam("q") q?: string,
     @QueryParam("category") category?: string,
     @QueryParam("includeInactive") includeInactive?: boolean,
-    @QueryParam("approval") approval?: "approved" | "pending" | "rejected" | "all",
+    @QueryParam("approval") approval?: "approved" | "pending" | "rejected" | "draft" | "all",
     @QueryParam("page") page?: number,
     @QueryParam("pageSize") pageSize?: number,
     @QueryParam("sourceType") sourceType?: string,
@@ -128,13 +156,34 @@ export class NutritionDbController {
   @Post("/foods")
   createFood(@Body() dto: CreateNutritionFoodDto, @CurrentUser() user: User) {
     const coachSubmitted = user.role === "coach";
-    return nutritionDbService.createFood(dto, user.id, coachSubmitted);
+    // Coach defaults to draft unless client sends asDraft: false (submit path).
+    const body =
+      coachSubmitted && dto.asDraft === undefined ? { ...dto, asDraft: true } : dto;
+    return nutritionDbService.createFood(body, user.id, coachSubmitted);
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])
   @Patch("/foods/:id")
   updateFood(@Param("id") id: string, @Body() dto: UpdateNutritionFoodDto) {
     return nutritionDbService.updateFood(id, dto);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/foods/:id/submit")
+  submitFood(@Param("id") id: string, @CurrentUser() user: User) {
+    return nutritionDbService.submitFoodForReview(id, user.id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/foods/:id/return")
+  returnFood(@Param("id") id: string) {
+    return nutritionDbService.returnFoodToDraft(id);
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff"])
+  @Post("/foods/:id/approve")
+  approveFood(@Param("id") id: string, @CurrentUser() user: User) {
+    return nutritionDbService.approveFood(id, user.id);
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])
