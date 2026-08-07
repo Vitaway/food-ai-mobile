@@ -64,9 +64,12 @@ npm run preview
 
 ## Deploy (Vercel)
 
-This app is a client-side React Router SPA. Vercel needs a rewrite to `index.html` for deep links (`/login`, `/queue`, etc.), otherwise you get `404: NOT_FOUND`.
+This app is a client-side React Router SPA (`web/vercel.json` rewrites deep links to `index.html`).
 
-- Prefer **Root Directory** = `web` in the Vercel project settings (uses `web/vercel.json`).
-- Or deploy from the monorepo root (uses root `vercel.json`, which builds `web/` into `web/dist`).
+In the Vercel project:
 
-Set `VITE_API_BASE_URL` (and any other `VITE_*` vars) in the Vercel project Environment Variables before building.
+1. **Root Directory** = `web` (not `server` or repo root)
+2. Clear any custom **Install / Build / Output** overrides so Vite defaults apply (`npm install`, `npm run build`, `dist`)
+3. Set `VITE_API_BASE_URL` (and other `VITE_*` vars) under Environment Variables
+
+Then redeploy.
