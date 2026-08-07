@@ -4,7 +4,7 @@ type MicroMeta = { label: string; unit: string };
 
 /**
  * Full TFCT nutrient set (and camelCase aliases) for in-app meal display.
- * Zeros are hidden (Decision 1 — hide empty rows).
+ * Zeros are hidden (Decision 1; hide empty rows).
  */
 const MICRO_META: Record<string, MicroMeta> = {
   // Energy & macros beyond the primary macro strip

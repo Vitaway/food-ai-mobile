@@ -7,6 +7,6 @@ export function formatHour12(hour: number) {
 }
 
 export function formatQuietHoursRange(start: number, end: number) {
-  if (start === end) return 'Off — nudges run all day';
+  if (start === end) return 'Off; nudges run all day';
   return `${formatHour12(start)} – ${formatHour12(end)}`;
 }

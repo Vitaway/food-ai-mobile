@@ -29,7 +29,7 @@ function readManualDevHost(): string | null {
   if (!raw) return null;
   const host = raw.replace(/^https?:\/\//, '').split(':')[0]?.trim() || null;
   if (!host || isLoopbackHost(host)) return null;
-  // iOS Simulator shares the Mac network stack — loopback works; a LAN override breaks it.
+  // iOS Simulator shares the Mac network stack; loopback works; a LAN override breaks it.
   if (!Constants.isDevice && Platform.OS === 'ios') return null;
   return host;
 }
@@ -65,7 +65,7 @@ function getMetroDevHost(): string | null {
     if (host && !isLoopbackHost(host)) return host;
   }
 
-  // Last resort only — often stale after switching networks / hotspots.
+  // Last resort only; often stale after switching networks / hotspots.
   return readManualDevHost();
 }
 
@@ -107,7 +107,7 @@ function resolveApiBaseUrl(): string {
 
     const isLocalhost = fromEnv.includes('127.0.0.1') || fromEnv.includes('localhost');
 
-    // Physical phones / Expo Go cannot reach the Mac via 127.0.0.1 — use Metro LAN host.
+    // Physical phones / Expo Go cannot reach the Mac via 127.0.0.1; use Metro LAN host.
     // Prefer any non-loopback Metro host in __DEV__ (not only Constants.isDevice; Expo Go can be flaky there).
     if (isLocalhost && hasLanHost) {
       return buildDevApiUrl(metroHost!, port);
@@ -130,7 +130,7 @@ function resolveApiBaseUrl(): string {
 export const API_BASE_URL = resolveApiBaseUrl();
 
 if (__DEV__) {
-  // Helps debug Expo Go / LAN reachability — look for this in Metro logs after reload.
+  // Helps debug Expo Go / LAN reachability; look for this in Metro logs after reload.
   console.log(`[mirafood] API_BASE_URL=${API_BASE_URL}`);
 }
 
@@ -144,7 +144,7 @@ export function isApiConfigured(): boolean {
   return API_BASE_URL.length > 0;
 }
 
-/** @deprecated Use API_BASE_URL — kept for existing imports */
+/** @deprecated Use API_BASE_URL; kept for existing imports */
 export const PLATE_API_URL = API_BASE_URL;
 
 /** @deprecated Use isApiConfigured */

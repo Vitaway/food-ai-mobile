@@ -22,7 +22,7 @@ const stroke = {
   strokeLinejoin: 'round' as const,
 };
 
-/** Compact glyphs for dashboard row actions — no icon package. */
+/** Compact glyphs for dashboard row actions; no icon package. */
 export function CheckIcon({ className }: IconProps) {
   return (
     <IconShell className={className}>

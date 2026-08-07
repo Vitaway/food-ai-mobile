@@ -14,7 +14,7 @@ export class NutritionFood {
   @PrimaryGeneratedColumn("uuid")
   id!: string;
 
-  /** Official TFCT food code — unique when present (upsert key for imports). */
+  /** Official TFCT food code; unique when present (upsert key for imports). */
   @Column({ type: "varchar", name: "food_code", length: 32, nullable: true })
   foodCode!: string | null;
 

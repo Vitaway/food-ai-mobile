@@ -31,7 +31,7 @@ export async function markPushPromptSeen(): Promise<void> {
   await setStorageItem(PUSH_PROMPT_KEY, true);
 }
 
-/** Test / recovery helper — clears the one-time gate. */
+/** Test / recovery helper; clears the one-time gate. */
 export async function clearPushPromptSeen(): Promise<void> {
   memorySeen = false;
   notify(false);

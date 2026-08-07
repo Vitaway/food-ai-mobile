@@ -18,7 +18,7 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
-    # Local dev only — bound to loopback, never exposed to the internet
+    # Local dev only; bound to loopback, never exposed to the internet
     ports:
       - "127.0.0.1:5433:5432"
 

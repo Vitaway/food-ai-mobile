@@ -18,7 +18,7 @@ function isSubscriptionRoute(root: string, second?: string) {
   return root === 'profile' && second === 'subscription';
 }
 
-/** Pure routing resolver used by AuthGuard — exported for verification tests. */
+/** Pure routing resolver used by AuthGuard; exported for verification tests. */
 export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   const {
     requiresAuth,

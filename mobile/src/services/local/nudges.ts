@@ -37,7 +37,7 @@ function windowCreatedAt(now: Date, hour: number, minute = 0) {
   const stamp = new Date(now);
   stamp.setHours(hour, minute, 0, 0);
   if (stamp.getTime() > now.getTime()) {
-    // Window started yesterday relative to clock edge cases — clamp to now-1m
+    // Window started yesterday relative to clock edge cases; clamp to now-1m
     return new Date(now.getTime() - 60_000).toISOString();
   }
   return stamp.toISOString();

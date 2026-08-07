@@ -218,7 +218,7 @@ export function buildCoachInsights({
       title: 'Calorie pattern',
       body:
         topPct >= 45
-          ? `About ${topPct}% of your calories this period came from ${topLabel.toLowerCase()} — your heaviest meal window.`
+          ? `About ${topPct}% of your calories this period came from ${topLabel.toLowerCase()}; your heaviest meal window.`
           : `Your calories are spread fairly evenly; ${topLabel.toLowerCase()} leads at ${topPct}%.`,
       tone: topPct >= 50 ? 'warning' : 'neutral',
     });
@@ -274,7 +274,7 @@ export function buildCoachInsights({
     insights.push({
       id: 'pattern-hydration-good',
       title: 'Hydration streak',
-      body: `Strong hydration — ${hydrationPct}% of days met your ${Math.round(waterTargetMl / 1000)}L target.`,
+      body: `Strong hydration; ${hydrationPct}% of days met your ${Math.round(waterTargetMl / 1000)}L target.`,
       tone: 'positive',
     });
   }

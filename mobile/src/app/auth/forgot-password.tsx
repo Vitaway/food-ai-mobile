@@ -64,7 +64,7 @@ export default function ForgotPasswordScreen() {
           autoCapitalize="none"
           autoCorrect={false}
           placeholder="you@vitaway.org"
-          hint="We'll email a one-time code. Enter it in the app — no link needed."
+          hint="We'll email a one-time code. Enter it in the app; no link needed."
         />
       </View>
     </AuthScreenShell>

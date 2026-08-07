@@ -26,7 +26,7 @@ function midpoint(a: { x: number; y: number }, b: { x: number; y: number }) {
   return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
 }
 
-/** Contained pinch/pan surface — does not zoom the page. */
+/** Contained pinch/pan surface; does not zoom the page. */
 function ZoomSurface({
   src,
   alt,
@@ -268,7 +268,7 @@ export function MealPhotoViewer({ imageUrl, alt, className }: MealPhotoViewerPro
         )}>
         <p className="text-sm font-medium text-ash-grey-700">No meal photo</p>
         <p className="mt-1 max-w-xs text-xs text-ash-grey-500">
-          Ask the patient to open MiraFood — photos sync on launch.
+          Ask the patient to open MiraFood; photos sync on launch.
         </p>
       </div>
     );

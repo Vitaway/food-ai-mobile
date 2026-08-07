@@ -30,7 +30,7 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
       <Text className="font-sans-semibold text-base text-neutral-900">Quick log</Text>
       <Text className="mt-0.5 text-sm text-neutral-500">
-        Tap to add whole glasses — undo mistakes in today&apos;s log
+        Tap to add whole glasses; undo mistakes in today&apos;s log
       </Text>
 
       <View className="mt-4 flex-row gap-3">

@@ -7,7 +7,7 @@ type MealImageProps = {
   alt: string;
   className?: string;
   imgClassName?: string;
-  /** Compact thumbnails for tables/lists — hides the long empty-state copy. */
+  /** Compact thumbnails for tables/lists; hides the long empty-state copy. */
   variant?: 'default' | 'thumb';
 };
 
@@ -63,7 +63,7 @@ export function MealImage({
       </span>
       <p className="mt-2 text-sm font-medium text-ash-grey-700">Meal photo not available yet</p>
       <p className="mt-1 max-w-xs text-xs text-ash-grey-500">
-        Ask the patient to open MiraFood once — photos sync automatically on launch.
+        Ask the patient to open MiraFood once; photos sync automatically on launch.
       </p>
     </div>
   );

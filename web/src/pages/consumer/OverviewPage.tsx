@@ -100,7 +100,7 @@ export function ConsumerOverviewPage() {
         ) : (
           <Card>
             <CardBody className="py-10 text-center text-ash-grey-500">
-              No meals logged yet. Use the mobile app to log your first meal — it will appear here
+              No meals logged yet. Use the mobile app to log your first meal; it will appear here
               after coach review.
             </CardBody>
           </Card>

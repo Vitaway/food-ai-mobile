@@ -143,7 +143,7 @@ export class ConsumerController {
     return paymentsService.getMySubscription(user.id);
   }
 
-  /** Used by mobile AuthGuard — mirrors product entitlement check (incl. family). */
+  /** Used by mobile AuthGuard; mirrors product entitlement check (incl. family). */
   @Authorized(["consumer"])
   @Get("/subscription/access")
   subscriptionAccess(@CurrentUser() user: User) {
@@ -245,7 +245,7 @@ export class ConsumerController {
     return accountLifecycleService.exportForUser(user.id);
   }
 
-  /** Public — used by https://mirafood.vitaway.org/delete-account (Play Store). */
+  /** Public; used by https://mirafood.vitaway.org/delete-account (Play Store). */
   @Post("/account/deletion-request")
   requestAccountDeletion(@Body() dto: AccountDeletionRequestDto) {
     return accountLifecycleService.requestDeletionFromWeb(dto);

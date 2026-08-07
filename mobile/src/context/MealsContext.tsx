@@ -148,7 +148,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
 
           setMeals(merged);
           await services.mealsRepository.replaceMeals(merged);
-          // Water is updated via logWaterCups / bootstrap — avoid clobbering optimistic logs.
+          // Water is updated via logWaterCups / bootstrap; avoid clobbering optimistic logs.
           return;
         }
         const [storedMeals, log] = await Promise.all([

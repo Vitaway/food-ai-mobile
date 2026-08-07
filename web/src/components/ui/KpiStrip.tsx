@@ -114,7 +114,7 @@ const xlCols: Record<3 | 4 | 5, string> = {
   5: 'xl:grid-cols-5',
 };
 
-/** Shared pastel KPI tiles — use on coach + admin list/dashboard screens. */
+/** Shared pastel KPI tiles; use on coach + admin list/dashboard screens. */
 export function KpiStrip({ items, className, columns }: KpiStripProps) {
   const xl = columns ?? (Math.min(5, Math.max(3, items.length)) as 3 | 4 | 5);
 

@@ -21,7 +21,7 @@ export function portionNoteForPlate(plateDiameterCm: number | null | undefined):
 
   const direction = scale > 1 ? 'larger' : 'smaller';
   const pct = Math.round(Math.abs(scale - 1) * 100);
-  return `Plate is ${formatDiameterCm(plateDiameterCm)} — portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
+  return `Plate is ${formatDiameterCm(plateDiameterCm)}; portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
 }
 
 export function applyPlatePortionScale(

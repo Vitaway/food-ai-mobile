@@ -12,7 +12,7 @@
   "coachReview": null,
   "confidenceAvg": 0.91,
   "healthFlag": "green",
-  "healthMessage": "Well-balanced meal — great choice!",
+  "healthMessage": "Well-balanced meal; great choice!",
   "totalNutrition": {
     "caloriesKcal": 520,
     "proteinG": 42,

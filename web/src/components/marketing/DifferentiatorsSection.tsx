@@ -59,7 +59,7 @@ export function DifferentiatorsSection() {
             What makes us different
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-white/80">
-            Clinical-grade nutrition support — AI speed with human accountability.
+            Clinical-grade nutrition support; AI speed with human accountability.
           </p>
         </div>
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

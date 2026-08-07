@@ -114,7 +114,7 @@ export function NotificationProvider({ children }: PropsWithChildren) {
             const now = Date.now();
             for (const item of items) {
               const ageMs = now - new Date(item.createdAt).getTime();
-              // Fresh unread may have raced ahead of the WS — toast them once.
+              // Fresh unread may have raced ahead of the WS; toast them once.
               if (!item.read && Number.isFinite(ageMs) && ageMs < 20_000) {
                 showNotificationToast(toastRef.current, item);
               } else {

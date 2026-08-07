@@ -89,7 +89,7 @@ export function QueuePage() {
   async function handlePick(mealId: string, openAfter = false) {
     try {
       await pickMutation.mutateAsync(mealId);
-      toast.success(openAfter ? 'Review claimed — opening meal.' : 'You are working on this review.');
+      toast.success(openAfter ? 'Review claimed; opening meal.' : 'You are working on this review.');
       if (openAfter) navigate(`/coach/queue/${mealId}`);
     } catch (err) {
       toast.error(getApiErrorMessage(err, 'Could not claim this review'));

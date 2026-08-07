@@ -128,7 +128,7 @@ export const notificationsService = {
       },
       approved: {
         title: mealName,
-        message: "Great news — your coach approved this meal.",
+        message: "Great news; your coach approved this meal.",
       },
       rejected: {
         title: mealName,

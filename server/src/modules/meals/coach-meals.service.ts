@@ -655,7 +655,7 @@ export const coachMealsService = {
     };
   },
 
-  /** Admin force-release — clears any coach's pick so another can claim it. */
+  /** Admin force-release; clears any coach's pick so another can claim it. */
   async forceReleaseMealPick(mealId: string, actorUserId: string) {
     const meal = await mealsRepository.findMealById(mealId);
     if (!meal) throw new NotFoundError("Meal not found");

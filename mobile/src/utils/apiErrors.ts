@@ -23,7 +23,7 @@ export function getApiErrorMessage(error: unknown, fallback = 'Something went wr
       return error.message || 'Cannot reach the API. Check that the server is running.';
     }
     if (error.status >= 500) {
-      return 'Server error — try again in a moment.';
+      return 'Server error; try again in a moment.';
     }
     return error.message || fallback;
   }

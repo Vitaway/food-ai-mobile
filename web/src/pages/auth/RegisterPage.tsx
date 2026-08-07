@@ -7,7 +7,7 @@ export function RegisterPage() {
   return (
     <AuthLayout
       title="Create your account"
-      subtitle="New MiraFood accounts are set up on mobile — download the app to register and get your Vitaway patient file ID."
+      subtitle="New MiraFood accounts are set up on mobile; download the app to register and get your Vitaway patient file ID."
       footer={
         <p>
           Already have an account?{' '}

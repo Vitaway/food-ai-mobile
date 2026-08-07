@@ -593,7 +593,7 @@ export function AdminUsersPage() {
         open={showCreateForm}
         onClose={closeCreateForm}
         title="New user account"
-        description="Create any platform role — patients, coaches, organization admins, and staff. Leave password blank to auto-generate one."
+        description="Create any platform role; patients, coaches, organization admins, and staff. Leave password blank to auto-generate one."
         size="xl"
         footer={
           <div className="flex flex-wrap justify-end gap-2">

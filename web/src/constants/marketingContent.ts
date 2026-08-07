@@ -2,19 +2,19 @@ export const impactStats = [
   {
     value: '100%',
     label: 'Diary macros coach-reviewed',
-    detail: 'Approved meals only — AI estimates stay hidden until a coach verifies them.',
+    detail: 'Approved meals only; AI estimates stay hidden until a coach verifies them.',
     accent: 'text-shamrock-600',
   },
   {
     value: '< 1 min',
     label: 'Typical meal log',
-    detail: 'Snap a photo or describe your meal — AI handles portion and macro estimates.',
+    detail: 'Snap a photo or describe your meal; AI handles portion and macro estimates.',
     accent: 'text-blue-spruce-600',
   },
   {
     value: '3',
     label: 'Ways to log',
-    detail: 'Camera, gallery, or text description — built for every age and setting.',
+    detail: 'Camera, gallery, or text description; built for every age and setting.',
     accent: 'text-cinnamon-wood-500',
   },
 ] as const;
@@ -28,19 +28,19 @@ export const differentiators = [
   },
   {
     title: 'Expert-led workflow',
-    desc: 'Designed with coaches and clinicians in mind — review queues, patient file IDs, and client context.',
+    desc: 'Designed with coaches and clinicians in mind; review queues, patient file IDs, and client context.',
     icon: '◎',
     color: 'bg-blue-spruce-600',
   },
   {
     title: 'AI portion intelligence',
-    desc: 'Photo-based plate detection and smart analysis — with your description when the photo is unclear.',
+    desc: 'Photo-based plate detection and smart analysis; with your description when the photo is unclear.',
     icon: '◉',
     color: 'bg-cinnamon-wood-400',
   },
   {
     title: 'Built for outcomes',
-    desc: 'Track macros, water, streaks, and insights over time — closing the loop between logging and change.',
+    desc: 'Track macros, water, streaks, and insights over time; closing the loop between logging and change.',
     icon: '↗',
     color: 'bg-blue-spruce-700',
   },
@@ -61,7 +61,7 @@ export const differentiators = [
 export const testimonials = [
   {
     quote:
-      'I like that MiraFood is linked to my coach. The app shows me an AI estimate, but nothing hits my diary until someone reviews it — that builds real trust.',
+      'I like that MiraFood is linked to my coach. The app shows me an AI estimate, but nothing hits my diary until someone reviews it; that builds real trust.',
     name: 'Aline U.',
     role: 'MiraFood member',
     context: 'Patient',
@@ -69,7 +69,7 @@ export const testimonials = [
   },
   {
     quote:
-      'The review queue is clean and fast. I can see the photo, edit ingredients, and approve or reject in minutes — much quicker than a full dietary recall interview.',
+      'The review queue is clean and fast. I can see the photo, edit ingredients, and approve or reject in minutes; much quicker than a full dietary recall interview.',
     name: 'Dr. Eric N.',
     role: 'Vitaway nutrition coach',
     context: 'Coach',
@@ -89,7 +89,7 @@ export const homeSteps = [
   {
     step: '01',
     title: 'Snap or describe your meal',
-    desc: 'Camera, gallery, or text — log in seconds. Add a note when the photo needs context.',
+    desc: 'Camera, gallery, or text; log in seconds. Add a note when the photo needs context.',
   },
   {
     step: '02',
@@ -99,7 +99,7 @@ export const homeSteps = [
   {
     step: '03',
     title: 'Coach verifies before your diary',
-    desc: 'A nutrition coach approves, edits, or rejects — only verified data counts toward your goals.',
+    desc: 'A nutrition coach approves, edits, or rejects; only verified data counts toward your goals.',
   },
   {
     step: '04',
@@ -111,7 +111,7 @@ export const homeSteps = [
 export const coachFaqs = [
   {
     q: 'Will MiraFood add to my workload?',
-    a: 'MiraFood is designed like a structured review queue — not open-ended messaging. Clients log meals; you approve or adjust in minutes. Most reviews take far less time than a traditional dietary recall.',
+    a: 'MiraFood is designed like a structured review queue; not open-ended messaging. Clients log meals; you approve or adjust in minutes. Most reviews take far less time than a traditional dietary recall.',
   },
   {
     q: 'Can I edit AI-generated nutrition?',
@@ -119,14 +119,14 @@ export const coachFaqs = [
   },
   {
     q: 'What do clients see before I approve?',
-    a: 'Clients see AI estimates while a meal is in review, but approved macros only enter their diary after you sign off — keeping your guidance authoritative.',
+    a: 'Clients see AI estimates while a meal is in review, but approved macros only enter their diary after you sign off; keeping your guidance authoritative.',
   },
 ] as const;
 
 export const clinicFaqs = [
   {
     q: 'How does MiraFood help our clinic?',
-    a: 'Scale human-in-the-loop nutrition review across clients with consistent workflows, patient file IDs, and a shared coach dashboard — without every visit starting from a blank dietary history.',
+    a: 'Scale human-in-the-loop nutrition review across clients with consistent workflows, patient file IDs, and a shared coach dashboard; without every visit starting from a blank dietary history.',
   },
   {
     q: 'Is the technology evidence-based?',
@@ -141,11 +141,11 @@ export const clinicFaqs = [
 export const patientFaqs = [
   {
     q: 'What is my patient file ID?',
-    a: 'When you register, MiraFood assigns a patient MRN (e.g. MRN-26070183) — your unique reference across the platform and with your care team.',
+    a: 'When you register, MiraFood assigns a patient MRN (e.g. MRN-26070183); your unique reference across the platform and with your care team.',
   },
   {
     q: 'Why do coaches review my meals?',
-    a: 'Coach review ensures the nutrition in your diary is accurate and appropriate for your goals — not just an AI guess.',
+    a: 'Coach review ensures the nutrition in your diary is accurate and appropriate for your goals; not just an AI guess.',
   },
   {
     q: 'Can I log without a photo?',

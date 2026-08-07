@@ -1,4 +1,4 @@
-# MiraFood — IP registration technical sections (draft)
+# MiraFood; IP registration technical sections (draft)
 
 **Prepared:** 31 July 2026  
 **For:** MiraFood IP application (technical input)  
@@ -24,7 +24,7 @@ The inventive contribution is the **end-to-end clinical workflow**: AI proposal 
 ## 2. System architecture (high level)
 
 ```
-[MiraFood Mobile App]          [Vitaway Web — Coach/Admin]
+[MiraFood Mobile App]          [Vitaway Web; Coach/Admin]
         |                                    |
         | HTTPS / JWT                        | HTTPS / JWT
         v                                    v
@@ -75,7 +75,7 @@ The inventive contribution is the **end-to-end clinical workflow**: AI proposal 
 
 - Health flags / messages and “petals” scoring derived from approved meal nutrition and patient profile targets.
 - Coach notes and clinical assessment panels support personalised guidance.
-- Smart alerts surface caseload risks (e.g. review SLA, allergies) for coaches — cleared after review so approved meals do not retain stale urgency warnings.
+- Smart alerts surface caseload risks (e.g. review SLA, allergies) for coaches; cleared after review so approved meals do not retain stale urgency warnings.
 
 ---
 
@@ -140,4 +140,4 @@ The inventive contribution is the **end-to-end clinical workflow**: AI proposal 
 
 ---
 
-*End of technical draft — replace bracketed product names/URLs if the filing uses different trade dress.*
+*End of technical draft; replace bracketed product names/URLs if the filing uses different trade dress.*

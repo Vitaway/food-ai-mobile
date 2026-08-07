@@ -59,7 +59,7 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
 
   const food = await nutritionDbService.lookupByName(item.label);
   if (!food?.nutritionPer100g) {
-    // No DB match — keep model estimate but do not invent a food id.
+    // No DB match; keep model estimate but do not invent a food id.
     return item;
   }
 

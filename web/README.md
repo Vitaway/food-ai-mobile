@@ -1,14 +1,14 @@
 # MiraFood Coach Dashboard (Web)
 
-Coaches dashboard for reviewing client meals — matches the MiraFood mobile design system.
+Coaches dashboard for reviewing client meals; matches the MiraFood mobile design system.
 
 ## Stack
 
 - **React 19** + **TypeScript**
 - **Vite**
 - **Tailwind CSS v4** (Nata Sans, navy/green/orange palette from mobile)
-- **Zustand** — UI state (filters, review drafts)
-- **TanStack React Query** — server state (queue, stats, review actions)
+- **Zustand**; UI state (filters, review drafts)
+- **TanStack React Query**; server state (queue, stats, review actions)
 
 ## Run locally
 
@@ -26,10 +26,10 @@ Uses the MiraFood Node API (`server/`) via `VITE_API_BASE_URL`.
 
 | Route | Description |
 |-------|-------------|
-| `/` | Overview — stats + recent queue |
+| `/` | Overview; stats + recent queue |
 | `/queue` | Full review queue with filters |
-| `/queue/:id` | Meal detail — approve / reject / edit ingredients |
-| `/profile` | Coach profile — update details & password |
+| `/queue/:id` | Meal detail; approve / reject / edit ingredients |
+| `/profile` | Coach profile; update details & password |
 
 ## Project structure
 
@@ -61,3 +61,15 @@ Local dev proxies `/api` to `http://127.0.0.1:3011` (see `vite.config.ts`).
 npm run build
 npm run preview
 ```
+
+## Deploy (Vercel)
+
+This app is a client-side React Router SPA (`web/vercel.json` rewrites deep links to `index.html`).
+
+In the Vercel project:
+
+1. **Root Directory** = `web` (not `server` or repo root)
+2. Clear any custom **Install / Build / Output** overrides so Vite defaults apply (`npm install`, `npm run build`, `dist`)
+3. Set `VITE_API_BASE_URL` (and other `VITE_*` vars) under Environment Variables
+
+Then redeploy.

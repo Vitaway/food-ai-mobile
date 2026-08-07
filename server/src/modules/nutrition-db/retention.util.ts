@@ -1,6 +1,6 @@
 /**
  * Cooking retention factors for heat-labile micronutrients.
- * Provisional — must be verified against a published source before clinical launch.
+ * Provisional; must be verified against a published source before clinical launch.
  * Source note: prototype table (USDA Handbook 102-style magnitudes; not yet formally cited).
  */
 export const COOKING_METHODS = [
