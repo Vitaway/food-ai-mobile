@@ -61,3 +61,12 @@ Local dev proxies `/api` to `http://127.0.0.1:3011` (see `vite.config.ts`).
 npm run build
 npm run preview
 ```
+
+## Deploy (Vercel)
+
+This app is a client-side React Router SPA. Vercel needs a rewrite to `index.html` for deep links (`/login`, `/queue`, etc.), otherwise you get `404: NOT_FOUND`.
+
+- Prefer **Root Directory** = `web` in the Vercel project settings (uses `web/vercel.json`).
+- Or deploy from the monorepo root (uses root `vercel.json`, which builds `web/` into `web/dist`).
+
+Set `VITE_API_BASE_URL` (and any other `VITE_*` vars) in the Vercel project Environment Variables before building.
