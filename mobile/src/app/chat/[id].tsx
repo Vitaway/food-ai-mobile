@@ -231,7 +231,7 @@ export default function ChatThreadScreen() {
                     <Text className="text-3xl">💬</Text>
                   </View>
                   <Text className="text-center text-sm leading-5" style={{ color: chatTheme.bubbleMeta }}>
-                    Share extra details about your meal — portions, ingredients, or how it was prepared.
+                    Share extra details about your meal; portions, ingredients, or how it was prepared.
                   </Text>
                 </View>
               ) : (

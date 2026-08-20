@@ -23,7 +23,7 @@ async function main() {
     patientId: "MRN-26070001",
   });
 
-  console.log("Done — check the inbox.");
+  console.log("Done; check the inbox.");
 }
 
 main().catch((err) => {

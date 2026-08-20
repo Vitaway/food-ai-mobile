@@ -53,7 +53,7 @@ type StackScreenBodyProps = {
   className?: string;
 };
 
-/** Content below ScreenTopBar — flush under the header (no rounded overlap). */
+/** Content below ScreenTopBar; flush under the header (no rounded overlap). */
 export function StackScreenBody({ children, className }: StackScreenBodyProps) {
   return <View className={cn('min-h-0 flex-1 bg-white', className)}>{children}</View>;
 }

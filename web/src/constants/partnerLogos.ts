@@ -6,7 +6,7 @@ export type PartnerLogo = {
   wide?: boolean;
 };
 
-/** Rwandan health & institutional partners — logos in /public/partner-logos */
+/** Rwandan health & institutional partners; logos in /public/partner-logos */
 export const PARTNER_LOGOS: PartnerLogo[] = [
   {
     name: 'Vitaway Health',

@@ -76,7 +76,7 @@ export interface DetectedFoodItem {
   foodSource?: 'ai' | 'nutrition_db' | 'manual';
   /** Linked nutrition_foods row when foodSource is nutrition_db. */
   nutritionFoodId?: string;
-  /** Per-100g macros from DB — used to rescale weight accurately. */
+  /** Per-100g macros from DB; used to rescale weight accurately. */
   nutritionPer100g?: NutritionFacts;
   /** Portion-scaled micronutrients (camelCase keys, e.g. ironMg). */
   micronutrients?: Record<string, number>;
@@ -149,7 +149,7 @@ export interface MealSubmission {
   manualReviewRequired?: boolean | null;
   manualReviewReason?: string | null;
   aiAnalysis?: AiAnalysis;
-  /** Explicit coach "Ask AI" result — never patient submission stubs. */
+  /** Explicit coach "Ask AI" result; never patient submission stubs. */
   assistAnalysis?: AiAnalysis;
   coachReview?: CoachReview | null;
   waitingMinutes?: number;

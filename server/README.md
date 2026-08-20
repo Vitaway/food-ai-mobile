@@ -17,7 +17,7 @@ npm run dev                             # API on http://localhost:3011
 
 Or run the full stack in Docker: `docker compose up -d --build`
 
-**VPS production:** see [DEPLOY.md](./DEPLOY.md) — all commands + nginx config to paste.
+**VPS production:** see [DEPLOY.md](./DEPLOY.md); all commands + nginx config to paste.
 
 API base: `http://localhost:3011/api/v1`
 
@@ -40,8 +40,8 @@ Password for all seed users: `Test@123` (override via `SEED_*_PASSWORD` env vars
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| GET | `/health` | No | **Legacy** — same as `/api/v1/health` (Flask compat) |
-| POST | `/plates/detect` | No | **Legacy** — same as `/api/v1/vision/plates/detect` |
+| GET | `/health` | No | **Legacy**; same as `/api/v1/health` (Flask compat) |
+| POST | `/plates/detect` | No | **Legacy**; same as `/api/v1/vision/plates/detect` |
 | GET | `/api/v1/health` | No | Liveness + OpenRouter status |
 | GET | `/api/v1/health/ready` | No | DB + Redis readiness |
 | POST | `/api/v1/auth/register` | No | Create consumer account + patient ID |
@@ -73,12 +73,12 @@ See `.env.example`. Required for vision: `ANTHROPIC_API_KEY` (Claude `sk-ant-…
 
 ## Scripts
 
-- `npm run dev` — watch mode
-- `npm run build` / `npm start` — production
-- `npm run seed` / `seed:users` — upsert dashboard users + nutrition foods (**keeps** meals/patients)
-- `npm run seed:dev -- --wipe-demo` — local only; clears meals + consumer profiles (blocked in production)
-- `npm run import:tfct` — import TFCT food composition into nutrition DB (foods only)
-- `npm run migration:run` — apply migrations manually
+- `npm run dev`; watch mode
+- `npm run build` / `npm start`; production
+- `npm run seed` / `seed:users`; upsert dashboard users + nutrition foods (**keeps** meals/patients)
+- `npm run seed:dev -- --wipe-demo`; local only; clears meals + consumer profiles (blocked in production)
+- `npm run import:tfct`; import TFCT food composition into nutrition DB (foods only)
+- `npm run migration:run`; apply migrations manually
 
 ## Stack
 

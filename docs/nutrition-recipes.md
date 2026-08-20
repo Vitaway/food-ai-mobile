@@ -8,7 +8,7 @@ Recipes are first-class entries in the nutrition database: a dish is stored as a
 nutrition_foods (source_type='recipe', cooked_yield_g, nutrition_per100g)
   ├── nutrition_serving_profiles (cup / plate / bowl / …)
   └── nutrition_recipe_ingredients
-         └── ingredient_food_id → nutrition_foods (TFCT / packaged / custom — not recipes)
+         └── ingredient_food_id → nutrition_foods (TFCT / packaged / custom; not recipes)
 ```
 
 **Composition pipeline** (see `server/.../recipe-yield.util.ts`):
@@ -63,4 +63,4 @@ nutrition_foods (source_type='recipe', cooked_yield_g, nutrition_per100g)
 
 ## Meal plans
 
-See [meal-plans-design.md](./meal-plans-design.md) (Phase D — after the food DB is trustworthy).
+See [meal-plans-design.md](./meal-plans-design.md) (Phase D; after the food DB is trustworthy).

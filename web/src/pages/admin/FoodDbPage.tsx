@@ -557,7 +557,7 @@ export function AdminFoodDbPage() {
                 {compositionRecipe.ingredients.map((ing) => (
                   <li key={ing.id ?? ing.ingredientFoodId}>
                     {ing.name}
-                    {ing.nameRw ? ` (${ing.nameRw})` : ''} — {ing.rawWeightG} g raw
+                    {ing.nameRw ? ` (${ing.nameRw})` : ''}; {ing.rawWeightG} g raw
                   </li>
                 ))}
               </ul>

@@ -84,7 +84,7 @@ function normalizeResult(
     message = raw.message;
   } else if (detected && container && diameterCm != null) {
     const label = container === "bowl" ? "Bowl" : "Plate";
-    message = `${label} detected — ${diameterCm.toFixed(2)} cm`;
+    message = `${label} detected; ${diameterCm.toFixed(2)} cm`;
   } else {
     message = "No plate or bowl detected";
   }
@@ -198,7 +198,7 @@ export const visionService = {
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
     const userDescription = opts.note?.trim() || null;
-    // Plate-size detection/scaling is intentionally disabled — estimate portions from the photo/description only.
+    // Plate-size detection/scaling is intentionally disabled; estimate portions from the photo/description only.
     const analysisContext = {
       ...buildAnalysisContext(metadata),
       userDescription,

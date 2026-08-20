@@ -5,7 +5,7 @@ import { DISPLAY_TITLE_CLASS } from '@/constants/fonts';
 
 type AppTextProps = TextProps & {
   className?: string;
-  /** Cabin Sketch display headings — matches web h1–h6 */
+  /** Cabin Sketch display headings; matches web h1–h6 */
   display?: boolean;
 };
 

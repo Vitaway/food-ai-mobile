@@ -7,7 +7,7 @@
 ## Portal setup (once)
 
 1. Log into IremboPay portal (sandbox or production).
-2. Create a **payment account** (RWF) — copy identifier → `IREMBO_PAYOUT_ACCOUNT`.
+2. Create a **payment account** (RWF); copy identifier → `IREMBO_PAYOUT_ACCOUNT`.
 3. Create / note the **service fee product** → `IREMBO_SERVICE_FEE_CODE` (used for all subscription tiers; amount comes from admin plan pricing).
 4. Set **callback URL** to:  
    `https://vitaway.nsengi.space/api/v1/payments/irembo/webhook`  
@@ -37,28 +37,28 @@ ENFORCE_SUBSCRIPTIONS=true
 
 Restart API after changing env. Plan prices are edited in **Admin → Payments** (DB `subscription_plans`).
 
-## Test channels (sandbox only — no real money)
+## Test channels (sandbox only; no real money)
 
 From [Irembo testing docs](https://irembopay.gitbook.io/irembopay-api-docs/irembopay-api-docs-v2/integration/accepting-payments-on-your-website/interactive-blocks.md):
 
 | Channel | Success | Fail |
 |---|---|---|
-| Visa | `4242 4242 4242 4242` / any future expiry / CVV `123` | — |
+| Visa | `4242 4242 4242 4242` / any future expiry / CVV `123` |; |
 | Mastercard | `5555 5555 5555 4444` | `5198 9602 2985 7244` |
-| Amex | `3782 822463 10005` / CVV `1234` | — |
+| Amex | `3782 822463 10005` / CVV `1234` |; |
 | MTN MoMo | `0781234567` | `0780123456` |
 | Airtel | `0731234567` | `0730123456` |
 
 ## E2E checklist
 
-- [ ] **Weekly** — checkout opens Irembo page; success → app Refresh shows `active`, `planCode=individual_weekly`
-- [ ] **Monthly** — same → `individual_monthly`
-- [ ] **Family** — same → `family_monthly`; payer appears in family members
-- [ ] **Failed** payment — tx `failed`; if user was already `active`, status stays `active`
+- [ ] **Weekly**; checkout opens Irembo page; success → app Refresh shows `active`, `planCode=individual_weekly`
+- [ ] **Monthly**; same → `individual_monthly`
+- [ ] **Family**; same → `family_monthly`; payer appears in family members
+- [ ] **Failed** payment; tx `failed`; if user was already `active`, status stays `active`
 - [ ] Checkout does **not** grant access before `PAID` (status stays non-active / `past_due`)
 - [ ] Without active sub, meal log / water / reports return **403** and mobile opens Subscription
-- [ ] **Webhook signature** — forged callback without valid `irembopay-signature` returns 403
-- [ ] **Refresh status** — after paying, `GET /payments/checkout/:externalRef/status` reconciles if webhook is delayed
+- [ ] **Webhook signature**; forged callback without valid `irembopay-signature` returns 403
+- [ ] **Refresh status**; after paying, `GET /payments/checkout/:externalRef/status` reconciles if webhook is delayed
 - [ ] Corporate plan **not** listed in mobile subscription UI
 - [ ] Admin can change plan amounts; next checkout uses new `unitAmount`
 

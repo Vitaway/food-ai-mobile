@@ -171,7 +171,7 @@ export function MarketingFooter() {
         className="pointer-events-none relative z-0 select-none overflow-hidden pb-2 pt-2"
         aria-hidden>
         <p className="whitespace-nowrap text-center text-[clamp(4.5rem,18vw,12rem)] font-normal leading-none tracking-tight text-white/[0.07]">
-          MiraFood — Vitaway
+          MiraFood; Vitaway
         </p>
       </div>
     </footer>

@@ -55,7 +55,7 @@ export function useDashboard(selectedDate = todayKey()) {
 
   const mealsKey = useMemo(() => mealRevisionKey(meals), [meals]);
 
-  // Remote dashboard for health score / server extras — refresh when meals or water change.
+  // Remote dashboard for health score / server extras; refresh when meals or water change.
   useEffect(() => {
     if (!isApiConfigured() || !isAuthenticated) {
       setRemoteDashboard(null);

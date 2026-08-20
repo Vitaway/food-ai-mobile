@@ -25,14 +25,14 @@ type QueueItem =
 
 function flagsForFood(food: NutritionFood): Array<{ tone: 'bad' | 'warn' | 'good'; text: string }> {
   const flags: Array<{ tone: 'bad' | 'warn' | 'good'; text: string }> = [];
-  if (food.sodiumMissing) flags.push({ tone: 'bad', text: 'Sodium missing — blocks hypertension screening' });
-  if (!food.source) flags.push({ tone: 'bad', text: 'No data source recorded — cannot be verified' });
+  if (food.sodiumMissing) flags.push({ tone: 'bad', text: 'Sodium missing; blocks hypertension screening' });
+  if (!food.source) flags.push({ tone: 'bad', text: 'No data source recorded; cannot be verified' });
   const filled = food.fieldCompleteness?.filled ?? 0;
   const total = food.fieldCompleteness?.total ?? 15;
   if (filled < total) {
     flags.push({
       tone: 'warn',
-      text: `${total - filled} nutrients unknown — will be hidden, not zeroed`,
+      text: `${total - filled} nutrients unknown; will be hidden, not zeroed`,
     });
   }
   if (food.allergens?.length) {

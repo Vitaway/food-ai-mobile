@@ -285,7 +285,7 @@ export function ClinicalAssessmentPanel({
           <section className="rounded-2xl border border-blue-spruce-100 bg-blue-spruce-50/50 p-4">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
               <h3 className="font-semibold text-ash-grey-900">Patient-submitted details</h3>
-              <span className="text-xs text-ash-grey-500">Editable — updates the patient profile</span>
+              <span className="text-xs text-ash-grey-500">Editable; updates the patient profile</span>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <SelectField

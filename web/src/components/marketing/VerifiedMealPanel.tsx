@@ -58,7 +58,7 @@ export function VerifiedMealPanel() {
         </h2>
         <p className="mt-4 text-base leading-relaxed text-white/85 sm:text-lg">
           Meal logging, AI analysis, coach review, macro tracking, water goals, streaks, and
-          personalized insights — MiraFood connects every step of your nutrition journey in one
+          personalized insights; MiraFood connects every step of your nutrition journey in one
           app.
         </p>
         <Button href={APP_STORE_URL} target="_blank" variant="primary" size="md" className="mt-8">

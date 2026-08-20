@@ -73,7 +73,7 @@ async function escalateMeal(mealId: string) {
   const assignedCoachIds = assignedRows.map((r) => r.coachUserId);
   const organization = await resolveOrganizationForMeal(meal.clientId, assignedCoachIds);
 
-  const body = `⏱ Review unclaimed for ${waiting}m — ${patientLabel} · “${mealName}”. No coach has picked this up yet. Someone available, please claim it from the review queue.`;
+  const body = `⏱ Review unclaimed for ${waiting}m; ${patientLabel} · “${mealName}”. No coach has picked this up yet. Someone available, please claim it from the review queue.`;
 
   if (organization) {
     try {

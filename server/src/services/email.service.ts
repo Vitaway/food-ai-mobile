@@ -93,7 +93,7 @@ export class EmailService {
 
     if (!isEmailConfigured()) {
       if (env.NODE_ENV !== "production") {
-        logger.info({ to: opts.to, subject: opts.subject }, "[mirafood] Email (dev — not sent)");
+        logger.info({ to: opts.to, subject: opts.subject }, "[mirafood] Email (dev; not sent)");
         if (opts.textParagraphs.length > 0) {
           logger.info(opts.textParagraphs.join("\n"));
         }
@@ -126,13 +126,13 @@ export class EmailService {
 
     await this.sendBrandedEmail({
       to,
-      subject: "Welcome to MiraFood — your Vitaway file is ready",
+      subject: "Welcome to MiraFood; your Vitaway file is ready",
       title: "Welcome to MiraFood",
       preheader: `Your patient file ${opts.patientId} is ready. Finish onboarding in the app.`,
       appUrl,
       bodyHtml: `
         <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">${greeting}</p>
-        <p style="${vitawayParagraphStyle()}">You're set up on MiraFood — snap meals on mobile, get coach-reviewed nutrition insights, and track your progress with your Vitaway patient file.</p>
+        <p style="${vitawayParagraphStyle()}">You're set up on MiraFood; snap meals on mobile, get coach-reviewed nutrition insights, and track your progress with your Vitaway patient file.</p>
         ${renderPatientIdBlock(opts.patientId)}
         ${renderInfoCallout("Next step", "Open the MiraFood app and finish your health profile so we can personalize calories, macros, and water targets.", "green")}
         ${renderEmailButton("Continue in the app", appUrl)}
@@ -141,7 +141,7 @@ export class EmailService {
       textParagraphs: [
         greeting,
         "",
-        "You're set up on MiraFood — snap meals on mobile, get coach-reviewed nutrition insights, and track your progress.",
+        "You're set up on MiraFood; snap meals on mobile, get coach-reviewed nutrition insights, and track your progress.",
         "",
         `Patient file ID: ${opts.patientId}`,
         "",
@@ -343,7 +343,7 @@ export class EmailService {
       appUrl,
       bodyHtml: `
         <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">${greeting}</p>
-        <p style="${vitawayParagraphStyle()}">Someone asked to reset the password for this MiraFood account. Enter the code below in the app or on the web — no link needed.</p>
+        <p style="${vitawayParagraphStyle()}">Someone asked to reset the password for this MiraFood account. Enter the code below in the app or on the web; no link needed.</p>
         ${renderOtpCodeBlock(code)}
         ${renderInfoCallout(
           "How to finish",
@@ -365,7 +365,7 @@ export class EmailService {
         code,
         "",
         "It expires in 10 minutes and can only be used once.",
-        "Enter it in the app or on the web — no reset link required.",
+        "Enter it in the app or on the web; no reset link required.",
         "",
         "If you didn't request this, ignore this email. Your password will stay the same.",
         "Never share this code with anyone.",
@@ -437,7 +437,7 @@ export class EmailService {
 
     await this.sendBrandedEmail({
       to,
-      subject: `Payment confirmed — MiraFood ${opts.planLabel}`,
+      subject: `Payment confirmed; MiraFood ${opts.planLabel}`,
       title: "Payment confirmed",
       preheader: `We received ${amountLabel} for your ${opts.planLabel} plan.`,
       appUrl,
@@ -505,7 +505,7 @@ export class EmailService {
 
     await this.sendBrandedEmail({
       to: supportTo,
-      subject: `[MiraFood] Account deletion request — ${opts.email}`,
+      subject: `[MiraFood] Account deletion request; ${opts.email}`,
       title: "Account deletion request",
       preheader: `Deletion request from ${opts.email}`,
       bodyHtml: `

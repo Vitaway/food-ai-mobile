@@ -12,7 +12,7 @@ type AdminRouteProps = {
   children: React.ReactNode;
 };
 
-/** Platform admin — admins only. */
+/** Platform admin; admins only. */
 export function AdminRoute({ children }: AdminRouteProps) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const isAdmin = useAuthStore(selectIsAdmin);

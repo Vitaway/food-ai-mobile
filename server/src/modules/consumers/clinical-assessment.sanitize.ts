@@ -1,4 +1,4 @@
-/** Shared clinical-assessment cleanup — strip inapplicable pregnancy/condition fields. */
+/** Shared clinical-assessment cleanup; strip inapplicable pregnancy/condition fields. */
 
 export type ClinicalAssessmentLike = Record<string, unknown>;
 

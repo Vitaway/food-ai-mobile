@@ -9,7 +9,7 @@ type DashboardPanelProps = {
   bodyClassName?: string;
 };
 
-/** White panel with title — preferred wrapper for dashboard tables. */
+/** White panel with title; preferred wrapper for dashboard tables. */
 export function DashboardPanel({
   title,
   action,

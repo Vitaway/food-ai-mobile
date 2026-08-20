@@ -4,11 +4,11 @@ type AppStoreBadgesProps = {
   className?: string;
 };
 
-/** Placeholder store URLs — replace with live App Store / Play Store links before launch. */
+/** Placeholder store URLs; replace with live App Store / Play Store links before launch. */
 export const APP_STORE_URL = 'https://apps.apple.com/app/mirafood';
 export const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.vitaway.foodai';
 
-/** Matches Inzu marketing site — official badge SVGs with subtle ring hover. */
+/** Matches Inzu marketing site; official badge SVGs with subtle ring hover. */
 export function AppStoreBadges({ className = '' }: AppStoreBadgesProps) {
   return (
     <div className={cn('flex flex-wrap items-center gap-3 sm:gap-4', className)}>

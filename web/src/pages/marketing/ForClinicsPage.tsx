@@ -20,7 +20,7 @@ const clinicSteps = [
   },
   {
     title: 'Patients log between visits',
-    desc: 'Members snap or describe meals in MiraFood — AI drafts nutrition estimates for coach review.',
+    desc: 'Members snap or describe meals in MiraFood; AI drafts nutrition estimates for coach review.',
   },
   {
     title: 'Coaches verify at scale',
@@ -28,7 +28,7 @@ const clinicSteps = [
   },
   {
     title: 'Act on trusted data',
-    desc: 'Only coach-approved meals enter diaries and reports — better follow-ups, cleaner program evaluation.',
+    desc: 'Only coach-approved meals enter diaries and reports; better follow-ups, cleaner program evaluation.',
   },
 ];
 
@@ -46,7 +46,7 @@ const clinicOutcomes = [
   {
     value: 'Minutes',
     label: 'Typical review',
-    detail: 'Structured queue — not a full dietary recall every time.',
+    detail: 'Structured queue; not a full dietary recall every time.',
   },
 ];
 
@@ -106,7 +106,7 @@ function ClinicsBand() {
             Built for clinical reality
           </h2>
           <p className="mt-4 text-base leading-relaxed text-white/80 sm:text-lg">
-            MiraFood gives your nutrition team a shared review workflow — so dietary history is
+            MiraFood gives your nutrition team a shared review workflow; so dietary history is
             continuous, not rebuilt from memory at every visit.
           </p>
         </div>
@@ -131,7 +131,7 @@ export function ForClinicsPage() {
     <div className="bg-white">
       <MarketingPageHero
         title="For clinics & teams"
-        description="Deploy coach-verified nutrition at scale — human accountability, AI speed, and workflows built for real clinical settings."
+        description="Deploy coach-verified nutrition at scale; human accountability, AI speed, and workflows built for real clinical settings."
       />
 
       <PartnerLogosStrip />
@@ -145,7 +145,7 @@ export function ForClinicsPage() {
               </h2>
               <p className="mt-4 text-base leading-relaxed text-ash-grey-600 sm:text-lg">
                 Clients log meals in the app. Coaches approve before data enters the diary. Your team
-                gets better longitudinal data — without adding hours of manual entry.
+                gets better longitudinal data; without adding hours of manual entry.
               </p>
               <ul className="mt-6 space-y-3 text-sm text-ash-grey-700">
                 <li className="flex gap-2">
@@ -184,7 +184,7 @@ export function ForClinicsPage() {
               How clinics deploy MiraFood
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-ash-grey-600">
-              From pilot to trusted diary data — a clear path for care teams.
+              From pilot to trusted diary data; a clear path for care teams.
             </p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -216,7 +216,7 @@ export function ForClinicsPage() {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-blue-spruce-950/50 via-transparent to-transparent" />
               <p className="absolute bottom-5 left-5 right-5 text-sm text-white/90 sm:bottom-6 sm:left-6 sm:text-base">
-                Designed with coaches and care teams — not as a replacement for clinical judgment.
+                Designed with coaches and care teams; not as a replacement for clinical judgment.
               </p>
             </div>
             <div>
@@ -241,7 +241,7 @@ export function ForClinicsPage() {
                 <div>
                   <h3 className="text-lg text-ash-grey-900">Outcome-oriented data</h3>
                   <p className="mt-2 text-sm leading-relaxed text-ash-grey-600">
-                    Approved meal data feeds insights and follow-ups — supporting program evaluation
+                    Approved meal data feeds insights and follow-ups; supporting program evaluation
                     with numbers you can trust.
                   </p>
                 </div>

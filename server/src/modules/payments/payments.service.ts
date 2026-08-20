@@ -243,7 +243,7 @@ export const paymentsService = {
 
   /**
    * Admin marks a user as paid through `renewsOn` (inclusive).
-   * Does not create an Irembo charge — for manual / offline payments.
+   * Does not create an Irembo charge; for manual / offline payments.
    */
   async grantSubscription(
     adminId: string,
@@ -543,7 +543,7 @@ export const paymentsService = {
       order: { createdAt: "DESC" },
     });
     if (!subscription) {
-      // Pending checkout — no product access until webhook PAID → active.
+      // Pending checkout; no product access until webhook PAID → active.
       subscription = subscriptionsRepo.create({
         userId,
         organizationId: plan.subscriptionType === "corporate" ? organizationId : null,

@@ -84,7 +84,7 @@ export function sanitizeMealAnalysisResult(analysis: MealAnalysisResult): MealAn
     confidenceAvg: Math.min(analysis.confidenceAvg, 0.35),
     healthFlag: "yellow",
     healthMessage:
-      "No food detected — dishware and empty containers have no nutrition. The client can add a description or send this to you for review.",
+      "No food detected; dishware and empty containers have no nutrition. The client can add a description or send this to you for review.",
     petals: items.map((item) => ({
       label: item.label,
       percent: totalWeightG > 0 ? Math.round((item.estimatedWeightG / totalWeightG) * 100) : 100,

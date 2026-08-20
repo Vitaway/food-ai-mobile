@@ -1,18 +1,18 @@
-# Meal plans (Phase D) — product design
+# Meal plans (Phase D); product design
 
 Meal plans were **out of scope** in the nutrition DB HTML prototype (`Clients` / `Meal plans` nav stubs). This note defines how we build them **after** foods and recipes are clinically trustworthy (Phases A–C).
 
 ## Goal
 
-Let coaches assemble **verified** foods and recipes into day/week plans that hit clinical targets (energy, protein, sodium, allergens) for a client or cohort — without inventing nutrition on the fly.
+Let coaches assemble **verified** foods and recipes into day/week plans that hit clinical targets (energy, protein, sodium, allergens) for a client or cohort; without inventing nutrition on the fly.
 
 ## Principles
 
-1. **Verified only** — plan lines may only reference `approval_status = approved` + `is_active` foods/recipes.
-2. **Compose, don’t recalculate** — use frozen recipe snapshots / food per-100g + serving grams; never re-open draft math inside a published plan.
-3. **Allergen-safe** — inherit food/recipe allergens; block or warn when a client allergy matches.
-4. **EPF + retention already baked in** — plans consume cooked dish profiles from the recipe engine; they do not re-apply cooking methods.
-5. **Version the plan** — editing a published plan bumps version; assigned clients keep the version they were given until reassigned.
+1. **Verified only**; plan lines may only reference `approval_status = approved` + `is_active` foods/recipes.
+2. **Compose, don’t recalculate**; use frozen recipe snapshots / food per-100g + serving grams; never re-open draft math inside a published plan.
+3. **Allergen-safe**; inherit food/recipe allergens; block or warn when a client allergy matches.
+4. **EPF + retention already baked in**; plans consume cooked dish profiles from the recipe engine; they do not re-apply cooking methods.
+5. **Version the plan**; editing a published plan bumps version; assigned clients keep the version they were given until reassigned.
 
 ## Proposed model
 
@@ -46,10 +46,10 @@ meal_plan_assignments
 ## Coach UX (v1)
 
 1. **Meal plans** nav → list of drafts / published plans.
-2. **Builder** — pick day → meal slot → Food DB picker (same as meal review; Recipe badge).
+2. **Builder**; pick day → meal slot → Food DB picker (same as meal review; Recipe badge).
 3. Live strip: day totals (kcal, protein, sodium) vs targets; allergen chips.
 4. **Publish** freezes item nutrition snapshots; further edits create a new version.
-5. **Assign** to client(s) (v1.1) — shows on mobile as “Today’s plan” read-only cards.
+5. **Assign** to client(s) (v1.1); shows on mobile as “Today’s plan” read-only cards.
 
 ## Mobile / consumer (v1.1)
 
@@ -76,7 +76,7 @@ meal_plan_assignments
 2. Builder UI reusing `FoodDbPicker` + serving profiles.
 3. Publish + snapshot + version bump.
 4. Assignment + consumer read view.
-5. Reports: adherence (logged meals vs plan) — later.
+5. Reports: adherence (logged meals vs plan); later.
 
 ## Success criteria
 

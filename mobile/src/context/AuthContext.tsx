@@ -178,7 +178,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
             setSession(refreshed);
           }
         } catch {
-          /* offline — keep stored session */
+          /* offline; keep stored session */
         }
       })
       .finally(() => setIsLoading(false));

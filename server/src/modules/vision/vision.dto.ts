@@ -18,7 +18,7 @@ export class SuggestMealTitleDto {
   @MaxLength(2000)
   description?: string;
 
-  /** Alias for description — clients may send either field. */
+  /** Alias for description; clients may send either field. */
   @IsOptional()
   @IsString()
   @MinLength(2)

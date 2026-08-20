@@ -15,7 +15,7 @@ const legalPages = [
   {
     to: '/medical-disclaimer',
     title: 'Medical disclaimer',
-    desc: 'MiraFood is not medical advice — important health information.',
+    desc: 'MiraFood is not medical advice; important health information.',
   },
   {
     to: '/cookie-policy',

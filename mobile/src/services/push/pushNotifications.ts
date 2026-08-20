@@ -68,7 +68,7 @@ export async function obtainExpoPushToken(): Promise<string | null> {
     Constants.easConfig?.projectId;
 
   if (!projectId) {
-    console.warn('Expo projectId missing — cannot register for push notifications.');
+    console.warn('Expo projectId missing; cannot register for push notifications.');
     return null;
   }
 

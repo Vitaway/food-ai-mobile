@@ -11,7 +11,7 @@ const SLA_CRITICAL_MINUTES = 24 * 60;
 
 export { SLA_WARNING_MINUTES, SLA_CRITICAL_MINUTES };
 
-/** Explicit coach–patient assignments only (empty when none — never “all patients”). */
+/** Explicit coach–patient assignments only (empty when none; never “all patients”). */
 export async function resolveCoachCaseloadIds(
   coachUserId: string,
   cohortId?: string,

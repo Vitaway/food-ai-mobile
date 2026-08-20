@@ -88,7 +88,7 @@ type SelectFieldProps = FieldProps &
     children?: ReactNode;
     placeholder?: string;
     onChange?: (event: ChangeEvent<HTMLSelectElement>) => void;
-    /** Prefer this for new code — receives the selected string value directly. */
+    /** Prefer this for new code; receives the selected string value directly. */
     onValueChange?: (value: string) => void;
   };
 

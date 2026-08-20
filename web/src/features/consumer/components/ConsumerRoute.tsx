@@ -13,7 +13,7 @@ type ConsumerRouteProps = {
   children: React.ReactNode;
 };
 
-/** Consumer app — patients, and org admins using their dual patient identity. */
+/** Consumer app; patients, and org admins using their dual patient identity. */
 export function ConsumerRoute({ children }: ConsumerRouteProps) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const isConsumer = useAuthStore(selectIsConsumer);

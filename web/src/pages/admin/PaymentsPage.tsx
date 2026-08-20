@@ -224,7 +224,7 @@ export function AdminPaymentsPage() {
     },
     onMutate: (code) => setSavingCode(code),
     onSuccess: (plan) => {
-      toast.success(`“${plan.label}” saved — checkout & receipts will use this name`);
+      toast.success(`“${plan.label}” saved; checkout & receipts will use this name`);
       void queryClient.invalidateQueries({ queryKey: ['admin', 'subscription-plans'] });
     },
     onError: (err) => {
@@ -249,7 +249,7 @@ export function AdminPaymentsPage() {
         }),
       }),
     onSuccess: (plan) => {
-      toast.success(`Plan “${plan.label}” created — patients can choose it at checkout`);
+      toast.success(`Plan “${plan.label}” created; patients can choose it at checkout`);
       setCreateForm({
         code: '',
         label: '',

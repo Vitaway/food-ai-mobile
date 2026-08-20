@@ -1,4 +1,4 @@
-/** Shared palette tokens — aligned with web/src/index.css @theme */
+/** Shared palette tokens; aligned with web/src/index.css @theme */
 
 /** Fixed scales aligned with web/src/index.css @theme tokens */
 const WEB_BLUE_SPRUCE = {

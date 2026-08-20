@@ -35,7 +35,7 @@ export default function EnablePushNotificationsScreen() {
       return;
     }
 
-    // Simulators cannot receive remote push — leave immediately after clearing the gate.
+    // Simulators cannot receive remote push; leave immediately after clearing the gate.
     if (isSimulator) {
       setBusy(false);
       return;
@@ -50,7 +50,7 @@ export default function EnablePushNotificationsScreen() {
         ]);
       }
     } catch {
-      // Already navigated away — ignore.
+      // Already navigated away; ignore.
     } finally {
       setBusy(false);
     }
@@ -64,7 +64,7 @@ export default function EnablePushNotificationsScreen() {
         </View>
         <Text className="font-sans-bold text-3xl text-neutral-900">Stay in the loop</Text>
         <Text className="mt-3 text-base leading-6 text-neutral-600">
-          Turn on notifications so you get meal review updates, coach insights, and reminders — even when
+          Turn on notifications so you get meal review updates, coach insights, and reminders; even when
           MiraFood is closed.
         </Text>
 
@@ -82,7 +82,7 @@ export default function EnablePushNotificationsScreen() {
         </View>
         {isSimulator ? (
           <Text className="mt-4 text-sm text-neutral-500">
-            Simulators can't receive push alerts. You can continue — try on a real device to enable them.
+            Simulators can't receive push alerts. You can continue; try on a real device to enable them.
           </Text>
         ) : null}
         {status ? <Text className="mt-4 text-sm text-neutral-500">{status}</Text> : null}

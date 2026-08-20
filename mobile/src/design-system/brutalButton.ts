@@ -8,7 +8,7 @@ type BrutalVariantTokens = {
   pressedFaceBg?: string;
 };
 
-/** Neo-brutalist button tokens — mirrors web/src/index.css .brutal-btn rules */
+/** Neo-brutalist button tokens; mirrors web/src/index.css .brutal-btn rules */
 export const BRUTAL_BUTTON = {
   borderWidth: 2,
   borderRadius: 2,

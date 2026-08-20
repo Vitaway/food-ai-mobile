@@ -16,19 +16,19 @@ export class CreateCheckoutDto {
   @MaxLength(160)
   organizationName?: string;
 
-  /** @deprecated Ignored — server plan catalog owns pricing. */
+  /** @deprecated Ignored; server plan catalog owns pricing. */
   @IsOptional()
   @IsNumber()
   @Min(0)
   amount?: number;
 
-  /** @deprecated Ignored — server plan catalog owns currency. */
+  /** @deprecated Ignored; server plan catalog owns currency. */
   @IsOptional()
   @IsString()
   @MaxLength(3)
   currency?: string;
 
-  /** @deprecated Ignored — derived from planCode. */
+  /** @deprecated Ignored; derived from planCode. */
   @IsOptional()
   @IsString()
   @MaxLength(24)

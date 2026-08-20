@@ -106,7 +106,7 @@ function measureFromDbServing(serving: FoodServingOption | null, fallbackUnit = 
     };
   }
   const gramsPerOne = gramsPerUnit(serving);
-  // Always use the profile amount (10 pieces, 100 g, 1 cup, …) — that is the selected serving.
+  // Always use the profile amount (10 pieces, 100 g, 1 cup, …); that is the selected serving.
   const servingAmount = Math.max(Number(serving.amount) || 0, 0.01);
   return {
     servingUnit: unit,
@@ -435,7 +435,7 @@ export function CoachIngredientsTable({
   if (!items.length) {
     return (
       <p className="px-2 py-4 text-sm text-ash-grey-500">
-        Add an ingredient — pick Food DB to search the catalog, or Manual to type values. Measure with
+        Add an ingredient; pick Food DB to search the catalog, or Manual to type values. Measure with
         serving amount and unit.
       </p>
     );

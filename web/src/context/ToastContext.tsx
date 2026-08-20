@@ -25,7 +25,7 @@ type ToastContextValue = {
   success: (message: string, title?: string, opts?: { sound?: boolean }) => string;
   error: (message: string, title?: string, opts?: { sound?: boolean }) => string;
   info: (message: string, title?: string, opts?: { sound?: boolean }) => string;
-  /** Incoming live event — toast + sound. */
+  /** Incoming live event; toast + sound. */
   incoming: (message: string, title?: string, type?: ToastType) => string;
   dismiss: (id: string) => void;
 };

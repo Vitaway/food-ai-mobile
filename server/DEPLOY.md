@@ -1,4 +1,4 @@
-# MiraFood API — VPS deploy
+# MiraFood API; VPS deploy
 
 Same as **daily-focus**: `docker-compose.yml` + `Dockerfile`, no deploy scripts.
 
@@ -27,7 +27,7 @@ cp .env.example .env
 nano .env
 ```
 
-Generate passwords (**hex only** — no `/`, `=`, `+`):
+Generate passwords (**hex only**; no `/`, `=`, `+`):
 
 ```bash
 openssl rand -hex 24   # POSTGRES_PASSWORD
@@ -48,7 +48,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 ANTHROPIC_MODEL=claude-haiku-4-5
 APP_URL=https://mirafood.vitaway.org
 
-# IremboPay (see docs/irembopay-sandbox-qa.md) — secrets only on VPS, never commit
+# IremboPay (see docs/irembopay-sandbox-qa.md); secrets only on VPS, never commit
 IREMBO_PAY_BASE_URL=https://api.irembopay.com/payments
 IREMBO_PAY_SECRET_KEY=...
 IREMBO_PAY_PUBLIC_KEY=...
@@ -63,7 +63,7 @@ SMTP_PASS=...
 AUTO_RUN_MIGRATIONS=true
 ```
 
-**Do not add** `DATABASE_URL` or `REDIS_URL` — the app builds those from the passwords above.
+**Do not add** `DATABASE_URL` or `REDIS_URL`; the app builds those from the passwords above.
 
 ```bash
 chmod 600 .env
@@ -81,7 +81,7 @@ git pull
 docker compose -p server down 2>/dev/null || true
 docker compose down
 
-# DANGER — only on a brand-new empty VPS. This DESTROYS the database:
+# DANGER; only on a brand-new empty VPS. This DESTROYS the database:
 # docker volume rm mirafood_mirafood_pg_data mirafood_mirafood_redis_data
 
 docker compose build --no-cache
@@ -106,7 +106,7 @@ docker compose exec api npm run seed:users
 docker compose exec api npm run import:tfct
 ```
 
-**Never** run `npm run seed` with `--wipe-demo` in production. Plain `seed` no longer wipes data; older images did wipe meals + consumer profiles — use `seed:users` going forward.
+**Never** run `npm run seed` with `--wipe-demo` in production. Plain `seed` no longer wipes data; older images did wipe meals + consumer profiles; use `seed:users` going forward.
 
 Production scripts use `node dist/...` (no `tsx` in the image).
 

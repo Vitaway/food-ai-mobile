@@ -23,7 +23,7 @@ const methodology = [
 
 const limitations = [
   'MiraFood is not a medical device and does not diagnose or treat conditions.',
-  'AI estimates are starting points — coach review is the source of truth for approved diary data.',
+  'AI estimates are starting points; coach review is the source of truth for approved diary data.',
   'Accuracy varies with photo quality, lighting, and food complexity; users should add descriptions when needed.',
   'We continue to improve models and validation; published outcome studies will be shared here as they complete.',
 ];
@@ -33,7 +33,7 @@ export function ClinicalEvidencePage() {
     <div className="bg-white">
       <MarketingPageHero
         title="Clinical evidence & approach"
-        description="How MiraFood combines AI speed with human review — and what we claim (and don’t claim) about our technology."
+        description="How MiraFood combines AI speed with human review; and what we claim (and don’t claim) about our technology."
       />
 
       <section className="py-16 sm:py-24">
@@ -60,7 +60,7 @@ export function ClinicalEvidencePage() {
           <h2 className="text-2xl tracking-tight text-ash-grey-900">Research & outcomes</h2>
           <p className="mt-4 text-base leading-relaxed text-ash-grey-600">
             Vitaway is building outcome studies with clinic partners in Rwanda and beyond. We report
-            process metrics today — coach review rates, logging adherence, and review turnaround — and
+            process metrics today; coach review rates, logging adherence, and review turnaround; and
             will publish formal clinical outcomes as validated studies complete.
           </p>
           <div className="mt-8 rounded-2xl border border-blue-spruce-200 bg-blue-spruce-50 p-6">

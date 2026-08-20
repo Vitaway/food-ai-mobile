@@ -12,7 +12,7 @@ type AvatarUploadProps = {
   onChange?: (dataUrl: string) => void;
   onFileSelect?: (file: File) => void;
   size?: 'lg' | 'md';
-  /** When false, the image is display-only — use openPicker() from a separate button. */
+  /** When false, the image is display-only; use openPicker() from a separate button. */
   clickable?: boolean;
 };
 

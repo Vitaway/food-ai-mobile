@@ -27,7 +27,7 @@ export function ContactFormCard({
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
-    const subject = `[MiraFood] ${topic}${name ? ` — ${name}` : ''}`;
+    const subject = `[MiraFood] ${topic}${name ? `; ${name}` : ''}`;
     const body = [
       name ? `Name: ${name}` : null,
       email ? `Email: ${email}` : null,

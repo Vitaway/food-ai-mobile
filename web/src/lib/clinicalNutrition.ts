@@ -1,4 +1,4 @@
-/** Mirrors server clinical-nutrients.util — curated 15-nutrient panel. */
+/** Mirrors server clinical-nutrients.util; curated 15-nutrient panel. */
 export const CLINICAL_NUTRIENT_PANEL = [
   { key: 'energy_kcal', label: 'Energy', unit: 'kcal' },
   { key: 'protein_g', label: 'Protein', unit: 'g' },

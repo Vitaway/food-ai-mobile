@@ -57,7 +57,7 @@ const STEP_META: Record<EditStep, { title: string; description: string }> = {
   },
   diet: {
     title: 'Diet & allergies',
-    description: 'Optional — we use these to tailor meal suggestions.',
+    description: 'Optional; we use these to tailor meal suggestions.',
   },
   review: {
     title: 'Your targets',
@@ -389,7 +389,7 @@ export default function EditHealthProfileScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingBottom: 16 }}>
         <Text className="mb-5 text-base leading-6 text-neutral-600">
-          {STEP_META[step].description} Save anytime — you only need to update what changed.
+          {STEP_META[step].description} Save anytime; you only need to update what changed.
         </Text>
         {renderStepContent()}
       </ScrollView>

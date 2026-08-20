@@ -82,7 +82,7 @@ export function SecondOpinionModal({ open, loading, onClose, onSubmit }: SecondO
       open={open}
       onClose={loading ? () => undefined : onClose}
       title="Second opinion"
-      description="Get another set of eyes on this meal — pick who should help."
+      description="Get another set of eyes on this meal; pick who should help."
       size="md"
       footer={
         <div className="flex flex-wrap justify-end gap-2">

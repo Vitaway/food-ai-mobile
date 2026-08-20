@@ -207,7 +207,7 @@ export function useUpdateAdminUser() {
       void qc.invalidateQueries({ queryKey: adminKeys.consumers() });
       void qc.invalidateQueries({ queryKey: adminKeys.coaches() });
       void qc.invalidateQueries({ queryKey: adminKeys.organizations() });
-      // Invalidate all org detail/metrics queries — org id may change or clear.
+      // Invalidate all org detail/metrics queries; org id may change or clear.
       void qc.invalidateQueries({ queryKey: [...adminKeys.all, 'organizations'] });
     },
   });

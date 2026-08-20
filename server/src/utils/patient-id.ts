@@ -29,13 +29,13 @@ export async function allocatePatientId(now = new Date()): Promise<string> {
       sequence += 1;
     }
 
-    // Extremely unlikely collision after retries — append a short random suffix within 64 chars.
+    // Extremely unlikely collision after retries; append a short random suffix within 64 chars.
     const fallback = formatMrn(now, sequence);
     return `${fallback}${String(Date.now()).slice(-2)}`.slice(0, 64);
   });
 }
 
-/** @deprecated Prefer allocatePatientId — kept for sync call sites that need a placeholder. */
+/** @deprecated Prefer allocatePatientId; kept for sync call sites that need a placeholder. */
 export function generatePatientId(now = new Date(), sequence = 1): string {
   return formatMrn(now, sequence);
 }

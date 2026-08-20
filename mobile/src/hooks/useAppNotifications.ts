@@ -71,7 +71,7 @@ function mealNotifications(meals: MealSubmission[], readKeys: Set<string>): AppN
     });
 }
 
-/** Lightweight badge count for home — no API calls. */
+/** Lightweight badge count for home; no API calls. */
 export function useNotificationUnreadCount() {
   const { isAuthenticated } = useAuth();
   const useServer = isApiConfigured() && isAuthenticated;

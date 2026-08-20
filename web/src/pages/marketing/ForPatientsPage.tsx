@@ -14,7 +14,7 @@ const patientSteps = [
   },
   {
     title: 'Log meals your way',
-    desc: 'Photo, gallery, or text — add notes when the picture needs context.',
+    desc: 'Photo, gallery, or text; add notes when the picture needs context.',
   },
   {
     title: 'Coach reviews every meal',
@@ -31,7 +31,7 @@ export function ForPatientsPage() {
     <div className="bg-white">
       <MarketingPageHero
         title="For patients"
-        description="Snap your meals, understand your nutrition, and trust what’s in your diary — because a coach verifies every approved entry."
+        description="Snap your meals, understand your nutrition, and trust what’s in your diary; because a coach verifies every approved entry."
       />
 
       <section className="py-16 sm:py-24">

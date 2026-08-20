@@ -49,7 +49,7 @@ export function ConsumerReportsPage() {
         <div>
           <h2 className="text-3xl tracking-tight text-ash-grey-900">Reports</h2>
           <p className="mt-1 text-ash-grey-600">
-            Weekly nutrition summaries — same reports as in the mobile app.
+            Weekly nutrition summaries; same reports as in the mobile app.
           </p>
         </div>
         <Button

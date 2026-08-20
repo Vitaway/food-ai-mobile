@@ -177,7 +177,7 @@ export const organizationsService = {
   async update(actor: User, organizationId: string, dto: UpdateOrganizationDto, req?: Request) {
     assertCanAccessOrganization(actor, organizationId);
     if (!isPlatformAdmin(actor.role)) {
-      // Org admins can update contact/notes only — not rename/status.
+      // Org admins can update contact/notes only; not rename/status.
       if (dto.name != null || dto.status != null) {
         throw new ForbiddenError("Only platform admins can rename or change organization status");
       }

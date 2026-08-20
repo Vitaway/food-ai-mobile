@@ -49,7 +49,7 @@ export function MealReviewPanel({
   const coachItems = draft?.items ?? [];
   const coachTotals = coachItems.length ? sumNutrition(coachItems) : null;
 
-  // Read-only snapshot from Ask AI (assistAnalysis) — never the editable draft.
+  // Read-only snapshot from Ask AI (assistAnalysis); never the editable draft.
   const aiAnalysis = meal.assistAnalysis?.items?.length
     ? meal.assistAnalysis
     : meal.aiAnalysis?.items?.length
@@ -202,7 +202,7 @@ export function MealReviewPanel({
         {aiItems.length === 0 ? (
           <p className="px-1 text-sm text-ash-grey-500">
             Read-only. Tap <span className="font-semibold">Ask AI suggestion</span> to generate an AI
-            analysis you can compare against your review — it won&apos;t edit this panel.
+            analysis you can compare against your review; it won&apos;t edit this panel.
           </p>
         ) : !showAi ? (
           <div className="flex flex-wrap items-center gap-2 px-1 text-sm text-ash-grey-600">
@@ -232,7 +232,7 @@ export function MealReviewPanel({
       </DashboardPanel>
 
       <DashboardPanel title="Training note" bodyClassName="px-3 py-2 sm:px-4 sm:py-3">
-        <p className="mb-2 text-xs text-ash-grey-500">Internal only — used for model improvement</p>
+        <p className="mb-2 text-xs text-ash-grey-500">Internal only; used for model improvement</p>
         <textarea
           className="min-h-20 w-full rounded-xl border border-ash-grey-200 px-3 py-2.5 text-sm outline-none focus:border-blue-spruce-400"
           placeholder="What should improve next time? Labeling notes…"

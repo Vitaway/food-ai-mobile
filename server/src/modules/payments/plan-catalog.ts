@@ -9,7 +9,7 @@ export type PlanDefinition = {
   public?: boolean;
 };
 
-/** Seed / fallback catalog — runtime prices come from `subscription_plans` table. */
+/** Seed / fallback catalog; runtime prices come from `subscription_plans` table. */
 export const PLAN_CATALOG: PlanDefinition[] = [
   {
     code: "individual_weekly",
@@ -38,7 +38,7 @@ export const PLAN_CATALOG: PlanDefinition[] = [
     intervalDays: 30,
     public: true,
   },
-  // Kept for existing corporate subscriptions / admin — not offered in consumer checkout.
+  // Kept for existing corporate subscriptions / admin; not offered in consumer checkout.
   {
     code: "corporate_monthly",
     label: "Corporate",

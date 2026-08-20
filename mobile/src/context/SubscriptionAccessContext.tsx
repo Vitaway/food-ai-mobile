@@ -41,7 +41,7 @@ export function SubscriptionAccessProvider({ children }: PropsWithChildren) {
       setIsSubscriptionReady(true);
       return allowed;
     } catch {
-      // Fail closed when enforcement is expected — keep user on paywall until known.
+      // Fail closed when enforcement is expected; keep user on paywall until known.
       setHasActiveSubscription(false);
       setIsSubscriptionReady(true);
       return false;

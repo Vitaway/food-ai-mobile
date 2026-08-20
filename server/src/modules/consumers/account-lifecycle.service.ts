@@ -49,7 +49,7 @@ export const accountLifecycleService = {
       });
     } catch (err) {
       logger.error({ err, email }, "Failed to email support about deletion request");
-      // Still accept the request — support can use logs / audit trail.
+      // Still accept the request; support can use logs / audit trail.
     }
 
     return {

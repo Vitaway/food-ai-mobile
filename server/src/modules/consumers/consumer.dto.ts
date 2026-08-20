@@ -171,7 +171,7 @@ export class LogWaterDto {
   date?: string;
 }
 
-/** Public web form — Play Store account-deletion URL. */
+/** Public web form; Play Store account-deletion URL. */
 export class AccountDeletionRequestDto {
   @IsEmail()
   @MaxLength(255)

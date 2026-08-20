@@ -47,7 +47,7 @@ function sanitizeSeedItems(
   }));
 }
 
-/** Old auto-seed / stub drafts — 1g rows with no Food DB link and not from Ask AI. */
+/** Old auto-seed / stub drafts; 1g rows with no Food DB link and not from Ask AI. */
 function isPollutedAutoSeedDraft(items: DetectedFoodItem[] | undefined): boolean {
   if (!items?.length) return false;
   return items.every(
@@ -106,7 +106,7 @@ export function MealReviewPage() {
   const [taskModalOpen, setTaskModalOpen] = useState(false);
   const [approveModal, setApproveModal] = useState<'single' | 'next' | null>(null);
   const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
-  /** Seed local editor once per meal — never reset from refetches / autosave. */
+  /** Seed local editor once per meal; never reset from refetches / autosave. */
   const initializedMealIdRef = useRef<string | null>(null);
   const autoPickAttemptedRef = useRef<string | null>(null);
 
@@ -183,7 +183,7 @@ export function MealReviewPage() {
       return;
     }
 
-    // Blank slate — photo + client text only.
+    // Blank slate; photo + client text only.
     startReviewDraft(item.meal.id, clientTitle, []);
     if (persistedDraft?.mealId === id) {
       saveDraft({
@@ -206,7 +206,7 @@ export function MealReviewPage() {
     queryClient,
   ]);
 
-  // Debounced autosave — only when the local draft changes (not on mutation status)
+  // Debounced autosave; only when the local draft changes (not on mutation status)
   useEffect(() => {
     if (!reviewDraft || !id || reviewDraft.mealId !== id) return;
     if (initializedMealIdRef.current !== id) return;
@@ -266,7 +266,7 @@ export function MealReviewPage() {
       });
       setApproveModal(null);
       toast.success(
-        action === 'approve' ? 'Meal approved — coach review saved.' : 'Meal returned to the client.',
+        action === 'approve' ? 'Meal approved; coach review saved.' : 'Meal returned to the client.',
         action === 'approve' ? 'Approved' : 'Rejected',
       );
 

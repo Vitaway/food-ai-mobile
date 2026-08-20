@@ -40,7 +40,7 @@ export function PrivacyPage() {
         </p>
         <p>
           <strong>Biometric data:</strong> If you enable app lock, biometric authentication (Face ID,
-          Touch ID, or fingerprint) is processed on your device only — we do not receive or store
+          Touch ID, or fingerprint) is processed on your device only; we do not receive or store
           biometric templates.
         </p>
       </LegalSection>
@@ -70,7 +70,7 @@ export function PrivacyPage() {
         <ul className="list-disc space-y-2 pl-5">
           <li>
             <strong>Service providers</strong> who assist with hosting, AI processing, analytics, and
-            customer support — under contractual confidentiality obligations
+            customer support; under contractual confidentiality obligations
           </li>
           <li>
             <strong>Coaches</strong> assigned to review your meals as part of the MiraFood service

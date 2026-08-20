@@ -1,6 +1,6 @@
 import type { MealSubmissionStatus } from '@/types';
 
-/** Local stub pipeline only — production submits go straight to in_review. */
+/** Local stub pipeline only; production submits go straight to in_review. */
 export const PIPELINE_STEPS: MealSubmissionStatus[] = ['pending', 'analyzing', 'in_review'];
 
 /** Delay after entering each step (ms). */
@@ -24,7 +24,7 @@ export const MEAL_STATUS_MESSAGES: Record<MealSubmissionStatus, string> = {
   pending: 'Queued for your coach…',
   analyzing: 'A coach is reviewing your meal…',
   in_review: 'A coach is reviewing your meal…',
-  approved: 'Your coach confirmed this meal — tap to view.',
+  approved: 'Your coach confirmed this meal; tap to view.',
   rejected: 'We could not verify this meal. Try logging again.',
 };
 

@@ -88,7 +88,7 @@ function portionNoteForPlate(plateDiameterCm: number) {
   }
   const direction = scale > 1 ? "larger" : "smaller";
   const pct = Math.round(Math.abs(scale - 1) * 100);
-  return `Plate is ${plateDiameterCm} cm — portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
+  return `Plate is ${plateDiameterCm} cm; portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
 }
 
 function normalizeItem(row: Record<string, unknown>, fallbackLabel: string): MealAnalysisItem {
@@ -172,8 +172,8 @@ export function normalizeMealAnalysisRaw(raw: Record<string, unknown>, modelVers
       typeof raw.healthMessage === "string" && raw.healthMessage.trim()
         ? raw.healthMessage.trim()
         : mealNegligible || safeItems.every((item) => item.nutrition.caloriesKcal === 0)
-          ? "No meaningful nutrition detected — empty container or zero-calorie item."
-          : "Analysis complete — review portions before submitting.",
+          ? "No meaningful nutrition detected; empty container or zero-calorie item."
+          : "Analysis complete; review portions before submitting.",
     modelVersion,
   };
 }

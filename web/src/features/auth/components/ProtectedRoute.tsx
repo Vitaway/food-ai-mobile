@@ -13,7 +13,7 @@ type ProtectedRouteProps = {
   children: React.ReactNode;
 };
 
-/** Coach dashboard — coaches only. */
+/** Coach dashboard; coaches only. */
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const isCoach = useAuthStore(selectIsCoach);
