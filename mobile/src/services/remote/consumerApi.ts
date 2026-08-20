@@ -476,7 +476,7 @@ export async function uploadMealPhoto(mealId: string, imageUri: string): Promise
 
 export type ServerNotification = {
   id: string;
-  kind: 'meal' | 'referral' | 'system';
+  kind: 'meal' | 'referral' | 'system' | 'review';
   title: string;
   message: string;
   mealId: string | null;

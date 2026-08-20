@@ -29,7 +29,7 @@ export type AppNotification = {
   title: string;
   message: string;
   status?: MealSubmissionStatus;
-  kind: 'meal' | 'nudge' | 'referral' | 'system';
+  kind: 'meal' | 'nudge' | 'referral' | 'system' | 'review';
   createdAt: string;
   read: boolean;
 };
