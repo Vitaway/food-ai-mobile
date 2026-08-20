@@ -16,6 +16,7 @@ import {
   VerifyResetCodeDto,
   VerifyMfaDto,
   AppleSignInDto,
+  GoogleSignInDto,
 } from "./auth.dto";
 import type { User } from "../users/user.entity";
 
@@ -34,6 +35,11 @@ export class AuthController {
   @Post("/apple")
   apple(@Body() dto: AppleSignInDto, @Req() req: Request) {
     return authService.signInWithApple(dto, req);
+  }
+
+  @Post("/google")
+  google(@Body() dto: GoogleSignInDto, @Req() req: Request) {
+    return authService.signInWithGoogle(dto, req);
   }
 
   @Post("/mfa/verify")

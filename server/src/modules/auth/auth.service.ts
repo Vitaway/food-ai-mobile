@@ -17,8 +17,10 @@ import type {
   VerifyResetCodeDto,
   VerifyMfaDto,
   AppleSignInDto,
+  GoogleSignInDto,
 } from "./auth.dto";
 import { verifyAppleIdentityToken } from "../../services/apple-identity.client";
+import { verifyGoogleIdentityToken } from "../../services/google-identity.client";
 import {
   createPasswordResetOtp,
   findLatestOpenOtp,
@@ -370,6 +372,119 @@ export const authService = {
     }
 
     // Staff must use email + MFA — do not allow Apple to bypass coach/admin login.
+    if (isStaffRole(user.role)) {
+      throw new BadRequestError(
+        "Coach and staff accounts must sign in with email and password.",
+      );
+    }
+
+    const session = await createSession(user.id, req);
+    const token = signAuthToken({
+      sub: user.id,
+      sid: session.id,
+      role: user.role,
+    });
+
+    return attachRoleContext(user, {
+      token,
+      user: toAuthUser(user),
+    });
+  },
+
+  async signInWithGoogle(dto: GoogleSignInDto, req?: Request): Promise<LoginResult> {
+    if (!env.GOOGLE_CLIENT_IDS.length) {
+      throw new BadRequestError("Google sign-in is not configured yet.");
+    }
+
+    const claims = await verifyGoogleIdentityToken(dto.identityToken.trim());
+    const emailFromToken = claims.email?.toLowerCase().trim();
+    const emailFromClient = dto.email?.toLowerCase().trim();
+    const email = emailFromToken || emailFromClient;
+
+    let user = await usersRepository.findByGoogleSub(claims.sub);
+
+    if (!user && email) {
+      const byEmail = await usersRepository.findByEmail(email);
+      if (byEmail) {
+        if (byEmail.googleSub && byEmail.googleSub !== claims.sub) {
+          throw new BadRequestError(
+            "This email is already linked to a different Google account. Sign in with email instead.",
+          );
+        }
+        byEmail.googleSub = claims.sub;
+        if (!byEmail.avatarUrl && claims.picture) {
+          byEmail.avatarUrl = claims.picture;
+        }
+        await usersRepository.save(byEmail);
+        user = byEmail;
+      }
+    }
+
+    if (!user) {
+      if (!email) {
+        throw new BadRequestError(
+          "Google did not share an email for this account. Try again or use email sign-in.",
+        );
+      }
+
+      const displayName =
+        dto.fullName?.trim() ||
+        claims.name?.trim() ||
+        email.split("@")[0] ||
+        "MiraFood member";
+
+      let referralCode = generateReferralCode();
+      while (await usersRepository.findByReferralCode(referralCode)) {
+        referralCode = generateReferralCode();
+      }
+
+      user = usersRepository.create({
+        email,
+        passwordHash: null,
+        googleSub: claims.sub,
+        role: "consumer",
+        displayName,
+        avatarUrl: claims.picture ?? null,
+        isActive: true,
+        referralCode,
+        referredByUserId: null,
+        registrationSource: "google",
+      });
+      await usersRepository.save(user);
+
+      const patientId = await allocatePatientId();
+      const now = new Date().toISOString();
+      const consumerProfile = consumerProfilesRepository.create({
+        id: patientId,
+        userId: user.id,
+        profile: {
+          displayName: user.displayName,
+          email: user.email,
+          onboardingComplete: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+        dashboard: {
+          waterMl: 0,
+          streakDays: 0,
+        },
+      });
+      await consumerProfilesRepository.save(consumerProfile);
+
+      try {
+        await emailService.sendWelcomeEmail(user.email, {
+          displayName: user.displayName,
+          patientId,
+        });
+      } catch (err) {
+        logger.error({ err, email: user.email }, "Failed to send welcome email after Google sign-in");
+      }
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedError("This account is disabled");
+    }
+
     if (isStaffRole(user.role)) {
       throw new BadRequestError(
         "Coach and staff accounts must sign in with email and password.",

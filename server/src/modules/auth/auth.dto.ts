@@ -87,3 +87,18 @@ export class AppleSignInDto {
   email?: string;
 }
 
+export class GoogleSignInDto {
+  @IsString()
+  @MinLength(20)
+  identityToken!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  fullName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+

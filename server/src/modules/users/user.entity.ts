@@ -26,6 +26,10 @@ export class User {
   @Column({ type: "varchar", name: "apple_sub", length: 128, nullable: true })
   appleSub!: string | null;
 
+  @Index({ unique: true })
+  @Column({ type: "varchar", name: "google_sub", length: 128, nullable: true })
+  googleSub!: string | null;
+
   @Column({ type: "varchar", length: 32, default: "coach" })
   role!: UserRole;
 

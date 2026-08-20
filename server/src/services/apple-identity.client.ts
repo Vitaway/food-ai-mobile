@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
-import { UnauthorizedError } from "routing-controllers";
+import { BadRequestError, UnauthorizedError } from "routing-controllers";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 
@@ -35,7 +35,7 @@ async function fetchAppleJwks(): Promise<AppleJwk[]> {
   }
   const res = await fetch(APPLE_JWKS_URL);
   if (!res.ok) {
-    throw new UnauthorizedError("Unable to verify Apple identity token");
+    throw new UnauthorizedError("Unable to verify Apple sign-in right now. Please try again.");
   }
   const body = (await res.json()) as AppleJwks;
   cachedKeys = body.keys ?? [];
@@ -61,6 +61,12 @@ function asBool(value: boolean | string | undefined): boolean {
   return false;
 }
 
+function normalizeAudience(aud: unknown): string[] {
+  if (typeof aud === "string") return [aud];
+  if (Array.isArray(aud)) return aud.filter((v): v is string => typeof v === "string");
+  return [];
+}
+
 /**
  * Verifies an Apple Sign In identity token (JWT) against Apple's JWKS.
  * Audience must match the iOS bundle id (or configured APPLE_CLIENT_IDS).
@@ -68,38 +74,52 @@ function asBool(value: boolean | string | undefined): boolean {
 export async function verifyAppleIdentityToken(identityToken: string): Promise<AppleIdentityClaims> {
   const decoded = jwt.decode(identityToken, { complete: true });
   if (!decoded || typeof decoded === "string" || !decoded.header?.kid) {
-    throw new UnauthorizedError("Invalid Apple identity token");
+    throw new UnauthorizedError("Apple sign-in failed. Please try again.");
+  }
+
+  const unverified = decoded.payload as jwt.JwtPayload;
+  const tokenAud = normalizeAudience(unverified.aud);
+  const allowed = env.APPLE_CLIENT_IDS.length
+    ? env.APPLE_CLIENT_IDS
+    : ["com.vitaway.foodai"];
+
+  // Fail fast with a clear message when the token was issued for another app
+  // (common with Expo Go, which does not use com.vitaway.foodai).
+  if (tokenAud.length && !tokenAud.some((aud) => allowed.includes(aud))) {
+    logger.warn({ tokenAud, allowed }, "Apple identity token audience mismatch");
+    throw new BadRequestError(
+      "Apple sign-in must be used from the MiraFood app build (not Expo Go). Install the TestFlight or development build and try again.",
+    );
   }
 
   const keys = await fetchAppleJwks();
-  const jwk = keys.find((k) => k.kid === decoded.header.kid);
+  let jwk = keys.find((k) => k.kid === decoded.header.kid);
   if (!jwk) {
     cachedKeys = null;
     const refreshed = await fetchAppleJwks();
-    const retry = refreshed.find((k) => k.kid === decoded.header.kid);
-    if (!retry) {
-      throw new UnauthorizedError("Apple signing key not found");
-    }
-    return verifyWithKey(identityToken, retry);
+    jwk = refreshed.find((k) => k.kid === decoded.header.kid);
+  }
+  if (!jwk) {
+    throw new UnauthorizedError("Apple sign-in failed. Please try again.");
   }
 
-  return verifyWithKey(identityToken, jwk);
-}
-
-function verifyWithKey(identityToken: string, jwk: AppleJwk): AppleIdentityClaims {
-  const audiences = env.APPLE_CLIENT_IDS;
   try {
     const payload = jwt.verify(identityToken, jwkToPem(jwk), {
       algorithms: ["RS256"],
       issuer: APPLE_ISSUER,
-      audience: audiences.length === 1 ? audiences[0]! : ([audiences[0]!, ...audiences.slice(1)] as [
-        string,
-        ...string[],
-      ]),
+      clockTolerance: 300,
     }) as jwt.JwtPayload;
 
+    const verifiedAud = normalizeAudience(payload.aud);
+    if (!verifiedAud.some((aud) => allowed.includes(aud))) {
+      logger.warn({ tokenAud: verifiedAud, allowed }, "Apple identity token audience mismatch");
+      throw new BadRequestError(
+        "Apple sign-in must be used from the MiraFood app build (not Expo Go). Install the TestFlight or development build and try again.",
+      );
+    }
+
     if (!payload.sub || typeof payload.sub !== "string") {
-      throw new UnauthorizedError("Invalid Apple identity token subject");
+      throw new UnauthorizedError("Apple sign-in failed. Please try again.");
     }
 
     return {
@@ -109,7 +129,28 @@ function verifyWithKey(identityToken: string, jwk: AppleJwk): AppleIdentityClaim
       is_private_email: asBool(payload.is_private_email as boolean | string | undefined),
     };
   } catch (err) {
-    logger.warn({ err }, "Apple identity token verification failed");
-    throw new UnauthorizedError("Invalid or expired Apple identity token");
+    if (err instanceof UnauthorizedError || err instanceof BadRequestError) throw err;
+
+    const name = err && typeof err === "object" && "name" in err ? String((err as { name: string }).name) : "";
+    logger.warn(
+      {
+        err,
+        name,
+        tokenAud,
+        allowed,
+        exp: unverified.exp,
+        iat: unverified.iat,
+        now: Math.floor(Date.now() / 1000),
+      },
+      "Apple identity token verification failed",
+    );
+
+    if (name === "TokenExpiredError") {
+      throw new UnauthorizedError("Apple sign-in timed out. Please tap Continue with Apple again.");
+    }
+    if (name === "JsonWebTokenError") {
+      throw new UnauthorizedError("Apple sign-in could not be verified. Please try again.");
+    }
+    throw new UnauthorizedError("Apple sign-in failed. Please try again.");
   }
 }

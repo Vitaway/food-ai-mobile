@@ -82,7 +82,19 @@ export const env = {
    * Allowed Apple Sign In audiences (bundle / Services IDs).
    * Comma-separated. Defaults to the MiraFood iOS bundle id.
    */
-  APPLE_CLIENT_IDS: (process.env.APPLE_CLIENT_IDS ?? "com.vitaway.foodai")
+  APPLE_CLIENT_IDS: (() => {
+    const raw = process.env.APPLE_CLIENT_IDS?.trim();
+    const list = (raw && raw.length > 0 ? raw : "com.vitaway.foodai")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return list.length ? list : ["com.vitaway.foodai"];
+  })(),
+  /**
+   * Allowed Google Sign-In OAuth client IDs (iOS / Android / Web).
+   * Comma-separated. Required for Google login verification.
+   */
+  GOOGLE_CLIENT_IDS: (process.env.GOOGLE_CLIENT_IDS ?? "")
     .split(",")
     .map((id) => id.trim())
     .filter(Boolean),
