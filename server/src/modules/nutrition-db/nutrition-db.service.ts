@@ -38,6 +38,10 @@ import {
   toLegacyNutritionPer100g,
   toTfctComposition,
 } from "./tfct-nutrients";
+import {
+  type PackagedProduct,
+} from "../../services/open-food-facts.client";
+import { offProductCacheService } from "../../services/off-product-cache.service";
 
 const foodRepo = AppDataSource.getRepository(NutritionFood);
 const servingRepo = AppDataSource.getRepository(NutritionServingProfile);
@@ -128,6 +132,31 @@ function mapFood(food: NutritionFood, servings: NutritionServingProfile[]) {
     micronutrients: toLegacyMicronutrients(composition, food.micronutrients),
     servings: servings.map(normalizeServing),
     updatedAt: food.updatedAt.toISOString(),
+  };
+}
+
+function toPackagedProduct(
+  food: ReturnType<typeof mapFood>,
+  extras?: Partial<Pick<PackagedProduct, "source" | "nutriscoreGrade" | "ecoscoreGrade" | "quantity">>,
+): PackagedProduct {
+  return {
+    id: food.id,
+    barcode: food.barcode ?? null,
+    name: food.name,
+    brand: food.brand ?? null,
+    category: food.category || "Packaged",
+    imageUrl: food.imageUrl ?? null,
+    quantity: extras?.quantity ?? (food.packageSizeG ? `${food.packageSizeG}g` : null),
+    ingredientsText: food.recipeNote?.startsWith("Ingredients:")
+      ? food.recipeNote.replace(/^Ingredients:\s*/, "")
+      : null,
+    nutriscoreGrade: extras?.nutriscoreGrade ?? null,
+    ecoscoreGrade: extras?.ecoscoreGrade ?? null,
+    novaGroup: null,
+    source: extras?.source ?? "local",
+    nutritionPer100g: food.nutritionPer100g ?? {},
+    micronutrients: food.micronutrients ?? {},
+    servings: food.servings ?? [],
   };
 }
 
@@ -326,14 +355,11 @@ export const nutritionDbService = {
   },
 
   async lookupByBarcode(barcode: string) {
-    const code = barcode.trim();
-    if (!code) return null;
-    const food = await foodRepo.findOne({
-      where: { barcode: code, isActive: true, approvalStatus: "approved" },
-    });
-    if (!food) return null;
-    const servings = await servingRepo.find({ where: { foodId: food.id }, order: { isDefault: "DESC" } });
-    return mapFood(food, servings);
+    return offProductCacheService.lookupBarcode(barcode);
+  },
+
+  async searchPackagedProducts(query: string, limit = 20) {
+    return offProductCacheService.searchProducts(query, limit);
   },
 
   async setFoodImage(id: string, imageUrl: string) {

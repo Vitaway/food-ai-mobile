@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { DISPLAY_TITLE_CLASS } from '@/constants/fonts';
 import { AppLogo } from '@/components/ui/AppLogo';
 import { Text } from '@/components/ui/Text';
 import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
@@ -19,7 +18,7 @@ type AuthScreenShellProps = {
   title: string;
   subtitle?: string;
   children: ReactNode;
-  /** Primary CTA rendered below the white card (on the brand background). */
+  /** Primary CTA rendered inside the white card (below children). */
   actions?: ReactNode;
   footer?: ReactNode;
   scrollable?: boolean;
@@ -34,31 +33,37 @@ export function AuthScreenShell({
   actions,
   footer,
   scrollable = true,
-  cardClassName = 'px-5 py-8',
+  cardClassName = 'px-6 py-7',
   contentStyle,
 }: AuthScreenShellProps) {
   const insets = useSafeAreaInsets();
 
   const body = (
-    <View className="flex-1" style={[{ paddingTop: insets.top + 40 }, contentStyle]}>
-      <View className="items-center px-6">
-        <AppLogo size={72} />
-        <Text className={cn('mt-6 text-center text-3xl text-white', DISPLAY_TITLE_CLASS)}>{title}</Text>
-        {subtitle ? (
-          <Text className="mt-2 text-center text-base leading-6 text-white/75">{subtitle}</Text>
-        ) : null}
+    <View
+      className="flex-1 justify-center px-5"
+      style={[{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }, contentStyle]}>
+      <View className={cn('rounded-[28px] bg-white shadow-xl', cardClassName)}>
+        <View className="mb-6 items-center">
+          <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF4FA]">
+            <AppLogo size={36} />
+          </View>
+          <Text className="mt-4 text-center text-[28px] font-sans-bold text-neutral-900">{title}</Text>
+          {subtitle ? (
+            <Text className="mt-2 text-center text-[15px] leading-6 text-neutral-500">{subtitle}</Text>
+          ) : null}
+        </View>
+
+        {children}
+
+        {actions ? <View className="mt-6">{actions}</View> : null}
+
+        {footer ? <View className="mt-5">{footer}</View> : null}
       </View>
-
-      <View className={`mx-6 mt-10 rounded-3xl bg-white shadow-lg ${cardClassName}`}>{children}</View>
-
-      {actions ? <View className="mt-6 px-6">{actions}</View> : null}
-
-      {footer ? <View className="mt-6 px-6 pb-4">{footer}</View> : null}
     </View>
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: BRAND_HEADER_COLOR }}>
+    <View className="flex-1" style={{ backgroundColor: BRAND_HEADER_COLOR }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         style={{ flex: 1 }}
@@ -66,15 +71,12 @@ export function AuthScreenShell({
         {scrollable ? (
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{
-              flexGrow: 1,
-              paddingBottom: insets.bottom + 24,
-            }}
+            contentContainerStyle={{ flexGrow: 1 }}
             showsVerticalScrollIndicator={false}>
             {body}
           </ScrollView>
         ) : (
-          <View style={{ flex: 1, paddingBottom: insets.bottom + 24 }}>{body}</View>
+          body
         )}
       </KeyboardAvoidingView>
     </View>

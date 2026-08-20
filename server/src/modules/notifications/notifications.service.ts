@@ -4,9 +4,11 @@ import { pushNotificationService } from "../../services/push-notification.servic
 import { notificationsRepository } from "./notifications.repository";
 import { pushTokensRepository } from "./push-tokens.repository";
 
+import { resolveCoachUserIdsForClient } from "../coaches/coach-notify.util";
+
 export type CreateNotificationInput = {
   userId: string;
-  kind: "meal" | "referral" | "system";
+  kind: "meal" | "referral" | "system" | "review";
   title: string;
   message: string;
   mealId?: string | null;
@@ -157,5 +159,32 @@ export const notificationsService = {
       message: `${referredDisplayName} joined MiraFood using your code.`,
       data: { referredDisplayName },
     });
+  },
+
+  async notifyCoachMealSubmitted(opts: {
+    clientId: string;
+    mealId: string;
+    mealName: string;
+    clientName: string;
+  }) {
+    const coachIds = await resolveCoachUserIdsForClient(opts.clientId);
+    if (!coachIds.length) return [];
+
+    const mealName = opts.mealName.trim() || "a meal";
+    const clientName = opts.clientName.trim() || "A patient";
+
+    return Promise.all(
+      coachIds.map((userId) =>
+        this.create({
+          userId,
+          kind: "review",
+          title: "New meal in queue",
+          message: `${clientName} submitted ${mealName} for review.`,
+          mealId: opts.mealId,
+          status: "in_review",
+          data: { kind: "review", clientName, mealName },
+        }),
+      ),
+    );
   },
 };

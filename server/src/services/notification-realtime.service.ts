@@ -1,6 +1,6 @@
 import { WebSocket, WebSocketServer } from "ws";
 import type { Server } from "http";
-import { verifyAuthToken, resolveAuthUser } from "../middlewares/auth.middleware";
+import { verifyAuthToken, resolveAuthUser, isCoachLikeRole } from "../middlewares/auth.middleware";
 import { logger } from "../config/logger";
 
 const clientsByUserId = new Map<string, Set<WebSocket>>();
@@ -21,7 +21,7 @@ export function attachNotificationWebSocket(server: Server) {
 
         const payload = verifyAuthToken(token);
         const user = await resolveAuthUser(payload);
-        if (user.role !== "consumer") {
+        if (user.role !== "consumer" && !isCoachLikeRole(user.role)) {
           ws.close(4403, "Forbidden");
           return;
         }

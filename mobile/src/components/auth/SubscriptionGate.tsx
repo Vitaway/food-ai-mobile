@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { onSubscriptionRequired } from '@/lib/subscriptionEvents';
 
@@ -11,10 +12,12 @@ import { onSubscriptionRequired } from '@/lib/subscriptionEvents';
 export function SubscriptionGate() {
   const router = useRouter();
   const toast = useToast();
+  const { isCoach } = useAuth();
   const { refreshSubscriptionAccess } = useSubscriptionAccess();
   const lastAt = useRef(0);
 
   useEffect(() => {
+    if (isCoach) return;
     const unsubscribe = onSubscriptionRequired((message) => {
       const now = Date.now();
       if (now - lastAt.current < 2500) return;
@@ -28,7 +31,7 @@ export function SubscriptionGate() {
     return () => {
       unsubscribe();
     };
-  }, [router, toast, refreshSubscriptionAccess]);
+  }, [isCoach, router, toast, refreshSubscriptionAccess]);
 
   return null;
 }

@@ -19,13 +19,16 @@ import {
   registerRequest,
   fetchMeRequest,
   isMfaChallenge,
+  verifyMfaRequest,
+  appleSignInRequest,
+  googleSignInRequest,
   type AuthResponse,
   type AuthUser,
 } from '@/services/remote/authApi';
-import { WrongAppRoleError } from '@/utils/authErrors';
+import { MfaRequiredError, WrongAppRoleError } from '@/utils/authErrors';
+import { isCoachRole, isMobileAllowedRole } from '@/utils/roles';
 
 const AUTH_STORAGE_KEY = 'mirafood-auth-session';
-const MOBILE_ALLOWED_ROLES = new Set(['consumer']);
 
 export type AuthSession = {
   token: string;
@@ -34,11 +37,21 @@ export type AuthSession = {
   onboardingComplete?: boolean;
 };
 
+type SocialAuthPayload = {
+  identityToken: string;
+  fullName?: string;
+  email?: string;
+};
+
 type AuthContextValue = {
   session: AuthSession | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isCoach: boolean;
   login: (email: string, password: string) => Promise<void>;
+  completeMfaLogin: (challengeToken: string, code: string) => Promise<void>;
+  loginWithApple: (payload: SocialAuthPayload) => Promise<void>;
+  loginWithGoogle: (payload: SocialAuthPayload) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -72,9 +85,9 @@ function mapSession(data: AuthResponse): AuthSession {
   };
 }
 
-function assertConsumerSession(data: AuthResponse): AuthResponse {
+function assertMobileSession(data: AuthResponse): AuthResponse {
   const role = data.user?.role;
-  if (!role || !MOBILE_ALLOWED_ROLES.has(role)) {
+  if (!role || !isMobileAllowedRole(role)) {
     throw new WrongAppRoleError(role || 'unknown');
   }
   return data;
@@ -82,7 +95,8 @@ function assertConsumerSession(data: AuthResponse): AuthResponse {
 
 function mapMeToSession(session: AuthSession, me: Awaited<ReturnType<typeof fetchMeRequest>>): AuthSession {
   const patientId = me.patientId ?? me.consumerProfile?.patientId ?? session.user.patientId;
-  const onboardingComplete = Boolean(me.consumerProfile?.onboardingComplete);
+  const onboardingComplete =
+    isCoachRole(me.role) || Boolean(me.consumerProfile?.onboardingComplete);
   return {
     ...session,
     user: {
@@ -150,6 +164,11 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
         try {
           const me = await fetchMeRequest();
+          if (!isMobileAllowedRole(me.role)) {
+            await persistSession(null);
+            setSession(null);
+            return;
+          }
           const refreshed = mapMeToSession(stored, me);
           if (
             refreshed.onboardingComplete !== stored.onboardingComplete ||
@@ -187,19 +206,67 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return () => clearTimeout(timer);
   }, [session, applySession]);
 
+  const applyAuthResponse = useCallback(
+    async (data: AuthResponse) => {
+      const session = mapSession(assertMobileSession(data));
+      if (isCoachRole(session.user.role)) {
+        session.onboardingComplete = true;
+      }
+      await applySession(session);
+    },
+    [applySession],
+  );
+
   const login = useCallback(
     async (email: string, password: string) => {
       const data = await loginRequest(email, password);
-      // Staff accounts get an MFA challenge (no user/token). Mobile is consumer-only.
       if (isMfaChallenge(data)) {
-        throw new WrongAppRoleError(data.role || 'staff');
+        throw new MfaRequiredError({
+          challengeToken: data.challengeToken,
+          email: data.email,
+          role: data.role,
+          debugCode: data.debugCode,
+        });
       }
       if (!data?.user || !data.token) {
         throw new WrongAppRoleError('unknown');
       }
-      await applySession(mapSession(assertConsumerSession(data)));
+      await applyAuthResponse(data);
     },
-    [applySession],
+    [applyAuthResponse],
+  );
+
+  const completeMfaLogin = useCallback(
+    async (challengeToken: string, code: string) => {
+      const data = await verifyMfaRequest(challengeToken, code);
+      if (!data?.user || !data.token) {
+        throw new WrongAppRoleError('unknown');
+      }
+      await applyAuthResponse(data);
+    },
+    [applyAuthResponse],
+  );
+
+  const loginWithApple = useCallback(
+    async (payload: SocialAuthPayload) => {
+      const data = await appleSignInRequest(payload);
+      if (!data?.user || !data.token) {
+        throw new WrongAppRoleError('unknown');
+      }
+      await applyAuthResponse(data);
+    },
+    [applyAuthResponse],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (payload: SocialAuthPayload) => {
+      const data = await googleSignInRequest(payload);
+      if (!data?.user || !data.token) {
+        throw new WrongAppRoleError('unknown');
+      }
+      await applyAuthResponse(data);
+    },
+    [applyAuthResponse],
   );
 
   const register = useCallback(
@@ -240,12 +307,26 @@ export function AuthProvider({ children }: PropsWithChildren) {
       session,
       isLoading,
       isAuthenticated: Boolean(session && session.expiresAt > Date.now()),
+      isCoach: isCoachRole(session?.user.role),
       login,
+      completeMfaLogin,
+      loginWithApple,
+      loginWithGoogle,
       register,
       logout,
       markOnboardingComplete,
     }),
-    [session, isLoading, login, register, logout, markOnboardingComplete],
+    [
+      session,
+      isLoading,
+      login,
+      completeMfaLogin,
+      loginWithApple,
+      loginWithGoogle,
+      register,
+      logout,
+      markOnboardingComplete,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

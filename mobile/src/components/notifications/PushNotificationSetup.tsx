@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
 import { isApiConfigured } from '@/constants/api';
@@ -22,6 +22,10 @@ function navigateFromNotificationData(
 
   if (conversationId) {
     router.push(`/chat/${conversationId}`);
+    return;
+  }
+  if (kind === 'review' && mealId) {
+    router.push(`/coach/meal/${mealId}` as Href);
     return;
   }
   if (mealId) {

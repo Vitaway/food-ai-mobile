@@ -5,6 +5,7 @@ import {
   Controller,
   CurrentUser,
   Get,
+  HttpError,
   Param,
   Patch,
   Post,
@@ -18,6 +19,7 @@ import multer from "multer";
 import { CreateNutritionFoodDto, UpdateNutritionFoodDto } from "./nutrition-db.dto";
 import { CreateRecipeDto, PreviewRecipeDto, UpdateRecipeDto } from "./recipe.dto";
 import { nutritionDbService } from "./nutrition-db.service";
+import { OffLookupUnavailableError } from "../../services/open-food-facts.client";
 import { recipeService } from "./recipe.service";
 import { parseCsvQueryParam } from "./query-param.util";
 import { saveNutritionFoodImage } from "../../services/uploads.service";
@@ -136,8 +138,28 @@ export class NutritionDbController {
 
   @Authorized(["coach", "admin", "data_entry_staff", "consumer"])
   @Get("/barcode/:code")
-  barcode(@Param("code") code: string) {
-    return nutritionDbService.lookupByBarcode(code);
+  async barcode(@Param("code") code: string) {
+    try {
+      return await nutritionDbService.lookupByBarcode(code);
+    } catch (err) {
+      if (err instanceof OffLookupUnavailableError) {
+        throw new HttpError(503, err.message);
+      }
+      throw err;
+    }
+  }
+
+  @Authorized(["coach", "admin", "data_entry_staff", "consumer"])
+  @Get("/products")
+  async searchProducts(@QueryParam("q") q?: string, @QueryParam("limit") limit?: number) {
+    try {
+      return await nutritionDbService.searchPackagedProducts(q ?? "", limit);
+    } catch (err) {
+      if (err instanceof OffLookupUnavailableError) {
+        throw new HttpError(503, err.message);
+      }
+      throw err;
+    }
   }
 
   @Authorized(["coach", "admin", "data_entry_staff"])

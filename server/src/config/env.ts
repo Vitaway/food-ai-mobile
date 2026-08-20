@@ -78,6 +78,26 @@ export const env = {
     (process.env.MFA_REQUIRED_FOR_STAFF !== "false" && process.env.NODE_ENV === "production"),
   ENABLE_LEGACY_PLATES_DETECT: process.env.ENABLE_LEGACY_PLATES_DETECT === "true",
   EXPO_ACCESS_TOKEN: process.env.EXPO_ACCESS_TOKEN ?? "",
+  /**
+   * Allowed Apple Sign In audiences (bundle / Services IDs).
+   * Comma-separated. Defaults to the MiraFood iOS bundle id.
+   */
+  APPLE_CLIENT_IDS: (() => {
+    const raw = process.env.APPLE_CLIENT_IDS?.trim();
+    const list = (raw && raw.length > 0 ? raw : "com.vitaway.foodai")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+    return list.length ? list : ["com.vitaway.foodai"];
+  })(),
+  /**
+   * Allowed Google Sign-In OAuth client IDs (iOS / Android / Web).
+   * Comma-separated. Required for Google login verification.
+   */
+  GOOGLE_CLIENT_IDS: (process.env.GOOGLE_CLIENT_IDS ?? "")
+    .split(",")
+    .map((id) => id.trim())
+    .filter(Boolean),
   SEED_COACH_EMAIL: process.env.SEED_COACH_EMAIL ?? "coach@vitaway.org",
   SEED_COACH_PASSWORD: process.env.SEED_COACH_PASSWORD ?? "Test@123",
   SEED_ADMIN_EMAIL: process.env.SEED_ADMIN_EMAIL ?? "admin@vitaway.org",
@@ -96,6 +116,21 @@ export const env = {
     "",
   ),
   MOBILE_APP_SCHEME: process.env.MOBILE_APP_SCHEME ?? "mirafood",
+  /** Open Food Facts contact email embedded in User-Agent (not a secret). */
+  OFF_CONTACT_EMAIL: process.env.OFF_CONTACT_EMAIL ?? "iamnsengi@gmail.com",
+  OFF_ORIGIN: (process.env.OFF_ORIGIN ?? "https://world.openfoodfacts.org").replace(/\/$/, ""),
+  OFF_FETCH_TIMEOUT_MS: Number(process.env.OFF_FETCH_TIMEOUT_MS ?? 7000),
+  OFF_FETCH_RETRIES: Number(process.env.OFF_FETCH_RETRIES ?? 1),
+  /** Cached barcode hit TTL (seconds). Default 7 days. */
+  OFF_CACHE_TTL_SECONDS: Number(process.env.OFF_CACHE_TTL_SECONDS ?? 60 * 60 * 24 * 7),
+  /** Cached barcode miss TTL (seconds). Default 5 minutes. */
+  OFF_MISS_CACHE_TTL_SECONDS: Number(process.env.OFF_MISS_CACHE_TTL_SECONDS ?? 300),
+  /** Cached text search TTL (seconds). Default 1 hour. */
+  OFF_SEARCH_CACHE_TTL_SECONDS: Number(process.env.OFF_SEARCH_CACHE_TTL_SECONDS ?? 3600),
+  /** Single-flight lock TTL while fetching OFF (seconds). */
+  OFF_LOCK_TTL_SECONDS: Number(process.env.OFF_LOCK_TTL_SECONDS ?? 30),
+  /** How long waiters poll Redis for a peer fetch (milliseconds). */
+  OFF_LOCK_WAIT_MS: Number(process.env.OFF_LOCK_WAIT_MS ?? 15000),
   iremboPay: (() => {
     const isProd = (process.env.NODE_ENV ?? "development") === "production";
     const secretKey =

@@ -16,17 +16,17 @@ type Category = {
 
 type HomeQuickCategoriesProps = {
   onScan: () => void;
+  onBarcode: () => void;
   onDescribe: () => void;
   onWater: () => void;
-  onInsights: () => void;
 };
 
-export function HomeQuickCategories({ onScan, onDescribe, onWater, onInsights }: HomeQuickCategoriesProps) {
+export function HomeQuickCategories({ onScan, onBarcode, onDescribe, onWater }: HomeQuickCategoriesProps) {
   const categories: Category[] = [
     { id: 'scan', label: 'Scan', icon: 'camera-outline', color: '#1D9E75', bgClass: 'bg-shamrock-50', onPress: onScan },
+    { id: 'barcode', label: 'Barcode', icon: 'barcode-outline', color: '#f97316', bgClass: 'bg-cinnamon-wood-50', onPress: onBarcode },
     { id: 'text', label: 'Describe', icon: 'create-outline', color: '#023459', bgClass: 'bg-blue-spruce-50', onPress: onDescribe },
     { id: 'water', label: 'Water', icon: 'water-outline', color: semanticColors.accentOrange, bgClass: 'bg-cinnamon-wood-50', onPress: onWater },
-    { id: 'insights', label: 'Insights', icon: 'stats-chart-outline', color: semanticColors.accentOrange, bgClass: 'bg-cinnamon-wood-50', onPress: onInsights },
   ];
 
   return (

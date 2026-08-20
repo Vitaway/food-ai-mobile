@@ -25,8 +25,17 @@ export type FloatingTabBarProps = {
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
   index: { icon: 'home-outline', label: 'Home' },
+  queue: { icon: 'clipboard-outline', label: 'Queue' },
   log: { icon: 'add', label: 'Log' },
-  chat: { icon: 'chatbubbles-outline', label: 'Coach' },
+  chat: { icon: 'chatbubbles-outline', label: 'Chat' },
+  profile: { icon: 'person-outline', label: 'Profile' },
+  clients: { icon: 'people-outline', label: 'Clients' },
+};
+
+const COACH_TAB_LABELS: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
+  index: { icon: 'grid-outline', label: 'Dashboard' },
+  queue: { icon: 'clipboard-outline', label: 'Queue' },
+  clients: { icon: 'people-outline', label: 'Clients' },
   profile: { icon: 'person-outline', label: 'Profile' },
 };
 
@@ -43,7 +52,11 @@ export function FloatingTabBar({
 }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom - 4, 10);
-  const visibleRoutes = state.routes.filter((route) => route.name in TAB_CONFIG);
+  const isCoachBar = state.routes.some((route) => route.name === 'clients');
+  const visibleRoutes = state.routes.filter((route) => {
+    if (route.name === 'chat' && isCoachBar) return false;
+    return route.name in TAB_CONFIG || route.name in COACH_TAB_LABELS;
+  });
 
   return (
     <View
@@ -77,7 +90,8 @@ export function FloatingTabBar({
         {visibleRoutes.map((route) => {
           const routeIndex = state.routes.findIndex((entry) => entry.key === route.key);
           const isFocused = state.index === routeIndex;
-          const config = TAB_CONFIG[route.name] ?? { icon: 'ellipse-outline' as const, label: route.name };
+          const override = isCoachBar ? COACH_TAB_LABELS[route.name] : undefined;
+          const config = override ?? TAB_CONFIG[route.name] ?? { icon: 'ellipse-outline' as const, label: route.name };
 
           const onPress = () => {
             const event = navigation.emit({
@@ -90,6 +104,11 @@ export function FloatingTabBar({
               navigation.navigate(route.name);
             }
           };
+
+          const showQueueBadge =
+            (isCoachBar ? route.name === 'queue' : route.name === 'index') &&
+            notificationUnreadCount > 0;
+          const showChatBadge = route.name === 'chat' && chatUnreadCount > 0;
 
           return (
             <Pressable
@@ -117,14 +136,14 @@ export function FloatingTabBar({
                     color={ACTIVE_ICON}
                   />
                   <Text className="font-sans-semibold text-sm text-neutral-900">{config.label}</Text>
-                  {route.name === 'index' && notificationUnreadCount > 0 ? (
+                  {showQueueBadge ? (
                     <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
                         {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
                       </Text>
                     </View>
                   ) : null}
-                  {route.name === 'chat' && chatUnreadCount > 0 ? (
+                  {showChatBadge ? (
                     <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
                         {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
@@ -139,14 +158,14 @@ export function FloatingTabBar({
                     size={config.icon === 'add' ? 24 : 22}
                     color={INACTIVE_ICON}
                   />
-                  {route.name === 'index' && notificationUnreadCount > 0 ? (
+                  {showQueueBadge ? (
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
                         {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
                       </Text>
                     </View>
                   ) : null}
-                  {route.name === 'chat' && chatUnreadCount > 0 ? (
+                  {showChatBadge ? (
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
                         {chatUnreadCount > 9 ? '9+' : chatUnreadCount}

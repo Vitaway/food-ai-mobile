@@ -36,6 +36,7 @@ export function clearIncomingToastClaims() {
 
 export function toastTypeForNotification(notification: ServerNotification): ToastType {
   const haystack = `${notification.title} ${notification.message}`;
+  if (notification.kind === 'review') return 'info';
   if (notification.kind === 'meal') {
     if (/approv/i.test(haystack) || notification.status === 'approved') return 'success';
     if (/reject|feedback|attention/i.test(haystack) || notification.status === 'rejected') {

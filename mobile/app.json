@@ -11,10 +11,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.vitaway.foodai",
       "buildNumber": "5",
+      "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "MiraFood needs photo access for AR measurement.",
         "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
-        "NSCameraUsageDescription": "MiraFood uses your camera to measure plate size in AR.",
+        "NSCameraUsageDescription": "MiraFood uses your camera to scan barcodes, photograph meals, and measure plate size in AR.",
         "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement.",
         "UIBackgroundModes": [
           "remote-notification"
@@ -22,7 +23,7 @@
       }
     },
     "android": {
-      "package": "com.mirafood.vitaway",
+      "package": "com.mirafood.keyypress",
       "adaptiveIcon": {
         "backgroundColor": "#16304D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -31,6 +32,7 @@
       },
       "permissions": [
         "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
@@ -41,6 +43,7 @@
     },
     "plugins": [
       "expo-dev-client",
+      "expo-apple-authentication",
       [
         "expo-build-properties",
         {
@@ -58,6 +61,14 @@
           "icon": "./assets/images/icon.png",
           "color": "#16304D",
           "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "MiraFood uses your camera to scan barcodes and log meals.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
         }
       ],
       [

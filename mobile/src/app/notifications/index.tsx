@@ -1,4 +1,4 @@
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, type Href } from 'expo-router';
 import { useCallback } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
@@ -25,6 +25,10 @@ export default function NotificationsScreen() {
   const openItem = useCallback(
     async (item: AppNotification) => {
       await markRead(item.readKey);
+      if (item.kind === 'review' && item.mealId) {
+        push(`/coach/meal/${item.mealId}` as Href);
+        return;
+      }
       if (item.mealId) {
         push(`/meal/${item.mealId}`);
         return;

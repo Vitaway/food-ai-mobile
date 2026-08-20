@@ -17,6 +17,14 @@ export class UsersRepository {
     return this.repo.findOne({ where: { referralCode: code.toUpperCase().trim() } });
   }
 
+  findByAppleSub(appleSub: string) {
+    return this.repo.findOne({ where: { appleSub } });
+  }
+
+  findByGoogleSub(googleSub: string) {
+    return this.repo.findOne({ where: { googleSub } });
+  }
+
   countReferrals(userId: string) {
     return this.repo.count({ where: { referredByUserId: userId } });
   }

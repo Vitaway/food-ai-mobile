@@ -377,6 +377,14 @@ export const consumerService = {
         mealType: dto.mealType,
         clientName,
       });
+      void notificationsService
+        .notifyCoachMealSubmitted({
+          clientId: row.id,
+          mealId: dto.id,
+          mealName: mealName ?? dto.mealType ?? "Meal",
+          clientName,
+        })
+        .catch(() => undefined);
     }
 
     return meal;

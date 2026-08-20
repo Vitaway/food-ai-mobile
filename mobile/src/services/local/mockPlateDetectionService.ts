@@ -4,7 +4,7 @@ import type { PlateDetectionService } from '@/services/contracts/plateDetectionS
 export const mockPlateDetectionService: PlateDetectionService = {
   async detectPlate() {
     throw new Error(
-      'Plate detection API is not configured. Set EXPO_PUBLIC_API_URL (e.g. https://vitaway.nsengi.space).',
+      'Plate detection API is not configured. Set EXPO_PUBLIC_API_URL (e.g. https://mirafoodserver.vitaway.org).',
     );
   },
 };

@@ -176,7 +176,7 @@ function buildProfile(
 }
 
 export function ProfileProvider({ children }: PropsWithChildren) {
-  const { isAuthenticated, session, markOnboardingComplete } = useAuth();
+  const { isAuthenticated, session, markOnboardingComplete, isCoach } = useAuth();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isBootstrapReady, setIsBootstrapReady] = useState(() => !isApiConfigured());
@@ -188,7 +188,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   const userId = session?.user.id ?? null;
 
   const syncProfileFromRemote = useCallback(async (): Promise<boolean> => {
-    if (!isApiConfigured() || !isAuthenticated) return false;
+    if (!isApiConfigured() || !isAuthenticated || isCoach) return false;
 
     const patientId = session?.user.patientId;
 
@@ -206,7 +206,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     } catch {
       return false;
     }
-  }, [isAuthenticated, session?.user.patientId, markOnboardingComplete]);
+  }, [isAuthenticated, session?.user.patientId, markOnboardingComplete, isCoach]);
 
   const refreshProfile = useCallback(async () => {
     if (isApiConfigured() && !isAuthenticated) {
@@ -263,6 +263,15 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       setIsBootstrapReady(false);
 
       try {
+        if (isCoach) {
+          await markOnboardingComplete();
+          if (!cancelled) {
+            setProfile(null);
+            loadedForUserIdRef.current = userId;
+          }
+          return;
+        }
+
         if (!isApiConfigured()) {
           const stored = await services.profileRepository.getProfile();
           if (!cancelled) {
@@ -308,7 +317,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, userId, session?.user.patientId, session?.onboardingComplete, markOnboardingComplete, syncProfileFromRemote]);
+  }, [isAuthenticated, userId, session?.user.patientId, session?.onboardingComplete, markOnboardingComplete, syncProfileFromRemote, isCoach]);
 
   const persistRemoteProfile = useCallback(
     async (next: UserProfile, avatarOverride?: string): Promise<UserProfile | null> => {
@@ -460,7 +469,8 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       isLoading,
       isBootstrapReady,
       hasCompletedOnboarding: Boolean(
-        session?.onboardingComplete ||
+        isCoach ||
+          session?.onboardingComplete ||
           (profileMatchesSession(profile, session?.user.patientId) &&
             resolveOnboardingComplete(profile)),
       ),
@@ -478,6 +488,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       profile,
       isLoading,
       isBootstrapReady,
+      isCoach,
       session?.onboardingComplete,
       session?.user.patientId,
       patientId,

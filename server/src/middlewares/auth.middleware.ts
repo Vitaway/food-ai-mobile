@@ -16,6 +16,10 @@ export type UserRole =
   | "nutrition_coach"
   | "data_entry_staff";
 
+export function isCoachLikeRole(role: string) {
+  return role === "coach" || role === "nutrition_coach";
+}
+
 function expandedRoles(role: string): string[] {
   if (role === "admin") return ["admin", "super_admin"];
   if (role === "coach") return ["coach", "nutrition_coach"];

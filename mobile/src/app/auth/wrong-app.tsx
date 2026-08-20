@@ -24,9 +24,12 @@ function roleCopy(role: string | undefined) {
 
   if (role === 'coach' || role === 'nutrition_coach' || role === 'data_entry_staff') {
     return {
-      title: 'Coach accounts use the web dashboard',
-      body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard; not in the consumer mobile app.',
-      cta: 'Open coach dashboard',
+      title: 'This account is for the web dashboard',
+      body:
+        role === 'data_entry_staff'
+          ? 'Food database tools live on the MiraFood web dashboard — not in the mobile app.'
+          : 'If sign-in failed, try again. Coaches can now use this app to review meals.',
+      cta: 'Open web dashboard',
       path: '/login',
     };
   }
@@ -60,22 +63,22 @@ export default function WrongAppScreen() {
             onPress={() => router.replace('/auth/login' as Href)}
             fullWidth
             size="lg"
-            variant="outline-light"
+            variant="outline"
           />
         </View>
       }
       footer={
         <Pressable onPress={() => router.replace('/auth/register' as Href)}>
-          <Text className="text-center text-sm text-white/80">
-            Need a consumer account? <Text className="font-sans-semibold text-white">Create one</Text>
+          <Text className="text-center text-sm text-neutral-500">
+            Need a consumer account? <Text className="font-sans-semibold text-blue-spruce-700">Create one</Text>
           </Text>
         </Pressable>
       }>
-      <View className="items-center rounded-2xl border border-white/20 bg-white/10 px-5 py-6">
-        <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-          <Ionicons name="laptop-outline" size={30} color="#ffffff" />
+      <View className="items-center rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-6">
+        <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF4FA]">
+          <Ionicons name="laptop-outline" size={30} color="#16304D" />
         </View>
-        <Text className="text-center text-sm leading-6 text-white/85">{copy.body}</Text>
+        <Text className="text-center text-sm leading-6 text-neutral-600">{copy.body}</Text>
       </View>
     </AuthScreenShell>
   );
