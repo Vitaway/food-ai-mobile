@@ -49,8 +49,8 @@ export default function ResetPasswordScreen() {
         }
         footer={
           <Pressable onPress={() => router.replace('/auth/login' as Href)}>
-            <Text className="text-center text-sm text-white/80">
-              Back to <Text className="font-sans-semibold text-white">sign in</Text>
+            <Text className="text-center text-sm text-neutral-500">
+              Back to <Text className="font-sans-semibold text-blue-spruce-700">sign in</Text>
             </Text>
           </Pressable>
         }>
@@ -192,19 +192,19 @@ export default function ResetPasswordScreen() {
       footer={
         <View className="gap-3">
           <Pressable disabled={loading} onPress={() => void handleResend()}>
-            <Text className="text-center text-sm text-white/80">
-              Didn&apos;t get it? <Text className="font-sans-semibold text-white">Resend code</Text>
+            <Text className="text-center text-sm text-neutral-500">
+              Didn&apos;t get it? <Text className="font-sans-semibold text-blue-spruce-700">Resend code</Text>
             </Text>
           </Pressable>
           <Pressable onPress={() => router.replace('/auth/forgot-password' as Href)}>
-            <Text className="text-center text-sm text-white/80">
-              Wrong email? <Text className="font-sans-semibold text-white">Start over</Text>
+            <Text className="text-center text-sm text-neutral-500">
+              Wrong email? <Text className="font-sans-semibold text-blue-spruce-700">Start over</Text>
             </Text>
           </Pressable>
         </View>
       }>
       <View className="gap-4">
-        <Text className="text-sm leading-6 text-white/80">
+        <Text className="text-sm leading-6 text-neutral-500">
           We sent a 6-digit code to {email}. It expires in 10 minutes.
         </Text>
         <FieldInput

@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { AuthScreenShell } from '@/components/auth/AuthScreenShell';
-import { AppleAuthButtons } from '@/components/auth/AppleAuthButtons';
+import { PasswordField } from '@/components/auth/PasswordField';
+import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { Button } from '@/components/ui/Button';
 import { FieldInput } from '@/components/ui/FieldInput';
 import { Text } from '@/components/ui/Text';
-import { APP_NAME } from '@/constants/site';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { MfaRequiredError, WrongAppRoleError } from '@/utils/authErrors';
@@ -51,7 +51,7 @@ export default function LoginScreen() {
         router.push(`/auth/wrong-app?role=${encodeURIComponent(err.role)}` as Href);
         return;
       }
-      toast.error(getApiErrorMessage(err, 'Sign in failed'), 'Sign in failed');
+      toast.error(getApiErrorMessage(err, 'Sign in failed'), 'Sign in');
     } finally {
       setLoading(false);
     }
@@ -59,19 +59,18 @@ export default function LoginScreen() {
 
   return (
     <AuthScreenShell
-      title={mfa ? 'Verify your sign in' : `Sign in to ${APP_NAME}`}
+      title={mfa ? 'Verify sign-in' : 'Login'}
       subtitle={
         mfa
-          ? `Enter the code we sent to ${mfa.email}. Coaches use this extra step to protect patient reviews.`
-          : undefined
+          ? `Enter the code we sent to ${mfa.email}`
+          : 'Enter your email and password to log in.'
       }
       actions={
         <Button
-          label={loading ? (mfa ? 'Verifying…' : 'Signing in…') : mfa ? 'Verify code' : 'Sign in'}
+          label={loading ? (mfa ? 'Verifying…' : 'Logging in…') : mfa ? 'Verify code' : 'Log In'}
           onPress={handleSubmit}
           disabled={
-            loading ||
-            (mfa ? mfaCode.trim().length < 6 : !email.trim() || !password)
+            loading || (mfa ? mfaCode.trim().length < 6 : !email.trim() || !password)
           }
           fullWidth
           size="lg"
@@ -85,31 +84,31 @@ export default function LoginScreen() {
               setMfa(null);
               setMfaCode('');
             }}>
-            <Text className="text-center text-sm text-white/80">
-              Use a different account? <Text className="font-sans-semibold text-white">Back to sign in</Text>
+            <Text className="text-center text-sm text-neutral-500">
+              Use a different account?{' '}
+              <Text className="font-sans-semibold text-blue-spruce-700">Back</Text>
             </Text>
           </Pressable>
         ) : (
           <Pressable onPress={() => router.push('/auth/register' as Href)}>
-            <Text className="text-center text-sm text-white/80">
-              New here? <Text className="font-sans-semibold text-white">Create account</Text>
+            <Text className="text-center text-sm text-neutral-500">
+              Don&apos;t have an account?{' '}
+              <Text className="font-sans-semibold text-blue-spruce-700">Sign Up</Text>
             </Text>
           </Pressable>
         )
       }>
       <View className="gap-4">
         {mfa ? (
-          <>
-            <FieldInput
-              label="Verification code"
-              value={mfaCode}
-              onChangeText={(text) => setMfaCode(text.replace(/\D/g, '').slice(0, 6))}
-              keyboardType="number-pad"
-              autoFocus
-              placeholder="123456"
-              hint={mfa.debugCode ? `Dev code: ${mfa.debugCode}` : undefined}
-            />
-          </>
+          <FieldInput
+            label="Verification code"
+            value={mfaCode}
+            onChangeText={(text) => setMfaCode(text.replace(/\D/g, '').slice(0, 6))}
+            keyboardType="number-pad"
+            autoFocus
+            placeholder="123456"
+            hint={mfa.debugCode ? `Dev code: ${mfa.debugCode}` : undefined}
+          />
         ) : (
           <>
             <FieldInput
@@ -119,22 +118,20 @@ export default function LoginScreen() {
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
-              placeholder="you@vitaway.org"
+              placeholder="you@email.com"
             />
-            <FieldInput
+            <PasswordField
               label="Password"
               value={password}
               onChangeText={setPassword}
-              secureTextEntry
-              autoCapitalize="none"
               placeholder="Your password"
             />
             <Pressable
               onPress={() => router.push('/auth/forgot-password' as Href)}
               className="-mt-1 self-end">
-              <Text className="text-sm text-blue-spruce-600">Forgot password?</Text>
+              <Text className="text-sm font-sans-medium text-blue-spruce-700">Forgot Password?</Text>
             </Pressable>
-            <AppleAuthButtons disabled={loading} />
+            <SocialAuthButtons disabled={loading} />
           </>
         )}
       </View>

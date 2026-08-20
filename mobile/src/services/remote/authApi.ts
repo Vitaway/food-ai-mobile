@@ -69,6 +69,21 @@ export async function appleSignInRequest(payload: {
   });
 }
 
+export async function googleSignInRequest(payload: {
+  identityToken: string;
+  fullName?: string;
+  email?: string;
+}): Promise<AuthResponse> {
+  return apiRequest<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({
+      identityToken: payload.identityToken,
+      ...(payload.fullName?.trim() ? { fullName: payload.fullName.trim() } : {}),
+      ...(payload.email?.trim() ? { email: payload.email.trim() } : {}),
+    }),
+  });
+}
+
 export async function verifyMfaRequest(challengeToken: string, code: string): Promise<AuthResponse> {
   return apiRequest<AuthResponse>('/auth/mfa/verify', {
     method: 'POST',

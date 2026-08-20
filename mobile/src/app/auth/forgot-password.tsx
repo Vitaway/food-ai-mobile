@@ -50,8 +50,9 @@ export default function ForgotPasswordScreen() {
       }
       footer={
         <Pressable onPress={() => router.replace('/auth/login' as Href)}>
-          <Text className="text-center text-sm text-white/80">
-            Remember your password? <Text className="font-sans-semibold text-white">Sign in</Text>
+          <Text className="text-center text-sm text-neutral-500">
+            Remember your password?{' '}
+            <Text className="font-sans-semibold text-blue-spruce-700">Log In</Text>
           </Text>
         </Pressable>
       }>
@@ -63,7 +64,7 @@ export default function ForgotPasswordScreen() {
           keyboardType="email-address"
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder="you@vitaway.org"
+          placeholder="you@email.com"
           hint="We'll email a one-time code. Enter it in the app — no link needed."
         />
       </View>

@@ -21,6 +21,7 @@ import {
   isMfaChallenge,
   verifyMfaRequest,
   appleSignInRequest,
+  googleSignInRequest,
   type AuthResponse,
   type AuthUser,
 } from '@/services/remote/authApi';
@@ -36,6 +37,12 @@ export type AuthSession = {
   onboardingComplete?: boolean;
 };
 
+type SocialAuthPayload = {
+  identityToken: string;
+  fullName?: string;
+  email?: string;
+};
+
 type AuthContextValue = {
   session: AuthSession | null;
   isLoading: boolean;
@@ -43,11 +50,8 @@ type AuthContextValue = {
   isCoach: boolean;
   login: (email: string, password: string) => Promise<void>;
   completeMfaLogin: (challengeToken: string, code: string) => Promise<void>;
-  loginWithApple: (payload: {
-    identityToken: string;
-    fullName?: string;
-    email?: string;
-  }) => Promise<void>;
+  loginWithApple: (payload: SocialAuthPayload) => Promise<void>;
+  loginWithGoogle: (payload: SocialAuthPayload) => Promise<void>;
   register: (
     email: string,
     password: string,
@@ -244,8 +248,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
   );
 
   const loginWithApple = useCallback(
-    async (payload: { identityToken: string; fullName?: string; email?: string }) => {
+    async (payload: SocialAuthPayload) => {
       const data = await appleSignInRequest(payload);
+      if (!data?.user || !data.token) {
+        throw new WrongAppRoleError('unknown');
+      }
+      await applyAuthResponse(data);
+    },
+    [applyAuthResponse],
+  );
+
+  const loginWithGoogle = useCallback(
+    async (payload: SocialAuthPayload) => {
+      const data = await googleSignInRequest(payload);
       if (!data?.user || !data.token) {
         throw new WrongAppRoleError('unknown');
       }
@@ -296,6 +311,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       completeMfaLogin,
       loginWithApple,
+      loginWithGoogle,
       register,
       logout,
       markOnboardingComplete,
@@ -306,6 +322,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       login,
       completeMfaLogin,
       loginWithApple,
+      loginWithGoogle,
       register,
       logout,
       markOnboardingComplete,

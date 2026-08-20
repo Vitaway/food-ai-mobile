@@ -63,22 +63,22 @@ export default function WrongAppScreen() {
             onPress={() => router.replace('/auth/login' as Href)}
             fullWidth
             size="lg"
-            variant="outline-light"
+            variant="outline"
           />
         </View>
       }
       footer={
         <Pressable onPress={() => router.replace('/auth/register' as Href)}>
-          <Text className="text-center text-sm text-white/80">
-            Need a consumer account? <Text className="font-sans-semibold text-white">Create one</Text>
+          <Text className="text-center text-sm text-neutral-500">
+            Need a consumer account? <Text className="font-sans-semibold text-blue-spruce-700">Create one</Text>
           </Text>
         </Pressable>
       }>
-      <View className="items-center rounded-2xl border border-white/20 bg-white/10 px-5 py-6">
-        <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-white/15">
-          <Ionicons name="laptop-outline" size={30} color="#ffffff" />
+      <View className="items-center rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-6">
+        <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF4FA]">
+          <Ionicons name="laptop-outline" size={30} color="#16304D" />
         </View>
-        <Text className="text-center text-sm leading-6 text-white/85">{copy.body}</Text>
+        <Text className="text-center text-sm leading-6 text-neutral-600">{copy.body}</Text>
       </View>
     </AuthScreenShell>
   );
