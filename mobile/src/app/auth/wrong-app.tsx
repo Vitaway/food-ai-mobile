@@ -24,9 +24,12 @@ function roleCopy(role: string | undefined) {
 
   if (role === 'coach' || role === 'nutrition_coach' || role === 'data_entry_staff') {
     return {
-      title: 'Coach accounts use the web dashboard',
-      body: 'Meal review, client queue, and coach tools live on the MiraFood web dashboard — not in the consumer mobile app.',
-      cta: 'Open coach dashboard',
+      title: 'This account is for the web dashboard',
+      body:
+        role === 'data_entry_staff'
+          ? 'Food database tools live on the MiraFood web dashboard — not in the mobile app.'
+          : 'If sign-in failed, try again. Coaches can now use this app to review meals.',
+      cta: 'Open web dashboard',
       path: '/login',
     };
   }

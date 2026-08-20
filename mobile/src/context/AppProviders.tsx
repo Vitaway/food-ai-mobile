@@ -1,5 +1,5 @@
 import { LiveToastBridge } from '@/components/notifications/LiveToastBridge';
-import { NotificationMealSync } from '@/components/notifications/NotificationEffects';
+import { NotificationCoachQueueSync, NotificationMealSync } from '@/components/notifications/NotificationEffects';
 import { PushNotificationSetup } from '@/components/notifications/PushNotificationSetup';
 import { SubscriptionGate } from '@/components/auth/SubscriptionGate';
 import { AuthProvider } from '@/context/AuthContext';
@@ -8,6 +8,7 @@ import { NotificationProvider } from '@/context/NotificationContext';
 import { ProfileProvider } from '@/context/ProfileContext';
 import { MealsProvider } from '@/context/MealsContext';
 import { SubscriptionAccessProvider } from '@/context/SubscriptionAccessContext';
+import { CoachQueueRealtimeProvider } from '@/context/CoachQueueRealtimeContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { IconoirProviderRoot } from '@/components/ui/IconoirIcon';
 import { createContext, useContext, type PropsWithChildren } from 'react';
@@ -31,8 +32,11 @@ export function AppProviders({ children }: PropsWithChildren) {
                         <NotificationMealSync />
                         <PushNotificationSetup />
                         <LiveToastBridge />
-                        <SubscriptionGate />
-                        <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
+                        <CoachQueueRealtimeProvider>
+                          <SubscriptionGate />
+                          <NotificationCoachQueueSync />
+                          <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
+                        </CoachQueueRealtimeProvider>
                       </MealsProvider>
                     </ProfileProvider>
                   </ChatProvider>

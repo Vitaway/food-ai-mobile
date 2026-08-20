@@ -5,6 +5,7 @@ export type AuthRouteContext = {
   needsPushPrompt?: boolean;
   /** When true, user must stay on subscription paywall until they have access. */
   needsSubscription?: boolean;
+  isCoach?: boolean;
   root: string;
   authScreen?: string;
   second?: string;
@@ -18,6 +19,10 @@ function isSubscriptionRoute(root: string, second?: string) {
   return root === 'profile' && second === 'subscription';
 }
 
+function homeRoute(isCoach: boolean) {
+  return isCoach ? '/(coach)' : '/(tabs)';
+}
+
 /** Pure routing resolver used by AuthGuard — exported for verification tests. */
 export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   const {
@@ -26,6 +31,7 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
     hasCompletedOnboarding,
     needsPushPrompt = false,
     needsSubscription = false,
+    isCoach = false,
     root,
     authScreen,
     second,
@@ -35,17 +41,31 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   const inPushEnable = root === 'notifications' && second === 'enable';
   const onResetPassword = authScreen === 'reset-password';
   const onSubscription = isSubscriptionRoute(root, second);
+  const home = homeRoute(isCoach);
 
   if (!requiresAuth) {
     if (!hasCompletedOnboarding && !inOnboarding) return '/onboarding';
     if (hasCompletedOnboarding && needsPushPrompt && !inPushEnable) return '/notifications/enable';
-    if (hasCompletedOnboarding && inOnboarding) return needsPushPrompt ? '/notifications/enable' : '/(tabs)';
-    if (hasCompletedOnboarding && inPushEnable && !needsPushPrompt) return '/(tabs)';
+    if (hasCompletedOnboarding && inOnboarding) return needsPushPrompt ? '/notifications/enable' : home;
+    if (hasCompletedOnboarding && inPushEnable && !needsPushPrompt) return home;
     return null;
   }
 
   if (!isAuthenticated) {
     return inAuth ? null : '/auth/login';
+  }
+
+  if (isCoach) {
+    if (needsPushPrompt) {
+      if (inPushEnable) return null;
+      return '/notifications/enable';
+    }
+    if (inPushEnable) return home;
+    if (inOnboarding) return home;
+    if (inAuth && !onResetPassword) return home;
+    if (isIndexRoute(root)) return home;
+    if (root === '(tabs)') return home;
+    return null;
   }
 
   if (!hasCompletedOnboarding) {
@@ -64,10 +84,11 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
     return '/profile/subscription';
   }
 
-  if (inPushEnable) return '/(tabs)';
-  if (inOnboarding) return '/(tabs)';
-  if (inAuth && !onResetPassword) return '/(tabs)';
-  if (isIndexRoute(root)) return '/(tabs)';
+  if (inPushEnable) return home;
+  if (inOnboarding) return home;
+  if (inAuth && !onResetPassword) return home;
+  if (isIndexRoute(root)) return home;
+  if (root === '(coach)') return home;
 
   return null;
 }

@@ -23,15 +23,15 @@ type SubscriptionAccessContextValue = {
 const SubscriptionAccessContext = createContext<SubscriptionAccessContextValue | null>(null);
 
 export function SubscriptionAccessProvider({ children }: PropsWithChildren) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isCoach } = useAuth();
   const [isSubscriptionReady, setIsSubscriptionReady] = useState(() => !isApiConfigured());
   const [hasActiveSubscription, setHasActiveSubscription] = useState(() => !isApiConfigured());
 
   const refreshSubscriptionAccess = useCallback(async (): Promise<boolean> => {
-    if (!isApiConfigured() || !isAuthenticated) {
-      setHasActiveSubscription(!isApiConfigured());
+    if (!isApiConfigured() || !isAuthenticated || isCoach) {
+      setHasActiveSubscription(!isApiConfigured() || isCoach);
       setIsSubscriptionReady(true);
-      return !isApiConfigured();
+      return !isApiConfigured() || isCoach;
     }
 
     try {
@@ -46,7 +46,7 @@ export function SubscriptionAccessProvider({ children }: PropsWithChildren) {
       setIsSubscriptionReady(true);
       return false;
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isCoach]);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,6 +59,11 @@ export function SubscriptionAccessProvider({ children }: PropsWithChildren) {
       }
       if (!isAuthenticated) {
         setHasActiveSubscription(false);
+        setIsSubscriptionReady(true);
+        return;
+      }
+      if (isCoach) {
+        setHasActiveSubscription(true);
         setIsSubscriptionReady(true);
         return;
       }
@@ -84,7 +89,7 @@ export function SubscriptionAccessProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isCoach]);
 
   const value = useMemo(
     () => ({

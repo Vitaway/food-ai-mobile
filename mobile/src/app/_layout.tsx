@@ -51,6 +51,8 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: semanticColors.background },
+            animation: 'fade_from_bottom',
+            animationDuration: 280,
           }}>
           <Stack.Screen name="index" />
           <Stack.Screen name="auth" />
@@ -61,6 +63,8 @@ export default function RootLayout() {
           <Stack.Screen name="referral/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="profile" options={{ presentation: 'card' }} />
           <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="(coach)" />
+          <Stack.Screen name="coach" options={{ presentation: 'card' }} />
           <Stack.Screen name="meal" options={{ presentation: 'card' }} />
           <Stack.Screen name="chat" options={{ presentation: 'card' }} />
           <Stack.Screen name="ar-measure" options={{ presentation: 'fullScreenModal' }} />
