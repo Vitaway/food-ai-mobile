@@ -10,6 +10,8 @@ import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
 import { CoachingFeedCard } from '@/components/home/CoachingFeedCard';
+import { enteringCard } from '@/components/ui/motion';
+import Animated from 'react-native-reanimated';
 import { isPipelineActive } from '@/constants/mealStatus';
 import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
@@ -78,11 +80,14 @@ export default function HomeScreen() {
     setLogMethodIntent('camera');
     push('/(tabs)/log');
   });
-  const onOpenDescribe = useSinglePress(() => {
-    setLogMethodIntent('describe');
+  const onOpenBarcode = useSinglePress(() => {
+    setLogMethodIntent('barcode');
     push('/(tabs)/log');
   });
-  const onOpenInsights = useSinglePress(() => push('/(tabs)/analytics'));
+  const onOpenDescribe = useSinglePress(() => {
+    setLogMethodIntent('method');
+    push('/(tabs)/log');
+  });
   const onOpenWater = useSinglePress(() => push('/water'));
 
   const activePipelineCount = useMemo(
@@ -171,32 +176,41 @@ export default function HomeScreen() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE }}
           contentContainerClassName="gap-4">
-          <HomeQuickCategories
-            onScan={() => onOpenScan?.()}
-            onDescribe={() => onOpenDescribe?.()}
-            onWater={() => onOpenWater?.()}
-            onInsights={() => onOpenInsights?.()}
-          />
+          <Animated.View entering={enteringCard(0)}>
+            <HomeQuickCategories
+              onScan={() => onOpenScan?.()}
+              onBarcode={() => onOpenBarcode?.()}
+              onDescribe={() => onOpenDescribe?.()}
+              onWater={() => onOpenWater?.()}
+            />
+          </Animated.View>
 
-          <CoachingFeedCard />
+          <Animated.View entering={enteringCard(1)}>
+            <CoachingFeedCard />
+          </Animated.View>
 
-          <HomeWaterCard
-            waterMl={dashboard.waterMl}
-            waterTargetMl={dashboard.waterTargetMl}
-            onPress={() => onOpenWater?.()}
-          />
+          <Animated.View entering={enteringCard(2)}>
+            <HomeWaterCard
+              waterMl={dashboard.waterMl}
+              waterTargetMl={dashboard.waterTargetMl}
+              onPress={() => onOpenWater?.()}
+            />
+          </Animated.View>
 
-          <HomeHeroCard
-            dashboard={dashboard}
-            dayHeading={dayHeading}
-            selectedDate={selectedDate}
-            lastMeal={dashboard.lastMeal}
-            onSelectDate={setSelectedDate}
-            onOpenCalendar={() => onOpenHealth?.()}
-            onPressDetail={() => onOpenSelectedDay?.()}
-          />
+          <Animated.View entering={enteringCard(3)}>
+            <HomeHeroCard
+              dashboard={dashboard}
+              dayHeading={dayHeading}
+              selectedDate={selectedDate}
+              lastMeal={dashboard.lastMeal}
+              onSelectDate={setSelectedDate}
+              onOpenCalendar={() => onOpenHealth?.()}
+              onPressDetail={() => onOpenSelectedDay?.()}
+            />
+          </Animated.View>
 
           {activePipelineCount > 0 ? (
+            <Animated.View entering={enteringCard(4)}>
             <Pressable
               onPress={onOpenNotifications}
               className="flex-row items-center gap-3 rounded-2xl bg-white px-4 py-3"
@@ -218,9 +232,11 @@ export default function HomeScreen() {
               </View>
               <Ionicons name="chevron-forward" size={18} color="#848a75" />
             </Pressable>
+            </Animated.View>
           ) : null}
 
-          <View
+          <Animated.View
+            entering={enteringCard(5)}
             className="rounded-3xl bg-white p-5"
             style={{
               shadowColor: '#1a1c17',
@@ -230,15 +246,17 @@ export default function HomeScreen() {
               elevation: 2,
             }}>
             <MacroProgressBars macros={macroBars} embedded />
-          </View>
+          </Animated.View>
 
-          <HomeTodaySection
-            title={mealsTitle}
-            mealCount={mealCount}
-            meals={timeline}
-            onMealPress={(mealId) => onMealPress?.(mealId)}
-            onAddMeal={() => onAddMeal?.()}
-          />
+          <Animated.View entering={enteringCard(6)}>
+            <HomeTodaySection
+              title={mealsTitle}
+              mealCount={mealCount}
+              meals={timeline}
+              onMealPress={(mealId) => onMealPress?.(mealId)}
+              onAddMeal={() => onAddMeal?.()}
+            />
+          </Animated.View>
         </ScrollView>
       </ContentSheet>
     </View>

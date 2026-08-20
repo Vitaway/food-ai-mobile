@@ -1,8 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { ComponentProps } from 'react';
-import { Image, Pressable, View } from 'react-native';
+import { Image, View } from 'react-native';
+import Animated from 'react-native-reanimated';
 
 import { LogCard } from '@/components/log/LogScreenShell';
+import { AnimatedScalePressable, enteringCard } from '@/components/ui/motion';
 import { Text } from '@/components/ui/Text';
 import { LOG_METHOD_IMAGES } from '@/constants/logMethodImages';
 import { semanticColors } from '@/design-system/colors';
@@ -48,7 +50,7 @@ const METHODS: Array<{
   {
     id: 'barcode',
     title: 'Scan barcode',
-    subtitle: 'Look up packaged food from the nutrition database',
+    subtitle: 'Live camera lookup on Open Food Facts',
     icon: 'barcode-outline',
     tintClass: 'bg-shamrock-50',
     iconColor: '#1D9E75',
@@ -80,30 +82,31 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
         </Text>
       </LogCard>
 
-      {METHODS.map((method) => (
-        <Pressable
-          key={method.id}
-          disabled={loading}
-          onPress={() => onSelectMethod(method.id)}
-          className="overflow-hidden rounded-3xl bg-white active:opacity-90"
-          style={{
-            shadowColor: '#1a1c17',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.06,
-            shadowRadius: 14,
-            elevation: 2,
-          }}>
-          <View className="flex-row items-center gap-3 p-4">
-            <View className={`h-16 w-16 overflow-hidden rounded-2xl ${method.tintClass}`}>
-              <Image source={method.image} className="h-full w-full" resizeMode="cover" />
+      {METHODS.map((method, index) => (
+        <Animated.View key={method.id} entering={enteringCard(index)}>
+          <AnimatedScalePressable
+            disabled={loading}
+            onPress={() => onSelectMethod(method.id)}
+            className="overflow-hidden rounded-3xl bg-white"
+            style={{
+              shadowColor: '#1a1c17',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.06,
+              shadowRadius: 14,
+              elevation: 2,
+            }}>
+            <View className="flex-row items-center gap-3 p-4">
+              <View className={`h-16 w-16 overflow-hidden rounded-2xl ${method.tintClass}`}>
+                <Image source={method.image} className="h-full w-full" resizeMode="cover" />
+              </View>
+              <View className="min-w-0 flex-1">
+                <Text className="font-sans-semibold text-base text-neutral-900">{method.title}</Text>
+                <Text className="mt-0.5 text-sm leading-5 text-neutral-500">{method.subtitle}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#848a75" />
             </View>
-            <View className="min-w-0 flex-1">
-              <Text className="font-sans-semibold text-base text-neutral-900">{method.title}</Text>
-              <Text className="mt-0.5 text-sm leading-5 text-neutral-500">{method.subtitle}</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#848a75" />
-          </View>
-        </Pressable>
+          </AnimatedScalePressable>
+        </Animated.View>
       ))}
     </View>
   );

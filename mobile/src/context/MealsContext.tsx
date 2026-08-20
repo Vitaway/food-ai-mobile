@@ -64,7 +64,7 @@ function withCoachReviewStub(meal: MealSubmission, status: MealSubmissionStatus)
 }
 
 export function MealsProvider({ children }: PropsWithChildren) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isCoach } = useAuth();
   const [meals, setMeals] = useState<MealSubmission[]>([]);
   const [dailyLog, setDailyLog] = useState<DailyLog>({ date: todayKey(), waterMl: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +106,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
   );
 
   const syncRemoteWater = useCallback(async () => {
-    if (!isApiConfigured() || !isAuthenticated) return;
+    if (!isApiConfigured() || !isAuthenticated || isCoach) return;
     try {
       const dashboard = await fetchConsumerDashboard();
       const local = await services.mealsRepository.getDailyLog(dashboard.date);
@@ -123,7 +123,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     } catch {
       /* keep local value */
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isCoach]);
 
   const refreshMeals = useCallback(async () => {
     if (mealsInflightRef.current) {
@@ -133,6 +133,10 @@ export function MealsProvider({ children }: PropsWithChildren) {
     mealsInflightRef.current = (async () => {
       try {
         if (isApiConfigured() && isAuthenticated) {
+          if (isCoach) {
+            setMeals([]);
+            return;
+          }
           const localMeals = await services.mealsRepository.getMeals();
           let remoteMeals = await fetchConsumerMeals();
           await backfillMealPhotos(remoteMeals, localMeals);
@@ -165,7 +169,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
     })();
 
     return mealsInflightRef.current;
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isCoach]);
 
   const simulatePipeline = useCallback(
     async (mealId: string, fromStatus?: MealSubmissionStatus) => {

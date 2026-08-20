@@ -1,6 +1,6 @@
 import type { MealTypeId } from '@/constants/mealTypes';
 
-export type LogMethodIntent = 'camera' | 'gallery' | 'describe';
+export type LogMethodIntent = 'camera' | 'gallery' | 'describe' | 'barcode' | 'method';
 
 /** Persists chosen meal slot when navigating to the Log tab (tab routes often drop params). */
 let pendingMealType: MealTypeId | null = null;
