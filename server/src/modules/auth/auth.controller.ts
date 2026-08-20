@@ -15,6 +15,7 @@ import {
   ResetPasswordDto,
   VerifyResetCodeDto,
   VerifyMfaDto,
+  AppleSignInDto,
 } from "./auth.dto";
 import type { User } from "../users/user.entity";
 
@@ -28,6 +29,11 @@ export class AuthController {
   @Post("/login")
   login(@Body() dto: LoginDto, @Req() req: Request) {
     return authService.login(dto, req);
+  }
+
+  @Post("/apple")
+  apple(@Body() dto: AppleSignInDto, @Req() req: Request) {
+    return authService.signInWithApple(dto, req);
   }
 
   @Post("/mfa/verify")

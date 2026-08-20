@@ -19,8 +19,12 @@ export class User {
   @Column({ type: "varchar", length: 255 })
   email!: string;
 
-  @Column({ type: "varchar", name: "password_hash", length: 255 })
-  passwordHash!: string;
+  @Column({ type: "varchar", name: "password_hash", length: 255, nullable: true })
+  passwordHash!: string | null;
+
+  @Index({ unique: true })
+  @Column({ type: "varchar", name: "apple_sub", length: 128, nullable: true })
+  appleSub!: string | null;
 
   @Column({ type: "varchar", length: 32, default: "coach" })
   role!: UserRole;

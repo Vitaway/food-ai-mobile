@@ -16,7 +16,9 @@ import type {
   ResetPasswordDto,
   VerifyResetCodeDto,
   VerifyMfaDto,
+  AppleSignInDto,
 } from "./auth.dto";
+import { verifyAppleIdentityToken } from "../../services/apple-identity.client";
 import {
   createPasswordResetOtp,
   findLatestOpenOtp,
@@ -279,6 +281,112 @@ export const authService = {
     };
 
     return result;
+  },
+
+  async signInWithApple(dto: AppleSignInDto, req?: Request): Promise<LoginResult> {
+    const claims = await verifyAppleIdentityToken(dto.identityToken.trim());
+    const emailFromToken = claims.email?.toLowerCase().trim();
+    const emailFromClient = dto.email?.toLowerCase().trim();
+    const email = emailFromToken || emailFromClient;
+
+    let user = await usersRepository.findByAppleSub(claims.sub);
+
+    if (!user && email) {
+      const byEmail = await usersRepository.findByEmail(email);
+      if (byEmail) {
+        if (byEmail.appleSub && byEmail.appleSub !== claims.sub) {
+          throw new BadRequestError(
+            "This email is already linked to a different Apple ID. Sign in with email instead.",
+          );
+        }
+        byEmail.appleSub = claims.sub;
+        await usersRepository.save(byEmail);
+        user = byEmail;
+      }
+    }
+
+    if (!user) {
+      if (!email) {
+        throw new BadRequestError(
+          "Apple did not share an email for this account. Use email sign-in or try Sign in with Apple again and share your email.",
+        );
+      }
+
+      const displayName =
+        dto.fullName?.trim() ||
+        email.split("@")[0] ||
+        "MiraFood member";
+
+      let referralCode = generateReferralCode();
+      while (await usersRepository.findByReferralCode(referralCode)) {
+        referralCode = generateReferralCode();
+      }
+
+      user = usersRepository.create({
+        email,
+        passwordHash: null,
+        appleSub: claims.sub,
+        role: "consumer",
+        displayName,
+        avatarUrl: null,
+        isActive: true,
+        referralCode,
+        referredByUserId: null,
+        registrationSource: "apple",
+      });
+      await usersRepository.save(user);
+
+      const patientId = await allocatePatientId();
+      const now = new Date().toISOString();
+      const consumerProfile = consumerProfilesRepository.create({
+        id: patientId,
+        userId: user.id,
+        profile: {
+          displayName: user.displayName,
+          email: user.email,
+          onboardingComplete: false,
+          createdAt: now,
+          updatedAt: now,
+        },
+        dashboard: {
+          waterMl: 0,
+          streakDays: 0,
+        },
+      });
+      await consumerProfilesRepository.save(consumerProfile);
+
+      try {
+        await emailService.sendWelcomeEmail(user.email, {
+          displayName: user.displayName,
+          patientId,
+        });
+      } catch (err) {
+        logger.error({ err, email: user.email }, "Failed to send welcome email after Apple sign-in");
+      }
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedError("This account is disabled");
+    }
+
+    // Staff must use email + MFA — do not allow Apple to bypass coach/admin login.
+    if (isStaffRole(user.role)) {
+      throw new BadRequestError(
+        "Coach and staff accounts must sign in with email and password.",
+      );
+    }
+
+    const session = await createSession(user.id, req);
+    const token = signAuthToken({
+      sub: user.id,
+      sid: session.id,
+      role: user.role,
+    });
+
+    return attachRoleContext(user, {
+      token,
+      user: toAuthUser(user),
+    });
   },
 
   async login(dto: LoginDto, req?: Request): Promise<LoginResult | MfaChallengeResult> {

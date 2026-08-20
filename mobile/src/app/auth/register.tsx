@@ -5,6 +5,7 @@ import { Pressable, View } from 'react-native';
 import { PasswordField } from '@/components/auth/PasswordField';
 import { PasswordStrengthMeter } from '@/components/auth/PasswordStrengthMeter';
 import { AuthScreenShell } from '@/components/auth/AuthScreenShell';
+import { AppleAuthButtons } from '@/components/auth/AppleAuthButtons';
 import { Button } from '@/components/ui/Button';
 import { FieldInput } from '@/components/ui/FieldInput';
 import { Text } from '@/components/ui/Text';
@@ -138,6 +139,7 @@ export default function RegisterScreen() {
             })}
           </View>
         </View>
+        <AppleAuthButtons dividerLabel="Or sign up with" disabled={loading} />
       </View>
     </AuthScreenShell>
   );

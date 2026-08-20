@@ -72,3 +72,18 @@ export class VerifyMfaDto {
   code!: string;
 }
 
+export class AppleSignInDto {
+  @IsString()
+  @MinLength(20)
+  identityToken!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  fullName?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+}
+
