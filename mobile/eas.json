@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false"
       }
@@ -26,24 +26,31 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false"
       }
     },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
       "ios": {
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://vitaway.nsengi.space",
+        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false"
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "ascAppId": "6778892278"
+      }
+    }
   }
 }

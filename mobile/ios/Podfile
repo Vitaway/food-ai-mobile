@@ -51,6 +51,8 @@ target 'MiraFood' do
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
+  pod 'ViroReact', :path => '../node_modules/@viro-community/react-viro/ios'
+  pod 'ViroKit', :path => '../node_modules/@viro-community/react-viro/ios/dist/ViroRenderer/'
 
   post_install do |installer|
     react_native_post_install(
@@ -59,29 +61,5 @@ target 'MiraFood' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-
-    # Xcode 26.4 + fmt fallback (safe even on RN 0.81)
-    installer.pods_project.targets.each do |target|
-      next unless target.name == 'fmt'
-
-      target.build_configurations.each do |build_config|
-        build_config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-      end
-    end
-
-    fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
-    if File.exist?(fmt_base)
-      content = File.read(fmt_base)
-      unless content.include?('Xcode 26 workaround')
-        patched = content.gsub(
-          /^(#elif defined\(__cpp_consteval\)\n#  define FMT_USE_CONSTEVAL) 1/,
-          "// Xcode 26 workaround: disable consteval\n\\1 0"
-        )
-        if patched != content
-          File.chmod(0644, fmt_base)
-          File.write(fmt_base, patched)
-        end
-      end
-    end
   end
 end

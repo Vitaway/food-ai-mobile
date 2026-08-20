@@ -4,7 +4,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 echo "→ MiraFood iOS TestFlight build"
-echo "  API: https://vitaway.nsengi.space"
+echo "  API: https://mirafoodserver.vitaway.org"
 echo ""
 echo "First run: EAS will ask you to sign in with your Apple Developer account"
 echo "and create Distribution Certificate + Provisioning Profile."

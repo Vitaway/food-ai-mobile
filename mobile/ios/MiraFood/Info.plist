@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.0.1</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -52,11 +52,13 @@
       <true/>
     </dict>
     <key>NSCameraUsageDescription</key>
-    <string>MiraFood needs camera access to scan and log your meals.</string>
-    <key>NSFaceIDUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to use Face ID</string>
+    <string>MiraFood uses your camera to scan barcodes and log meals.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Allow $(PRODUCT_NAME) to access your microphone</string>
+    <string>MiraFood uses your microphone during AR measurement.</string>
+    <key>NSFaceIDUsageDescription</key>
+    <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
+    <key>NSPhotoLibraryAddUsageDescription</key>
+    <string>MiraFood may save AR captures to your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>MiraFood needs photo access to log meals from your gallery.</string>
     <key>NSUserActivityTypes</key>
@@ -65,6 +67,10 @@
     </array>
     <key>RCTNewArchEnabled</key>
     <true/>
+    <key>UIBackgroundModes</key>
+    <array>
+      <string>remote-notification</string>
+    </array>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>
