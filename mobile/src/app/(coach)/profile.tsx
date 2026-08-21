@@ -1,4 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { Alert, ScrollView, View } from 'react-native';
 
 import { CoachHeaderActions } from '@/components/coach/CoachHeaderActions';
@@ -7,14 +9,9 @@ import { ProfileHeroCard } from '@/components/profile/ProfileHeroCard';
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ProfileSection } from '@/components/profile/ProfileSection';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
-import { StackScreenBody } from '@/components/ui/ScreenTopBar';
-import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { fetchCoachProfile } from '@/services/remote/coachApi';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
 
 export default function CoachProfileScreen() {
   const router = useRouter();
@@ -55,34 +52,36 @@ export default function CoachProfileScreen() {
     ]);
   };
 
-  const subtitle = [title, organization, email].filter(Boolean).join(' · ');
+  const roleLine = [title, organization].filter(Boolean).join(' · ');
 
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="light" />
-      <GradientHeader style={{ paddingBottom: 40 }}>
+      <GradientHeader>
         <View className="flex-row items-start justify-between">
-          <View className="flex-1">
+          <View className="min-w-0 flex-1 pr-3">
             <GradientHeaderTitle>Profile</GradientHeaderTitle>
-            <Text className="mt-1 text-sm text-white/80">Manage your coach account</Text>
           </View>
           <CoachHeaderActions />
         </View>
       </GradientHeader>
 
-      <ContentSheet className="-mt-6 flex-1">
-        <StackScreenBody>
-          <ScrollView
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: FLOATING_TAB_BAR_CLEARANCE }}
-            contentContainerClassName="gap-0 pt-4">
-            <ProfileHeroCard
-              displayName={displayName}
-              subtitle={subtitle}
-              avatarUrl={session?.user.avatarUrl ?? undefined}
-              initial={initial}
-            />
+      <ContentSheet className="flex-1 pt-5">
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{
+            paddingBottom: FLOATING_TAB_BAR_CLEARANCE + 8,
+            gap: 28,
+          }}>
+          <ProfileHeroCard
+            displayName={displayName}
+            subtitle={roleLine}
+            detail={email || undefined}
+            avatarUrl={session?.user.avatarUrl ?? undefined}
+            initial={initial}
+          />
 
+          <View className="gap-7">
             <ProfileSection title="Account">
               <ProfileMenuRow
                 icon="person-circle-outline"
@@ -90,14 +89,14 @@ export default function CoachProfileScreen() {
                 subtitle="Name, title, bio, and photo"
                 onPress={() => router.push('/coach/profile/account')}
               />
-              <View className="mx-4 h-px bg-ash-grey-100" />
+              <View className="mx-5 h-px bg-ash-grey-100" />
               <ProfileMenuRow
                 icon="notifications-outline"
                 title="Notification settings"
                 subtitle="Push alerts and quiet hours"
                 onPress={() => router.push('/coach/profile/notifications')}
               />
-              <View className="mx-4 h-px bg-ash-grey-100" />
+              <View className="mx-5 h-px bg-ash-grey-100" />
               <ProfileMenuRow
                 icon="lock-closed-outline"
                 title="Security"
@@ -115,8 +114,8 @@ export default function CoachProfileScreen() {
                 destructive
               />
             </ProfileSection>
-          </ScrollView>
-        </StackScreenBody>
+          </View>
+        </ScrollView>
       </ContentSheet>
     </View>
   );
