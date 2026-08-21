@@ -2,7 +2,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter, type Href } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 
@@ -39,6 +39,23 @@ function isGoogleReadyForPlatform(): boolean {
   return Boolean(googleWebClientId);
 }
 
+type GoogleAuthSuccess = Extract<
+  Awaited<ReturnType<ReturnType<typeof Google.useIdTokenAuthRequest>[2]>>,
+  { type: 'success' }
+>;
+
+function googleIdentityTokenFromResult(
+  result: { type: string; params?: Record<string, string>; authentication?: { idToken?: string | null } | null } | null,
+): string | null {
+  if (!result || result.type !== 'success') return null;
+  const fromParams =
+    typeof result.params?.id_token === 'string' ? result.params.id_token.trim() : '';
+  if (fromParams) return fromParams;
+  const fromAuth =
+    typeof result.authentication?.idToken === 'string' ? result.authentication.idToken.trim() : '';
+  return fromAuth || null;
+}
+
 type SharedSocialProps = {
   disabled?: boolean;
   loading: 'apple' | 'google' | null;
@@ -49,38 +66,84 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
   const router = useRouter();
   const { loginWithGoogle } = useAuth();
   const toast = useToast();
+  const handledTokenRef = useRef<string | null>(null);
 
-  const [request, , promptAsync] = Google.useIdTokenAuthRequest({
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: googleIosClientId || undefined,
     androidClientId: googleAndroidClientId || undefined,
     webClientId: googleWebClientId || undefined,
   });
 
+  useEffect(() => {
+    if (!response || response.type !== 'success') return;
+
+    // Native iOS/Android exchange the auth code asynchronously; id_token lands on `response`.
+    const identityToken = googleIdentityTokenFromResult(response);
+    if (!identityToken) {
+      // Still exchanging the code — wait for the next response update.
+      if (response.params?.code && !response.authentication) return;
+      toast.error('Google did not return a sign-in token. Please try again.', 'Google');
+      setLoading(null);
+      return;
+    }
+    if (handledTokenRef.current === identityToken) return;
+    handledTokenRef.current = identityToken;
+
+    let cancelled = false;
+    (async () => {
+      setLoading('google');
+      try {
+        await loginWithGoogle({ identityToken });
+        if (!cancelled) toast.success('Welcome!', 'Signed in');
+      } catch (err) {
+        if (cancelled) return;
+        const code =
+          err && typeof err === 'object' && 'code' in err
+            ? String((err as { code?: string }).code)
+            : '';
+        if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return;
+        if (err instanceof WrongAppRoleError) {
+          router.push(`/auth/wrong-app?role=${encodeURIComponent(err.role)}` as Href);
+          return;
+        }
+        toast.error(getApiErrorMessage(err, 'Google sign-in failed'), 'Google');
+      } finally {
+        if (!cancelled) setLoading(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [response, loginWithGoogle, router, setLoading, toast]);
+
   const handleGoogle = async () => {
     if (loading || disabled) return;
+    handledTokenRef.current = null;
     setLoading('google');
     try {
       const result = await promptAsync();
-      if (result.type !== 'success') return;
-      const identityToken = result.params.id_token;
-      if (!identityToken) {
-        toast.error('Google did not return a sign-in token. Please try again.', 'Google');
+      if (result.type !== 'success') {
+        setLoading(null);
         return;
       }
-      await loginWithGoogle({ identityToken });
-      toast.success('Welcome!', 'Signed in');
+      // If the token is already present (web / some native paths), handle via effect.
+      // If only `code` is present, keep loading until the hook finishes the exchange.
+      const identityToken = googleIdentityTokenFromResult(result as GoogleAuthSuccess);
+      if (identityToken) return;
+      if (result.params?.code) return;
+      toast.error('Google did not return a sign-in token. Please try again.', 'Google');
+      setLoading(null);
     } catch (err) {
       const code =
         err && typeof err === 'object' && 'code' in err
           ? String((err as { code?: string }).code)
           : '';
-      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') return;
-      if (err instanceof WrongAppRoleError) {
-        router.push(`/auth/wrong-app?role=${encodeURIComponent(err.role)}` as Href);
+      if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') {
+        setLoading(null);
         return;
       }
       toast.error(getApiErrorMessage(err, 'Google sign-in failed'), 'Google');
-    } finally {
       setLoading(null);
     }
   };
@@ -93,12 +156,15 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
       accessibilityLabel="Continue with Google"
       disabled={busy || !request}
       onPress={handleGoogle}
-      className="h-14 w-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white"
+      className="h-14 w-full flex-row items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4"
       style={{ opacity: busy && loading !== 'google' ? 0.5 : 1 }}>
       {loading === 'google' ? (
         <ActivityIndicator color="#4285F4" />
       ) : (
-        <AntDesign name="google" size={22} color="#4285F4" />
+        <>
+          <AntDesign name="google" size={20} color="#4285F4" />
+          <Text className="font-sans-semibold text-[15px] text-neutral-900">Continue with Google</Text>
+        </>
       )}
     </Pressable>
   );
@@ -113,8 +179,9 @@ function GooglePlaceholderButton() {
       onPress={() =>
         toast.error('Google sign-in is not set up yet. Use email for now.', 'Google')
       }
-      className="h-14 w-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white">
-      <AntDesign name="google" size={22} color="#4285F4" />
+      className="h-14 w-full flex-row items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4">
+      <AntDesign name="google" size={20} color="#4285F4" />
+      <Text className="font-sans-semibold text-[15px] text-neutral-900">Continue with Google</Text>
     </Pressable>
   );
 }
@@ -178,14 +245,14 @@ export function SocialAuthButtons({
   const busy = Boolean(loading) || disabled;
 
   return (
-    <View className="mt-6 gap-4">
+    <View className="gap-3">
       <View className="flex-row items-center gap-3">
         <View className="h-px flex-1 bg-neutral-200" />
         <Text className="text-xs font-sans-medium text-neutral-400">{dividerLabel}</Text>
         <View className="h-px flex-1 bg-neutral-200" />
       </View>
 
-      <View className="flex-row justify-center gap-3">
+      <View className="gap-3">
         {googleReady ? (
           <GoogleSignInButton disabled={disabled} loading={loading} setLoading={setLoading} />
         ) : (
@@ -198,12 +265,15 @@ export function SocialAuthButtons({
             accessibilityLabel="Continue with Apple"
             disabled={busy}
             onPress={handleApple}
-            className="h-14 w-14 items-center justify-center rounded-2xl border border-neutral-200 bg-white"
+            className="h-14 w-full flex-row items-center justify-center gap-3 rounded-2xl bg-neutral-950 px-4"
             style={{ opacity: busy && loading !== 'apple' ? 0.5 : 1 }}>
             {loading === 'apple' ? (
-              <ActivityIndicator color="#111" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Ionicons name="logo-apple" size={26} color="#111111" />
+              <>
+                <Ionicons name="logo-apple" size={22} color="#FFFFFF" />
+                <Text className="font-sans-semibold text-[15px] text-white">Continue with Apple</Text>
+              </>
             )}
           </Pressable>
         ) : null}
