@@ -34,9 +34,8 @@ export function PrivacyPage() {
           logs, and anonymized usage analytics to improve the service.
         </p>
         <p>
-          <strong>Camera, photos & AR:</strong> When you log a meal or measure a plate, we access your
-          camera and photo library only with your permission. AR measurement may use device sensors
-          including the microphone for session support where required by the platform.
+          <strong>Camera & photos:</strong> When you log a meal, we access your camera and photo
+          library only with your permission.
         </p>
         <p>
           <strong>Biometric data:</strong> If you enable app lock, biometric authentication (Face ID,

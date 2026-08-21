@@ -19,7 +19,7 @@
     <key>CFBundlePackageType</key>
     <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.1</string>
+    <string>1.0.2</string>
     <key>CFBundleSignature</key>
     <string>????</string>
     <key>CFBundleURLTypes</key>
@@ -29,6 +29,7 @@
         <array>
           <string>mirafood</string>
           <string>com.vitaway.foodai</string>
+          <string>com.googleusercontent.apps.566523962144-uksou059gbt95l5dcodo4teresn10pmv</string>
         </array>
       </dict>
       <dict>
@@ -39,7 +40,9 @@
       </dict>
     </array>
     <key>CFBundleVersion</key>
-    <string>5</string>
+    <string>6</string>
+    <key>ITSAppUsesNonExemptEncryption</key>
+    <false/>
     <key>LSMinimumSystemVersion</key>
     <string>12.0</string>
     <key>LSRequiresIPhoneOS</key>
@@ -53,12 +56,10 @@
     </dict>
     <key>NSCameraUsageDescription</key>
     <string>MiraFood uses your camera to scan barcodes and log meals.</string>
-    <key>NSMicrophoneUsageDescription</key>
-    <string>MiraFood uses your microphone during AR measurement.</string>
     <key>NSFaceIDUsageDescription</key>
     <string>Allow $(PRODUCT_NAME) to access your Face ID biometric data.</string>
     <key>NSPhotoLibraryAddUsageDescription</key>
-    <string>MiraFood may save AR captures to your photo library.</string>
+    <string>MiraFood may save meal photos to your photo library.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>MiraFood needs photo access to log meals from your gallery.</string>
     <key>NSUserActivityTypes</key>

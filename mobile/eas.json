@@ -16,7 +16,10 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
-        "EXPO_PUBLIC_USE_MOCK_API": "false"
+        "EXPO_PUBLIC_USE_MOCK_API": "false",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "566523962144-uksou059gbt95l5dcodo4teresn10pmv.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "566523962144-k54gdinfsn6vrgmqe89vrahgnkuktgat.apps.googleusercontent.com"
       }
     },
     "apk": {
@@ -28,7 +31,10 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
-        "EXPO_PUBLIC_USE_MOCK_API": "false"
+        "EXPO_PUBLIC_USE_MOCK_API": "false",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "566523962144-uksou059gbt95l5dcodo4teresn10pmv.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "566523962144-k54gdinfsn6vrgmqe89vrahgnkuktgat.apps.googleusercontent.com"
       }
     },
     "production": {
@@ -42,7 +48,10 @@
       "env": {
         "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
-        "EXPO_PUBLIC_USE_MOCK_API": "false"
+        "EXPO_PUBLIC_USE_MOCK_API": "false",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "566523962144-uksou059gbt95l5dcodo4teresn10pmv.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "566523962144-k54gdinfsn6vrgmqe89vrahgnkuktgat.apps.googleusercontent.com"
       }
     }
   },
