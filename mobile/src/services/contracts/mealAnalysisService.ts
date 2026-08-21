@@ -6,7 +6,6 @@ export type AnalyzeMealInput = {
   text?: string;
   /** Extra context sent with a photo (portion, prep, sauces). */
   note?: string;
-  plateDiameterCm?: number | null;
 };
 
 export interface MealAnalysisService {

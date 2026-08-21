@@ -90,11 +90,6 @@ export function MealAwaitingCard({ meal }: { meal: MealSubmission }) {
             <Text className="mt-1.5 text-sm leading-5 text-ash-grey-800">{description}</Text>
           </View>
         ) : null}
-        {meal.plateDiameterCm ? (
-          <Text className="text-xs text-ash-grey-500">
-            Plate reference · {meal.plateDiameterCm.toFixed(1)} cm
-          </Text>
-        ) : null}
       </View>
     </View>
   );
@@ -469,9 +464,6 @@ export function MealMetaFooter({ meal }: { meal: MealSubmission }) {
   }
   if (typeof meal.confidenceAvg === 'number' && meal.confidenceAvg > 0) {
     bits.push(`${Math.round(meal.confidenceAvg * 100)}% AI confidence`);
-  }
-  if (meal.plateDiameterCm) {
-    bits.push(`${meal.plateDiameterCm.toFixed(1)} cm plate`);
   }
   if (!bits.length && !meal.note?.trim()) return null;
 

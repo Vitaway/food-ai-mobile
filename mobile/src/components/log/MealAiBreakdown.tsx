@@ -25,12 +25,6 @@ export function MealAiBreakdown({ analysis }: MealAiBreakdownProps) {
         </View>
       </View>
 
-      {analysis.portionNote ? (
-        <View className="mt-3 rounded-2xl bg-blue-spruce-50 px-3 py-2.5">
-          <Text className="text-sm leading-5 text-blue-spruce-800">{analysis.portionNote}</Text>
-        </View>
-      ) : null}
-
       <View className="mt-4 gap-2.5">
         {analysis.items.map((item) => {
           const itemConfidence = Math.round(item.confidence * 100);

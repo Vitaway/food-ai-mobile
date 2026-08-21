@@ -76,7 +76,6 @@ export const env = {
   MFA_REQUIRED_FOR_STAFF:
     process.env.MFA_REQUIRED_FOR_STAFF === "true" ||
     (process.env.MFA_REQUIRED_FOR_STAFF !== "false" && process.env.NODE_ENV === "production"),
-  ENABLE_LEGACY_PLATES_DETECT: process.env.ENABLE_LEGACY_PLATES_DETECT === "true",
   EXPO_ACCESS_TOKEN: process.env.EXPO_ACCESS_TOKEN ?? "",
   /**
    * Allowed Apple Sign In audiences (bundle / Services IDs).

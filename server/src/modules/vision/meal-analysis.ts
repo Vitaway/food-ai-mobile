@@ -29,15 +29,11 @@ export type MealAnalysisResult = {
   petals: Array<{ label: string; percent: number; color: string }>;
   healthFlag: "green" | "yellow" | "orange" | "red";
   healthMessage: string;
-  plateDiameterCm?: number | null;
-  portionScaleFactor?: number | null;
-  portionNote?: string | null;
   modelVersion: string;
 };
 
 import { isNegligibleCalorieLabel, ZERO_NUTRITION } from "./negligible-food";
 
-const REFERENCE_PLATE_DIAMETER_CM = 26;
 const PETAL_COLOR = "#50af73";
 
 function createId(prefix: string) {
@@ -73,22 +69,6 @@ function sumNutrition(items: MealAnalysisItem[]) {
     }),
     { caloriesKcal: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0, sugarG: 0, sodiumMg: 0 },
   );
-}
-
-function portionScaleForPlate(plateDiameterCm: number | null | undefined) {
-  if (plateDiameterCm == null || plateDiameterCm <= 0) return 1;
-  const ratio = plateDiameterCm / REFERENCE_PLATE_DIAMETER_CM;
-  return Math.min(2, Math.max(0.55, ratio ** 2));
-}
-
-function portionNoteForPlate(plateDiameterCm: number) {
-  const scale = portionScaleForPlate(plateDiameterCm);
-  if (Math.abs(scale - 1) < 0.08) {
-    return `Portions estimated for a ${plateDiameterCm} cm plate (near standard size).`;
-  }
-  const direction = scale > 1 ? "larger" : "smaller";
-  const pct = Math.round(Math.abs(scale - 1) * 100);
-  return `Plate is ${plateDiameterCm} cm; portions scaled ${pct}% ${direction} vs a standard dinner plate.`;
 }
 
 function normalizeItem(row: Record<string, unknown>, fallbackLabel: string): MealAnalysisItem {
@@ -175,69 +155,5 @@ export function normalizeMealAnalysisRaw(raw: Record<string, unknown>, modelVers
           ? "No meaningful nutrition detected; empty container or zero-calorie item."
           : "Analysis complete; review portions before submitting.",
     modelVersion,
-  };
-}
-
-export function applyPlatePortionScale(
-  analysis: MealAnalysisResult,
-  plateDiameterCm: number | null | undefined,
-): MealAnalysisResult {
-  if (plateDiameterCm == null || plateDiameterCm <= 0) return analysis;
-
-  const scale = portionScaleForPlate(plateDiameterCm);
-  if (Math.abs(scale - 1) < 0.02) {
-    return {
-      ...analysis,
-      plateDiameterCm,
-      portionScaleFactor: 1,
-      portionNote: portionNoteForPlate(plateDiameterCm),
-    };
-  }
-
-  const items = analysis.items.map((item) => {
-    const negligible = isNegligibleCalorieLabel(item.label);
-    if (negligible || item.estimatedWeightG <= 0) {
-      return item;
-    }
-
-    const weightG = Math.max(1, Math.round(item.estimatedWeightG * scale));
-    const factor = weightG / item.estimatedWeightG;
-    return {
-      ...item,
-      estimatedWeightG: weightG,
-      nutrition: {
-        ...item.nutrition,
-        caloriesKcal: Math.round(item.nutrition.caloriesKcal * factor),
-        proteinG: Math.round(item.nutrition.proteinG * factor * 10) / 10,
-        carbsG: Math.round(item.nutrition.carbsG * factor * 10) / 10,
-        fatG: Math.round(item.nutrition.fatG * factor * 10) / 10,
-        fiberG: Math.round(item.nutrition.fiberG * factor * 10) / 10,
-        sugarG: item.nutrition.sugarG
-          ? Math.round(item.nutrition.sugarG * factor * 10) / 10
-          : undefined,
-        sodiumMg: item.nutrition.sodiumMg
-          ? Math.round(item.nutrition.sodiumMg * factor)
-          : undefined,
-      },
-    };
-  });
-
-  const totalWeightG = items.reduce((sum, item) => sum + item.estimatedWeightG, 0);
-  const totalNutrition = sumNutrition(items);
-  const petals = items.map((item) => ({
-    label: item.label,
-    percent: totalWeightG > 0 ? Math.round((item.estimatedWeightG / totalWeightG) * 100) : 0,
-    color: PETAL_COLOR,
-  }));
-
-  return {
-    ...analysis,
-    items,
-    totalNutrition,
-    totalWeightG,
-    petals,
-    plateDiameterCm,
-    portionScaleFactor: scale,
-    portionNote: portionNoteForPlate(plateDiameterCm),
   };
 }

@@ -1,7 +1,6 @@
 import { BadRequestError, HttpError } from "routing-controllers";
 import { env } from "../../config/env";
 import { claudeService } from "../ai/claude.service";
-import { SYSTEM_PROMPT, USER_PROMPT } from "../ai/prompts";
 import {
   MEAL_ANALYSIS_IMAGE_USER_PROMPT,
   MEAL_ANALYSIS_IMAGE_WITH_DESCRIPTION_USER_PROMPT,
@@ -11,28 +10,12 @@ import {
   MEAL_TITLE_USER_PROMPT,
 } from "../ai/meal-analysis.prompts";
 import { buildAnalysisContext } from "./metadata-context";
-import { resolveDiameterCm, resolveEffectiveDistanceCm, roundDiameterCm } from "./diameter-math";
 import {
   normalizeMealAnalysisRaw,
   type MealAnalysisResult,
 } from "./meal-analysis";
 import { sanitizeMealAnalysisResult } from "./meal-analysis-sanitize";
 import { enrichMealAnalysisWithNutritionDb } from "./nutrition-db-enrich.util";
-
-export interface PlateDetectResult {
-  detected: boolean;
-  containerType: "plate" | "bowl" | null;
-  diameterCm: number | null;
-  confidence: number | null;
-  message: string;
-  diameterSource: "computed" | null;
-  effectiveDistanceCm?: number;
-  shotAngle?: unknown;
-  plateDiameterFractionOfImageWidth?: unknown;
-  estimatedCameraDistanceCm?: unknown;
-  matchedReference?: unknown;
-  estimationNotes?: unknown;
-}
 
 function requireClaudeConfigured() {
   const keyStatus = claudeService.getApiKeyStatus();
@@ -45,80 +28,6 @@ function requireClaudeConfigured() {
       "ANTHROPIC_API_KEY on the server is missing or invalid. Create a Claude API key at https://console.anthropic.com/settings/keys",
     );
   }
-}
-
-function normalizeResult(
-  raw: Record<string, unknown>,
-  analysisContext: Record<string, unknown>,
-): PlateDetectResult {
-  let detected = Boolean(raw.detected);
-  let container = raw.containerType;
-  if (container !== "plate" && container !== "bowl") {
-    container = null;
-  }
-
-  const fraction = raw.plateDiameterFractionOfImageWidth;
-  const cameraExif =
-    analysisContext.cameraExif && typeof analysisContext.cameraExif === "object"
-      ? (analysisContext.cameraExif as Record<string, unknown>)
-      : {};
-  const focal35 = cameraExif.focalLength35mmEquivalent;
-  const modelDistance = raw.estimatedCameraDistanceCm;
-
-  let diameterCm = detected ? resolveDiameterCm(raw, analysisContext) : null;
-  if (!detected || diameterCm == null || diameterCm <= 0) {
-    detected = false;
-    container = null;
-    diameterCm = null;
-  } else {
-    diameterCm = roundDiameterCm(diameterCm);
-  }
-
-  let confidenceVal: number | null = null;
-  if (typeof raw.confidence === "number") {
-    confidenceVal = Math.max(0, Math.min(1, raw.confidence));
-  }
-
-  let message: string;
-  if (typeof raw.message === "string") {
-    message = raw.message;
-  } else if (detected && container && diameterCm != null) {
-    const label = container === "bowl" ? "Bowl" : "Plate";
-    message = `${label} detected; ${diameterCm.toFixed(2)} cm`;
-  } else {
-    message = "No plate or bowl detected";
-  }
-
-  const result: PlateDetectResult = {
-    detected,
-    containerType: container as "plate" | "bowl" | null,
-    diameterCm,
-    confidence: confidenceVal,
-    message,
-    diameterSource: detected ? "computed" : null,
-  };
-
-  if (detected && typeof fraction === "number" && Number.isFinite(fraction)) {
-    result.effectiveDistanceCm = resolveEffectiveDistanceCm(
-      fraction,
-      typeof focal35 === "number" ? focal35 : null,
-      typeof modelDistance === "number" ? modelDistance : null,
-    );
-  }
-
-  for (const key of [
-    "shotAngle",
-    "plateDiameterFractionOfImageWidth",
-    "estimatedCameraDistanceCm",
-    "matchedReference",
-    "estimationNotes",
-  ] as const) {
-    if (raw[key] != null) {
-      Object.assign(result, { [key]: raw[key] });
-    }
-  }
-
-  return result;
 }
 
 async function callClaudeJson(opts: {
@@ -142,43 +51,6 @@ async function callClaudeJson(opts: {
 }
 
 export const visionService = {
-  async detectPlate(imageBuffer: Buffer, mimeType: string, metadataRaw: string): Promise<PlateDetectResult> {
-    requireClaudeConfigured();
-
-    if (!imageBuffer.length) {
-      throw new BadRequestError("Empty image file");
-    }
-
-    let metadata: Record<string, unknown> = {};
-    try {
-      metadata = JSON.parse(metadataRaw || "{}") as Record<string, unknown>;
-    } catch {
-      throw new BadRequestError("metadata must be valid JSON");
-    }
-
-    const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
-    const analysisContext = buildAnalysisContext(metadata);
-
-    let raw: Record<string, unknown>;
-    try {
-      raw = await callClaudeJson({
-        system: SYSTEM_PROMPT,
-        userText: USER_PROMPT.replace("{context}", JSON.stringify(analysisContext, null, 2)),
-        image: { mimeType: mime, base64: imageBuffer.toString("base64") },
-        temperature: env.ANTHROPIC_TEMPERATURE,
-      });
-    } catch (exc) {
-      if (exc instanceof HttpError) throw exc;
-      throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
-    }
-
-    try {
-      return normalizeResult(raw, analysisContext);
-    } catch (exc) {
-      throw new HttpError(502, `Could not parse model response: ${String(exc)}`);
-    }
-  },
-
   async analyzeMealFromImage(
     imageBuffer: Buffer,
     mimeType: string,
@@ -198,7 +70,6 @@ export const visionService = {
 
     const mime = mimeType?.startsWith("image/") ? mimeType : "image/jpeg";
     const userDescription = opts.note?.trim() || null;
-    // Plate-size detection/scaling is intentionally disabled; estimate portions from the photo/description only.
     const analysisContext = {
       ...buildAnalysisContext(metadata),
       userDescription,

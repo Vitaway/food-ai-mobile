@@ -67,7 +67,6 @@ export default function RootLayout() {
           <Stack.Screen name="coach" options={{ presentation: 'card' }} />
           <Stack.Screen name="meal" options={{ presentation: 'card' }} />
           <Stack.Screen name="chat" options={{ presentation: 'card' }} />
-          <Stack.Screen name="ar-measure" options={{ presentation: 'fullScreenModal' }} />
         </Stack>
       </AuthGuard>
     </AppProviders>

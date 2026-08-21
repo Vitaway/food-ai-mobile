@@ -85,11 +85,10 @@ app.use("/api/v1/auth/forgot-password", authForgotPasswordRateLimit);
 app.use("/api/v1/auth/verify-reset-code", authResetPasswordRateLimit);
 app.use("/api/v1/auth/reset-password", authResetPasswordRateLimit);
 app.use("/api/v1/consumer/account/deletion-request", accountDeletionRequestRateLimit);
-app.use("/api/v1/vision/plates/detect", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze", visionDetectRateLimit);
 app.use("/api/v1/vision/meals/analyze-text", visionDetectRateLimit);
 
-// Legacy Flask mobile/backend paths (GET /health, POST /plates/detect at domain root)
+// Legacy Flask mobile/backend paths (GET /health at domain root)
 app.use(legacyRoutes);
 
 const validationOptions: ValidatorOptions = {
