@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useAuth } from '@/context/AuthContext';
 import { semanticColors } from '@/design-system/colors';
 import {
   requestPushPermissions,
@@ -17,6 +18,7 @@ import { markPushPromptSeen } from '@/utils/pushPrompt';
 export default function EnablePushNotificationsScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { isCoach } = useAuth();
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const isSimulator = !Constants.isDevice;
@@ -28,7 +30,7 @@ export default function EnablePushNotificationsScreen() {
 
     // Clear the gate BEFORE any push work / navigation so AuthGuard cannot bounce us back.
     await markPushPromptSeen();
-    router.replace('/(tabs)');
+    router.replace(isCoach ? '/(coach)' : '/(tabs)');
 
     if (!enabled) {
       setBusy(false);
@@ -64,16 +66,24 @@ export default function EnablePushNotificationsScreen() {
         </View>
         <Text className="font-sans-bold text-3xl text-neutral-900">Stay in the loop</Text>
         <Text className="mt-3 text-base leading-6 text-neutral-600">
-          Turn on notifications so you get meal review updates, coach insights, and reminders; even when
-          MiraFood is closed.
+          {isCoach
+            ? 'Turn on notifications for new meals to review, team alerts, and messages — even when MiraFood is closed.'
+            : 'Turn on notifications so you get meal review updates, coach insights, and reminders — even when MiraFood is closed.'}
         </Text>
 
         <View className="mt-8 gap-3">
-          {[
-            'Coach approved or updated a meal',
-            'New coaching insight for you',
-            'Hydration and logging reminders',
-          ].map((line) => (
+          {(isCoach
+            ? [
+                'A patient meal is waiting for review',
+                'Team pickup / second-opinion alerts',
+                'New chat messages',
+              ]
+            : [
+                'Coach approved or updated a meal',
+                'New coaching insight for you',
+                'Hydration and logging reminders',
+              ]
+          ).map((line) => (
             <View key={line} className="flex-row items-start gap-3">
               <Ionicons name="checkmark-circle" size={20} color="#1D9E75" style={{ marginTop: 2 }} />
               <Text className="flex-1 text-sm leading-5 text-neutral-700">{line}</Text>

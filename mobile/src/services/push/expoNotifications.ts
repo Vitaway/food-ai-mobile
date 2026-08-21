@@ -13,11 +13,14 @@ export function configureNotificationHandler() {
   if (!isExpoNotificationsAvailable()) return;
 
   void import('expo-notifications').then((Notifications) => {
+    // Foreground only: system banner is suppressed so our in-app banner owns the UX.
+    // Background / killed: the OS still shows the push notification normally.
     Notifications.setNotificationHandler({
       handleNotification: async () => ({
-        shouldShowBanner: true,
+        shouldShowBanner: false,
+        shouldShowAlert: false,
         shouldShowList: true,
-        shouldPlaySound: true,
+        shouldPlaySound: false,
         shouldSetBadge: true,
       }),
     });

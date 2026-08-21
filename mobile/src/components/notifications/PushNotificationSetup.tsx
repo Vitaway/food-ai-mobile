@@ -113,7 +113,9 @@ export function PushNotificationSetup() {
         if (body) {
           const claimId = notificationId ?? `push:${title}:${body}`;
           if (claimIncomingToast(claimId)) {
-            toastRef.current.incoming(body, title, 'info');
+            toastRef.current.incoming(body, title, 'info', {
+              onPress: () => navigateFromNotificationData(router, data),
+            });
           }
         }
         void notificationSocket?.refreshServerNotifications(true);

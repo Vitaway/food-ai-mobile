@@ -9,6 +9,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
+import { useRouter, type Href } from 'expo-router';
 
 import { API_BASE_URL, isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +32,18 @@ const MIN_REFRESH_MS = 5000;
 const RECONNECT_BASE_MS = 1500;
 const RECONNECT_MAX_MS = 20_000;
 
+function routeForNotification(notification: ServerNotification): Href {
+  const data = (notification.data ?? {}) as Record<string, unknown>;
+  const conversationId = typeof data.conversationId === 'string' ? data.conversationId : null;
+  if (conversationId) return `/chat/${conversationId}`;
+  if (notification.kind === 'review' && notification.mealId) {
+    return `/coach/meal/${notification.mealId}`;
+  }
+  if (notification.mealId) return `/meal/${notification.mealId}`;
+  if (notification.kind === 'referral') return '/referral';
+  return '/notifications';
+}
+
 type NotificationContextValue = {
   serverNotifications: ServerNotification[];
   serverUnreadCount: number;
@@ -51,15 +64,19 @@ function notificationsWsUrl(token: string) {
 function showNotificationToast(
   toast: ReturnType<typeof useToast>,
   notification: ServerNotification,
+  onPress?: () => void,
 ) {
   if (notification.read) return;
   if (!claimIncomingToast(notification.id)) return;
 
   const kind = toastTypeForNotification(notification);
-  toast.incoming(notification.message, notification.title, kind);
+  toast.incoming(notification.message, notification.title, kind, { onPress });
 }
 
 export function NotificationProvider({ children }: PropsWithChildren) {
+  const router = useRouter();
+  const routerRef = useRef(router);
+  routerRef.current = router;
   const { session, isAuthenticated } = useAuth();
   const toast = useToast();
   const toastRef = useRef(toast);
@@ -79,7 +96,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
   const toastNewFromList = useCallback((items: ServerNotification[]) => {
     for (const item of items) {
       if (!item.read) {
-        showNotificationToast(toastRef.current, item);
+        showNotificationToast(toastRef.current, item, () => {
+          routerRef.current.push(routeForNotification(item));
+        });
       } else {
         seedIncomingToastClaims([item.id]);
       }
@@ -116,7 +135,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
               const ageMs = now - new Date(item.createdAt).getTime();
               // Fresh unread may have raced ahead of the WS; toast them once.
               if (!item.read && Number.isFinite(ageMs) && ageMs < 20_000) {
-                showNotificationToast(toastRef.current, item);
+                showNotificationToast(toastRef.current, item, () => {
+                  routerRef.current.push(routeForNotification(item));
+                });
               } else {
                 seedIncomingToastClaims([item.id]);
               }
@@ -235,7 +256,9 @@ export function NotificationProvider({ children }: PropsWithChildren) {
               return [notification, ...current];
             });
             // Unread badge is corrected by the follow-up `unread_count` event.
-            showNotificationToast(toastRef.current, notification);
+            showNotificationToast(toastRef.current, notification, () => {
+              routerRef.current.push(routeForNotification(notification));
+            });
           }
         } catch {
           /* ignore malformed payloads */
