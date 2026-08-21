@@ -16,7 +16,6 @@ export type CoachQueueMeal = MealSubmission & {
   // Server-provided meal metadata (queue-specific + analysis-specific)
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
-  plateDiameterCm?: number | null | undefined;
   confidenceAvg?: number | undefined;
   healthFlag?: HealthFlagLevel | string | undefined;
   healthMessage?: string | undefined;
@@ -268,6 +267,20 @@ export type CreateReviewTaskPayload = {
   notifyUser?: boolean;
   assigneeUserId?: string;
   notifyChannel?: 'team' | 'assignee' | 'both';
+};
+
+export type CoachTeamMember = {
+  coachUserId: string;
+  displayName: string;
+  email?: string;
+  avatarUrl?: string | null;
+  role?: 'coach' | 'admin' | 'nutrition_coach' | string;
+  title?: string | null;
+  isSelf?: boolean;
+};
+
+export type CoachTeamResponse = {
+  coaches: CoachTeamMember[];
 };
 
 export type CoachProfileUpdatePayload = {

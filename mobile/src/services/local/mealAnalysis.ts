@@ -9,7 +9,6 @@ import type {
 } from '@/types';
 import { createId } from '@/utils/dates';
 import { isNegligibleCalorieLabel, ZERO_NUTRITION } from '@/utils/negligibleFoodItems';
-import { applyPlatePortionScale } from '@/utils/platePortion';
 import { sanitizeMealAnalysis } from '@/utils/sanitizeMealAnalysis';
 
 const PHOTO_MEALS = [
@@ -125,15 +124,11 @@ function buildAnalysis(name: string, rawItems: Array<{ label: string; weightG: n
   };
 }
 
-export function mockAnalyzePhoto(
-  imageUri?: string,
-  plateDiameterCm?: number | null,
-): MealAnalysisPreview {
+export function mockAnalyzePhoto(imageUri?: string): MealAnalysisPreview {
   const index = imageUri ? imageUri.length % PHOTO_MEALS.length : 0;
   const meal = PHOTO_MEALS[index];
   const confidence = 0.88 + (index === 0 ? 0.05 : 0);
-  const base = buildAnalysis(meal.name, meal.items, confidence);
-  return applyPlatePortionScale(base, plateDiameterCm);
+  return buildAnalysis(meal.name, meal.items, confidence);
 }
 
 export function mockAnalyzeText(text: string): MealAnalysisPreview {
@@ -179,7 +174,6 @@ export function mockAnalyzeMeal(input: {
   imageUri?: string;
   text?: string;
   note?: string;
-  plateDiameterCm?: number | null;
 }): MealAnalysisPreview {
   if (input.text?.trim()) {
     return sanitizeMealAnalysis(mockAnalyzeText(input.text));
@@ -187,13 +181,11 @@ export function mockAnalyzeMeal(input: {
 
   const description = input.note?.trim();
   if (input.imageUri && description) {
-    return sanitizeMealAnalysis(
-      applyPlatePortionScale(mockAnalyzeText(description), input.plateDiameterCm),
-    );
+    return sanitizeMealAnalysis(mockAnalyzeText(description));
   }
 
   if (input.imageUri) {
-    return sanitizeMealAnalysis(mockAnalyzePhoto(input.imageUri, input.plateDiameterCm));
+    return sanitizeMealAnalysis(mockAnalyzePhoto(input.imageUri));
   }
 
   throw new Error('Add a photo or describe your meal');
@@ -250,7 +242,6 @@ export function toMealSubmission(
     imageUrl?: string;
     textInput?: string;
     note?: string;
-    plateDiameterCm?: number | null;
     status?: MealSubmissionStatus;
   } & Partial<MealSubmissionExtras>,
 ): MealSubmission {
@@ -262,7 +253,6 @@ export function toMealSubmission(
     imageUrl: input.imageUrl,
     textInput: input.textInput,
     note: input.note,
-    plateDiameterCm: input.plateDiameterCm ?? analysis.plateDiameterCm ?? null,
     mealName: analysis.mealName,
     items: analysis.items,
     totalNutrition: analysis.totalNutrition,
@@ -298,7 +288,6 @@ export function mealSubmissionToAnalysisPreview(meal: MealSubmission): MealAnaly
     petals: meal.petals ?? [],
     healthFlag: meal.healthFlag ?? 'yellow',
     healthMessage: meal.healthMessage ?? 'Analysis complete.',
-    plateDiameterCm: meal.plateDiameterCm ?? null,
   };
 }
 

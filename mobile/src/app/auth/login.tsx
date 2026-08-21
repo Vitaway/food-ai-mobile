@@ -65,18 +65,6 @@ export default function LoginScreen() {
           ? `Enter the code we sent to ${mfa.email}`
           : 'Enter your email and password to log in.'
       }
-      actions={
-        <Button
-          label={loading ? (mfa ? 'Verifying…' : 'Logging in…') : mfa ? 'Verify code' : 'Log In'}
-          onPress={handleSubmit}
-          disabled={
-            loading || (mfa ? mfaCode.trim().length < 6 : !email.trim() || !password)
-          }
-          fullWidth
-          size="lg"
-          variant="primary"
-        />
-      }
       footer={
         mfa ? (
           <Pressable
@@ -100,15 +88,25 @@ export default function LoginScreen() {
       }>
       <View className="gap-4">
         {mfa ? (
-          <FieldInput
-            label="Verification code"
-            value={mfaCode}
-            onChangeText={(text) => setMfaCode(text.replace(/\D/g, '').slice(0, 6))}
-            keyboardType="number-pad"
-            autoFocus
-            placeholder="123456"
-            hint={mfa.debugCode ? `Dev code: ${mfa.debugCode}` : undefined}
-          />
+          <>
+            <FieldInput
+              label="Verification code"
+              value={mfaCode}
+              onChangeText={(text) => setMfaCode(text.replace(/\D/g, '').slice(0, 6))}
+              keyboardType="number-pad"
+              autoFocus
+              placeholder="123456"
+              hint={mfa.debugCode ? `Dev code: ${mfa.debugCode}` : undefined}
+            />
+            <Button
+              label={loading ? 'Verifying…' : 'Verify code'}
+              onPress={handleSubmit}
+              disabled={loading || mfaCode.trim().length < 6}
+              fullWidth
+              size="lg"
+              variant="primary"
+            />
+          </>
         ) : (
           <>
             <FieldInput
@@ -131,6 +129,14 @@ export default function LoginScreen() {
               className="-mt-1 self-end">
               <Text className="text-sm font-sans-medium text-blue-spruce-700">Forgot Password?</Text>
             </Pressable>
+            <Button
+              label={loading ? 'Logging in…' : 'Log In'}
+              onPress={handleSubmit}
+              disabled={loading || !email.trim() || !password}
+              fullWidth
+              size="lg"
+              variant="primary"
+            />
             <SocialAuthButtons disabled={loading} />
           </>
         )}

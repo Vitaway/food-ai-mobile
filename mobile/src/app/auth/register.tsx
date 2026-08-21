@@ -62,16 +62,6 @@ export default function RegisterScreen() {
     <AuthScreenShell
       title="Sign Up"
       subtitle="Create your MiraFood account in a minute."
-      actions={
-        <Button
-          label={loading ? 'Creating…' : 'Create account'}
-          onPress={handleSubmit}
-          disabled={loading || !canSubmit}
-          fullWidth
-          size="lg"
-          variant="primary"
-        />
-      }
       footer={
         <Pressable onPress={() => router.back()}>
           <Text className="text-center text-sm text-neutral-500">
@@ -118,6 +108,14 @@ export default function RegisterScreen() {
           onChangeText={setReferralCode}
           autoCapitalize="characters"
           placeholder="MIRA-XXXXXX"
+        />
+        <Button
+          label={loading ? 'Creating…' : 'Create account'}
+          onPress={handleSubmit}
+          disabled={loading || !canSubmit}
+          fullWidth
+          size="lg"
+          variant="primary"
         />
         <SocialAuthButtons dividerLabel="Or sign up with" disabled={loading} />
       </View>

@@ -8,7 +8,6 @@ import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
 import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealAnalysisPreview } from '@/types';
-import { formatDiameterCm } from '@/utils/formatDiameter';
 import { formatMacroG } from '@/utils/formatMacro';
 import { applyServingUnitToItem, recalculateAnalysisTotals, SERVING_UNITS } from '@/utils/servingUnits';
 
@@ -128,7 +127,6 @@ export function LogResultsStep({
             {showNutrition ? (
               <Text className="mt-1 text-sm text-neutral-500">
                 {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal
-                {analysis.plateDiameterCm ? ` · ${formatDiameterCm(analysis.plateDiameterCm)}` : ''}
               </Text>
             ) : null}
           </View>

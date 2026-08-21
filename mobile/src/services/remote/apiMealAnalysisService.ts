@@ -63,7 +63,7 @@ export const apiMealAnalysisService: MealAnalysisService = {
     return mealName;
   },
 
-  async analyzeMeal({ imageUri, text, note, plateDiameterCm }) {
+  async analyzeMeal({ imageUri, text, note }) {
     if (!API_BASE_URL) {
       throw new Error('API is not configured');
     }
@@ -82,7 +82,6 @@ export const apiMealAnalysisService: MealAnalysisService = {
         },
         body: JSON.stringify({
           text: text.trim(),
-          plateDiameterCm: plateDiameterCm ?? null,
         }),
       });
       const data = await parseApiResponse<Record<string, unknown>>(response);
@@ -100,10 +99,6 @@ export const apiMealAnalysisService: MealAnalysisService = {
       type: upload.mimeType,
       name: upload.name,
     } as unknown as Blob);
-
-    if (plateDiameterCm != null) {
-      formData.append('plateDiameterCm', String(plateDiameterCm));
-    }
 
     if (note?.trim()) {
       formData.append('note', note.trim());

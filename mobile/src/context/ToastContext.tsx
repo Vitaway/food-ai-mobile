@@ -11,6 +11,8 @@ type ToastInput = {
   message: string;
   durationMs?: number;
   sound?: boolean;
+  variant?: 'toast' | 'banner';
+  onPress?: () => void;
 };
 
 type ToastContextValue = {
@@ -18,7 +20,12 @@ type ToastContextValue = {
   success: (message: string, title?: string, opts?: { sound?: boolean }) => string;
   error: (message: string, title?: string, opts?: { sound?: boolean }) => string;
   info: (message: string, title?: string, opts?: { sound?: boolean }) => string;
-  incoming: (message: string, title?: string, type?: ToastType) => string;
+  incoming: (
+    message: string,
+    title?: string,
+    type?: ToastType,
+    opts?: { onPress?: () => void },
+  ) => string;
   dismiss: (id: string) => void;
 };
 
@@ -45,9 +52,19 @@ export function ToastProvider({ children }: PropsWithChildren) {
   }, []);
 
   const show = useCallback(
-    ({ type, title, message, durationMs = 6200, sound = false }: ToastInput) => {
+    ({
+      type,
+      title,
+      message,
+      durationMs = 6200,
+      sound = false,
+      variant = 'toast',
+      onPress,
+    }: ToastInput) => {
       const id = nextToastId();
-      setToasts((current) => [...current, { id, type, title, message }].slice(-4));
+      setToasts((current) =>
+        [...current, { id, type, title, message, variant, onPress }].slice(-4),
+      );
       if (sound) playIncomingNotificationSound();
 
       const timer = setTimeout(() => dismiss(id), durationMs);
@@ -65,8 +82,16 @@ export function ToastProvider({ children }: PropsWithChildren) {
       error: (message, title, opts) =>
         show({ type: 'error', message, title, durationMs: 7200, sound: opts?.sound }),
       info: (message, title, opts) => show({ type: 'info', message, title, sound: opts?.sound }),
-      incoming: (message, title, type = 'info') =>
-        show({ type, message, title, sound: true, durationMs: 7000 }),
+      incoming: (message, title, type = 'info', opts) =>
+        show({
+          type,
+          message,
+          title,
+          sound: true,
+          durationMs: 7500,
+          variant: 'banner',
+          onPress: opts?.onPress,
+        }),
       dismiss,
     }),
     [dismiss, show],

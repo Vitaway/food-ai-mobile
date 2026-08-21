@@ -1,3 +1,4 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useState } from 'react';
@@ -7,11 +8,103 @@ import Animated from 'react-native-reanimated';
 import { CoachHeaderActions } from '@/components/coach/CoachHeaderActions';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
-import { Text } from '@/components/ui/Text';
 import { enteringCard } from '@/components/ui/motion';
+import { ResolvedImage } from '@/components/ui/ResolvedImage';
+import { Text } from '@/components/ui/Text';
+import { palette } from '@/design-system/colors';
 import { fetchCoachClients } from '@/services/remote/coachApi';
 import type { CoachQueueClient } from '@/types/coach';
 import { formatRelativeTime } from '@/utils/time';
+
+function ClientCard({
+  client,
+  index,
+  onPress,
+}: {
+  client: CoachQueueClient;
+  index: number;
+  onPress: () => void;
+}) {
+  const name = client.profile?.displayName?.trim() || client.patientId || 'Patient';
+  const initial = name.slice(0, 1).toUpperCase();
+  const avatarUrl = client.profile?.avatarUrl;
+  const waiting = client.inReviewCount ?? 0;
+  const unread = client.unreadMessages ?? 0;
+  const allergies = client.profile?.allergies?.length ?? 0;
+
+  return (
+    <Animated.View entering={enteringCard(index)}>
+      <Pressable
+        onPress={onPress}
+        className="overflow-hidden rounded-[28px] bg-white active:opacity-95"
+        style={{
+          shadowColor: '#023459',
+          shadowOffset: { width: 0, height: 10 },
+          shadowOpacity: 0.06,
+          shadowRadius: 18,
+          elevation: 3,
+        }}>
+        <View className="flex-row items-center gap-3.5 p-3.5">
+          <View className="h-[64px] w-[64px] overflow-hidden rounded-full border-[3px] border-ash-grey-50 bg-ash-grey-100">
+            <ResolvedImage
+              uri={avatarUrl}
+              className="h-full w-full"
+              resizeMode="cover"
+              fallback={
+                <View className="h-full w-full items-center justify-center bg-blue-spruce-600">
+                  <Text className="font-sans-bold text-xl text-white">{initial}</Text>
+                </View>
+              }
+            />
+          </View>
+
+          <View className="min-w-0 flex-1 py-0.5">
+            <Text className="font-sans-bold text-[17px] text-blue-spruce-900" numberOfLines={1}>
+              {name}
+            </Text>
+            <Text className="mt-0.5 text-sm text-ash-grey-500" numberOfLines={1}>
+              {waiting > 0
+                ? `${waiting} meal${waiting === 1 ? '' : 's'} in review`
+                : 'No meals waiting'}
+              {unread > 0 ? ` · ${unread} unread` : ''}
+            </Text>
+            <Text className="mt-1 text-[12px] text-ash-grey-400">
+              Last meal · {formatRelativeTime(client.lastMealAt)}
+            </Text>
+
+            <View className="mt-2.5 flex-row flex-wrap gap-1.5">
+              {client.membershipTier ? (
+                <View className="rounded-full bg-blue-spruce-50 px-2.5 py-1">
+                  <Text className="text-[11px] font-sans-semibold text-blue-spruce-700">
+                    {client.membershipTier === 'pro' ? 'Pro' : 'Standard'}
+                  </Text>
+                </View>
+              ) : null}
+              {client.adherenceTrend ? (
+                <View className="rounded-full bg-ash-grey-100 px-2.5 py-1">
+                  <Text className="text-[11px] text-ash-grey-600">
+                    {String(client.adherenceTrend).replace('_', ' ')}
+                  </Text>
+                </View>
+              ) : null}
+              {allergies > 0 ? (
+                <View className="rounded-full bg-red-50 px-2.5 py-1">
+                  <Text className="text-[11px] font-sans-semibold text-red-700">
+                    {allergies} allerg{allergies === 1 ? 'y' : 'ies'}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+          </View>
+
+          <View className="h-9 w-9 items-center justify-center rounded-full bg-ash-grey-50">
+            <Ionicons name="chevron-forward" size={18} color={palette['blue-spruce'][600]} />
+          </View>
+        </View>
+      </Pressable>
+    </Animated.View>
+  );
+}
 
 export default function CoachClientsScreen() {
   const router = useRouter();
@@ -39,90 +132,57 @@ export default function CoachClientsScreen() {
       <StatusBar style="light" />
       <GradientHeader>
         <View className="flex-row items-start justify-between">
-          <View className="flex-1 pr-3">
+          <View className="min-w-0 flex-1 pr-3">
             <GradientHeaderTitle>Clients</GradientHeaderTitle>
-            <Text className="mt-1 text-sm text-white/80">{clients.length} on your caseload</Text>
+            <Text className="mt-1 text-sm text-white/80">
+              {clients.length === 0
+                ? 'No one on your caseload yet'
+                : `${clients.length} on your caseload`}
+            </Text>
           </View>
           <CoachHeaderActions />
         </View>
       </GradientHeader>
+
       <ContentSheet className="flex-1 pt-4">
         {loading && clients.length === 0 ? (
           <View className="flex-1 items-center justify-center">
-            <ActivityIndicator />
+            <ActivityIndicator color={palette['blue-spruce'][700]} />
           </View>
         ) : (
           <ScrollView
             showsVerticalScrollIndicator={false}
             refreshControl={
-              <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); void load(); }} />
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={() => {
+                  setRefreshing(true);
+                  void load();
+                }}
+              />
             }
-            contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE, gap: 10 }}>
+            contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE, gap: 12 }}>
             {clients.length === 0 ? (
-              <View className="items-center rounded-3xl bg-ash-grey-50 px-6 py-10">
-                <Text className="font-sans-semibold text-base text-neutral-900">No clients yet</Text>
-                <Text className="mt-1 text-center text-sm text-neutral-500">
+              <View className="items-center rounded-[28px] bg-ash-grey-50 px-6 py-12">
+                <View className="h-14 w-14 items-center justify-center rounded-full bg-blue-spruce-50">
+                  <Ionicons name="people-outline" size={26} color={palette['blue-spruce'][600]} />
+                </View>
+                <Text className="mt-4 font-sans-bold text-lg text-blue-spruce-900">No clients yet</Text>
+                <Text className="mt-1 text-center text-sm leading-5 text-ash-grey-500">
                   Assigned patients will show up here as they start logging meals.
                 </Text>
               </View>
             ) : (
               clients.map((client, index) => {
-                const name = client.profile?.displayName?.trim() || client.patientId || 'Patient';
                 const patientId = client.patientId;
-                const canOpen = Boolean(patientId);
+                if (!patientId) return null;
                 return (
-                  <Pressable
-                    key={client.patientId ?? `${name}-${index}`}
-                    disabled={!canOpen}
-                    onPress={() => {
-                      if (!patientId) return;
-                      router.push(`/coach/client/${patientId}` as Href);
-                    }}>
-                    <Animated.View
-                      entering={enteringCard(index)}
-                      className="rounded-3xl bg-white px-4 py-4"
-                      style={{
-                        shadowColor: '#1a1c17',
-                        shadowOffset: { width: 0, height: 6 },
-                        shadowOpacity: 0.06,
-                        shadowRadius: 12,
-                        elevation: 2,
-                      }}>
-                      <Text className="font-sans-semibold text-base text-neutral-900">{name}</Text>
-                      <Text className="mt-1 text-sm text-neutral-500">
-                        {client.inReviewCount
-                          ? `${client.inReviewCount} meal${client.inReviewCount === 1 ? '' : 's'} in review`
-                          : 'No meals waiting'}
-                        {client.unreadMessages ? ` · ${client.unreadMessages} unread` : ''}
-                      </Text>
-                      <Text className="mt-1 text-xs text-neutral-500">
-                        Last meal: {formatRelativeTime(client.lastMealAt)}
-                      </Text>
-                      <View className="mt-2 flex-row flex-wrap gap-2">
-                        {client.membershipTier ? (
-                          <View className="rounded-full bg-blue-spruce-50 px-2.5 py-1">
-                            <Text className="text-[11px] font-sans-semibold text-blue-spruce-700">
-                              {client.membershipTier === 'pro' ? 'Pro' : 'Standard'} plan
-                            </Text>
-                          </View>
-                        ) : null}
-                        {client.adherenceTrend ? (
-                          <View className="rounded-full bg-ash-grey-100 px-2.5 py-1">
-                            <Text className="text-[11px] text-neutral-600">
-                              Trend: {client.adherenceTrend.replace('_', ' ')}
-                            </Text>
-                          </View>
-                        ) : null}
-                        {client.profile?.allergies?.length ? (
-                          <View className="rounded-full bg-red-50 px-2.5 py-1">
-                            <Text className="text-[11px] font-sans-semibold text-red-700">
-                              {client.profile.allergies.length} allerg{client.profile.allergies.length === 1 ? 'y' : 'ies'}
-                            </Text>
-                          </View>
-                        ) : null}
-                      </View>
-                    </Animated.View>
-                  </Pressable>
+                  <ClientCard
+                    key={patientId}
+                    client={client}
+                    index={index}
+                    onPress={() => router.push(`/coach/client/${patientId}` as Href)}
+                  />
                 );
               })
             )}

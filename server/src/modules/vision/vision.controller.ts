@@ -18,15 +18,6 @@ import { assertConsumerSubscription } from "../../middlewares/entitlements";
 @Controller("/vision")
 export class VisionController {
   @Authorized(["consumer"])
-  @Post("/plates/detect")
-  async detectPlate(@CurrentUser() user: User) {
-    await assertConsumerSubscription(user.id);
-    throw new BadRequestError(
-      "Plate detection is no longer available on the patient app. Submit meals for coach review.",
-    );
-  }
-
-  @Authorized(["consumer"])
   @Post("/meals/analyze")
   async analyzeMealImage(@CurrentUser() user: User) {
     await assertConsumerSubscription(user.id);

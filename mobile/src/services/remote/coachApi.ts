@@ -10,6 +10,7 @@ import type {
   CoachProfileUpdatePayload,
   CoachQueueClient,
   CoachQueueItem,
+  CoachQueueMeal,
   CoachClientWeeklySummary,
   CoachInsightType,
   CoachStats,
@@ -20,6 +21,7 @@ import type {
   ReviewMealPayload,
   ReviewTask,
   CoachAIAssistMealResponse,
+  CoachTeamResponse,
 } from '@/types/coach';
 
 type CoachProfileResponse = {
@@ -41,7 +43,7 @@ type CoachProfileResponse = {
 
 type CoachClientResponse = {
   client: CoachQueueClient;
-  meals: unknown[];
+  meals: CoachQueueMeal[];
   assignedCoachIds: string[];
 };
 
@@ -184,6 +186,10 @@ export async function createCoachReviewTask(mealId: string, payload: CreateRevie
     method: 'POST',
     body: JSON.stringify(payload),
   });
+}
+
+export async function fetchCoachTeam(): Promise<CoachTeamResponse> {
+  return apiRequest<CoachTeamResponse>('/coach/team');
 }
 
 export async function updateCoachProfile(payload: CoachProfileUpdatePayload): Promise<CoachProfile> {

@@ -40,7 +40,9 @@ export function LiveToastBridge() {
         (message.attachmentUrl ? 'Sent an attachment' : 'New message');
       const title = message.senderName?.trim() || 'New message';
 
-      toastRef.current.incoming(preview.slice(0, 120), title, 'info');
+      toastRef.current.incoming(preview.slice(0, 120), title, 'info', {
+        onPress: () => router.push(`/chat/${conversationId}`),
+      });
     });
   }, [chat, session?.user?.id, router]);
 

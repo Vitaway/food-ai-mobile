@@ -27,7 +27,6 @@ type SubmitMealInput = {
   imageUrl?: string;
   textInput?: string;
   note?: string;
-  plateDiameterCm?: number | null;
   analysis?: MealAnalysisPreview;
 };
 
@@ -41,7 +40,6 @@ type MealsContextValue = {
     imageUri?: string;
     text?: string;
     note?: string;
-    plateDiameterCm?: number | null;
   }) => Promise<MealAnalysisPreview>;
   saveMealToDiary: (input: SubmitMealInput) => Promise<MealSubmission>;
   simulatePipeline: (mealId: string, fromStatus?: MealSubmissionStatus) => Promise<void>;
@@ -234,14 +232,12 @@ export function MealsProvider({ children }: PropsWithChildren) {
       imageUri,
       text,
       note,
-      plateDiameterCm,
     }: {
       imageUri?: string;
       text?: string;
       note?: string;
-      plateDiameterCm?: number | null;
     }) => {
-      return services.mealAnalysis.analyzeMeal({ imageUri, text, note, plateDiameterCm });
+      return services.mealAnalysis.analyzeMeal({ imageUri, text, note });
     },
     [],
   );
@@ -257,7 +253,6 @@ export function MealsProvider({ children }: PropsWithChildren) {
           imageUri: input.imageUrl,
           text: input.textInput,
           note: input.note,
-          plateDiameterCm: input.plateDiameterCm,
         });
       }
 
@@ -281,7 +276,6 @@ export function MealsProvider({ children }: PropsWithChildren) {
         imageUrl: input.imageUrl,
         textInput: input.textInput,
         note: input.note,
-        plateDiameterCm: input.plateDiameterCm ?? analysis.plateDiameterCm,
         status: isApiConfigured() && isAuthenticated ? 'in_review' : 'pending',
       });
 

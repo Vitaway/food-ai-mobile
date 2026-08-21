@@ -1,18 +1,23 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Alert, Modal, Pressable, ScrollView, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  CoachOpinionModal,
+  type OpinionDestination,
+} from '@/components/coach/CoachOpinionModal';
+import { SendBackReasonModal } from '@/components/coach/SendBackReasonModal';
 import { Button } from '@/components/ui/Button';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
+import { ZoomableImageModal } from '@/components/ui/ZoomableImageModal';
 import { KeyboardSafeScreen } from '@/components/ui/KeyboardSafeScreen';
 import {
   MealHealthInsight,
-  MealMetaFooter,
   MealNutrientDeepDive,
   MealNutritionHero,
   MealPlateComposition,
@@ -31,7 +36,7 @@ import {
   saveCoachReviewDraft,
 } from '@/services/remote/coachApi';
 import type { CoachMealDetail, ReviewDraft, ReviewTask, SaveReviewDraftPayload } from '@/types/coach';
-import type { DetectedFoodItem, MacroTargets, NutritionFacts } from '@/types';
+import type { MacroTargets, NutritionFacts } from '@/types';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 import { buildPetals, sumItemNutrition } from '@/utils/mealNutrition';
 
@@ -58,6 +63,9 @@ export default function CoachMealReviewScreen() {
   // Local full-screen image viewer (tap-to-open from hero).
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [imageModalUri, setImageModalUri] = useState<string | null | undefined>(null);
+  const [sendBackOpen, setSendBackOpen] = useState(false);
+  const [opinionOpen, setOpinionOpen] = useState(false);
+  const [taskBusy, setTaskBusy] = useState(false);
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const currentSavePayloadRef = useRef<SaveReviewDraftPayload | null>(null);
@@ -239,9 +247,9 @@ export default function CoachMealReviewScreen() {
     }
   };
 
-  const handleReview = async (action: 'approve' | 'reject') => {
+  const handleReview = async (action: 'approve' | 'reject', rejectNote?: string) => {
     if (!id || reviewBusy || pickReleaseBusy) return;
-    const trimmed = coachNote.trim();
+    const trimmed = (rejectNote ?? coachNote).trim();
     if (action === 'reject' && trimmed.length < 3) {
       toast.error('Add a short note so the patient knows what to change.');
       return;
@@ -253,6 +261,11 @@ export default function CoachMealReviewScreen() {
         note: trimmed.length ? trimmed : undefined,
         mealName: draft?.mealName ?? meal?.mealName,
       });
+
+      if (action === 'reject') {
+        setSendBackOpen(false);
+        setCoachNote(trimmed);
+      }
 
       toast.success(
         action === 'approve'
@@ -268,23 +281,47 @@ export default function CoachMealReviewScreen() {
     }
   };
 
-  const openCreateTask = useCallback(
-    async (type: 'second_opinion' | 'escalation') => {
+  const handleOpinionSubmit = useCallback(
+    async (payload: {
+      destination: OpinionDestination;
+      assigneeUserId?: string;
+      note: string;
+    }) => {
       if (!id) return;
+      const type = payload.destination === 'admin' ? 'escalation' : 'second_opinion';
+      const notifyChannel =
+        payload.destination === 'team'
+          ? 'team'
+          : payload.destination === 'coach'
+            ? 'assignee'
+            : 'both';
+
+      setTaskBusy(true);
       try {
         await createCoachReviewTask(id, {
           type,
-          note: coachNote.trim().length ? coachNote.trim() : undefined,
-          notifyUser: type === 'escalation',
-          notifyChannel: 'team',
+          note: payload.note || undefined,
+          notifyUser: payload.destination === 'admin',
+          assigneeUserId: payload.assigneeUserId,
+          notifyChannel,
         });
         await load();
-        toast.success('Review task created.', 'Task sent');
+        setOpinionOpen(false);
+        toast.success(
+          payload.destination === 'team'
+            ? 'Posted to team chat.'
+            : payload.destination === 'admin'
+              ? 'Admin asked for a second look.'
+              : 'Coach asked for a second opinion.',
+          'Second opinion',
+        );
       } catch (error) {
         toast.error(getApiErrorMessage(error, 'Could not create review task.'));
+      } finally {
+        setTaskBusy(false);
       }
     },
-    [coachNote, id, load, toast],
+    [id, load, toast],
   );
 
   const draftAnalysisExists = analysis.items.length > 0 || analysis.totals != null;
@@ -400,29 +437,53 @@ export default function CoachMealReviewScreen() {
                 </Text>
 
                 {isPickedByMe && meal.queueIsPicked ? (
-                  <Button
-                    label={pickReleaseBusy ? 'Releasing…' : 'Release review'}
-                    variant="secondary"
-                    onPress={() => void handleRelease()}
-                    disabled={pickReleaseBusy || reviewBusy}
-                  />
+                  <View className="flex-row gap-3">
+                    <Pressable
+                      disabled={pickReleaseBusy || reviewBusy}
+                      onPress={() => void handleRelease()}
+                      className="h-12 flex-1 items-center justify-center rounded-2xl border border-ash-grey-200 bg-white active:opacity-80"
+                      style={{ opacity: pickReleaseBusy || reviewBusy ? 0.5 : 1 }}>
+                      <Text className="font-sans-semibold text-[14px] text-blue-spruce-800">
+                        {pickReleaseBusy ? 'Releasing…' : 'Release'}
+                      </Text>
+                    </Pressable>
+                    {canInteract ? (
+                      <Pressable
+                        disabled={aiBusy || reviewBusy || pickReleaseBusy}
+                        onPress={() => void handleAI()}
+                        className="h-12 flex-1 items-center justify-center rounded-2xl border border-blue-spruce-900 bg-white active:opacity-80"
+                        style={{ opacity: aiBusy || reviewBusy || pickReleaseBusy ? 0.5 : 1 }}>
+                        <Text className="font-sans-semibold text-[14px] text-blue-spruce-800">
+                          {aiBusy ? 'Asking AI…' : 'Ask AI for draft'}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 ) : null}
 
                 {!meal.queueIsPicked ? (
-                  <Button
-                    label={pickReleaseBusy ? 'Picking up…' : 'Pick up review'}
-                    onPress={() => void handlePick()}
-                    disabled={pickReleaseBusy || reviewBusy}
-                  />
-                ) : null}
-
-                {canInteract ? (
-                  <Button
-                    label={aiBusy ? 'Asking AI…' : 'Ask AI for draft'}
-                    variant="outline"
-                    onPress={() => void handleAI()}
-                    disabled={aiBusy || reviewBusy || pickReleaseBusy}
-                  />
+                  <View className="flex-row gap-3">
+                    <Pressable
+                      disabled={pickReleaseBusy || reviewBusy}
+                      onPress={() => void handlePick()}
+                      className="h-12 flex-1 items-center justify-center rounded-2xl bg-neutral-950 active:opacity-90"
+                      style={{ opacity: pickReleaseBusy || reviewBusy ? 0.5 : 1 }}>
+                      <Text className="font-sans-bold text-[14px] text-white">
+                        {pickReleaseBusy ? 'Picking up…' : 'Pick up review'}
+                      </Text>
+                    </Pressable>
+                    {canInteract ? (
+                      <Pressable
+                        disabled={aiBusy || reviewBusy || pickReleaseBusy}
+                        onPress={() => void handleAI()}
+                        className="h-12 flex-1 items-center justify-center rounded-2xl border border-blue-spruce-900 bg-white active:opacity-80"
+                        style={{ opacity: aiBusy || reviewBusy || pickReleaseBusy ? 0.5 : 1 }}>
+                        <Text className="font-sans-semibold text-[14px] text-blue-spruce-800">
+                          {aiBusy ? 'Asking AI…' : 'Ask AI for draft'}
+                        </Text>
+                      </Pressable>
+                    ) : null}
+                  </View>
                 ) : null}
 
                 {!pickedByOther ? (
@@ -436,17 +497,8 @@ export default function CoachMealReviewScreen() {
                 {!pickedByOther ? (
                   <Pressable
                     disabled={reviewBusy || pickReleaseBusy}
-                    onPress={() =>
-                      Alert.alert('Send back to patient?', 'They will see your note and can log again.', [
-                        { text: 'Cancel', style: 'cancel' },
-                        {
-                          text: 'Send back',
-                          style: 'destructive',
-                          onPress: () => void handleReview('reject'),
-                        },
-                      ])
-                    }
-                    className="flex-row items-center justify-center gap-2 rounded-2xl border border-red-200 py-3 active:opacity-80">
+                    onPress={() => setSendBackOpen(true)}
+                    className="flex-row items-center justify-center gap-2 rounded-2xl border border-red-200 py-3.5 active:opacity-80">
                     <Ionicons name="arrow-undo-outline" size={18} color="#b91c1c" />
                     <Text className="font-sans-semibold text-red-700">Send back</Text>
                   </Pressable>
@@ -477,28 +529,13 @@ export default function CoachMealReviewScreen() {
               ) : null}
 
               {canInteract && !pickedByOther ? (
-                <View className="gap-2">
-                  <Text className="text-[11px] font-sans-bold uppercase tracking-[0.08em] text-ash-grey-400">
-                    Create a task
-                  </Text>
-                  <View className="flex-row gap-3">
-                    <Button
-                      label="Second opinion"
-                      variant="secondary"
-                      onPress={() => void openCreateTask('second_opinion')}
-                      disabled={reviewBusy || pickReleaseBusy}
-                    />
-                    <Button
-                      label="Escalate"
-                      variant="secondary"
-                      onPress={() => void openCreateTask('escalation')}
-                      disabled={reviewBusy || pickReleaseBusy}
-                    />
-                  </View>
-                  <Text className="text-xs text-neutral-500">
-                    Uses your current coach note as the task note (optional).
-                  </Text>
-                </View>
+                <Pressable
+                  disabled={reviewBusy || pickReleaseBusy || taskBusy}
+                  onPress={() => setOpinionOpen(true)}
+                  className="h-12 items-center justify-center rounded-2xl bg-neutral-950 active:opacity-90"
+                  style={{ opacity: reviewBusy || pickReleaseBusy || taskBusy ? 0.5 : 1 }}>
+                  <Text className="font-sans-bold text-[14px] text-white">Second opinion</Text>
+                </Pressable>
               ) : null}
 
               {detail.recentMeals?.length ? (
@@ -554,32 +591,26 @@ export default function CoachMealReviewScreen() {
               <View className="h-4" />
             </ScrollView>
 
-            <Modal visible={imageModalOpen} transparent animationType="fade" onRequestClose={closeImage}>
-              <Pressable
-                className="flex-1 bg-black/90"
-                onPress={closeImage}
-                accessibilityRole="button"
-                accessibilityLabel="Close image viewer">
-                <View className="flex-1 items-center justify-center px-6">
-                  {imageModalUri ? (
-                    <ResolvedImage
-                      uri={imageModalUri}
-                      className="h-full w-full"
-                      resizeMode="contain"
-                    />
-                  ) : (
-                    <View className="items-center justify-center">
-                      <Text className="text-white text-base">No image</Text>
-                    </View>
-                  )}
-                  <View className="absolute top-10 right-6">
-                    <View className="h-11 w-11 items-center justify-center rounded-full bg-white/10">
-                      <Ionicons name="close" size={22} color="#ffffff" />
-                    </View>
-                  </View>
-                </View>
-              </Pressable>
-            </Modal>
+            <ZoomableImageModal
+              visible={imageModalOpen}
+              uri={imageModalUri}
+              onClose={closeImage}
+            />
+
+            <SendBackReasonModal
+              visible={sendBackOpen}
+              loading={reviewBusy}
+              initialNote={coachNote}
+              onClose={() => setSendBackOpen(false)}
+              onSubmit={(note) => void handleReview('reject', note)}
+            />
+
+            <CoachOpinionModal
+              visible={opinionOpen}
+              loading={taskBusy}
+              onClose={() => setOpinionOpen(false)}
+              onSubmit={(payload) => void handleOpinionSubmit(payload)}
+            />
           </>
         )}
       </View>

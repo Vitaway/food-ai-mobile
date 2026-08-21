@@ -2,7 +2,7 @@
   "expo": {
     "name": "MiraFood",
     "slug": "food-ai",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mirafood",
@@ -10,15 +10,24 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vitaway.foodai",
-      "buildNumber": "5",
+      "buildNumber": "6",
       "usesAppleSignIn": true,
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "MiraFood needs photo access for AR measurement.",
-        "NSPhotoLibraryAddUsageDescription": "MiraFood may save AR captures to your photo library.",
-        "NSCameraUsageDescription": "MiraFood uses your camera to scan barcodes, photograph meals, and measure plate size in AR.",
-        "NSMicrophoneUsageDescription": "MiraFood uses your microphone during AR measurement.",
+        "NSPhotoLibraryUsageDescription": "MiraFood needs photo access to log meals from your gallery.",
+        "NSPhotoLibraryAddUsageDescription": "MiraFood may save meal photos to your photo library.",
+        "NSCameraUsageDescription": "MiraFood uses your camera to scan barcodes and photograph meals.",
+        "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
+        ],
+        "CFBundleURLTypes": [
+          {
+            "CFBundleURLSchemes": [
+              "mirafood",
+              "com.vitaway.foodai",
+              "com.googleusercontent.apps.566523962144-uksou059gbt95l5dcodo4teresn10pmv"
+            ]
+          }
         ]
       }
     },
@@ -31,7 +40,6 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.CAMERA",
         "android.permission.POST_NOTIFICATIONS"
       ]
@@ -86,24 +94,7 @@
           "backgroundColor": "#16304D"
         }
       ],
-      "expo-web-browser",
-      [
-        "@viro-community/react-viro",
-        {
-          "android": {
-            "xRMode": [
-              "AR"
-            ]
-          },
-          "ios": {
-            "cameraUsagePermission": "MiraFood uses your camera to measure plate size in AR.",
-            "microphoneUsagePermission": "MiraFood uses your microphone during AR measurement.",
-            "photosPermission": "MiraFood needs photo access for AR measurement.",
-            "savePhotosPermission": "MiraFood may save AR captures to your photo library."
-          }
-        }
-      ],
-      "expo-build-properties"
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true

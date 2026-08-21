@@ -134,7 +134,6 @@ export interface MealSubmission {
   thumbnailUrl?: string;
   textInput?: string;
   note?: string;
-  plateDiameterCm?: number | null;
   mealName?: string;
   items?: DetectedFoodItem[];
   totalNutrition?: NutritionFacts;
