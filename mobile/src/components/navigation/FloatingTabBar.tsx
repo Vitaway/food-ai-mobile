@@ -19,8 +19,11 @@ export type FloatingTabBarProps = {
     }) => { defaultPrevented?: boolean };
     navigate: (name: string, params?: object) => void;
   };
+  /** Patient home badge — unread notifications. */
   notificationUnreadCount?: number;
   chatUnreadCount?: number;
+  /** Coach queue tab badge — meals waiting for review. */
+  queueWaitingCount?: number;
 };
 
 const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
@@ -33,7 +36,7 @@ const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: 
 };
 
 const COACH_TAB_LABELS: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  index: { icon: 'grid-outline', label: 'Dashboard' },
+  index: { icon: 'home-outline', label: 'Home' },
   queue: { icon: 'clipboard-outline', label: 'Queue' },
   clients: { icon: 'people-outline', label: 'Clients' },
   profile: { icon: 'person-outline', label: 'Profile' },
@@ -49,6 +52,7 @@ export function FloatingTabBar({
   navigation,
   notificationUnreadCount = 0,
   chatUnreadCount = 0,
+  queueWaitingCount = 0,
 }: FloatingTabBarProps) {
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom - 4, 10);
@@ -57,6 +61,8 @@ export function FloatingTabBar({
     if (route.name === 'chat' && isCoachBar) return false;
     return route.name in TAB_CONFIG || route.name in COACH_TAB_LABELS;
   });
+
+  const formatBadge = (count: number) => (count > 9 ? '9+' : String(count));
 
   return (
     <View
@@ -106,9 +112,13 @@ export function FloatingTabBar({
           };
 
           const showQueueBadge =
-            (isCoachBar ? route.name === 'queue' : route.name === 'index') &&
-            notificationUnreadCount > 0;
+            isCoachBar && route.name === 'queue' && queueWaitingCount > 0;
+          const showHomeNotificationBadge =
+            !isCoachBar && route.name === 'index' && notificationUnreadCount > 0;
           const showChatBadge = route.name === 'chat' && chatUnreadCount > 0;
+          const queueBadgeLabel = formatBadge(queueWaitingCount);
+          const notificationBadgeLabel = formatBadge(notificationUnreadCount);
+          const chatBadgeLabel = formatBadge(chatUnreadCount);
 
           return (
             <Pressable
@@ -138,16 +148,19 @@ export function FloatingTabBar({
                   <Text className="font-sans-semibold text-sm text-neutral-900">{config.label}</Text>
                   {showQueueBadge ? (
                     <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">{queueBadgeLabel}</Text>
+                    </View>
+                  ) : null}
+                  {showHomeNotificationBadge ? (
+                    <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
-                        {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                        {notificationBadgeLabel}
                       </Text>
                     </View>
                   ) : null}
                   {showChatBadge ? (
                     <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
-                      <Text className="font-sans-bold text-[10px] text-white">
-                        {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
-                      </Text>
+                      <Text className="font-sans-bold text-[10px] text-white">{chatBadgeLabel}</Text>
                     </View>
                   ) : null}
                 </View>
@@ -160,16 +173,19 @@ export function FloatingTabBar({
                   />
                   {showQueueBadge ? (
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
+                      <Text className="font-sans-bold text-[10px] text-white">{queueBadgeLabel}</Text>
+                    </View>
+                  ) : null}
+                  {showHomeNotificationBadge ? (
+                    <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">
-                        {notificationUnreadCount > 9 ? '9+' : notificationUnreadCount}
+                        {notificationBadgeLabel}
                       </Text>
                     </View>
                   ) : null}
                   {showChatBadge ? (
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
-                      <Text className="font-sans-bold text-[10px] text-white">
-                        {chatUnreadCount > 9 ? '9+' : chatUnreadCount}
-                      </Text>
+                      <Text className="font-sans-bold text-[10px] text-white">{chatBadgeLabel}</Text>
                     </View>
                   ) : null}
                 </View>
