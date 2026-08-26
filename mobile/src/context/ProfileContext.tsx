@@ -40,6 +40,8 @@ type ProfileContextValue = {
   hasCompletedOnboarding: boolean;
   patientId: string | null;
   saveProfile: (draft: ProfileDraft) => Promise<UserProfile>;
+  /** Persist onboarding fields without marking onboarding complete. */
+  saveOnboardingDraft: (draft: Partial<ProfileDraft>) => Promise<UserProfile | null>;
   updateAccount: (fields: Partial<AccountFields>) => Promise<UserProfile | null>;
   uploadAvatar: (localUri: string) => Promise<UserProfile | null>;
   updateHealthProfile: (draft: Omit<ProfileDraft, 'displayName' | 'avatarUrl' | 'email'>) => Promise<UserProfile>;
@@ -320,11 +322,15 @@ export function ProfileProvider({ children }: PropsWithChildren) {
   }, [isAuthenticated, userId, session?.user.patientId, session?.onboardingComplete, markOnboardingComplete, syncProfileFromRemote, isCoach]);
 
   const persistRemoteProfile = useCallback(
-    async (next: UserProfile, avatarOverride?: string): Promise<UserProfile | null> => {
+    async (
+      next: UserProfile,
+      avatarOverride?: string,
+      opts?: { onboardingComplete?: boolean },
+    ): Promise<UserProfile | null> => {
       if (!isApiConfigured() || !isAuthenticated) return null;
 
       const avatarUrl = avatarOverride ?? next.avatarUrl;
-      const payload: Partial<UserProfile> = {
+      const payload: Partial<UserProfile> & { onboardingComplete?: boolean } = {
         displayName: next.displayName,
         dateOfBirth: next.dateOfBirth,
         age: next.age,
@@ -339,8 +345,25 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         goalPace: next.goalPace,
         mealsPerDay: next.mealsPerDay,
       };
+      if (opts?.onboardingComplete !== undefined) {
+        payload.onboardingComplete = opts.onboardingComplete;
+      }
       if (avatarUrl?.startsWith('http')) {
         payload.avatarUrl = avatarUrl;
+      }
+      // Only send fields the API validators accept (skip empty/invalid metrics).
+      if (!(typeof payload.heightCm === 'number' && payload.heightCm >= 80)) {
+        delete payload.heightCm;
+      }
+      if (!(typeof payload.weightKg === 'number' && payload.weightKg >= 20)) {
+        delete payload.weightKg;
+      }
+      if (!(typeof payload.targetWeightKg === 'number' && payload.targetWeightKg >= 20)) {
+        delete payload.targetWeightKg;
+      }
+      if (!(typeof payload.dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(payload.dateOfBirth))) {
+        delete payload.dateOfBirth;
+        delete payload.age;
       }
       const remote = await updateConsumerProfile(payload);
       return normalizeRemoteProfile(remote.patientId, remote.profile, next);
@@ -383,17 +406,19 @@ export function ProfileProvider({ children }: PropsWithChildren) {
         }
       }
 
-      const localPreview = buildProfile({ ...draft, avatarUrl }, profile, patientId);
+      const localPreview = { ...buildProfile({ ...draft, avatarUrl }, profile, patientId), onboardingComplete: true };
       let next = localPreview;
 
       if (isApiConfigured() && isAuthenticated) {
         // Onboarding completion is server-authoritative for authenticated users.
-        next = (await persistRemoteProfile(localPreview, avatarUrl)) ?? localPreview;
+        next =
+          (await persistRemoteProfile(localPreview, avatarUrl, { onboardingComplete: true })) ??
+          localPreview;
       }
 
       const complete = isApiConfigured() && isAuthenticated
         ? Boolean(next.onboardingComplete)
-        : Boolean(next.onboardingComplete) || resolveOnboardingComplete(next);
+        : true;
       next = { ...next, onboardingComplete: complete };
 
       await services.profileRepository.saveProfile(next);
@@ -405,6 +430,88 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       return next;
     },
     [profile, patientId, isAuthenticated, markOnboardingComplete, persistRemoteProfile],
+  );
+
+  const saveOnboardingDraft = useCallback(
+    async (draft: Partial<ProfileDraft>) => {
+      if (!isAuthenticated) return null;
+
+      const base = profile;
+      const nextLocal: UserProfile = {
+        ...(base ?? {
+          id: patientId ?? 'draft',
+          displayName: '',
+          age: 0,
+          sex: null,
+          heightCm: 0,
+          weightKg: 0,
+          goal: 'lose_weight' as const,
+          activityLevel: 'moderately_active' as const,
+          dietaryPreferences: [],
+          allergies: [],
+          macroTargets: { calories: 0, proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0 },
+          bmr: 0,
+          tdee: 0,
+          waterTargetMl: 0,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }),
+        ...draft,
+        onboardingComplete: false,
+        updatedAt: new Date().toISOString(),
+      };
+
+      let avatarUrl = nextLocal.avatarUrl;
+      if (avatarUrl && !avatarUrl.startsWith('http') && isApiConfigured()) {
+        try {
+          const remote = await uploadConsumerAvatar(avatarUrl);
+          avatarUrl = remote.profile.avatarUrl ?? avatarUrl;
+          nextLocal.avatarUrl = avatarUrl;
+        } catch {
+          // Keep local uri; finish can retry.
+        }
+      }
+
+      if (isApiConfigured()) {
+        const payload: Partial<UserProfile> & { onboardingComplete: boolean } = {
+          onboardingComplete: false,
+        };
+        if (draft.displayName !== undefined) payload.displayName = draft.displayName;
+        if (avatarUrl?.startsWith('http')) payload.avatarUrl = avatarUrl;
+        if (typeof draft.dateOfBirth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(draft.dateOfBirth)) {
+          payload.dateOfBirth = draft.dateOfBirth;
+          if (typeof draft.age === 'number') payload.age = draft.age;
+        }
+        if (draft.sex !== undefined) payload.sex = draft.sex;
+        if (typeof draft.heightCm === 'number' && draft.heightCm >= 80) payload.heightCm = draft.heightCm;
+        if (typeof draft.weightKg === 'number' && draft.weightKg >= 20) payload.weightKg = draft.weightKg;
+        if (draft.goal !== undefined) payload.goal = draft.goal;
+        if (draft.activityLevel !== undefined) payload.activityLevel = draft.activityLevel;
+        if (draft.dietaryPreferences !== undefined) payload.dietaryPreferences = draft.dietaryPreferences;
+        if (draft.allergies !== undefined) payload.allergies = draft.allergies;
+        if (typeof draft.targetWeightKg === 'number' && draft.targetWeightKg >= 20) {
+          payload.targetWeightKg = draft.targetWeightKg;
+        }
+        if (draft.goalPace !== undefined) payload.goalPace = draft.goalPace;
+        if (typeof draft.mealsPerDay === 'number') payload.mealsPerDay = draft.mealsPerDay;
+
+        try {
+          const remote = await updateConsumerProfile(payload);
+          const normalized = normalizeRemoteProfile(remote.patientId, remote.profile, nextLocal);
+          const saved = { ...normalized, onboardingComplete: false };
+          await services.profileRepository.saveProfile(saved);
+          setProfile(saved);
+          return saved;
+        } catch {
+          // Fall through to local-only draft.
+        }
+      }
+
+      await services.profileRepository.saveProfile(nextLocal);
+      setProfile(nextLocal);
+      return nextLocal;
+    },
+    [profile, patientId, isAuthenticated],
   );
 
   const updateHealthProfile = useCallback(
@@ -476,6 +583,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       ),
       patientId,
       saveProfile,
+      saveOnboardingDraft,
       updateAccount,
       uploadAvatar,
       updateHealthProfile,
@@ -493,6 +601,7 @@ export function ProfileProvider({ children }: PropsWithChildren) {
       session?.user.patientId,
       patientId,
       saveProfile,
+      saveOnboardingDraft,
       updateAccount,
       uploadAvatar,
       updateHealthProfile,

@@ -46,7 +46,7 @@ export default function RootLayout() {
   return (
     <AppProviders>
       <AuthGuard>
-        <StatusBar style="light" />
+        <StatusBar style="dark" />
         <Stack
           screenOptions={{
             headerShown: false,
@@ -55,8 +55,26 @@ export default function RootLayout() {
             animationDuration: 280,
           }}>
           <Stack.Screen name="index" />
-          <Stack.Screen name="auth" />
-          <Stack.Screen name="onboarding" />
+          <Stack.Screen name="welcome" options={{ gestureEnabled: false }} />
+          <Stack.Screen
+            name="auth"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'fade',
+              animationDuration: 180,
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen
+            name="paywall"
+            options={{
+              presentation: 'transparentModal',
+              animation: 'fade',
+              animationDuration: 180,
+              contentStyle: { backgroundColor: 'transparent' },
+            }}
+          />
+          <Stack.Screen name="onboarding" options={{ gestureEnabled: false }} />
           <Stack.Screen name="notifications/index" />
           <Stack.Screen name="notifications/enable" options={{ gestureEnabled: false }} />
           <Stack.Screen name="water/index" options={{ presentation: 'card' }} />

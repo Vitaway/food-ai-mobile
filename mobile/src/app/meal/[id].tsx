@@ -14,6 +14,7 @@ import {
   MealNutritionHero,
   MealPlateComposition,
 } from '@/components/meal/MealResultSections';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Button } from '@/components/ui/Button';
 import { Screen } from '@/components/ui/Screen';
 import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
@@ -88,6 +89,8 @@ export default function MealResultScreen() {
         <MealPhotoHero meal={meal} />
 
         <View className="-mt-4 gap-4 px-4">
+          <FreePlanBanner compact />
+
           {!approved && !awaitingCoach ? <MealPipelineBanner status={meal.status} /> : null}
 
           {awaitingCoach ? <MealAwaitingCard meal={meal} /> : null}

@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { CoachHeaderActions } from '@/components/coach/CoachHeaderActions';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
@@ -10,12 +10,14 @@ import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ProfileSection } from '@/components/profile/ProfileSection';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import { useToast } from '@/context/ToastContext';
 import { fetchCoachProfile } from '@/services/remote/coachApi';
 
 export default function CoachProfileScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { confirm } = useConfirmDialog();
   const { logout, session } = useAuth();
   const [title, setTitle] = useState('Nutrition Coach');
   const [organization, setOrganization] = useState<string | null>(null);
@@ -38,18 +40,17 @@ export default function CoachProfileScreen() {
   );
 
   const handleSignOut = () => {
-    Alert.alert('Sign out?', 'You will need to sign in again to review meals on this phone.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: () => {
-          void logout()
-            .then(() => toast.success('Signed out successfully', 'See you soon'))
-            .catch(() => toast.error('Could not sign out. Try again.'));
-        },
-      },
-    ]);
+    void confirm({
+      title: 'Sign out?',
+      message: 'You will need to sign in again to review meals on this phone.',
+      confirmLabel: 'Sign out',
+      destructive: true,
+    }).then((ok) => {
+      if (!ok) return;
+      void logout()
+        .then(() => toast.success('Signed out successfully', 'See you soon'))
+        .catch(() => toast.error('Could not sign out. Try again.'));
+    });
   };
 
   const roleLine = [title, organization].filter(Boolean).join(' · ');
@@ -88,13 +89,6 @@ export default function CoachProfileScreen() {
                 title="Edit profile"
                 subtitle="Name, title, bio, and photo"
                 onPress={() => router.push('/coach/profile/account')}
-              />
-              <View className="mx-5 h-px bg-ash-grey-100" />
-              <ProfileMenuRow
-                icon="notifications-outline"
-                title="Notification settings"
-                subtitle="Push alerts and quiet hours"
-                onPress={() => router.push('/coach/profile/notifications')}
               />
               <View className="mx-5 h-px bg-ash-grey-100" />
               <ProfileMenuRow

@@ -11,8 +11,17 @@ export default function ProfileStackLayout() {
       <Stack.Screen name="edit-health" />
       <Stack.Screen name="health" />
       <Stack.Screen name="day/[date]" />
-      <Stack.Screen name="notifications" />
-      <Stack.Screen name="subscription" />
+      <Stack.Screen name="language" />
+      <Stack.Screen name="report-view" />
+      <Stack.Screen
+        name="subscription"
+        options={{
+          presentation: 'transparentModal',
+          animation: 'fade',
+          animationDuration: 180,
+          contentStyle: { backgroundColor: 'transparent' },
+        }}
+      />
       <Stack.Screen name="reports" />
       <Stack.Screen name="data" />
     </Stack>

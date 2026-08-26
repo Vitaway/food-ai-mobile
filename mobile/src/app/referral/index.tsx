@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Share, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
@@ -61,6 +62,8 @@ export default function ReferralScreen() {
 
       <StackScreenBody>
         <View className="gap-5 px-5 pb-10 pt-4">
+          <FreePlanBanner compact />
+
           <View className="rounded-3xl bg-cinnamon-wood-50 px-5 py-6">
             <Text className="text-sm text-neutral-600">Your referral code</Text>
             <Text className="mt-2 font-sans-bold text-3xl tracking-wide text-blue-spruce-900">

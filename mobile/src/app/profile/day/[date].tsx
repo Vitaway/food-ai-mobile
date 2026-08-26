@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
@@ -38,6 +39,7 @@ export default function ProfileDayDetailScreen() {
       <ScreenTopBar title="Day details" onBack={handleBack} />
       <StackScreenBody>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="gap-4 px-5 pb-10 pt-5">
+          <FreePlanBanner compact />
           <View className="rounded-2xl border border-ash-grey-100 p-4">
             <Text className="font-sans-semibold text-base text-neutral-900">
               {formatDisplayDate(parseDateKey(selectedDate))}

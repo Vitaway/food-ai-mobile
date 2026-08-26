@@ -9,11 +9,14 @@ import { InsightsMacroPanel } from '@/components/analytics/InsightsMacroPanel';
 import { InsightsMealBreakdown } from '@/components/analytics/InsightsMealBreakdown';
 import { InsightsStatTiles } from '@/components/analytics/InsightsStatTiles';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ContentSheet, GradientHeader, GradientHeaderTitle } from '@/components/ui/GradientHeader';
+import { useI18n } from '@/context/LocaleContext';
 import { useInsightsData } from '@/hooks/useInsightsData';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 
 export default function AnalyticsScreen() {
+  const { t } = useI18n();
   const { push } = useNavigateOnce();
   const [period, setPeriod] = useState<7 | 30>(7);
   const {
@@ -30,13 +33,15 @@ export default function AnalyticsScreen() {
   return (
     <View className="flex-1 bg-white">
       <GradientHeader>
-        <GradientHeaderTitle>Insights</GradientHeaderTitle>
+        <GradientHeaderTitle>{t.analytics.title}</GradientHeaderTitle>
       </GradientHeader>
 
       <ContentSheet style={{ backgroundColor: '#f7f8f5' }}>
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ gap: 16, paddingBottom: FLOATING_TAB_BAR_CLEARANCE + 16 }}>
+          <FreePlanBanner />
+
           <InsightPeriodToggle value={period} onChange={setPeriod} />
 
           <InsightsHeroCard

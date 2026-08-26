@@ -1,11 +1,12 @@
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, View } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { PhotoSourceMenu } from '@/components/ui/PhotoSourceMenu';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 
 type ProfileAvatarPickerProps = {
   displayName: string;
@@ -20,6 +21,7 @@ export function ProfileAvatarPicker({
   uploading = false,
   onPick,
 }: ProfileAvatarPickerProps) {
+  const { alert } = useConfirmDialog();
   const [menuOpen, setMenuOpen] = useState(false);
   const initial = displayName.trim().slice(0, 1).toUpperCase() || '?';
 
@@ -31,10 +33,12 @@ export function ProfileAvatarPicker({
 
     if (!permission.granted) {
       const label = source === 'camera' ? 'camera' : 'photos';
-      Alert.alert(
-        'Permission needed',
-        permission.canAskAgain ? `Allow ${label} access to add a profile picture.` : `Enable ${label} in Settings.`,
-      );
+      await alert({
+        title: 'Permission needed',
+        message: permission.canAskAgain
+          ? `Allow ${label} access to add a profile picture.`
+          : `Enable ${label} in Settings.`,
+      });
       return;
     }
 

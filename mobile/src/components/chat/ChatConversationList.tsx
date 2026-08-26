@@ -3,7 +3,9 @@ import { ActivityIndicator, Pressable, ScrollView, View } from 'react-native';
 
 import { ChatListAvatar } from '@/components/chat/ChatAvatar';
 import { chatTheme } from '@/components/chat/chatTheme';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type { ChatConversation } from '@/services/remote/chatApi';
 import { formatInboxWhen } from '@/utils/chatFormatting';
@@ -19,6 +21,7 @@ type ChatConversationListProps = {
 };
 
 function ConversationRow({ conv, onPress }: { conv: ChatConversation; onPress: () => void }) {
+  const { t } = useI18n();
   const hasUnread = conv.unreadCount > 0;
 
   return (
@@ -50,7 +53,7 @@ function ConversationRow({ conv, onPress }: { conv: ChatConversation; onPress: (
             className={hasUnread ? 'flex-1 font-sans-semibold text-sm' : 'flex-1 text-sm'}
             style={{ color: hasUnread ? '#111b21' : chatTheme.listPreview }}
             numberOfLines={1}>
-            {conv.lastMessagePreview ?? 'No messages yet'}
+            {conv.lastMessagePreview ?? t.chat.noMessagesYet}
           </Text>
           {hasUnread ? (
             <View
@@ -72,65 +75,88 @@ export function ChatConversationList({
   loading,
   error,
   onRetry,
-  emptyTitle = 'No conversations yet',
-  emptyHint = 'When your coach reaches out about a meal, the thread will appear here.',
+  emptyTitle,
+  emptyHint,
   bottomPadding = 32,
 }: ChatConversationListProps) {
+  const { t } = useI18n();
   const router = useRouter();
+  const resolvedEmptyTitle = emptyTitle ?? t.chat.emptyTitle;
+  const resolvedEmptyHint = emptyHint ?? t.chat.emptyHint;
+
+  const banner = (
+    <View className="px-4 pb-2 pt-3">
+      <FreePlanBanner compact />
+    </View>
+  );
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center py-16">
-        <ActivityIndicator color={semanticColors.primary} />
+      <View className="flex-1">
+        {banner}
+        <View className="flex-1 items-center justify-center py-16">
+          <ActivityIndicator color={semanticColors.primary} />
+        </View>
       </View>
     );
   }
 
   if (error) {
     return (
-      <View className="mx-5 mt-6 rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-5 py-10">
-        <Text className="text-center font-sans-semibold text-neutral-700">{error}</Text>
-        <Pressable onPress={onRetry} className="mt-4 self-center">
-          <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">Try again</Text>
-        </Pressable>
+      <View className="flex-1">
+        {banner}
+        <View className="mx-5 mt-4 rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-5 py-10">
+          <Text className="text-center font-sans-semibold text-neutral-700">{error}</Text>
+          <Pressable onPress={onRetry} className="mt-4 self-center">
+            <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">{t.chat.tryAgain}</Text>
+          </Pressable>
+        </View>
       </View>
     );
   }
 
   if (items.length === 0) {
     return (
-      <View className="flex-1 items-center justify-center px-8 py-16">
-        <View
-          className="mb-4 h-20 w-20 items-center justify-center rounded-full"
-          style={{ backgroundColor: chatTheme.inputBar }}>
-          <Text className="text-4xl">💬</Text>
+      <View className="flex-1">
+        {banner}
+        <View className="flex-1 items-center justify-center px-8 py-16">
+          <View
+            className="mb-4 h-20 w-20 items-center justify-center rounded-full"
+            style={{ backgroundColor: chatTheme.inputBar }}>
+            <Text className="text-4xl">💬</Text>
+          </View>
+          <Text className="text-center font-sans-semibold text-lg text-neutral-800">
+            {resolvedEmptyTitle}
+          </Text>
+          <Text className="mt-2 text-center text-sm leading-5" style={{ color: chatTheme.listPreview }}>
+            {resolvedEmptyHint}
+          </Text>
         </View>
-        <Text className="text-center font-sans-semibold text-lg text-neutral-800">{emptyTitle}</Text>
-        <Text className="mt-2 text-center text-sm leading-5" style={{ color: chatTheme.listPreview }}>
-          {emptyHint}
-        </Text>
       </View>
     );
   }
 
   return (
-    <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: bottomPadding }}>
-      {items.map((conv) => (
-        <ConversationRow
-          key={conv.id}
-          conv={conv}
-          onPress={() =>
-            router.push({
-              pathname: '/chat/[id]',
-              params: {
-                id: conv.id,
-                title: conv.title,
-                peerAvatarUrl: conv.peerAvatarUrl ?? '',
-              },
-            })
-          }
-        />
-      ))}
-    </ScrollView>
+    <View className="flex-1">
+      {banner}
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: bottomPadding }}>
+        {items.map((conv) => (
+          <ConversationRow
+            key={conv.id}
+            conv={conv}
+            onPress={() =>
+              router.push({
+                pathname: '/chat/[id]',
+                params: {
+                  id: conv.id,
+                  title: conv.title,
+                  peerAvatarUrl: conv.peerAvatarUrl ?? '',
+                },
+              })
+            }
+          />
+        ))}
+      </ScrollView>
+    </View>
   );
 }

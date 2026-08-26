@@ -7,6 +7,7 @@ import { ChatConversationList } from '@/components/chat/ChatConversationList';
 import { ChatInboxHeader } from '@/components/chat/ChatInboxHeader';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { useChatSocket } from '@/context/ChatContext';
+import { useI18n } from '@/context/LocaleContext';
 import { fetchChatConversations, type ChatConversation } from '@/services/remote/chatApi';
 
 function toFriendlyChatError(err: unknown): string {
@@ -18,6 +19,7 @@ function toFriendlyChatError(err: unknown): string {
 }
 
 export default function CoachChatTabScreen() {
+  const { t } = useI18n();
   const { conversationVersion } = useChatSocket();
   const [items, setItems] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +51,7 @@ export default function CoachChatTabScreen() {
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="light" />
-      <ChatInboxHeader title="Coach chat" />
+      <ChatInboxHeader title={t.chat.inboxTitle} />
       <ChatConversationList
         items={items}
         loading={loading}
