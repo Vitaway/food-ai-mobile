@@ -6,11 +6,14 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 
 import { ReportHealthTrendBars } from '@/components/profile/ReportHealthTrendBars';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { StackScreenBody, ScreenTopBar } from '@/components/ui/ScreenTopBar';
+import { useI18n } from '@/context/LocaleContext';
 import { useProfileBack } from '@/hooks/useProfileBack';
 import {
   fetchConsumerReports,
@@ -19,7 +22,7 @@ import {
 } from '@/services/remote/consumerApi';
 import { formatDateOfBirthInput } from '@/utils/dateOfBirth';
 import { todayKey } from '@/utils/dates';
-import { shareConsumerReportPdf } from '@/utils/reportExport';
+import { setPendingReport } from '@/utils/reportViewerStore';
 
 type ReportPeriod = 'weekly' | 'monthly' | 'custom';
 
@@ -55,12 +58,12 @@ function periodChipLabel(period: string) {
 
 function ReportCard({
   report,
-  onDownload,
-  downloading,
+  onView,
+  viewLabel,
 }: {
   report: ConsumerReportSnapshot;
-  onDownload: () => void;
-  downloading: boolean;
+  onView: () => void;
+  viewLabel: string;
 }) {
   const calories = metricLine(report.metrics, ['nutritionSummary', 'caloriesConsumed']);
   const adherence = metricLine(report.metrics, ['adherence', 'mealsLogged']);
@@ -70,7 +73,9 @@ function ReportCard({
     | undefined;
 
   return (
-    <View className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 p-4">
+    <Pressable
+      onPress={onView}
+      className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 p-4 active:opacity-95">
       <Text className="text-sm font-sans-semibold uppercase text-blue-spruce-700">
         {periodChipLabel(report.period)}
       </Text>
@@ -84,19 +89,14 @@ function ReportCard({
       ) : null}
       {score ? <Text className="text-sm text-ash-grey-600">Health score: {score}</Text> : null}
       {trend?.length ? <ReportHealthTrendBars trend={trend} /> : null}
-      <Button
-        label={downloading ? 'Preparing…' : 'Download report'}
-        variant="outline"
-        size="sm"
-        className="mt-3"
-        loading={downloading}
-        onPress={onDownload}
-      />
-    </View>
+      <Button label={viewLabel} variant="primary" size="sm" className="mt-3" onPress={onView} />
+    </Pressable>
   );
 }
 
 export default function ReportsScreen() {
+  const { t } = useI18n();
+  const router = useRouter();
   const handleBack = useProfileBack();
   const [data, setData] = useState<ConsumerReportSnapshot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -106,7 +106,17 @@ export default function ReportsScreen() {
   const [to, setTo] = useState(todayKey());
   const [generated, setGenerated] = useState<ConsumerReportSnapshot | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+
+  const openReport = useCallback(
+    (report: ConsumerReportSnapshot) => {
+      setPendingReport(report);
+      router.push({
+        pathname: '/profile/report-view',
+        params: { id: report.id },
+      });
+    },
+    [router],
+  );
 
   const reload = useCallback(async () => {
     const next = await fetchConsumerReports();
@@ -146,6 +156,7 @@ export default function ReportsScreen() {
       });
       setGenerated(report);
       await reload();
+      openReport(report);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not generate report.');
     } finally {
@@ -153,38 +164,26 @@ export default function ReportsScreen() {
     }
   }
 
-  async function handleDownload(report: ConsumerReportSnapshot) {
-    setDownloadingId(report.id);
-    setError(null);
-    try {
-      await shareConsumerReportPdf(report);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not download report.');
-    } finally {
-      setDownloadingId(null);
-    }
-  }
-
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Reports" onBack={handleBack} />
+      <ScreenTopBar title={t.reports.title} onBack={handleBack} />
       <StackScreenBody>
         <ScrollView contentContainerClassName="gap-4 px-5 py-6" keyboardShouldPersistTaps="handled">
+          <FreePlanBanner />
+
           <View className="rounded-2xl border border-ash-grey-100 bg-white p-4">
-            <Text className="font-sans-semibold text-base text-neutral-900">Build a report</Text>
-            <Text className="mt-1 text-sm text-neutral-500">
-              Choose a period, generate, then download a MiraFood PDF.
-            </Text>
+            <Text className="font-sans-semibold text-base text-neutral-900">{t.reports.buildTitle}</Text>
+            <Text className="mt-1 text-sm text-neutral-500">{t.reports.buildHint}</Text>
 
             <Text className="mb-2 mt-4 text-sm font-sans-semibold text-neutral-800">
-              Report period
+              {t.reports.period}
             </Text>
             <View className="flex-row flex-wrap gap-2">
               {(
                 [
-                  ['weekly', 'Last 7 days'],
-                  ['monthly', 'Last 30 days'],
-                  ['custom', 'Custom dates'],
+                  ['weekly', t.reports.last7],
+                  ['monthly', t.reports.last30],
+                  ['custom', t.reports.customDates],
                 ] as const
               ).map(([value, label]) => {
                 const active = period === value;
@@ -214,7 +213,9 @@ export default function ReportsScreen() {
             {period === 'custom' ? (
               <View className="mt-4 gap-3">
                 <View>
-                  <Text className="mb-1.5 text-sm font-sans-medium text-neutral-700">From</Text>
+                  <Text className="mb-1.5 text-sm font-sans-medium text-neutral-700">
+                    {t.reports.from}
+                  </Text>
                   <TextInput
                     value={from}
                     onChangeText={(text) => {
@@ -228,7 +229,9 @@ export default function ReportsScreen() {
                   />
                 </View>
                 <View>
-                  <Text className="mb-1.5 text-sm font-sans-medium text-neutral-700">To</Text>
+                  <Text className="mb-1.5 text-sm font-sans-medium text-neutral-700">
+                    {t.reports.to}
+                  </Text>
                   <TextInput
                     value={to}
                     onChangeText={(text) => {
@@ -249,14 +252,12 @@ export default function ReportsScreen() {
               </View>
             ) : (
               <Text className="mt-3 text-sm text-neutral-500">
-                {period === 'weekly'
-                  ? 'The report will cover today and the previous 6 days.'
-                  : 'The report will cover today and the previous 29 days.'}
+                {period === 'weekly' ? t.reports.weeklyHint : t.reports.monthlyHint}
               </Text>
             )}
 
             <Button
-              label={generating ? 'Generating…' : 'Generate report'}
+              label={generating ? t.reports.generating : t.reports.generate}
               className="mt-4"
               loading={generating}
               disabled={!canGenerate}
@@ -268,27 +269,27 @@ export default function ReportsScreen() {
 
           {generated ? (
             <View className="gap-2">
-              <Text className="font-sans-semibold text-base text-neutral-900">Latest report</Text>
+              <Text className="font-sans-semibold text-base text-neutral-900">{t.reports.latest}</Text>
               <ReportCard
                 report={generated}
-                downloading={downloadingId === generated.id}
-                onDownload={() => void handleDownload(generated)}
+                viewLabel={t.reports.viewReport}
+                onView={() => openReport(generated)}
               />
             </View>
           ) : null}
 
           <View className="gap-2">
-            <Text className="font-sans-semibold text-base text-neutral-900">Past reports</Text>
+            <Text className="font-sans-semibold text-base text-neutral-900">{t.reports.past}</Text>
             {isLoading ? <ActivityIndicator /> : null}
             {!isLoading && data.length === 0 ? (
-              <Text className="text-sm text-ash-grey-500">No reports generated yet.</Text>
+              <Text className="text-sm text-ash-grey-500">{t.reports.noneYet}</Text>
             ) : null}
             {data.map((report) => (
               <ReportCard
                 key={report.id}
                 report={report}
-                downloading={downloadingId === report.id}
-                onDownload={() => void handleDownload(report)}
+                viewLabel={t.reports.viewReport}
+                onView={() => openReport(report)}
               />
             ))}
           </View>

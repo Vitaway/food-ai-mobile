@@ -45,7 +45,7 @@ function formatLabel(key: string): string {
     .trim();
 }
 
-function formatDate(value: string): string {
+export function formatReportDate(value: string): string {
   return new Date(value).toLocaleDateString(undefined, {
     year: 'numeric',
     month: 'short',
@@ -53,7 +53,7 @@ function formatDate(value: string): string {
   });
 }
 
-function metricPath(metrics: Record<string, unknown>, path: string[]): unknown {
+export function metricPath(metrics: Record<string, unknown>, path: string[]): unknown {
   let current: unknown = metrics;
   for (const key of path) {
     if (!current || typeof current !== 'object') return null;
@@ -62,19 +62,19 @@ function metricPath(metrics: Record<string, unknown>, path: string[]): unknown {
   return current;
 }
 
-function str(value: unknown): string {
+export function strMetric(value: unknown): string {
   if (value == null) return '—';
   if (typeof value === 'number') return Number.isFinite(value) ? String(value) : '—';
   return String(value);
 }
 
-function periodLabel(period: string): string {
+export function periodLabel(period: string): string {
   if (period === 'custom') return 'Custom range';
   if (period === 'monthly') return 'Monthly';
   return 'Weekly';
 }
 
-function flattenMetrics(
+export function flattenReportMetrics(
   obj: Record<string, unknown>,
   prefix = '',
 ): Array<{ section: string; metric: string; value: string }> {
@@ -83,15 +83,36 @@ function flattenMetrics(
     const fullKey = prefix ? `${prefix}.${key}` : key;
     if (Array.isArray(value)) {
       if (value.length && typeof value[0] === 'object') continue;
-      rows.push({ section: prefix || 'Summary', metric: formatLabel(key), value: str(value) });
+      rows.push({ section: prefix || 'Summary', metric: formatLabel(key), value: strMetric(value) });
     } else if (value && typeof value === 'object') {
-      rows.push(...flattenMetrics(value as Record<string, unknown>, fullKey));
+      rows.push(...flattenReportMetrics(value as Record<string, unknown>, fullKey));
     } else {
       const section = prefix ? formatLabel(prefix.split('.').pop() ?? prefix) : 'Summary';
-      rows.push({ section, metric: formatLabel(key), value: str(value) });
+      rows.push({ section, metric: formatLabel(key), value: strMetric(value) });
     }
   }
   return rows;
+}
+
+export function reportKpis(report: ConsumerReportSnapshot) {
+  return [
+    {
+      label: 'Health score',
+      value: strMetric(metricPath(report.metrics, ['currentHealthScore'])),
+    },
+    {
+      label: 'Meals logged',
+      value: strMetric(metricPath(report.metrics, ['adherence', 'mealsLogged'])),
+    },
+    {
+      label: 'Days logged',
+      value: strMetric(metricPath(report.metrics, ['adherence', 'daysLogged'])),
+    },
+    {
+      label: 'Calories',
+      value: strMetric(metricPath(report.metrics, ['nutritionSummary', 'caloriesConsumed'])),
+    },
+  ] as const;
 }
 
 function escapeHtml(value: string): string {
@@ -104,17 +125,8 @@ function escapeHtml(value: string): string {
 
 /** MiraFood-only patient report HTML; no Vitaway logo or partner branding. */
 export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string {
-  const kpis = [
-    { label: 'Health score', value: str(metricPath(report.metrics, ['currentHealthScore'])) },
-    { label: 'Meals logged', value: str(metricPath(report.metrics, ['adherence', 'mealsLogged'])) },
-    { label: 'Days logged', value: str(metricPath(report.metrics, ['adherence', 'daysLogged'])) },
-    {
-      label: 'Calories',
-      value: str(metricPath(report.metrics, ['nutritionSummary', 'caloriesConsumed'])),
-    },
-  ];
-
-  const detailRows = flattenMetrics(report.metrics);
+  const kpis = reportKpis(report);
+  const detailRows = flattenReportMetrics(report.metrics);
   const trend = report.metrics.healthScoreTrend;
   const trendRowsHtml =
     Array.isArray(trend) && trend.length
@@ -122,11 +134,11 @@ export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string 
           .map((row) => {
             const item = row as Record<string, unknown>;
             return `<tr>
-              <td>${escapeHtml(str(item.date))}</td>
-              <td>${escapeHtml(str(item.totalScore))}</td>
-              <td>${escapeHtml(str(item.nutrientScore))}</td>
-              <td>${escapeHtml(str(item.macroScore))}</td>
-              <td>${escapeHtml(str(item.calorieScore))}</td>
+              <td>${escapeHtml(strMetric(item.date))}</td>
+              <td>${escapeHtml(strMetric(item.totalScore))}</td>
+              <td>${escapeHtml(strMetric(item.nutrientScore))}</td>
+              <td>${escapeHtml(strMetric(item.macroScore))}</td>
+              <td>${escapeHtml(strMetric(item.calorieScore))}</td>
             </tr>`;
           })
           .join('')
@@ -156,7 +168,7 @@ export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string 
 <body>
   <div class="header">
     <h1>MiraFood</h1>
-    <p>Patient Nutrition Report · ${escapeHtml(periodLabel(report.period))} · ${escapeHtml(formatDate(report.periodStart))} – ${escapeHtml(formatDate(report.periodEnd))}</p>
+    <p>Patient Nutrition Report · ${escapeHtml(periodLabel(report.period))} · ${escapeHtml(formatReportDate(report.periodStart))} – ${escapeHtml(formatReportDate(report.periodEnd))}</p>
   </div>
 
   <div class="kpis">
