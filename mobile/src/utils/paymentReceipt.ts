@@ -27,7 +27,7 @@ export async function downloadPaymentReceiptPdf(
   if (!dir) throw new Error('Could not save receipt on this device');
 
   const safeName = (opts?.invoiceNumber || paymentId).replace(/[^\w.-]+/g, '_').slice(0, 40);
-  const path = `${dir}mirafood-receipt-${safeName}.pdf`;
+  const path = `${dir}${safeName}.pdf`;
   const url = getApiV1Url(`/consumer/payments/${encodeURIComponent(paymentId)}/receipt`);
 
   const result = await FileSystem.downloadAsync(url, path, {
