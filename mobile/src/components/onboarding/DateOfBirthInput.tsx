@@ -1,12 +1,57 @@
-import { useEffect, useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { Modal, Platform, Pressable, View } from 'react-native';
+import DateTimePicker, { type DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
-import {
-  ageFromDateOfBirth,
-  formatDateOfBirthInput,
-  isValidDateOfBirth,
-} from '@/utils/dateOfBirth';
+import { ageFromDateOfBirth, isValidDateOfBirth } from '@/utils/dateOfBirth';
+
+function clampBirthDate(date: Date) {
+  const max = maxBirthDate();
+  const min = minBirthDate();
+  if (date.getTime() > max.getTime()) return max;
+  if (date.getTime() < min.getTime()) return min;
+  return date;
+}
+
+function maxBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 13);
+  return d;
+}
+
+function minBirthDate() {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 120);
+  return d;
+}
+
+function toIsoDate(date: Date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function parseIsoDate(value: string): Date | null {
+  if (!isValidDateOfBirth(value)) return null;
+  const [year, month, day] = value.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function formatDisplayDate(value: string) {
+  const parsed = parseIsoDate(value);
+  if (!parsed) return null;
+  return parsed.toLocaleDateString(undefined, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
+function defaultPickerDate(value: string) {
+  return parseIsoDate(value) ?? maxBirthDate();
+}
 
 export function DateOfBirthInput({
   value,
@@ -15,46 +60,89 @@ export function DateOfBirthInput({
   value: string;
   onChange: (value: string) => void;
 }) {
-  const [draft, setDraft] = useState(value);
-  const complete = isValidDateOfBirth(draft);
-  const invalidCompleteDate = draft.length === 10 && !complete;
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState(() => defaultPickerDate(value));
+  const label = formatDisplayDate(value);
+  const complete = isValidDateOfBirth(value);
 
-  useEffect(() => {
-    setDraft(value);
-  }, [value]);
+  const openPicker = () => {
+    setDraft(defaultPickerDate(value));
+    setOpen(true);
+  };
+
+  const applyDate = (next: Date) => {
+    onChange(toIsoDate(clampBirthDate(next)));
+  };
+
+  const confirmDraft = () => {
+    applyDate(draft);
+    setOpen(false);
+  };
+
+  const onPickerChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setOpen(false);
+      if (event.type === 'dismissed' || !date) return;
+      applyDate(date);
+      return;
+    }
+    if (date) setDraft(clampBirthDate(date));
+  };
 
   return (
-    <View className="rounded-3xl border border-blue-spruce-100 bg-blue-spruce-50/40 p-5">
-      <Text className="text-sm font-sans-semibold text-neutral-900">Date of birth</Text>
-      <Text className="mt-1 text-sm leading-5 text-neutral-600">
-        Enter your birth date. Age is calculated automatically and stays accurate over time.
-      </Text>
-      <TextInput
-        value={draft}
-        onChangeText={(text) => {
-          const formatted = formatDateOfBirthInput(text);
-          setDraft(formatted);
-          onChange(formatted);
-        }}
-        placeholder="YYYY-MM-DD"
-        keyboardType="number-pad"
-        maxLength={10}
-        accessibilityLabel="Date of birth"
-        className={`mt-4 rounded-2xl border bg-white px-4 py-4 text-center text-2xl font-sans-bold tracking-widest text-neutral-900 ${
-          invalidCompleteDate ? 'border-red-400' : 'border-ash-grey-200'
-        }`}
-      />
+    <View>
+      <Text className="font-sans-medium text-sm text-neutral-700">Date of birth</Text>
+      <Pressable
+        onPress={openPicker}
+        accessibilityRole="button"
+        accessibilityLabel="Select date of birth"
+        className="mt-2 flex-row items-center justify-between rounded-2xl border border-ash-grey-200 bg-ash-grey-50 px-4 py-4 active:opacity-90">
+        <Text className={`text-[16px] font-sans-semibold ${label ? 'text-neutral-900' : 'text-neutral-400'}`}>
+          {label ?? 'Select date'}
+        </Text>
+        <Ionicons name="calendar-outline" size={22} color="#1f3a56" />
+      </Pressable>
       {complete ? (
-        <Text className="mt-3 text-center text-sm font-sans-semibold text-shamrock-700">
-          Age {ageFromDateOfBirth(draft)} · calculated automatically
-        </Text>
-      ) : (
-        <Text className={`mt-3 text-center text-sm ${invalidCompleteDate ? 'text-red-600' : 'text-neutral-500'}`}>
-          {invalidCompleteDate
-            ? 'Enter a valid birth date for someone aged 13–120.'
-            : 'Example: 1998-07-18'}
-        </Text>
-      )}
+        <Text className="mt-2 text-sm text-neutral-500">Age {ageFromDateOfBirth(value)}</Text>
+      ) : null}
+
+      {Platform.OS === 'android' && open ? (
+        <DateTimePicker
+          value={draft}
+          mode="date"
+          display="calendar"
+          maximumDate={maxBirthDate()}
+          minimumDate={minBirthDate()}
+          onChange={onPickerChange}
+        />
+      ) : null}
+
+      {Platform.OS === 'ios' ? (
+        <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+          <Pressable className="flex-1 justify-end bg-black/35" onPress={() => setOpen(false)}>
+            <Pressable
+              onPress={(e) => e.stopPropagation()}
+              className="rounded-t-[28px] bg-white px-4 pb-8 pt-3">
+              <View className="mb-2 flex-row items-center justify-between px-1">
+                <Text className="font-sans-semibold text-neutral-500">Date of birth</Text>
+                <Pressable onPress={confirmDraft} hitSlop={12}>
+                  <Text className="font-sans-semibold text-blue-spruce-700">Done</Text>
+                </Pressable>
+              </View>
+              <DateTimePicker
+                value={draft}
+                mode="date"
+                display="spinner"
+                themeVariant="light"
+                maximumDate={maxBirthDate()}
+                minimumDate={minBirthDate()}
+                onChange={onPickerChange}
+                style={{ alignSelf: 'center' }}
+              />
+            </Pressable>
+          </Pressable>
+        </Modal>
+      ) : null}
     </View>
   );
 }

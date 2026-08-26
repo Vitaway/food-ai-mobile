@@ -1,13 +1,15 @@
 import * as Linking from 'expo-linking';
 import { useRouter, type Href } from 'expo-router';
-import { Alert, ScrollView, Share, View } from 'react-native';
+import { ScrollView, Share, View } from 'react-native';
 
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { PRIVACY_POLICY_URL, TERMS_OF_USE_URL } from '@/constants/site';
 import { useProfileBack } from '@/hooks/useProfileBack';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useToast } from '@/context/ToastContext';
@@ -20,22 +22,22 @@ export default function DataPrivacyScreen() {
   const router = useRouter();
   const handleBack = useProfileBack();
   const toast = useToast();
+  const { confirm } = useConfirmDialog();
   const { logout } = useAuth();
   const { resetNutritionData, deleteAccount, exportData } = useProfile();
   const { clearAllMeals } = useMeals();
 
   const handleResetData = () => {
-    Alert.alert('Reset nutrition data?', 'Meals and hydration logs will be cleared on this device.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Reset',
-        style: 'destructive',
-        onPress: async () => {
-          await resetNutritionData();
-          await clearAllMeals();
-        },
-      },
-    ]);
+    void confirm({
+      title: 'Reset nutrition data?',
+      message: 'Meals and hydration logs will be cleared on this device.',
+      confirmLabel: 'Reset',
+      destructive: true,
+    }).then(async (ok) => {
+      if (!ok) return;
+      await resetNutritionData();
+      await clearAllMeals();
+    });
   };
 
   const handleExport = async () => {
@@ -52,36 +54,33 @@ export default function DataPrivacyScreen() {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete account?',
-      'This permanently deletes your MiraFood account and server data. This cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            Alert.alert('Delete everything on the server?', undefined, [
-              { text: 'Cancel', style: 'cancel' },
-              {
-                text: 'Delete forever',
-                style: 'destructive',
-                onPress: async () => {
-                  try {
-                    await deleteAccount();
-                    await clearAllMeals();
-                    await logout();
-                    router.replace('/auth/login' as Href);
-                  } catch (error) {
-                    toast.error(error instanceof Error ? error.message : 'Delete failed');
-                  }
-                },
-              },
-            ]);
-          },
-        },
-      ],
-    );
+    void (async () => {
+      const first = await confirm({
+        title: 'Delete account?',
+        message:
+          'This permanently deletes your MiraFood account and server data. This cannot be undone.',
+        confirmLabel: 'Delete',
+        destructive: true,
+      });
+      if (!first) return;
+
+      const second = await confirm({
+        title: 'Delete everything on the server?',
+        message: 'This cannot be undone.',
+        confirmLabel: 'Delete forever',
+        destructive: true,
+      });
+      if (!second) return;
+
+      try {
+        await deleteAccount();
+        await clearAllMeals();
+        await logout();
+        router.replace('/welcome' as Href);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'Delete failed');
+      }
+    })();
   };
 
   return (
@@ -90,6 +89,10 @@ export default function DataPrivacyScreen() {
 
       <StackScreenBody>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="px-5 pb-10 pt-5">
+          <View className="mb-4">
+            <FreePlanBanner compact />
+          </View>
+
           <Text className="mb-3 text-sm leading-5 text-neutral-600">
             Learn how MiraFood handles your data and the terms that apply when you use the app.
           </Text>

@@ -206,7 +206,14 @@ export const consumerService = {
       await clinicalAssessmentsRepository.save(assessment);
     }
     nextProfile = profileWithCalculatedTargets(nextProfile, calculation, assessmentStatus);
-    nextProfile.onboardingComplete = resolveOnboardingComplete(nextProfile);
+    // Draft saves keep onboarding incomplete until the client finishes explicitly.
+    if (dto.onboardingComplete === true) {
+      nextProfile.onboardingComplete = true;
+    } else if (row.profile.onboardingComplete === true) {
+      nextProfile.onboardingComplete = resolveOnboardingComplete(nextProfile);
+    } else {
+      nextProfile.onboardingComplete = false;
+    }
     row.profile = nextProfile;
     await consumerProfilesRepository.save(row);
 
@@ -445,6 +452,39 @@ export const consumerService = {
       referralCount,
       referredBy,
     };
+  },
+
+  async applyReferralCode(userId: string, rawCode: string) {
+    const code = rawCode.trim().toUpperCase();
+    if (!code) throw new BadRequestError("Enter a referral code");
+
+    const user = await usersRepository.findById(userId);
+    if (!user) throw new NotFoundError("User not found");
+    if (user.referredByUserId) {
+      return this.getReferral(userId);
+    }
+
+    const referrer = await usersRepository.findByReferralCode(code);
+    if (!referrer || referrer.role !== "consumer") {
+      throw new BadRequestError("Invalid referral code");
+    }
+    if (referrer.id === userId) {
+      throw new BadRequestError("You cannot use your own referral code");
+    }
+
+    user.referredByUserId = referrer.id;
+    if (user.registrationSource === "individual") {
+      user.registrationSource = "referral";
+    }
+    await usersRepository.save(user);
+
+    try {
+      await notificationsService.notifyReferralSignup(referrer.id, user.displayName);
+    } catch {
+      /* non-blocking */
+    }
+
+    return this.getReferral(userId);
   },
 
   async getHealthScoreHistory(userId: string, days = 30) {

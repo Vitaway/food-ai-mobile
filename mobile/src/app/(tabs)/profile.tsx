@@ -1,46 +1,56 @@
 import { useRouter } from 'expo-router';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { ProfileHeroCard } from '@/components/profile/ProfileHeroCard';
 import { ProfileMenuRow } from '@/components/profile/ProfileMenuRow';
 import { ProfileSection } from '@/components/profile/ProfileSection';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { isApiConfigured } from '@/constants/api';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { useProfile } from '@/context/ProfileContext';
+import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
 import { useToast } from '@/context/ToastContext';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const toast = useToast();
+  const { t } = useI18n();
+  const { confirm } = useConfirmDialog();
   const { logout, isAuthenticated } = useAuth();
   const { profile, patientId } = useProfile();
+  const { hasActiveSubscription } = useSubscriptionAccess();
 
-  const displayName = profile?.displayName?.trim() || 'Your profile';
+  const displayName = profile?.displayName?.trim() || t.profile.yourProfile;
   const initial = displayName.slice(0, 1).toUpperCase() || '?';
   const updatedAt = profile
-    ? new Date(profile.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(profile.updatedAt).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
     : null;
 
   const handleSignOut = () => {
-    Alert.alert('Sign out?', 'You will need to sign in again to access your meals and profile.', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Sign out',
-        style: 'destructive',
-        onPress: () => {
-          void logout()
-            .then(() => toast.success('Signed out successfully', 'See you soon'))
-            .catch(() => toast.error('Could not sign out. Try again.'));
-        },
-      },
-    ]);
+    void confirm({
+      title: t.profile.signOutConfirmTitle,
+      message: t.profile.signOutConfirmBody,
+      confirmLabel: t.profile.signOut,
+      destructive: true,
+    }).then((ok) => {
+      if (!ok) return;
+      void logout()
+        .then(() => toast.success(t.profile.signedOut, t.profile.seeYouSoon))
+        .catch(() => toast.error(t.common.tryAgain));
+    });
   };
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Profile" />
+      <ScreenTopBar title={t.profile.title} />
 
       <StackScreenBody>
         <ScrollView
@@ -49,93 +59,114 @@ export default function ProfileScreen() {
           contentContainerClassName="gap-0 pt-4">
           <ProfileHeroCard
             displayName={displayName}
-            subtitle={patientId ? `Patient file · ${patientId}` : updatedAt ?? ''}
+            subtitle={
+              patientId ? tf(t.profile.patientFile, { id: patientId }) : updatedAt ?? ''
+            }
             avatarUrl={profile?.avatarUrl}
             initial={initial}
           />
 
-          <ProfileSection title="Account">
+          <View className="mb-4 mt-4">
+            <FreePlanBanner />
+          </View>
+
+          <ProfileSection title={t.profile.sectionAccount}>
             <ProfileMenuRow
               icon="person-circle-outline"
-              title="Account & photo"
-              subtitle="Name and profile picture"
+              title={t.profile.accountPhoto}
+              subtitle={t.profile.accountPhotoHint}
               onPress={() => router.push('/profile/account')}
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="gift-outline"
-              title="Invite friends"
+              title={t.profile.inviteFriends}
               onPress={() => router.push('/referral')}
             />
           </ProfileSection>
 
-          <ProfileSection title="Health">
+          <ProfileSection title={t.profile.sectionHealth}>
             <ProfileMenuRow
               icon="fitness-outline"
-              title="Health profile"
-              subtitle="Goals, metrics, diet & allergies"
+              title={t.profile.healthProfile}
+              subtitle={t.profile.healthProfileHint}
               onPress={() => router.push('/profile/health')}
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="create-outline"
-              title="Edit health details"
-              subtitle="Update anytime"
+              title={t.profile.editHealth}
+              subtitle={t.profile.editHealthHint}
               onPress={() => router.push('/profile/edit-health')}
             />
           </ProfileSection>
 
           {isApiConfigured() && isAuthenticated ? (
-            <ProfileSection title="Care team">
+            <ProfileSection title={t.profile.sectionCareTeam}>
               <ProfileMenuRow
                 icon="chatbubbles-outline"
-                title="Message your coach"
-                subtitle="Ask about logged meals or share extra context"
+                title={t.profile.messageCoach}
+                subtitle={t.profile.messageCoachHint}
                 onPress={() => router.push('/(tabs)/chat')}
               />
             </ProfileSection>
           ) : null}
 
-          <ProfileSection title="Preferences">
+          <ProfileSection title={t.profile.preferences}>
             <ProfileMenuRow
-              icon="notifications-outline"
-              title="Notification settings"
-              onPress={() => router.push('/profile/notifications')}
+              icon="language-outline"
+              title={t.profile.language}
+              subtitle={t.profile.languageSubtitle}
+              onPress={() => router.push('/profile/language')}
             />
           </ProfileSection>
 
-          <ProfileSection title="More">
-            <ProfileMenuRow icon="bar-chart-outline" title="Insights" onPress={() => router.push('/(tabs)/analytics')} />
+          <ProfileSection title={t.profile.sectionMore}>
+            <ProfileMenuRow
+              icon="bar-chart-outline"
+              title={t.profile.insights}
+              onPress={() => router.push('/(tabs)/analytics')}
+            />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="wallet-outline"
-              title="Subscription"
-              subtitle="Plan, status, and renewals"
-              onPress={() => router.push('/profile/subscription')}
+              title={t.profile.subscription}
+              subtitle={
+                hasActiveSubscription
+                  ? t.profile.subscriptionHintPaid
+                  : t.profile.subscriptionHintFree
+              }
+              onPress={() =>
+                router.push(hasActiveSubscription ? '/profile/subscription' : '/paywall')
+              }
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="document-text-outline"
-              title="Reports"
-              subtitle="Weekly and monthly snapshots"
+              title={t.profile.reports}
+              subtitle={t.profile.reportsHint}
               onPress={() => router.push('/profile/reports')}
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
             <ProfileMenuRow
               icon="mail-outline"
-              title="Notifications"
+              title={t.profile.notifications}
               onPress={() => router.push('/notifications')}
             />
             <View className="mx-4 h-px bg-ash-grey-100" />
-            <ProfileMenuRow icon="shield-checkmark-outline" title="Data & privacy" onPress={() => router.push('/profile/data')} />
+            <ProfileMenuRow
+              icon="shield-checkmark-outline"
+              title={t.profile.dataPrivacy}
+              onPress={() => router.push('/profile/data')}
+            />
           </ProfileSection>
 
           {isApiConfigured() && isAuthenticated ? (
-            <ProfileSection title="Session">
+            <ProfileSection title={t.profile.sectionSession}>
               <ProfileMenuRow
                 icon="log-out-outline"
-                title="Sign out"
-                subtitle="Switch account or sign in again"
+                title={t.profile.signOut}
+                subtitle={t.profile.signOutHint}
                 destructive
                 onPress={handleSignOut}
               />

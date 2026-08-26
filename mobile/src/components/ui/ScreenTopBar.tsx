@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 
 import { BRAND_HEADER_COLOR, GradientHeaderTitle } from '@/components/ui/GradientHeader';
 import { cn } from '@/utils/cn';
@@ -27,6 +28,7 @@ export function ScreenTopBar({ title, onBack, rightAction, className }: ScreenTo
         paddingHorizontal: 20,
         borderCurve: 'continuous',
       }}>
+      <StatusBar style="light" />
       <View className="flex-row items-center justify-between gap-3">
         <View className="min-w-0 flex-1 flex-row items-center gap-3">
           {onBack ? (

@@ -177,12 +177,21 @@ export const accountLifecycleService = {
         `DELETE FROM user_notifications WHERE user_id = $1`,
         `DELETE FROM password_reset_otps WHERE user_id = $1`,
         `DELETE FROM family_subscription_members WHERE user_id = $1`,
+        `DELETE FROM family_subscription_invites WHERE inviter_user_id = $1 OR accepted_user_id = $1`,
       ]) {
         try {
           await qr.query(sql, [userId]);
         } catch {
           /* table may not exist in older DBs */
         }
+      }
+
+      try {
+        await qr.query(`DELETE FROM family_subscription_invites WHERE lower(email) = lower($1)`, [
+          user.email,
+        ]);
+      } catch {
+        /* table may not exist in older DBs */
       }
 
       if (clientId) {

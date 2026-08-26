@@ -138,6 +138,12 @@ export class ConsumerController {
   }
 
   @Authorized(["consumer"])
+  @Post("/referral/apply")
+  applyReferral(@CurrentUser() user: User, @Body() body: { code?: string }) {
+    return consumerService.applyReferralCode(user.id, body.code ?? "");
+  }
+
+  @Authorized(["consumer"])
   @Get("/subscription")
   subscription(@CurrentUser() user: User) {
     return paymentsService.getMySubscription(user.id);
@@ -237,6 +243,24 @@ export class ConsumerController {
   @Post("/subscription/family/members")
   addFamilyMember(@CurrentUser() user: User, @Body() body: { email: string }) {
     return familySubscriptionService.addFamilyMember(user.id, body.email);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/subscription/family/invites/:inviteId/resend")
+  resendFamilyInvite(@CurrentUser() user: User, @Param("inviteId") inviteId: string) {
+    return familySubscriptionService.resendInvite(user.id, inviteId);
+  }
+
+  @Authorized(["consumer"])
+  @Delete("/subscription/family/invites/:inviteId")
+  revokeFamilyInvite(@CurrentUser() user: User, @Param("inviteId") inviteId: string) {
+    return familySubscriptionService.revokeInvite(user.id, inviteId);
+  }
+
+  @Authorized(["consumer"])
+  @Post("/subscription/family/invites/accept")
+  acceptFamilyInvite(@CurrentUser() user: User, @Body() body: { token: string }) {
+    return familySubscriptionService.acceptInviteByToken(user.id, body.token ?? "");
   }
 
   @Authorized(["consumer"])

@@ -19,14 +19,18 @@ function ScorePill({ label, grade }: { label: string; grade?: string | null }) {
 export function PackagedProductCard({
   product,
   onPress,
+  selected = false,
 }: {
   product: NutritionFoodLookup;
   onPress: () => void;
+  selected?: boolean;
 }) {
   return (
     <Pressable
       onPress={onPress}
-      className="flex-row items-center gap-3 rounded-3xl bg-[#1c1c1e] px-3 py-3 active:opacity-85">
+      className={`flex-row items-center gap-3 rounded-3xl px-3 py-3 active:opacity-85 ${
+        selected ? 'bg-blue-spruce-700/90' : 'bg-[#1c1c1e]'
+      }`}>
       {product.imageUrl ? (
         <Image source={{ uri: product.imageUrl }} className="h-16 w-16 rounded-2xl bg-white/10" />
       ) : (
@@ -51,7 +55,11 @@ export function PackagedProductCard({
           ) : null}
         </View>
       </View>
-      <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.4)" />
+      <Ionicons
+        name={selected ? 'checkmark-circle' : 'add-circle-outline'}
+        size={22}
+        color={selected ? '#86efac' : 'rgba(255,255,255,0.45)'}
+      />
     </Pressable>
   );
 }

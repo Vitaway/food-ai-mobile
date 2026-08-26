@@ -51,16 +51,20 @@ export const DAILY_MEAL_SLOT_ORDER = [
   'evening_snack',
 ] as const satisfies readonly MealTypeId[];
 
-const MEALS_PER_DAY_SLOTS: Record<3 | 4 | 5 | 6, readonly MealTypeId[]> = {
+const MEALS_PER_DAY_SLOTS: Record<1 | 2 | 3 | 4 | 5 | 6, readonly MealTypeId[]> = {
+  1: ['dinner'],
+  2: ['breakfast', 'dinner'],
   3: ['breakfast', 'lunch', 'dinner'],
   4: ['breakfast', 'lunch', 'afternoon_snack', 'dinner'],
   5: ['breakfast', 'mid_morning_snack', 'lunch', 'afternoon_snack', 'dinner'],
   6: DAILY_MEAL_SLOT_ORDER,
 };
 
-export function normalizeMealsPerDay(value: number | null | undefined): 3 | 4 | 5 | 6 {
-  if (value === 3 || value === 4 || value === 5 || value === 6) return value;
-  return 6;
+export function normalizeMealsPerDay(value: number | null | undefined): 1 | 2 | 3 | 4 | 5 | 6 {
+  if (value === 1 || value === 2 || value === 3 || value === 4 || value === 5 || value === 6) {
+    return value;
+  }
+  return 3;
 }
 
 /** Meal slots shown on home + used for daily logging progress. */

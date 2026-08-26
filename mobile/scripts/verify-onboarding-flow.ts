@@ -6,6 +6,8 @@ import { resolveAuthTarget } from '../src/utils/authRouting';
 import {
   getInitialOnboardingStepIndex,
   getMinimumOnboardingStepIndex,
+  getResumeOnboardingStepIndex,
+  onboardingStepPercent,
   ONBOARDING_STEPS,
 } from '../src/utils/onboardingResume';
 import { deriveOnboardingComplete } from '../src/utils/onboardingStatus';
@@ -18,9 +20,25 @@ type Case = {
 
 const routingCases: Case[] = [
   {
-    name: 'logged out → login',
+    name: 'logged out → welcome',
     input: { requiresAuth: true, isAuthenticated: false, hasCompletedOnboarding: false, root: 'index' },
-    expected: '/auth/login',
+    expected: '/welcome',
+  },
+  {
+    name: 'logged out on welcome → stay',
+    input: { requiresAuth: true, isAuthenticated: false, hasCompletedOnboarding: false, root: 'welcome' },
+    expected: null,
+  },
+  {
+    name: 'logged out on auth sheet → stay',
+    input: {
+      requiresAuth: true,
+      isAuthenticated: false,
+      hasCompletedOnboarding: false,
+      root: 'auth',
+      authScreen: 'login',
+    },
+    expected: null,
   },
   {
     name: 'logged in, not onboarded, on tabs → onboarding',
@@ -58,7 +76,7 @@ const routingCases: Case[] = [
     expected: '/onboarding',
   },
   {
-    name: 'onboarded, no subscription, on tabs → subscription',
+    name: 'onboarded, no subscription, on tabs → stay (freemium)',
     input: {
       requiresAuth: true,
       isAuthenticated: true,
@@ -66,10 +84,10 @@ const routingCases: Case[] = [
       needsSubscription: true,
       root: '(tabs)',
     },
-    expected: '/profile/subscription',
+    expected: null,
   },
   {
-    name: 'onboarded, no subscription, already on subscription → stay',
+    name: 'onboarded, no subscription, on subscription → stay',
     input: {
       requiresAuth: true,
       isAuthenticated: true,
@@ -110,18 +128,67 @@ else {
   console.log(`✗ guest should start at intro (0), got ${guestStep}`);
 }
 
-if (authedStep === ONBOARDING_STEPS.indexOf('photo')) {
-  console.log('✓ logged-in user skips intro (starts at photo)');
+if (authedStep === 0) {
+  console.log('✓ logged-in user starts at achievement intro (before hydrate)');
 } else {
   failed += 1;
-  console.log(`✗ logged-in user should start at photo, got ${authedStep}`);
+  console.log(`✗ logged-in user should start at intro (0), got ${authedStep}`);
 }
 
-if (authedMin === ONBOARDING_STEPS.indexOf('photo')) {
-  console.log('✓ logged-in user cannot go back to intro');
+const resumed = getResumeOnboardingStepIndex({
+  displayName: 'Ada',
+  dateOfBirth: '1995-06-15',
+  sex: 'female',
+});
+if (resumed === ONBOARDING_STEPS.indexOf('body')) {
+  console.log('✓ resume lands on first incomplete step (body)');
 } else {
   failed += 1;
-  console.log(`✗ logged-in min step should be photo, got ${authedMin}`);
+  console.log(`✗ resume should be body, got ${resumed} (${ONBOARDING_STEPS[resumed]})`);
+}
+
+const afterBody = getResumeOnboardingStepIndex({
+  displayName: 'Ada',
+  dateOfBirth: '1995-06-15',
+  sex: 'female',
+  heightCm: 165,
+  weightKg: 62,
+  goal: 'lose_weight',
+});
+if (afterBody === ONBOARDING_STEPS.indexOf('goals')) {
+  console.log('✓ after body metrics, resume is goals (not skipped by default goal)');
+} else {
+  failed += 1;
+  console.log(`✗ after body should be goals, got ${afterBody} (${ONBOARDING_STEPS[afterBody]})`);
+}
+
+if (onboardingStepPercent(ONBOARDING_STEPS.indexOf('goals')) < 100) {
+  console.log(`✓ goals step progress is ${onboardingStepPercent(ONBOARDING_STEPS.indexOf('goals'))}% (not 100)`);
+} else {
+  failed += 1;
+  console.log('✗ goals step must not show 100%');
+}
+
+const freshNamed = getResumeOnboardingStepIndex({ displayName: 'Ada' });
+if (freshNamed === 0) {
+  console.log('✓ name-only profile still starts at intro');
+} else {
+  failed += 1;
+  console.log(`✗ name-only should start intro, got ${freshNamed}`);
+}
+
+if (onboardingStepPercent(0) === 0 && onboardingStepPercent(ONBOARDING_STEPS.length - 1) === 100) {
+  console.log('✓ step progress is 0% at intro and 100% at last reached step');
+} else {
+  failed += 1;
+  console.log('✗ step progress bounds are wrong');
+}
+
+if (authedMin === 0) {
+  console.log('✓ logged-in user can view intro');
+} else {
+  failed += 1;
+  console.log(`✗ logged-in min step should be 0, got ${authedMin}`);
 }
 
 if (guestMin === 0) console.log('✓ guest can start from intro');
@@ -140,7 +207,6 @@ if (!deriveOnboardingComplete({ displayName: 'New', email: 'a@b.com', onboarding
 
 if (
   deriveOnboardingComplete({
-    onboardingComplete: false,
     age: 30,
     heightCm: 175,
     weightKg: 70,
@@ -154,6 +220,24 @@ if (
 } else {
   failed += 1;
   console.log('✗ legacy profile with health data should count as onboarded');
+}
+
+if (
+  !deriveOnboardingComplete({
+    onboardingComplete: false,
+    age: 30,
+    heightCm: 175,
+    weightKg: 70,
+    goal: 'lose_weight',
+    activityLevel: 'moderately_active',
+    bmr: 1600,
+    macroTargets: { calories: 2000, proteinG: 120, carbsG: 200, fatG: 65, fiberG: 28 },
+  })
+) {
+  console.log('✓ explicit onboardingComplete false keeps draft incomplete');
+} else {
+  failed += 1;
+  console.log('✗ onboarding draft with false flag should stay incomplete');
 }
 
 if (

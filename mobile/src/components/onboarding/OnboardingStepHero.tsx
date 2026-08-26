@@ -1,8 +1,6 @@
 import type { ImageSourcePropType, ImageStyle, StyleProp } from 'react-native';
 import { Image } from 'react-native';
 
-import { palette } from '@/design-system/colors';
-
 type OnboardingStepHeroProps = {
   source: ImageSourcePropType;
   /** Place below compact controls (chips) and use extra height. */
@@ -19,15 +17,13 @@ export function OnboardingStepHero({ source, placement = 'above', style }: Onboa
       style={[
         {
           width: '100%',
-          height: below ? 248 : 176,
-          borderRadius: 24,
-          backgroundColor: palette['ash-grey'][100],
-          marginBottom: below ? 0 : 20,
-          marginTop: below ? 24 : 0,
+          height: below ? 220 : 168,
+          marginBottom: below ? 0 : 16,
+          marginTop: below ? 20 : 0,
         },
         style,
       ]}
-      resizeMode="cover"
+      resizeMode="contain"
       accessibilityIgnoresInvertColors
     />
   );

@@ -94,7 +94,15 @@
           "backgroundColor": "#16304D"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-localization",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "MiraFood uses Face ID so you can sign in without typing your password."
+        }
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

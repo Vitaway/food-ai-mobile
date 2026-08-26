@@ -1,40 +1,43 @@
-import { ArrowRight } from 'iconoir-react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { ArrowLeft, ArrowRight } from 'iconoir-react-native';
 import { type ReactNode, useMemo } from 'react';
-import { Platform, Pressable, View } from 'react-native';
+import { Pressable, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 
 import { Button } from '@/components/ui/Button';
-import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
-import { palette } from '@/design-system/colors';
+import { APP_NAME } from '@/constants/site';
 
-type OnboardingStepDotsProps = {
-  total: number;
-  current: number;
+type OnboardingProgressBarProps = {
+  percent: number;
 };
 
-export function OnboardingStepDots({ total, current }: OnboardingStepDotsProps) {
+export function OnboardingProgressBar({ percent }: OnboardingProgressBarProps) {
+  const safe = Math.min(100, Math.max(0, Math.round(percent)));
+
   return (
-    <View className="flex-row items-center gap-2">
-      {Array.from({ length: total }, (_, index) => {
-        const active = index === current;
-        return (
-          <View
-            key={index}
-            className="rounded-full"
-            style={{
-              width: active ? 28 : 8,
-              height: 8,
-              backgroundColor: active ? palette.shamrock[500] : palette['ash-grey'][200],
-            }}
-          />
-        );
-      })}
+    <View className="flex-row items-center gap-3">
+      <View className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-blue-spruce-100">
+        <View className="h-full rounded-full bg-blue-spruce-700" style={{ width: `${safe}%` }} />
+      </View>
+      <Text className="w-10 text-right text-xs font-sans-semibold text-neutral-500">{safe}%</Text>
     </View>
   );
+}
+
+/** @deprecated */
+export function OnboardingStepDots({
+  total,
+  current,
+}: {
+  total: number;
+  current: number;
+}) {
+  const percent = Math.round(((current + 1) / Math.max(total, 1)) * 100);
+  return <OnboardingProgressBar percent={percent} />;
 }
 
 type OnboardingNavButtonProps = {
@@ -60,36 +63,31 @@ export function OnboardingNavButton({
       loading={loading}
       loadingLabel="Saving…"
       trailingIcon={loading ? undefined : ArrowRight}
-      fullWidth={variant === 'finish'}
-      className={variant === 'finish' ? 'w-full' : 'min-w-[132px]'}
+      fullWidth
+      size="lg"
+      variant="primary"
+      className={variant === 'finish' ? 'w-full' : 'w-full'}
     />
   );
 }
 
 type OnboardingShellProps = {
-  /** Step title in the navy toolbar (hidden on intro). */
   headerTitle?: string;
-  stepIndex: number;
-  totalSteps: number;
+  fillPercent: number;
   showBack?: boolean;
   onBack?: () => void;
   footer: ReactNode;
-  footerLayout?: 'inline' | 'stacked';
   intro?: boolean;
   banner?: ReactNode;
   children: ReactNode;
 };
 
-const TOOLBAR_SLOT = 44;
-
 export function OnboardingShell({
   headerTitle,
-  stepIndex,
-  totalSteps,
+  fillPercent,
   showBack,
   onBack,
   footer,
-  footerLayout = 'inline',
   intro = false,
   banner,
   children,
@@ -111,76 +109,43 @@ export function OnboardingShell({
 
   return (
     <GestureDetector gesture={swipeBackGesture}>
-      <View className="flex-1" style={{ backgroundColor: BRAND_HEADER_COLOR }}>
-        <View
-          style={{
-            paddingTop: insets.top + 8,
-            paddingBottom: 14,
-            paddingHorizontal: 16,
-          }}>
-          <View className="min-h-11 flex-row items-center">
-            {showBack && onBack ? (
-              <Pressable
-                onPress={onBack}
-                hitSlop={12}
-                accessibilityRole="button"
-                accessibilityLabel="Go back"
-                className="h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/20 active:opacity-90">
-                <Ionicons name="chevron-back" size={24} color="#ffffff" />
-              </Pressable>
-            ) : (
-              <View style={{ width: TOOLBAR_SLOT, height: TOOLBAR_SLOT }} />
-            )}
+      <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
+        <StatusBar style="dark" />
 
-            {!intro && headerTitle ? (
-              <Text
-                className="flex-1 px-2 text-center font-sans-semibold text-lg leading-snug text-white"
-                numberOfLines={2}>
-                {headerTitle}
-              </Text>
-            ) : (
-              <View className="flex-1" />
-            )}
+        <Animated.View entering={FadeIn.duration(400)} className="items-center px-4 py-1">
+          <Text display className="text-[28px] text-blue-spruce-800">
+            {APP_NAME}
+          </Text>
+        </Animated.View>
 
-            <View style={{ width: TOOLBAR_SLOT, height: TOOLBAR_SLOT }} />
-          </View>
-        </View>
+        {!intro && headerTitle ? (
+          <Animated.View entering={FadeInDown.duration(320)} className="mt-3 px-6">
+            <Text className="text-center font-sans-bold text-[26px] leading-8 text-neutral-900">
+              {headerTitle}
+            </Text>
+          </Animated.View>
+        ) : null}
 
-        <View
-          className="min-h-0 flex-1 bg-white px-5"
-          style={{
-            borderTopLeftRadius: 32,
-            borderTopRightRadius: 32,
-            borderCurve: 'continuous',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#051f1c',
-                shadowOffset: { width: 0, height: -4 },
-                shadowOpacity: 0.08,
-                shadowRadius: 12,
-              },
-              android: { elevation: 8 },
-            }),
-          }}>
-          <View className="min-h-0 flex-1 pt-6">
+        <View className="min-h-0 flex-1 px-5">
+          <View className="min-h-0 flex-1 pt-3">
             {banner}
             {children}
           </View>
 
-          <View
-            className="border-t border-ash-grey-100 pt-4"
-            style={{ paddingBottom: Math.max(insets.bottom, 12) }}>
-            {footerLayout === 'stacked' ? (
-              <View className="gap-4">
-                <OnboardingStepDots total={totalSteps} current={stepIndex} />
-                {footer}
-              </View>
-            ) : (
-              <View className="flex-row items-center justify-between gap-4">
-                <OnboardingStepDots total={totalSteps} current={stepIndex} />
-                {footer}
-              </View>
-            )}
+          <View style={{ paddingBottom: Math.max(insets.bottom, 16) + 8 }} className="gap-4 pt-3">
+            <OnboardingProgressBar percent={fillPercent} />
+            <View className="flex-row items-center gap-3">
+              {showBack && onBack ? (
+                <Pressable
+                  onPress={onBack}
+                  accessibilityRole="button"
+                  accessibilityLabel="Go back"
+                  className="h-14 w-14 items-center justify-center rounded-2xl border border-ash-grey-200 bg-ash-grey-50 active:opacity-90">
+                  <ArrowLeft width={22} height={22} color="#1f3a56" strokeWidth={2.2} />
+                </Pressable>
+              ) : null}
+              <View className="min-w-0 flex-1">{footer}</View>
+            </View>
           </View>
         </View>
       </View>

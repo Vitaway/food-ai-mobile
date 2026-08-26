@@ -15,6 +15,7 @@ import { ChatDateDivider } from '@/components/chat/ChatDateDivider';
 import { ChatInputBar } from '@/components/chat/ChatInputBar';
 import { ChatThreadHeader } from '@/components/chat/ChatThreadHeader';
 import { chatTheme } from '@/components/chat/chatTheme';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
 import { useAuth } from '@/context/AuthContext';
@@ -212,6 +213,9 @@ export default function ChatThreadScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}>
         <View className="flex-1" style={{ backgroundColor: chatTheme.background }}>
+          <View className="px-3 pb-1 pt-2">
+            <FreePlanBanner compact />
+          </View>
           {loading ? (
             <View className="flex-1 items-center justify-center">
               <ActivityIndicator color={semanticColors.primary} />

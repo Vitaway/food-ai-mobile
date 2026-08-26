@@ -94,7 +94,7 @@ export async function verifyMfaRequest(challengeToken: string, code: string): Pr
 export async function registerRequest(
   email: string,
   password: string,
-  displayName: string,
+  displayName?: string,
   referralCode?: string,
   registrationSource?: 'individual' | 'company' | 'institution',
 ): Promise<AuthResponse> {
@@ -103,7 +103,7 @@ export async function registerRequest(
     body: JSON.stringify({
       email: email.trim(),
       password,
-      displayName: displayName.trim(),
+      ...(displayName?.trim() ? { displayName: displayName.trim() } : {}),
       ...(referralCode?.trim() ? { referralCode: referralCode.trim().toUpperCase() } : {}),
       ...(registrationSource ? { registrationSource } : {}),
     }),

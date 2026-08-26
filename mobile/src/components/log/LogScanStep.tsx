@@ -1,10 +1,10 @@
 import { Image, View } from 'react-native';
 
 import { LogCard } from '@/components/log/LogScreenShell';
-import { ScanFrameOverlay } from '@/components/log/ScanFrameOverlay';
 import { AppTextInput } from '@/components/ui/AppTextInput';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 
 type LogScanStepProps = {
   imageUri: string;
@@ -25,26 +25,22 @@ export function LogScanStep({
   onRetake,
   onContinue,
 }: LogScanStepProps) {
+  const { t } = useI18n();
   const charCount = mealDescription.length;
 
   return (
     <>
-      <View className="overflow-hidden rounded-3xl">
-        <View className="relative h-[260px]">
-          <Image source={{ uri: imageUri }} className="h-full w-full" resizeMode="cover" />
-          <ScanFrameOverlay />
-        </View>
+      <View className="overflow-hidden rounded-3xl bg-ash-grey-100">
+        <Image source={{ uri: imageUri }} className="h-[240px] w-full" resizeMode="cover" />
       </View>
 
       <LogCard>
-        <Text className="font-sans-semibold text-base text-neutral-900">What did you eat?</Text>
-        <Text className="mt-1 text-sm leading-5 text-neutral-500">
-          Optional — portions, sauces, or how it was prepared help your coach review accurately.
-        </Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.log.whatDidYouEat}</Text>
+        <Text className="mt-1 text-sm leading-5 text-neutral-500">{t.log.scanNoteHint}</Text>
         <AppTextInput
           value={mealDescription}
           onChangeText={(text) => onMealDescriptionChange?.(text.slice(0, DESCRIPTION_MAX))}
-          placeholder="e.g. Grilled chicken, rice, and cabbage…"
+          placeholder={t.log.scanNotePlaceholder}
           placeholderTextColor="#9ca3af"
           multiline
           textAlignVertical="top"
@@ -56,14 +52,25 @@ export function LogScanStep({
         </Text>
       </LogCard>
 
-      <View className="gap-3">
-        <Button
-          label={loading ? 'Preparing…' : 'Continue'}
-          variant="primary"
-          onPress={onContinue}
-          disabled={loading}
-        />
-        <Button label="Retake photo" variant="outline" onPress={onRetake} disabled={loading} />
+      <View className="flex-row gap-3">
+        <View className="flex-1">
+          <Button
+            label={t.log.retake}
+            variant="outline"
+            fullWidth
+            onPress={onRetake}
+            disabled={loading}
+          />
+        </View>
+        <View className="flex-1">
+          <Button
+            label={loading ? t.log.preparing : t.log.continue}
+            variant="primary"
+            fullWidth
+            onPress={onContinue}
+            disabled={loading}
+          />
+        </View>
       </View>
     </>
   );

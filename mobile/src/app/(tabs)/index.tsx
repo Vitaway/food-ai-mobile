@@ -10,6 +10,7 @@ import { HomeQuickCategories } from '@/components/home/HomeQuickCategories';
 import { HomeTodaySection } from '@/components/home/HomeTodaySection';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
 import { CoachingFeedCard } from '@/components/home/CoachingFeedCard';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { enteringCard } from '@/components/ui/motion';
 import Animated from 'react-native-reanimated';
 import { isPipelineActive } from '@/constants/mealStatus';
@@ -20,6 +21,7 @@ import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { palette } from '@/design-system/colors';
 import { useMeals } from '@/context/MealsContext';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
@@ -29,6 +31,7 @@ import { formatDayHeading, formatDisplayDate, parseDateKey, todayKey } from '@/u
 import { setLogMealTypeIntent, setLogMethodIntent } from '@/utils/logIntent';
 
 export default function HomeScreen() {
+  const { t } = useI18n();
   const { push } = useNavigateOnce();
   const isFocused = useIsFocused();
   const { meals, refreshMeals } = useMeals();
@@ -85,7 +88,7 @@ export default function HomeScreen() {
     push('/(tabs)/log');
   });
   const onOpenDescribe = useSinglePress(() => {
-    setLogMethodIntent('method');
+    setLogMethodIntent('describe');
     push('/(tabs)/log');
   });
   const onOpenWater = useSinglePress(() => push('/water'));
@@ -135,7 +138,7 @@ export default function HomeScreen() {
       <GradientHeader>
         <View className="flex-row items-start justify-between">
           <View className="flex-1 pr-3">
-            <GradientHeaderTitle>{`Hello, ${firstName}`}</GradientHeaderTitle>
+            <GradientHeaderTitle>{tf(t.home.hello, { name: firstName })}</GradientHeaderTitle>
             <Text className="mt-1 text-base text-white/85">{headerDateLabel}</Text>
           </View>
           <View className="flex-row gap-2">
@@ -177,6 +180,10 @@ export default function HomeScreen() {
           contentContainerStyle={{ paddingBottom: FLOATING_TAB_BAR_CLEARANCE }}
           contentContainerClassName="gap-4">
           <Animated.View entering={enteringCard(0)}>
+            <FreePlanBanner />
+          </Animated.View>
+
+          <Animated.View entering={enteringCard(1)}>
             <HomeQuickCategories
               onScan={() => onOpenScan?.()}
               onBarcode={() => onOpenBarcode?.()}
@@ -185,11 +192,11 @@ export default function HomeScreen() {
             />
           </Animated.View>
 
-          <Animated.View entering={enteringCard(1)}>
+          <Animated.View entering={enteringCard(2)}>
             <CoachingFeedCard />
           </Animated.View>
 
-          <Animated.View entering={enteringCard(2)}>
+          <Animated.View entering={enteringCard(3)}>
             <HomeWaterCard
               waterMl={dashboard.waterMl}
               waterTargetMl={dashboard.waterTargetMl}
@@ -197,7 +204,7 @@ export default function HomeScreen() {
             />
           </Animated.View>
 
-          <Animated.View entering={enteringCard(3)}>
+          <Animated.View entering={enteringCard(4)}>
             <HomeHeroCard
               dashboard={dashboard}
               dayHeading={dayHeading}
@@ -210,7 +217,7 @@ export default function HomeScreen() {
           </Animated.View>
 
           {activePipelineCount > 0 ? (
-            <Animated.View entering={enteringCard(4)}>
+            <Animated.View entering={enteringCard(5)}>
             <Pressable
               onPress={onOpenNotifications}
               className="flex-row items-center gap-3 rounded-2xl bg-white px-4 py-3"
@@ -236,7 +243,7 @@ export default function HomeScreen() {
           ) : null}
 
           <Animated.View
-            entering={enteringCard(5)}
+            entering={enteringCard(6)}
             className="rounded-3xl bg-white p-5"
             style={{
               shadowColor: '#1a1c17',
@@ -248,7 +255,7 @@ export default function HomeScreen() {
             <MacroProgressBars macros={macroBars} embedded />
           </Animated.View>
 
-          <Animated.View entering={enteringCard(6)}>
+          <Animated.View entering={enteringCard(7)}>
             <HomeTodaySection
               title={mealsTitle}
               mealCount={mealCount}

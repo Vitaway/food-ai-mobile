@@ -1,3 +1,5 @@
+import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Image, View } from 'react-native';
 
 import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
@@ -5,7 +7,7 @@ import { IngredientList } from '@/components/log/IngredientList';
 import { MealAiBreakdown } from '@/components/log/MealAiBreakdown';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { Text } from '@/components/ui/Text';
-import { semanticColors } from '@/design-system/colors';
+import { semanticColors, palette } from '@/design-system/colors';
 import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealAnalysisPreview } from '@/types';
 import { formatMacroG } from '@/utils/formatMacro';
@@ -28,6 +30,56 @@ const FLAG_STYLES = {
   red: { bg: 'bg-red-100', text: 'text-red-800' },
 } as const;
 
+function MealHeroPreview({
+  imageUri,
+  mealName,
+  subtitle,
+}: {
+  imageUri?: string;
+  mealName: string;
+  subtitle: string;
+}) {
+  const navy = palette['blue-spruce'];
+
+  return (
+    <View
+      className="overflow-hidden rounded-[28px] bg-white"
+      style={{
+        shadowColor: navy[900],
+        shadowOpacity: 0.08,
+        shadowRadius: 18,
+        shadowOffset: { width: 0, height: 8 },
+        elevation: 3,
+      }}>
+      <View className="relative h-[168px] bg-ash-grey-100">
+        {imageUri ? (
+          <Image source={{ uri: imageUri }} className="h-full w-full" resizeMode="cover" />
+        ) : (
+          <LinearGradient
+            colors={[navy[100], navy[50], '#f7f8f5']}
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+            <Text className="text-5xl">🍽️</Text>
+          </LinearGradient>
+        )}
+        <LinearGradient
+          colors={['transparent', 'rgba(2, 52, 89, 0.72)']}
+          locations={[0.35, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 96 }}
+        />
+        <View className="absolute bottom-0 left-0 right-0 px-4 pb-4">
+          <Text className="font-sans-bold text-[22px] leading-7 text-white" numberOfLines={2}>
+            {mealName}
+          </Text>
+          <View className="mt-1.5 flex-row items-center gap-1.5">
+            <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.85)" />
+            <Text className="text-[13px] text-white/85">{subtitle}</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
 export function LogResultsStep({
   analysis,
   onAnalysisChange,
@@ -38,6 +90,7 @@ export function LogResultsStep({
 }: LogResultsStepProps) {
   const flag = FLAG_STYLES[analysis.healthFlag];
   const showNutrition = !awaitingCoachConfirm && analysis.totalNutrition.caloriesKcal > 0;
+  const navy = palette['blue-spruce'];
 
   const ingredients = analysis.items.map((item) => ({
     id: item.id,
@@ -62,96 +115,101 @@ export function LogResultsStep({
   if (awaitingCoachConfirm) {
     return (
       <>
-        <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/60">
-          <Text className="font-sans-semibold text-sm text-blue-spruce-800">Ready to submit</Text>
-          <Text className="mt-1 text-sm leading-5 text-blue-spruce-700">
-            Pick a meal type, then submit. Your coach will confirm nutrition from your photo and description.
-          </Text>
-        </LogCard>
+        <MealHeroPreview
+          imageUri={imageUri}
+          mealName={analysis.mealName}
+          subtitle="Coach will confirm nutrition after you submit"
+        />
 
-        <LogCard>
-          <View className="flex-row gap-4">
-            {imageUri ? (
-              <Image source={{ uri: imageUri }} className="h-24 w-24 rounded-2xl bg-ash-grey-100" resizeMode="cover" />
-            ) : (
-              <View className="h-24 w-24 items-center justify-center rounded-2xl bg-ash-grey-100">
-                <Text className="text-3xl">🍽️</Text>
-              </View>
-            )}
-            <View className="min-w-0 flex-1 justify-center">
-              <Text className="font-sans-bold text-xl leading-6 text-neutral-900" numberOfLines={2}>
-                {analysis.mealName}
-              </Text>
-              <Text className="mt-1 text-sm text-neutral-500">Waiting for coach review</Text>
-            </View>
+        <View
+          className="flex-row items-start gap-3 rounded-2xl px-3.5 py-3"
+          style={{ backgroundColor: navy[50] }}>
+          <View
+            className="mt-0.5 h-8 w-8 items-center justify-center rounded-full"
+            style={{ backgroundColor: navy[100] }}>
+            <Ionicons name="sparkles-outline" size={16} color={navy[700]} />
           </View>
-        </LogCard>
+          <View className="min-w-0 flex-1">
+            <Text className="font-sans-semibold text-[13px] text-blue-spruce-900">
+              Almost there
+            </Text>
+            <Text className="mt-0.5 text-[12px] leading-4 text-blue-spruce-700">
+              Pick a meal type below, then submit. Your coach reviews the photo and note.
+            </Text>
+          </View>
+        </View>
 
-        <LogCard>
+        <View
+          className="rounded-[24px] bg-white px-4 py-4"
+          style={{
+            borderWidth: 1,
+            borderColor: selectedMealType ? palette['cinnamon-wood'][200] : palette['ash-grey'][100],
+            shadowColor: navy[900],
+            shadowOpacity: 0.04,
+            shadowRadius: 12,
+            shadowOffset: { width: 0, height: 4 },
+            elevation: 1,
+          }}>
           <CompactMealTypePicker selected={selectedMealType} onSelect={onSelectMealType} />
           {!selectedMealType ? (
-            <Text className="mt-2 text-sm text-cinnamon-wood-600">Pick a meal type before submitting.</Text>
-          ) : null}
-        </LogCard>
+            <Text className="mt-3 text-center text-[12px] text-cinnamon-wood-600">
+              Select a meal type to enable submit
+            </Text>
+          ) : (
+            <View className="mt-3 flex-row items-center justify-center gap-1.5">
+              <Ionicons name="checkmark-circle" size={16} color={palette.shamrock[500]} />
+              <Text className="text-[12px] font-sans-semibold text-shamrock-700">
+                Ready to submit
+              </Text>
+            </View>
+          )}
+        </View>
       </>
     );
   }
 
   return (
     <>
-      <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/60">
-        <Text className="font-sans-semibold text-sm text-blue-spruce-800">Almost done</Text>
-        <Text className="mt-1 text-sm leading-5 text-blue-spruce-700">
-          Review the details below, pick a meal type, then tap{' '}
-          <Text className="font-sans-semibold">Submit meal</Text> at the bottom.
-        </Text>
-      </LogCard>
+      <MealHeroPreview
+        imageUri={imageUri}
+        mealName={analysis.mealName}
+        subtitle={
+          showNutrition
+            ? `${analysis.totalWeightG} g · ${analysis.totalNutrition.caloriesKcal} kcal`
+            : 'Review details, then submit'
+        }
+      />
 
       <View className={`rounded-2xl px-4 py-3 ${flag.bg}`}>
         <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
 
-      <LogCard>
-        <View className="flex-row gap-4">
-          {imageUri ? (
-            <Image source={{ uri: imageUri }} className="h-24 w-24 rounded-2xl bg-ash-grey-100" resizeMode="cover" />
-          ) : (
-            <View className="h-24 w-24 items-center justify-center rounded-2xl bg-ash-grey-100">
-              <Text className="text-3xl">🍽️</Text>
-            </View>
-          )}
-          <View className="min-w-0 flex-1 justify-center">
-            <Text className="font-sans-bold text-xl leading-6 text-neutral-900" numberOfLines={2}>
-              {analysis.mealName}
-            </Text>
-            {showNutrition ? (
-              <Text className="mt-1 text-sm text-neutral-500">
-                {analysis.totalWeightG} g · {analysis.totalNutrition.caloriesKcal} kcal
+      {showNutrition ? (
+        <View className="flex-row gap-2">
+          {macroSummary.map((macro) => (
+            <View key={macro.label} className="flex-1 rounded-2xl bg-white px-3 py-2.5">
+              <Text className="text-xs text-neutral-500">{macro.label}</Text>
+              <Text className="mt-0.5 font-sans-bold text-base" style={{ color: macro.color }}>
+                {macro.value}
               </Text>
-            ) : null}
-          </View>
+            </View>
+          ))}
         </View>
+      ) : null}
 
-        {showNutrition ? (
-          <View className="mt-4 flex-row gap-2">
-            {macroSummary.map((macro) => (
-              <View key={macro.label} className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-2.5">
-                <Text className="text-xs text-neutral-500">{macro.label}</Text>
-                <Text className="mt-0.5 font-sans-bold text-base" style={{ color: macro.color }}>
-                  {macro.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-        ) : null}
-      </LogCard>
-
-      <LogCard>
+      <View
+        className="rounded-[24px] bg-white px-4 py-4"
+        style={{
+          borderWidth: 1,
+          borderColor: selectedMealType ? palette['cinnamon-wood'][200] : palette['ash-grey'][100],
+        }}>
         <CompactMealTypePicker selected={selectedMealType} onSelect={onSelectMealType} />
         {!selectedMealType ? (
-          <Text className="mt-2 text-sm text-cinnamon-wood-600">Pick a meal type before submitting.</Text>
+          <Text className="mt-3 text-center text-[12px] text-cinnamon-wood-600">
+            Select a meal type to enable submit
+          </Text>
         ) : null}
-      </LogCard>
+      </View>
 
       {showNutrition ? <MealAiBreakdown analysis={analysis} /> : null}
 

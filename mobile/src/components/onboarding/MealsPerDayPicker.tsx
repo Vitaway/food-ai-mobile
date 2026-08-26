@@ -1,8 +1,6 @@
 import { Pressable, View } from 'react-native';
 
-import { OnboardingStepHero } from '@/components/onboarding/OnboardingStepHero';
 import { Text } from '@/components/ui/Text';
-import { getOnboardingStepHero } from '@/constants/onboardingStepImages';
 import {
   onboardingOptionSubtitle,
   onboardingOptionTitle,
@@ -15,6 +13,8 @@ const MEAL_RHYTHM_META: Record<
   (typeof MEALS_PER_DAY_OPTIONS)[number],
   { label: string; hint: string }
 > = {
+  1: { label: 'OMAD', hint: 'One meal a day' },
+  2: { label: 'Light', hint: 'Two main meals' },
   3: { label: 'Classic', hint: 'Breakfast, lunch & dinner' },
   4: { label: 'Steady', hint: 'Three meals plus a snack' },
   5: { label: 'Active', hint: 'More frequent fueling' },
@@ -23,13 +23,13 @@ const MEAL_RHYTHM_META: Record<
 
 function MealDots({ count, selected }: { count: number; selected: boolean }) {
   return (
-    <View className="mt-3 flex-row justify-center gap-1.5">
+    <View className="mt-3 flex-row flex-wrap justify-center gap-1">
       {Array.from({ length: count }, (_, index) => (
         <View
           key={index}
           style={{
-            width: 8,
-            height: 8,
+            width: 7,
+            height: 7,
             borderRadius: 999,
             backgroundColor: selected ? palette['cinnamon-wood'][400] : palette['ash-grey'][300],
           }}
@@ -42,10 +42,10 @@ function MealDots({ count, selected }: { count: number; selected: boolean }) {
 type MealsPerDayPickerProps = {
   value: number;
   onChange: (count: number) => void;
-  sex: UserSex;
+  sex?: UserSex;
 };
 
-export function MealsPerDayPicker({ value, onChange, sex }: MealsPerDayPickerProps) {
+export function MealsPerDayPicker({ value, onChange }: MealsPerDayPickerProps) {
   return (
     <View>
       <View className="flex-row flex-wrap gap-3">
@@ -58,7 +58,7 @@ export function MealsPerDayPicker({ value, onChange, sex }: MealsPerDayPickerPro
               key={count}
               onPress={() => onChange(count)}
               style={{ width: '47%' }}
-              className={`rounded-3xl border px-4 py-4 ${
+              className={`rounded-3xl border px-3 py-3.5 ${
                 selected
                   ? 'border-cinnamon-wood-400 bg-cinnamon-wood-50'
                   : 'border-ash-grey-200 bg-white'
@@ -68,7 +68,7 @@ export function MealsPerDayPicker({ value, onChange, sex }: MealsPerDayPickerPro
                 {count}
               </Text>
               <Text className={`text-center text-sm font-sans-medium ${onboardingOptionTitle(selected, 'orange')}`}>
-                meals
+                {count === 1 ? 'meal' : 'meals'}
               </Text>
               <MealDots count={count} selected={selected} />
               <Text
@@ -82,8 +82,6 @@ export function MealsPerDayPicker({ value, onChange, sex }: MealsPerDayPickerPro
           );
         })}
       </View>
-
-      <OnboardingStepHero source={getOnboardingStepHero('habits', sex)} placement="below" />
     </View>
   );
 }

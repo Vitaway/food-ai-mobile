@@ -1,37 +1,36 @@
-import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 
-import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
 import { useAuth } from '@/context/AuthContext';
-import { useToast } from '@/context/ToastContext';
+import { useProfile } from '@/context/ProfileContext';
+import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
 import { onSubscriptionRequired } from '@/lib/subscriptionEvents';
 
 /**
- * When product APIs return 403 subscription-required, refresh access + paywall.
+ * Quietly syncs subscription access when APIs return 403.
+ * Does NOT toast or navigate — freemium only shows paywall when the user
+ * intentionally tries a paid action (see useRequirePaid).
  */
 export function SubscriptionGate() {
-  const router = useRouter();
-  const toast = useToast();
   const { isCoach } = useAuth();
+  const { hasCompletedOnboarding } = useProfile();
   const { refreshSubscriptionAccess } = useSubscriptionAccess();
   const lastAt = useRef(0);
+  const onboardedRef = useRef(hasCompletedOnboarding);
+  onboardedRef.current = hasCompletedOnboarding;
 
   useEffect(() => {
     if (isCoach) return;
-    const unsubscribe = onSubscriptionRequired((message) => {
+    const unsubscribe = onSubscriptionRequired(() => {
+      if (!onboardedRef.current) return;
       const now = Date.now();
       if (now - lastAt.current < 2500) return;
       lastAt.current = now;
-      void refreshSubscriptionAccess().then((allowed) => {
-        if (allowed) return;
-        toast.error(message || 'An active subscription is required.', 'Subscription needed');
-        router.replace('/profile/subscription');
-      });
+      void refreshSubscriptionAccess();
     });
     return () => {
       unsubscribe();
     };
-  }, [isCoach, router, toast, refreshSubscriptionAccess]);
+  }, [isCoach, refreshSubscriptionAccess]);
 
   return null;
 }

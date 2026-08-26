@@ -8,6 +8,7 @@ import { HealthScoreBreakdownCard } from '@/components/home/HealthScoreBreakdown
 import { HealthScoreTrendChart } from '@/components/home/HealthScoreTrendChart';
 import { MacroProgressBars } from '@/components/home/MacroProgressBars';
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
+import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Button } from '@/components/ui/Button';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
@@ -130,6 +131,8 @@ export default function HealthProfileScreen() {
 
       <StackScreenBody>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerClassName="gap-4 px-5 pb-10 pt-5">
+          <FreePlanBanner />
+
           <HealthWeekStrip
             selectedDate={selectedDate}
             onSelectDate={setSelectedDate}

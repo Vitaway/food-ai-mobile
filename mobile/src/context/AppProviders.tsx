@@ -10,6 +10,8 @@ import { MealsProvider } from '@/context/MealsContext';
 import { SubscriptionAccessProvider } from '@/context/SubscriptionAccessContext';
 import { CoachQueueRealtimeProvider } from '@/context/CoachQueueRealtimeContext';
 import { ToastProvider } from '@/context/ToastContext';
+import { ConfirmDialogProvider } from '@/context/ConfirmDialogContext';
+import { LocaleProvider } from '@/context/LocaleContext';
 import { IconoirProviderRoot } from '@/components/ui/IconoirIcon';
 import { createContext, useContext, type PropsWithChildren } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
@@ -23,26 +25,30 @@ export function AppProviders({ children }: PropsWithChildren) {
       <SafeAreaProvider>
         <IconoirProviderRoot>
           <ToastProvider>
-            <AuthProvider>
-              <SubscriptionAccessProvider>
-                <NotificationProvider>
-                  <ChatProvider>
-                    <ProfileProvider>
-                      <MealsProvider>
-                        <NotificationMealSync />
-                        <PushNotificationSetup />
-                        <LiveToastBridge />
-                        <CoachQueueRealtimeProvider>
-                          <SubscriptionGate />
-                          <NotificationCoachQueueSync />
-                          <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
-                        </CoachQueueRealtimeProvider>
-                      </MealsProvider>
-                    </ProfileProvider>
-                  </ChatProvider>
-                </NotificationProvider>
-              </SubscriptionAccessProvider>
-            </AuthProvider>
+            <LocaleProvider>
+            <ConfirmDialogProvider>
+              <AuthProvider>
+                <SubscriptionAccessProvider>
+                  <NotificationProvider>
+                    <ChatProvider>
+                      <ProfileProvider>
+                        <MealsProvider>
+                          <NotificationMealSync />
+                          <PushNotificationSetup />
+                          <LiveToastBridge />
+                          <CoachQueueRealtimeProvider>
+                            <SubscriptionGate />
+                            <NotificationCoachQueueSync />
+                            <AppContext.Provider value={{ ready: true }}>{children}</AppContext.Provider>
+                          </CoachQueueRealtimeProvider>
+                        </MealsProvider>
+                      </ProfileProvider>
+                    </ChatProvider>
+                  </NotificationProvider>
+                </SubscriptionAccessProvider>
+              </AuthProvider>
+            </ConfirmDialogProvider>
+            </LocaleProvider>
           </ToastProvider>
         </IconoirProviderRoot>
       </SafeAreaProvider>

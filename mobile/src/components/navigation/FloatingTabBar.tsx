@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { palette } from '@/design-system/colors';
 
 export type FloatingTabBarProps = {
@@ -26,20 +27,13 @@ export type FloatingTabBarProps = {
   queueWaitingCount?: number;
 };
 
-const TAB_CONFIG: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  index: { icon: 'home-outline', label: 'Home' },
-  queue: { icon: 'clipboard-outline', label: 'Queue' },
-  log: { icon: 'add', label: 'Log' },
-  chat: { icon: 'chatbubbles-outline', label: 'Chat' },
-  profile: { icon: 'person-outline', label: 'Profile' },
-  clients: { icon: 'people-outline', label: 'Clients' },
-};
-
-const COACH_TAB_LABELS: Record<string, { icon: keyof typeof Ionicons.glyphMap; label: string }> = {
-  index: { icon: 'home-outline', label: 'Home' },
-  queue: { icon: 'clipboard-outline', label: 'Queue' },
-  clients: { icon: 'people-outline', label: 'Clients' },
-  profile: { icon: 'person-outline', label: 'Profile' },
+const TAB_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  index: 'home-outline',
+  queue: 'clipboard-outline',
+  log: 'add',
+  chat: 'chatbubbles-outline',
+  profile: 'person-outline',
+  clients: 'people-outline',
 };
 
 const ACTIVE_ICON = palette['blue-spruce'][800];
@@ -54,13 +48,29 @@ export function FloatingTabBar({
   chatUnreadCount = 0,
   queueWaitingCount = 0,
 }: FloatingTabBarProps) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const bottomOffset = Math.max(insets.bottom - 4, 10);
   const isCoachBar = state.routes.some((route) => route.name === 'clients');
   const visibleRoutes = state.routes.filter((route) => {
     if (route.name === 'chat' && isCoachBar) return false;
-    return route.name in TAB_CONFIG || route.name in COACH_TAB_LABELS;
+    return route.name in TAB_ICONS;
   });
+
+  const labelFor = (routeName: string): string => {
+    if (isCoachBar) {
+      if (routeName === 'index') return t.tabs.home;
+      if (routeName === 'queue') return 'Queue';
+      if (routeName === 'clients') return 'Clients';
+      if (routeName === 'profile') return t.tabs.profile;
+      return routeName;
+    }
+    if (routeName === 'index') return t.tabs.home;
+    if (routeName === 'log') return t.tabs.log;
+    if (routeName === 'chat') return t.tabs.chat;
+    if (routeName === 'profile') return t.tabs.profile;
+    return routeName;
+  };
 
   const formatBadge = (count: number) => (count > 9 ? '9+' : String(count));
 
@@ -96,8 +106,8 @@ export function FloatingTabBar({
         {visibleRoutes.map((route) => {
           const routeIndex = state.routes.findIndex((entry) => entry.key === route.key);
           const isFocused = state.index === routeIndex;
-          const override = isCoachBar ? COACH_TAB_LABELS[route.name] : undefined;
-          const config = override ?? TAB_CONFIG[route.name] ?? { icon: 'ellipse-outline' as const, label: route.name };
+          const icon = TAB_ICONS[route.name] ?? 'ellipse-outline';
+          const label = labelFor(route.name);
 
           const onPress = () => {
             const event = navigation.emit({
@@ -125,12 +135,12 @@ export function FloatingTabBar({
               key={route.key}
               onPress={onPress}
               accessibilityRole="button"
-              accessibilityLabel={config.label}
+              accessibilityLabel={label}
               accessibilityState={isFocused ? { selected: true } : {}}
               style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
               {isFocused ? (
                 <View
-                  className="relative flex-row items-center gap-2 rounded-full bg-white px-4 py-2.5"
+                  className="relative max-w-full flex-row items-center gap-1.5 rounded-full bg-white px-2.5 py-2"
                   style={Platform.select({
                     ios: {
                       shadowColor: '#1a1c17',
@@ -140,12 +150,14 @@ export function FloatingTabBar({
                     },
                     android: { elevation: 4 },
                   })}>
-                  <Ionicons
-                    name={config.icon}
-                    size={config.icon === 'add' ? 22 : 20}
-                    color={ACTIVE_ICON}
-                  />
-                  <Text className="font-sans-semibold text-sm text-neutral-900">{config.label}</Text>
+                  <Ionicons name={icon} size={icon === 'add' ? 20 : 18} color={ACTIVE_ICON} />
+                  <Text
+                    className="shrink font-sans-semibold text-[11px] leading-[14px] text-neutral-900"
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.75}>
+                    {label}
+                  </Text>
                   {showQueueBadge ? (
                     <View className="absolute -right-1 -top-1 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">{queueBadgeLabel}</Text>
@@ -166,11 +178,7 @@ export function FloatingTabBar({
                 </View>
               ) : (
                 <View className="h-11 w-11 items-center justify-center rounded-full bg-white/15">
-                  <Ionicons
-                    name={config.icon}
-                    size={config.icon === 'add' ? 24 : 22}
-                    color={INACTIVE_ICON}
-                  />
+                  <Ionicons name={icon} size={icon === 'add' ? 24 : 22} color={INACTIVE_ICON} />
                   {showQueueBadge ? (
                     <View className="absolute -right-0.5 -top-0.5 min-h-[18px] min-w-[18px] items-center justify-center rounded-full bg-cinnamon-wood-500 px-1">
                       <Text className="font-sans-bold text-[10px] text-white">{queueBadgeLabel}</Text>

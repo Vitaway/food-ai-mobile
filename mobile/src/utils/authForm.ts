@@ -5,16 +5,8 @@ export function isValidEmail(email: string): boolean {
 }
 
 export function isRegisterFormValid(fields: {
-  displayName: string;
   email: string;
   password: string;
-  confirmPassword: string;
 }): boolean {
-  return (
-    fields.displayName.trim().length > 0 &&
-    isValidEmail(fields.email) &&
-    isPasswordAcceptable(fields.password) &&
-    fields.confirmPassword.length > 0 &&
-    fields.password === fields.confirmPassword
-  );
+  return isValidEmail(fields.email) && isPasswordAcceptable(fields.password);
 }

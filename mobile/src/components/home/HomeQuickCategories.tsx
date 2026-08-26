@@ -3,6 +3,7 @@ import type { ComponentProps } from 'react';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 
 type Category = {
@@ -22,11 +23,40 @@ type HomeQuickCategoriesProps = {
 };
 
 export function HomeQuickCategories({ onScan, onBarcode, onDescribe, onWater }: HomeQuickCategoriesProps) {
+  const { t } = useI18n();
   const categories: Category[] = [
-    { id: 'scan', label: 'Scan', icon: 'camera-outline', color: '#1D9E75', bgClass: 'bg-shamrock-50', onPress: onScan },
-    { id: 'barcode', label: 'Barcode', icon: 'barcode-outline', color: '#f97316', bgClass: 'bg-cinnamon-wood-50', onPress: onBarcode },
-    { id: 'text', label: 'Describe', icon: 'create-outline', color: '#023459', bgClass: 'bg-blue-spruce-50', onPress: onDescribe },
-    { id: 'water', label: 'Water', icon: 'water-outline', color: semanticColors.accentOrange, bgClass: 'bg-cinnamon-wood-50', onPress: onWater },
+    {
+      id: 'scan',
+      label: t.home.quickScan,
+      icon: 'camera-outline',
+      color: '#1D9E75',
+      bgClass: 'bg-shamrock-50',
+      onPress: onScan,
+    },
+    {
+      id: 'barcode',
+      label: t.home.quickBarcode,
+      icon: 'barcode-outline',
+      color: '#f97316',
+      bgClass: 'bg-cinnamon-wood-50',
+      onPress: onBarcode,
+    },
+    {
+      id: 'text',
+      label: t.home.quickDescribe,
+      icon: 'create-outline',
+      color: '#023459',
+      bgClass: 'bg-blue-spruce-50',
+      onPress: onDescribe,
+    },
+    {
+      id: 'water',
+      label: t.home.quickWater,
+      icon: 'water-outline',
+      color: semanticColors.accentOrange,
+      bgClass: 'bg-cinnamon-wood-50',
+      onPress: onWater,
+    },
   ];
 
   return (

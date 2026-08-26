@@ -251,6 +251,14 @@ export async function fetchFamilySubscription() {
     planCode: string;
     status: string;
     members: Array<{ userId: string; displayName: string; email: string; role: string }>;
+    pendingInvites?: Array<{
+      id: string;
+      email: string;
+      status: string;
+      expiresAt: string;
+      createdAt: string;
+    }>;
+    seatLimit?: number;
   } | null>('/consumer/subscription/family');
 }
 
@@ -259,9 +267,38 @@ export async function activateFamilySubscription() {
 }
 
 export async function addFamilyMember(email: string) {
-  return apiRequest('/consumer/subscription/family/members', {
+  return apiRequest<{
+    action?: 'added' | 'invited';
+    members?: Array<{ userId: string; displayName: string; email: string; role: string }>;
+    pendingInvites?: Array<{
+      id: string;
+      email: string;
+      status: string;
+      expiresAt: string;
+      createdAt: string;
+    }>;
+  }>('/consumer/subscription/family/members', {
     method: 'POST',
     body: JSON.stringify({ email }),
+  });
+}
+
+export async function resendFamilyInvite(inviteId: string) {
+  return apiRequest(`/consumer/subscription/family/invites/${encodeURIComponent(inviteId)}/resend`, {
+    method: 'POST',
+  });
+}
+
+export async function revokeFamilyInvite(inviteId: string) {
+  return apiRequest(`/consumer/subscription/family/invites/${encodeURIComponent(inviteId)}`, {
+    method: 'DELETE',
+  });
+}
+
+export async function acceptFamilyInvite(token: string) {
+  return apiRequest('/consumer/subscription/family/invites/accept', {
+    method: 'POST',
+    body: JSON.stringify({ token }),
   });
 }
 
@@ -528,6 +565,13 @@ export type ReferralInfo = {
 
 export async function fetchReferralInfo(): Promise<ReferralInfo> {
   return apiRequest<ReferralInfo>('/consumer/referral');
+}
+
+export async function applyReferralCode(code: string): Promise<ReferralInfo> {
+  return apiRequest<ReferralInfo>('/consumer/referral/apply', {
+    method: 'POST',
+    body: JSON.stringify({ code: code.trim().toUpperCase() }),
+  });
 }
 
 export type CoachingFeedItem = {

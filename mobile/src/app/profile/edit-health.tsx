@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { Alert, Pressable, ScrollView, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 
 import { HealthGoalPicker } from '@/components/onboarding/HealthGoalPicker';
 import { MealsPerDayPicker } from '@/components/onboarding/MealsPerDayPicker';
@@ -24,6 +24,7 @@ import {
   DIETARY_PREFERENCES,
   GOAL_PACE_OPTIONS,
 } from '@/constants/profileOptions';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useToast } from '@/context/ToastContext';
 import type { ActivityLevel, GoalPace, HealthGoal, UserSex } from '@/types';
@@ -69,6 +70,7 @@ export default function EditHealthProfileScreen() {
   const router = useRouter();
   const { step: stepParam } = useLocalSearchParams<{ step?: string }>();
   const toast = useToast();
+  const { alert } = useConfirmDialog();
   const { profile, updateHealthProfile } = useProfile();
 
   const [stepIndex, setStepIndex] = useState(0);
@@ -138,7 +140,10 @@ export default function EditHealthProfileScreen() {
 
   const goNext = () => {
     if (step === 'about' && !hasValidDateOfBirth) {
-      Alert.alert('Date of birth required', 'Enter a valid date of birth before continuing.');
+      void alert({
+        title: 'Date of birth required',
+        message: 'Enter a valid date of birth before continuing.',
+      });
       return;
     }
     if (stepIndex < STEPS.length - 1) {
@@ -157,7 +162,10 @@ export default function EditHealthProfileScreen() {
   const handleSave = async (options?: { andClose?: boolean }): Promise<boolean> => {
     if (saving) return false;
     if (!hasValidDateOfBirth) {
-      Alert.alert('Date of birth required', 'Enter a valid date of birth before saving.');
+      await alert({
+        title: 'Date of birth required',
+        message: 'Enter a valid date of birth before saving.',
+      });
       return false;
     }
     setSaving(true);
@@ -182,7 +190,10 @@ export default function EditHealthProfileScreen() {
       }
       return true;
     } catch (error) {
-      Alert.alert('Could not save', getApiErrorMessage(error, 'Please try again.'));
+      await alert({
+        title: 'Could not save',
+        message: getApiErrorMessage(error, 'Please try again.'),
+      });
       return false;
     } finally {
       setSaving(false);
@@ -370,11 +381,9 @@ export default function EditHealthProfileScreen() {
   return (
     <OnboardingShell
       headerTitle={STEP_META[step].title}
-      stepIndex={stepIndex}
-      totalSteps={STEPS.length}
+      fillPercent={Math.round(((stepIndex + 1) / STEPS.length) * 100)}
       showBack
       onBack={goBack}
-      footerLayout="stacked"
       footer={
         <EditHealthActionBar
           isLastStep={isLastStep}

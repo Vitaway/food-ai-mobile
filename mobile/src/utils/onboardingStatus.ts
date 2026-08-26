@@ -5,6 +5,8 @@ type ProfileLike = Partial<UserProfile> | Record<string, unknown>;
 /** True when health targets were saved; even if onboardingComplete was never persisted. */
 export function deriveOnboardingComplete(profile: ProfileLike | null | undefined): boolean {
   if (!profile || typeof profile !== 'object') return false;
+  // Explicit false = still in onboarding (draft saves).
+  if (profile.onboardingComplete === false) return false;
   if (profile.onboardingComplete === true) return true;
 
   const age = profile.age;

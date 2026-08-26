@@ -55,7 +55,7 @@ type AuthContextValue = {
   register: (
     email: string,
     password: string,
-    displayName: string,
+    displayName?: string,
     referralCode?: string,
     registrationSource?: 'individual' | 'company' | 'institution',
   ) => Promise<void>;
@@ -273,7 +273,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
     async (
       email: string,
       password: string,
-      displayName: string,
+      displayName?: string,
       referralCode?: string,
       registrationSource?: 'individual' | 'company' | 'institution',
     ) => {

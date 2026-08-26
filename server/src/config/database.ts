@@ -28,6 +28,7 @@ import { SubscriptionPlan } from "../modules/payments/subscription-plan.entity";
 import { PaymentTransaction } from "../modules/payments/payment-transaction.entity";
 import { ReportSnapshot } from "../modules/reports/report-snapshot.entity";
 import { FamilySubscriptionMember } from "../modules/payments/family-subscription-member.entity";
+import { FamilySubscriptionInvite } from "../modules/payments/family-subscription-invite.entity";
 import { Organization } from "../modules/payments/organization.entity";
 import { ConsumerClinicalAssessment } from "../modules/consumers/clinical-assessment.entity";
 import { ConsumerWaterLog } from "../modules/consumers/water-log.entity";
@@ -62,6 +63,7 @@ export const AppDataSource = new DataSource({
     SubscriptionPlan,
     PaymentTransaction,
     FamilySubscriptionMember,
+    FamilySubscriptionInvite,
     Organization,
     ReportSnapshot,
     AdminAuditLog,

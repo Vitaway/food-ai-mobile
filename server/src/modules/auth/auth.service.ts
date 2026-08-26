@@ -21,6 +21,7 @@ import type {
 } from "./auth.dto";
 import { verifyAppleIdentityToken } from "../../services/apple-identity.client";
 import { verifyGoogleIdentityToken } from "../../services/google-identity.client";
+import { familySubscriptionService } from "../payments/family.service";
 import {
   createPasswordResetOtp,
   findLatestOpenOtp,
@@ -216,11 +217,18 @@ export const authService = {
       ? "referral"
       : dto.registrationSource ?? "individual";
 
+    const emailLocal = email.split("@")[0]?.trim() || "MiraFood member";
+    const rawName =
+      dto.displayName?.trim() ||
+      emailLocal.replace(/[._+-]+/g, " ").replace(/\s+/g, " ").trim() ||
+      "MiraFood member";
+    const displayName = rawName.slice(0, 255);
+
     const user = usersRepository.create({
       email,
       passwordHash,
       role: "consumer",
-      displayName: dto.displayName.trim(),
+      displayName,
       avatarUrl: null,
       isActive: true,
       referralCode,
@@ -264,6 +272,12 @@ export const authService = {
       });
     } catch (err) {
       logger.error({ err, email: user.email }, "Failed to send welcome email");
+    }
+
+    try {
+      await familySubscriptionService.acceptPendingInvitesForUser(user.id, user.email);
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "Failed to accept pending family invites after register");
     }
 
     const session = await createSession(user.id, req);
@@ -376,6 +390,12 @@ export const authService = {
       throw new BadRequestError(
         "Coach and staff accounts must sign in with email and password.",
       );
+    }
+
+    try {
+      await familySubscriptionService.acceptPendingInvitesForUser(user.id, user.email);
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "Failed to accept pending family invites after Apple sign-in");
     }
 
     const session = await createSession(user.id, req);
@@ -491,6 +511,12 @@ export const authService = {
       );
     }
 
+    try {
+      await familySubscriptionService.acceptPendingInvitesForUser(user.id, user.email);
+    } catch (err) {
+      logger.warn({ err, userId: user.id }, "Failed to accept pending family invites after Google sign-in");
+    }
+
     const session = await createSession(user.id, req);
     const token = signAuthToken({
       sub: user.id,
@@ -578,6 +604,14 @@ export const authService = {
       sid: session.id,
       role: user.role,
     });
+
+    if (!isStaffRole(user.role)) {
+      try {
+        await familySubscriptionService.acceptPendingInvitesForUser(user.id, user.email);
+      } catch (err) {
+        logger.warn({ err, userId: user.id }, "Failed to accept pending family invites after login");
+      }
+    }
 
     const result: LoginResult = {
       token,

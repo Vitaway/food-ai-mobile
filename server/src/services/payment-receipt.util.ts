@@ -69,9 +69,15 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
     const boxTop = 180;
     doc.roundedRect(48, boxTop, 500, 210, 8).strokeColor("#ced0c8").lineWidth(1).stroke();
 
+    const primaryLabel =
+      input.invoiceNumber && input.invoiceNumber === input.receiptNumber ? "Invoice" : "Receipt";
     const rows: Array<[string, string]> = [
-      ["Receipt", input.receiptNumber],
-      ["Invoice", input.invoiceNumber ?? "—"],
+      [primaryLabel, input.receiptNumber],
+    ];
+    if (input.invoiceNumber && input.invoiceNumber !== input.receiptNumber) {
+      rows.push(["Invoice", input.invoiceNumber]);
+    }
+    rows.push(
       ["Reference", input.externalRef],
       ["Customer", input.customerName || input.customerEmail],
       ["Email", input.customerEmail],
@@ -80,7 +86,7 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
       ["Paid at", input.paidAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })],
       ["Access until", input.renewsOn ? new Date(input.renewsOn).toLocaleDateString("en-GB") : "—"],
       ["Method", input.paymentMethod?.trim() || "IremboPay"],
-    ];
+    );
 
     let y = boxTop + 18;
     for (const [label, value] of rows) {

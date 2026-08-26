@@ -4,6 +4,10 @@ type ConsumerProfileJson = Record<string, unknown>;
 export function deriveOnboardingComplete(profile: ConsumerProfileJson | null | undefined): boolean {
   if (!profile || typeof profile !== "object") return false;
 
+  // Explicit false = still in onboarding (draft saves). Do not auto-complete.
+  if (profile.onboardingComplete === false) return false;
+  if (profile.onboardingComplete === true) return true;
+
   const age = profile.age;
   const heightCm = profile.heightCm;
   const weightKg = profile.weightKg;
@@ -50,7 +54,11 @@ export async function backfillOnboardingComplete(
   profile: ConsumerProfileJson,
   save: (next: ConsumerProfileJson) => Promise<void>,
 ): Promise<ConsumerProfileJson> {
-  if (!deriveOnboardingComplete(profile) || profile.onboardingComplete === true) {
+  // Never override an explicit in-progress draft.
+  if (profile.onboardingComplete === false || profile.onboardingComplete === true) {
+    return profile;
+  }
+  if (!deriveOnboardingComplete(profile)) {
     return profile;
   }
 
