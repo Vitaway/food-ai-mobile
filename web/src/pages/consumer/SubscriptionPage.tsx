@@ -100,7 +100,7 @@ export function ConsumerSubscriptionPage() {
                     const href = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = href;
-                    a.download = `mirafood-receipt-${row.id.slice(0, 8)}.pdf`;
+                    a.download = `${(row.invoiceNumber || row.externalRef || row.id).replace(/[^\w.-]+/g, '_').slice(0, 40)}.pdf`;
                     a.click();
                     URL.revokeObjectURL(href);
                   })

@@ -128,11 +128,14 @@ async function sendPaymentReceiptForTx(
   const user = await usersRepository.findById(subscription.userId);
   if (!user?.email) return;
 
+  const invoiceNumber =
+    typeof payload.invoiceNumber === "string" && payload.invoiceNumber.trim()
+      ? payload.invoiceNumber.trim()
+      : null;
   const receiptNumber =
+    invoiceNumber ||
     (typeof payload.receiptNumber === "string" && payload.receiptNumber) ||
     `MF-RCPT-${tx.externalRef.replace(/^MF-/, "").slice(0, 16)}`;
-  const invoiceNumber =
-    typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : null;
   const amount = Number(tx.amount) || Number(payload.amount) || 0;
   const paidAt = tx.processedAt ?? new Date();
 
@@ -406,7 +409,12 @@ export const paymentsService = {
       "individual_monthly";
     const plan =
       (await subscriptionPlansService.getByCode(planCode)) ?? getPlanByCode(planCode);
+    const invoiceNumber =
+      typeof payload.invoiceNumber === "string" && payload.invoiceNumber.trim()
+        ? payload.invoiceNumber.trim()
+        : null;
     const receiptNumber =
+      invoiceNumber ||
       (typeof payload.receiptNumber === "string" && payload.receiptNumber) ||
       `MF-RCPT-${tx.externalRef.replace(/^MF-/, "").slice(0, 16)}`;
     const sub = tx.subscriptionId
@@ -415,8 +423,7 @@ export const paymentsService = {
 
     const buffer = await buildPaymentReceiptPdf({
       receiptNumber,
-      invoiceNumber:
-        typeof payload.invoiceNumber === "string" ? payload.invoiceNumber : null,
+      invoiceNumber,
       externalRef: tx.externalRef,
       customerName: user.displayName?.trim() || user.email.split("@")[0] || "Customer",
       customerEmail: user.email,
