@@ -1,7 +1,6 @@
 import type { MealSubmission } from '@/types';
 import { todayKey, toLocalDateKey } from '@/utils/dates';
 import type { NotificationSettings } from '@/services/local/notificationPreferences';
-import { isQuietHours } from '@/services/local/notificationPreferences';
 
 export type LocalNudge = {
   id: string;
@@ -56,8 +55,6 @@ export function buildLocalNudges({
   settings: NotificationSettings;
   now?: Date;
 }): LocalNudge[] {
-  if (isQuietHours(settings, now)) return [];
-
   const hour = now.getHours();
   const today = todayKey();
   const approvedToday = approvedOnDate(meals, today);
