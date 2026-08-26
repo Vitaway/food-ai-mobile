@@ -3,69 +3,13 @@ import type { ComponentProps } from 'react';
 import { Image, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { LogCard } from '@/components/log/LogScreenShell';
 import { AnimatedScalePressable, enteringCard } from '@/components/ui/motion';
 import { Text } from '@/components/ui/Text';
 import { LOG_METHOD_IMAGES } from '@/constants/logMethodImages';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 
 export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past' | 'barcode';
-
-const METHODS: Array<{
-  id: LogMethodId;
-  title: string;
-  subtitle: string;
-  icon: ComponentProps<typeof Ionicons>['name'];
-  tintClass: string;
-  iconColor: string;
-  image: number;
-}> = [
-  {
-    id: 'camera',
-    title: 'Scan your plate',
-    subtitle: 'Opens camera right away — meal type comes later',
-    icon: 'camera-outline',
-    tintClass: 'bg-shamrock-50',
-    iconColor: '#1D9E75',
-    image: LOG_METHOD_IMAGES.camera,
-  },
-  {
-    id: 'gallery',
-    title: 'From gallery',
-    subtitle: 'Pick a photo and add an optional note for your coach',
-    icon: 'images-outline',
-    tintClass: 'bg-blue-spruce-50',
-    iconColor: '#023459',
-    image: LOG_METHOD_IMAGES.gallery,
-  },
-  {
-    id: 'text',
-    title: 'Describe it',
-    subtitle: 'Type what you ate in your own words',
-    icon: 'create-outline',
-    tintClass: 'bg-blue-spruce-50',
-    iconColor: '#023459',
-    image: LOG_METHOD_IMAGES.text,
-  },
-  {
-    id: 'barcode',
-    title: 'Scan barcode',
-    subtitle: 'Live camera lookup on Open Food Facts',
-    icon: 'barcode-outline',
-    tintClass: 'bg-shamrock-50',
-    iconColor: '#1D9E75',
-    image: LOG_METHOD_IMAGES.gallery,
-  },
-  {
-    id: 'past',
-    title: 'Repeat a meal',
-    subtitle: 'Pick a past meal and log it again',
-    icon: 'time-outline',
-    tintClass: 'bg-cinnamon-wood-50',
-    iconColor: semanticColors.accentOrange,
-    image: LOG_METHOD_IMAGES.past,
-  },
-];
 
 type LogMethodStepProps = {
   loading?: boolean;
@@ -73,16 +17,67 @@ type LogMethodStepProps = {
 };
 
 export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStepProps) {
+  const { t } = useI18n();
+
+  const methods: Array<{
+    id: LogMethodId;
+    title: string;
+    subtitle: string;
+    icon: ComponentProps<typeof Ionicons>['name'];
+    tintClass: string;
+    iconColor: string;
+    image: number;
+  }> = [
+    {
+      id: 'camera',
+      title: t.log.methodScan,
+      subtitle: t.log.methodScanHint,
+      icon: 'camera-outline',
+      tintClass: 'bg-shamrock-50',
+      iconColor: '#1D9E75',
+      image: LOG_METHOD_IMAGES.camera,
+    },
+    {
+      id: 'gallery',
+      title: t.log.methodGallery,
+      subtitle: t.log.methodGalleryHint,
+      icon: 'images-outline',
+      tintClass: 'bg-blue-spruce-50',
+      iconColor: '#023459',
+      image: LOG_METHOD_IMAGES.gallery,
+    },
+    {
+      id: 'text',
+      title: t.log.methodDescribe,
+      subtitle: t.log.methodDescribeHint,
+      icon: 'create-outline',
+      tintClass: 'bg-blue-spruce-50',
+      iconColor: '#023459',
+      image: LOG_METHOD_IMAGES.text,
+    },
+    {
+      id: 'barcode',
+      title: t.log.methodBarcode,
+      subtitle: t.log.methodBarcodeHint,
+      icon: 'barcode-outline',
+      tintClass: 'bg-shamrock-50',
+      iconColor: '#1D9E75',
+      image: LOG_METHOD_IMAGES.gallery,
+    },
+    {
+      id: 'past',
+      title: t.log.methodRepeat,
+      subtitle: t.log.methodRepeatHint,
+      icon: 'time-outline',
+      tintClass: 'bg-cinnamon-wood-50',
+      iconColor: semanticColors.accentOrange,
+      image: LOG_METHOD_IMAGES.past,
+    },
+  ];
+
   return (
     <View className="gap-3">
-      <LogCard className="border border-blue-spruce-100 bg-blue-spruce-50/40">
-        <Text className="font-sans-semibold text-lg text-neutral-900">Log a meal</Text>
-        <Text className="mt-1 text-sm leading-5 text-neutral-600">
-          Tap a method below. You can log as many meals as you want today — no fixed slots.
-        </Text>
-      </LogCard>
-
-      {METHODS.map((method, index) => (
+      {methods.map((method, index) => (
         <Animated.View key={method.id} entering={enteringCard(index)}>
           <AnimatedScalePressable
             disabled={loading}

@@ -18,11 +18,11 @@ import { BarcodeViewfinder } from '@/components/log/BarcodeViewfinder';
 import { PackagedProductCard } from '@/components/log/PackagedProductCard';
 import { Text } from '@/components/ui/Text';
 import { APP_LOGO } from '@/constants/brand';
-import type { MealAnalysisPreview } from '@/types';
 import {
+  cartKeyForFood,
   lookupNutritionBarcode,
-  mealAnalysisFromNutritionFood,
   searchPackagedProducts,
+  type BarcodeCartItem,
   type NutritionFoodLookup,
 } from '@/services/remote/nutritionApi';
 import {
@@ -33,34 +33,32 @@ import {
 } from '@/utils/barcode';
 
 const SCAN_COOLDOWN_MS = 1200;
-/** Matching reads within this window count toward confirmation. */
 const SCAN_CONSENSUS_WINDOW_MS = 2500;
+const MAX_CART_ITEMS = 12;
 
 type LogBarcodeStepProps = {
   loading?: boolean;
-  onFound: (
-    analysis: MealAnalysisPreview,
-    barcode: string,
-    imageUrl: string | null | undefined,
-    food: NutritionFoodLookup,
-  ) => void;
+  onContinue: (cart: BarcodeCartItem[]) => void;
   onBack: () => void;
 };
 
-export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeStepProps) {
+export function LogBarcodeStep({ loading = false, onContinue, onBack }: LogBarcodeStepProps) {
   const insets = useSafeAreaInsets();
   const [permission, requestPermission] = useCameraPermissions();
   const [query, setQuery] = useState('');
   const [torchOn, setTorchOn] = useState(false);
   const [searching, setSearching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [results, setResults] = useState<NutritionFoodLookup[]>([]);
+  const [cart, setCart] = useState<BarcodeCartItem[]>([]);
   const [scanEnabled, setScanEnabled] = useState(true);
   const [pendingScan, setPendingScan] = useState<string | null>(null);
 
   const lastScanRef = useRef<string | null>(null);
   const busyRef = useRef(false);
   const cooldownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const consensusRef = useRef<{ code: string | null; count: number; at: number }>({
     code: null,
     count: 0,
@@ -76,9 +74,16 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
   useEffect(
     () => () => {
       if (cooldownTimerRef.current) clearTimeout(cooldownTimerRef.current);
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     },
     [],
   );
+
+  const flashToast = useCallback((message: string) => {
+    setToast(message);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToast(null), 2200);
+  }, []);
 
   const beginCooldown = useCallback((code?: string) => {
     setScanEnabled(false);
@@ -91,16 +96,45 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
     }, SCAN_COOLDOWN_MS);
   }, []);
 
-  const selectProduct = useCallback(
+  const addToCart = useCallback(
     (product: NutritionFoodLookup, code?: string) => {
-      onFound(
-        mealAnalysisFromNutritionFood(product),
-        code || product.barcode || product.id,
-        product.imageUrl,
-        product,
-      );
+      const barcode = code || product.barcode || product.id;
+      const key = cartKeyForFood(product, barcode);
+      setCart((prev) => {
+        if (prev.some((item) => item.key === key)) {
+          flashToast('Already in your meal');
+          return prev;
+        }
+        if (prev.length >= MAX_CART_ITEMS) {
+          flashToast(`You can add up to ${MAX_CART_ITEMS} items`);
+          return prev;
+        }
+        flashToast(`Added ${product.name}`);
+        return [...prev, { key, food: product, barcode }];
+      });
     },
-    [onFound],
+    [flashToast],
+  );
+
+  const removeFromCart = useCallback((key: string) => {
+    setCart((prev) => prev.filter((item) => item.key !== key));
+  }, []);
+
+  const toggleProduct = useCallback(
+    (product: NutritionFoodLookup) => {
+      const key = cartKeyForFood(product, product.barcode ?? undefined);
+      setCart((prev) => {
+        if (prev.some((item) => item.key === key)) {
+          return prev.filter((item) => item.key !== key);
+        }
+        if (prev.length >= MAX_CART_ITEMS) {
+          flashToast(`You can add up to ${MAX_CART_ITEMS} items`);
+          return prev;
+        }
+        return [...prev, { key, food: product, barcode: product.barcode || product.id }];
+      });
+    },
+    [flashToast],
   );
 
   const lookupCode = useCallback(
@@ -123,7 +157,7 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
           );
           return;
         }
-        selectProduct(food, food.barcode ?? trimmed);
+        addToCart(food, food.barcode ?? trimmed);
       } catch {
         setError('Lookup failed. Check your connection and try again.');
       } finally {
@@ -131,7 +165,7 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
         busyRef.current = false;
       }
     },
-    [beginCooldown, loading, selectProduct],
+    [addToCart, beginCooldown, loading],
   );
 
   const handleSearch = useCallback(async () => {
@@ -193,8 +227,7 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
 
       const checkValid = isValidProductBarcode(code);
       const confirmed =
-        (checkValid && consensus.count >= 1) ||
-        (!checkValid && consensus.count >= 2);
+        (checkValid && consensus.count >= 1) || (!checkValid && consensus.count >= 2);
 
       if (!confirmed) return;
       if (lastScanRef.current === code) return;
@@ -207,6 +240,7 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
   );
 
   const cameraReady = Boolean(permission?.granted);
+  const selectedKeys = new Set(cart.map((item) => item.key));
 
   return (
     <View className="flex-1 bg-black">
@@ -230,7 +264,6 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
         className="flex-1"
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         pointerEvents="box-none">
-        {/* Top bar + search */}
         <View style={{ paddingTop: insets.top + 8 }} className="px-4">
           <View className="flex-row items-center justify-between">
             <Pressable
@@ -253,9 +286,9 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
             <View className="flex-row items-center gap-3">
               <Image source={APP_LOGO} className="h-9 w-9" resizeMode="contain" />
               <View className="flex-1">
-                <Text className="font-sans-bold text-base text-white">Scan a barcode</Text>
+                <Text className="font-sans-bold text-base text-white">Scan barcodes</Text>
                 <Text className="text-xs text-white/65">
-                  Point at the barcode on the physical package — not a photo or screen.
+                  Add multiple products to one meal — tap search results or keep scanning.
                 </Text>
               </View>
             </View>
@@ -291,6 +324,7 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
             </View>
 
             {error ? <Text className="mt-2 text-sm text-red-300">{error}</Text> : null}
+            {toast ? <Text className="mt-2 text-sm text-emerald-300">{toast}</Text> : null}
             {!permission?.granted ? (
               <Pressable onPress={() => void requestPermission()} className="mt-2">
                 <Text className="text-sm text-orange-300">Allow camera access to scan barcodes live.</Text>
@@ -311,13 +345,12 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
               </Pressable>
             ) : cameraReady ? (
               <Text className="mt-2 text-xs text-white/60">
-                Center the barcode in the frame below. Good lighting helps.
+                Center the barcode in the frame. Keep scanning to add more items.
               </Text>
             ) : null}
           </View>
         </View>
 
-        {/* Viewfinder — centered in remaining space */}
         <View className="flex-1 items-center justify-center px-4" pointerEvents="box-none">
           <BarcodeViewfinder />
           {cameraReady && !searching && !pendingScan ? (
@@ -327,27 +360,60 @@ export function LogBarcodeStep({ loading = false, onFound, onBack }: LogBarcodeS
           ) : null}
         </View>
 
-        {/* Search results anchored to bottom */}
         {results.length ? (
           <Animated.View
             entering={FadeInDown.springify().damping(16)}
-            style={{ paddingBottom: insets.bottom + 12 }}
-            className="max-h-56 px-4 pb-2">
+            className="max-h-48 px-4 pb-2">
             <View className="overflow-hidden rounded-[24px] bg-black/85 px-3 py-3">
               <Text className="mb-2 px-1 text-xs font-sans-semibold uppercase tracking-wide text-white/50">
-                {results.length} product{results.length === 1 ? '' : 's'}
+                Tap to add · {results.length} product{results.length === 1 ? '' : 's'}
               </Text>
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {results.map((product) => (
-                  <PackagedProductCard
-                    key={product.id}
-                    product={product}
-                    onPress={() => selectProduct(product)}
-                  />
-                ))}
+                {results.map((product) => {
+                  const key = cartKeyForFood(product, product.barcode ?? undefined);
+                  return (
+                    <PackagedProductCard
+                      key={product.id}
+                      product={product}
+                      selected={selectedKeys.has(key)}
+                      onPress={() => toggleProduct(product)}
+                    />
+                  );
+                })}
               </ScrollView>
             </View>
           </Animated.View>
+        ) : null}
+
+        {cart.length ? (
+          <View
+            style={{ paddingBottom: Math.max(insets.bottom, 12) }}
+            className="border-t border-white/10 bg-black/90 px-4 pt-3">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingBottom: 10 }}>
+              {cart.map((item) => (
+                <Pressable
+                  key={item.key}
+                  onPress={() => removeFromCart(item.key)}
+                  className="max-w-[160px] flex-row items-center gap-2 rounded-full bg-white/10 px-3 py-2">
+                  <Text className="flex-1 text-xs font-sans-semibold text-white" numberOfLines={1}>
+                    {item.food.name}
+                  </Text>
+                  <Ionicons name="close" size={14} color="rgba(255,255,255,0.7)" />
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              disabled={loading}
+              onPress={() => onContinue(cart)}
+              className="h-12 items-center justify-center rounded-2xl bg-blue-spruce-700">
+              <Text className="font-sans-semibold text-[15px] text-white">
+                Continue ({cart.length})
+              </Text>
+            </Pressable>
+          </View>
         ) : null}
       </KeyboardAvoidingView>
     </View>

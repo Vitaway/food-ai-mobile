@@ -3,6 +3,7 @@ import { useIsFocused } from '@react-navigation/native';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useCallback, useMemo, useState } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 
 import { LogBarcodeStep } from '@/components/log/LogBarcodeStep';
 import { LogBarcodePortionStep } from '@/components/log/LogBarcodePortionStep';
@@ -14,20 +15,27 @@ import { LogScreenShell } from '@/components/log/LogScreenShell';
 import { LogTextStep } from '@/components/log/LogTextStep';
 import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
 import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
+import { semanticColors } from '@/design-system/colors';
 import { isMealTypeId, suggestMealTypeForNow, type MealTypeId } from '@/constants/mealTypes';
 import type { LogStep } from '@/constants/logFlow';
 import { useMeals } from '@/context/MealsContext';
+import { useI18n } from '@/context/LocaleContext';
 import { useToast } from '@/context/ToastContext';
 import type { MealAnalysisPreview, MealSubmission } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
+import { useRequirePaid } from '@/hooks/useRequirePaid';
 import { getApiErrorMessage, isSubscriptionRequiredError } from '@/utils/apiErrors';
 import {
   consumeLogMealTypeIntent,
   consumeLogMethodIntent,
 } from '@/utils/logIntent';
 import {
-  buildBarcodeMealNote,
+  buildBarcodeCartNote,
+  initialPortionState,
+  mealAnalysisFromPortions,
+  type BarcodePortionState,
 } from '@/services/remote/nutritionApi';
 import {
   analysisPreviewFromPastMeal,
@@ -41,23 +49,14 @@ import {
 
 type FlowStep = LogStep | 'text' | 'barcode' | 'barcode-portion' | 'past';
 
-const STEP_TITLES: Record<FlowStep, string> = {
-  method: 'Log meal',
-  text: 'Describe',
-  barcode: 'Barcode',
-  'barcode-portion': 'Amount eaten',
-  past: 'Repeat',
-  scan: 'Photo',
-  analyzing: 'Naming meal',
-  results: 'Review & submit',
-};
-
 export default function LogMealScreen() {
+  const { t } = useI18n();
   const { push } = useNavigateOnce();
   const toast = useToast();
   const isFocused = useIsFocused();
   const { mealType: mealTypeParam } = useLocalSearchParams<{ mealType?: string }>();
   const { saveMealToDiary, meals } = useMeals();
+  const requirePaid = useRequirePaid();
 
   const [step, setStep] = useState<FlowStep>('method');
   const [selectedMethod, setSelectedMethod] = useState<LogMethodId>('camera');
@@ -67,13 +66,27 @@ export default function LogMealScreen() {
   const [mealDescription, setMealDescription] = useState('');
   const [analysis, setAnalysis] = useState<MealAnalysisPreview | null>(null);
   const [saving, setSaving] = useState(false);
+  const [openingCapture, setOpeningCapture] = useState(false);
   const [fromBarcode, setFromBarcode] = useState(false);
   const [fromPastMeal, setFromPastMeal] = useState(false);
   const [awaitingCoachConfirm, setAwaitingCoachConfirm] = useState(false);
-  const [barcodeProductNote, setBarcodeProductNote] = useState('');
+  const [barcodePortions, setBarcodePortions] = useState<BarcodePortionState[]>([]);
 
   const bottomPadding = FLOATING_TAB_BAR_CLEARANCE;
-  const stepTitle = STEP_TITLES[step];
+  const stepTitles = useMemo(
+    (): Record<FlowStep, string> => ({
+      method: t.log.title,
+      text: t.log.stepDescribe,
+      barcode: t.log.stepBarcode,
+      'barcode-portion': t.log.stepAmount,
+      past: t.log.stepRepeat,
+      scan: t.log.stepPhoto,
+      analyzing: t.log.stepNaming,
+      results: t.log.stepReview,
+    }),
+    [t],
+  );
+  const stepTitle = stepTitles[step];
 
   const resolveInitialMealType = useCallback((): MealTypeId | null => {
     if (mealTypeParam && isMealTypeId(mealTypeParam)) return mealTypeParam;
@@ -91,7 +104,7 @@ export default function LogMealScreen() {
     setFromBarcode(false);
     setFromPastMeal(false);
     setAwaitingCoachConfirm(false);
-    setBarcodeProductNote('');
+    setBarcodePortions([]);
   }, [resolveInitialMealType]);
 
   const prepareCoachSubmit = useCallback(
@@ -164,22 +177,27 @@ export default function LogMealScreen() {
 
   const openPhotoFlow = useCallback(
     async (source: 'camera' | 'gallery') => {
-      if (saving) return;
+      if (saving || openingCapture) return;
       setSelectedMethod(source);
       setMealDescription('');
       setFromBarcode(false);
-      setBarcodeProductNote('');
-      const captured = await pickImage(source);
-      if (!captured) {
-        setStep('method');
-        return;
+      setBarcodePortions([]);
+      setOpeningCapture(true);
+      try {
+        const captured = await pickImage(source);
+        if (!captured) {
+          setStep('method');
+          return;
+        }
+        setAnalysis(null);
+        setAwaitingCoachConfirm(false);
+        setImageUri(captured.uri);
+        setStep('scan');
+      } finally {
+        setOpeningCapture(false);
       }
-      setAnalysis(null);
-      setAwaitingCoachConfirm(false);
-      setImageUri(captured.uri);
-      setStep('scan');
     },
-    [pickImage, saving],
+    [openingCapture, pickImage, saving],
   );
 
   const handleMethodSelect = useCallback(
@@ -255,7 +273,7 @@ export default function LogMealScreen() {
     setFromBarcode(false);
     setFromPastMeal(false);
     setAwaitingCoachConfirm(false);
-    setBarcodeProductNote('');
+    setBarcodePortions([]);
   }, []);
 
   const applyNavigationIntents = useCallback(() => {
@@ -275,22 +293,41 @@ export default function LogMealScreen() {
       return;
     }
     if (fromMethod === 'camera') {
-      resetToMethodStep();
+      setSelectedMethod('camera');
+      setMealDescription('');
+      setFromBarcode(false);
+      setBarcodePortions([]);
       void openPhotoFlow('camera');
       return;
     }
     if (fromMethod === 'gallery') {
-      resetToMethodStep();
+      setSelectedMethod('gallery');
+      setMealDescription('');
+      setFromBarcode(false);
+      setBarcodePortions([]);
       void openPhotoFlow('gallery');
       return;
     }
     if (fromMethod === 'describe') {
-      resetToMethodStep();
+      setSelectedMethod('text');
+      setFromBarcode(false);
+      setFromPastMeal(false);
+      setImageUri(null);
+      setAnalysis(null);
+      setAwaitingCoachConfirm(false);
+      setTextInput('');
+      setMealDescription('');
       setStep('text');
       return;
     }
     if (fromMethod === 'barcode') {
-      resetToMethodStep();
+      setSelectedMethod('barcode');
+      setFromBarcode(false);
+      setFromPastMeal(false);
+      setImageUri(null);
+      setAnalysis(null);
+      setAwaitingCoachConfirm(false);
+      setBarcodePortions([]);
       setStep('barcode');
     }
   }, [mealTypeParam, openPhotoFlow, resetToMethodStep]);
@@ -325,17 +362,36 @@ export default function LogMealScreen() {
   }, [prepareCoachSubmit, saving, textInput, toast]);
 
   const handleBarcodePortionContinue = useCallback(() => {
-    if (saving || !analysis) return;
-    const portion = mealDescription.trim();
-    if (portion.length < 3) {
-      toast.error('Describe how much you ate before continuing.');
+    if (saving || !barcodePortions.length) return;
+    if (barcodePortions.some((row) => row.grams < 1)) {
+      toast.error('Set an amount for each item.');
       return;
     }
-    const combined = barcodeProductNote ? `${portion}. ${barcodeProductNote}` : portion;
-    setMealDescription(combined);
-    setTextInput(portion);
+    const nextAnalysis = mealAnalysisFromPortions(
+      barcodePortions.map((row) => ({
+        food: row.food,
+        grams: row.grams,
+        serving:
+          row.food.servings.find((serving) => serving.id === row.servingId) ??
+          row.food.servings.find((serving) => serving.isDefault) ??
+          row.food.servings[0] ??
+          null,
+      })),
+    );
+    const note = buildBarcodeCartNote(barcodePortions);
+    const summary =
+      barcodePortions.length === 1
+        ? `${barcodePortions[0]!.food.name} · ${barcodePortions[0]!.grams}g`
+        : `${barcodePortions.length} packaged items · ${nextAnalysis.totalWeightG}g`;
+    setFromBarcode(true);
+    setFromPastMeal(false);
+    setAnalysis(nextAnalysis);
+    setMealDescription(note);
+    setTextInput(summary);
+    setImageUri(barcodePortions.find((row) => row.food.imageUrl)?.food.imageUrl ?? null);
+    setAwaitingCoachConfirm(false);
     setStep('results');
-  }, [analysis, barcodeProductNote, mealDescription, saving, toast]);
+  }, [barcodePortions, saving, toast]);
 
   const handleSave = useCallback(async () => {
     if (!analysis || saving || !selectedMealType) {
@@ -344,6 +400,7 @@ export default function LogMealScreen() {
       }
       return;
     }
+    if (!requirePaid('meal')) return;
 
     setSaving(true);
     try {
@@ -359,8 +416,8 @@ export default function LogMealScreen() {
       push(`/meal/${meal.id}`);
     } catch (error) {
       if (isSubscriptionRequiredError(error)) {
-        toast.error(getApiErrorMessage(error), 'Subscription needed');
-        push('/profile/subscription');
+        // Soft paywall — avoid a second toast; requirePaid already prompted when possible.
+        push('/paywall');
       } else {
         toast.error(getApiErrorMessage(error, 'Could not save this meal. Try again.'));
       }
@@ -373,6 +430,7 @@ export default function LogMealScreen() {
     imageUri,
     mealDescription,
     push,
+    requirePaid,
     resetFlow,
     saveMealToDiary,
     selectedMealType,
@@ -387,7 +445,6 @@ export default function LogMealScreen() {
       return;
     }
     if (step === 'barcode-portion') {
-      setMealDescription('');
       setStep('barcode');
       return;
     }
@@ -401,7 +458,6 @@ export default function LogMealScreen() {
       }
       if (fromBarcode) {
         setAwaitingCoachConfirm(false);
-        setMealDescription('');
         setStep('barcode-portion');
         return;
       }
@@ -417,13 +473,13 @@ export default function LogMealScreen() {
     step === 'text' ||
     step === 'past' ||
     step === 'barcode-portion';
-  const keyboardAvoid = step === 'text' || step === 'scan' || step === 'barcode-portion';
+  const keyboardAvoid = step === 'text' || step === 'scan';
 
   const footer = useMemo(() => {
     if (step === 'results' && analysis) {
       return (
         <Button
-          label={saving ? 'Submitting…' : 'Submit meal'}
+          label={saving ? t.log.submitting : t.log.submitMeal}
           variant="primary"
           onPress={handleSave}
           disabled={saving || !selectedMealType}
@@ -432,9 +488,19 @@ export default function LogMealScreen() {
       );
     }
     return null;
-  }, [analysis, handleSave, saving, selectedMealType, step]);
+  }, [analysis, handleSave, saving, selectedMealType, step, t]);
 
   const content = useMemo(() => {
+    if (openingCapture) {
+      return (
+        <View className="flex-1 items-center justify-center py-16">
+          <ActivityIndicator size="large" color={semanticColors.primary} />
+          <Text className="mt-4 text-sm text-neutral-500">
+            {selectedMethod === 'gallery' ? t.log.openingGallery : t.log.openingCamera}
+          </Text>
+        </View>
+      );
+    }
     if (step === 'method') {
       return <LogMethodStep loading={saving} onSelectMethod={handleMethodSelect} />;
     }
@@ -453,33 +519,25 @@ export default function LogMealScreen() {
         <LogBarcodeStep
           loading={saving}
           onBack={() => setStep('method')}
-          onFound={(nextAnalysis, barcode, imageUrl, food) => {
+          onContinue={(cart) => {
+            if (!cart.length) return;
             setFromBarcode(true);
             setFromPastMeal(false);
-            setImageUri(imageUrl ?? null);
-            const label = nextAnalysis.mealName || `Barcode ${barcode}`;
-            setTextInput(label);
-            setBarcodeProductNote(buildBarcodeMealNote(food, barcode));
-            setMealDescription('');
-            setAnalysis(nextAnalysis);
+            setBarcodePortions(cart.map(initialPortionState));
+            setAnalysis(null);
             setAwaitingCoachConfirm(false);
             setStep('barcode-portion');
           }}
         />
       );
     }
-    if (step === 'barcode-portion' && analysis) {
+    if (step === 'barcode-portion' && barcodePortions.length) {
       return (
         <LogBarcodePortionStep
-          analysis={analysis}
-          imageUri={imageUri}
-          value={mealDescription}
+          portions={barcodePortions}
           loading={saving}
-          onChangeText={setMealDescription}
-          onBack={() => {
-            setMealDescription('');
-            setStep('barcode');
-          }}
+          onChange={setBarcodePortions}
+          onBack={() => setStep('barcode')}
           onContinue={handleBarcodePortionContinue}
         />
       );
@@ -524,6 +582,7 @@ export default function LogMealScreen() {
   }, [
     analysis,
     awaitingCoachConfirm,
+    barcodePortions,
     handleBarcodePortionContinue,
     handleMethodSelect,
     handlePhotoContinue,
@@ -533,9 +592,12 @@ export default function LogMealScreen() {
     imageUri,
     mealDescription,
     meals,
+    openingCapture,
     saving,
     selectedMealType,
+    selectedMethod,
     step,
+    t,
     textInput,
   ]);
 

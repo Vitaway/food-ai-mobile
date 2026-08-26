@@ -8,84 +8,93 @@ import {
   type MealTypeId,
   type MealTypeOption,
 } from '@/constants/mealTypes';
+import { useI18n } from '@/context/LocaleContext';
+import { palette } from '@/design-system/colors';
 
 type CompactMealTypePickerProps = {
   selected: MealTypeId | null;
   onSelect: (id: MealTypeId) => void;
 };
 
-function MealTypeMiniCard({
+function MealTypeChip({
   option,
+  label,
   selected,
   onPress,
 }: {
   option: MealTypeOption;
+  label: string;
   selected: boolean;
   onPress: () => void;
 }) {
+  const accent = palette['cinnamon-wood'];
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className={`min-h-[88px] flex-1 rounded-2xl border-2 px-3 py-3 active:opacity-90 ${
-        selected ? 'border-cinnamon-wood-400 bg-cinnamon-wood-50' : 'border-ash-grey-200 bg-white'
-      }`}>
-      <View
-        className={`mb-2 h-8 w-8 items-center justify-center rounded-xl ${
-          selected ? 'bg-cinnamon-wood-100' : 'bg-ash-grey-50'
-        }`}>
-        <Ionicons
-          name={option.icon}
-          size={18}
-          color={selected ? '#ff6f32' : '#4f5346'}
-        />
-      </View>
+      className="flex-row items-center gap-1.5 rounded-full border px-3 py-2 active:opacity-90"
+      style={{
+        borderColor: selected ? accent[400] : palette['ash-grey'][200],
+        backgroundColor: selected ? accent[50] : '#ffffff',
+      }}>
+      <Ionicons
+        name={option.icon}
+        size={15}
+        color={selected ? accent[500] : palette['ash-grey'][600]}
+      />
       <Text
-        className={`font-sans-semibold text-sm ${selected ? 'text-cinnamon-wood-800' : 'text-neutral-900'}`}
-        numberOfLines={2}>
-        {option.label}
-      </Text>
-      <Text className="mt-0.5 text-[11px] text-neutral-500" numberOfLines={1}>
-        {option.timeHint}
+        className={`text-[13px] ${selected ? 'font-sans-bold text-cinnamon-wood-800' : 'font-sans-semibold text-neutral-800'}`}
+        numberOfLines={1}>
+        {label}
       </Text>
     </Pressable>
   );
 }
 
-function chunkPairs<T>(items: T[]): T[][] {
-  const rows: T[][] = [];
-  for (let i = 0; i < items.length; i += 2) {
-    rows.push(items.slice(i, i + 2));
-  }
-  return rows;
-}
-
 export function CompactMealTypePicker({ selected, onSelect }: CompactMealTypePickerProps) {
+  const { t } = useI18n();
+
+  const groupTitle = (key: string) => {
+    if (key === 'main') return t.log.groupMain;
+    if (key === 'snack') return t.log.groupSnacks;
+    return t.log.groupWorkout;
+  };
+
+  const optionLabel = (id: MealTypeId) => {
+    const map: Partial<Record<MealTypeId, string>> = {
+      breakfast: t.log.breakfast,
+      lunch: t.log.lunch,
+      dinner: t.log.dinner,
+      mid_morning_snack: t.log.midMorning,
+      afternoon_snack: t.log.afternoon,
+      evening_snack: t.log.evening,
+      pre_workout: t.log.preWorkout,
+      post_workout: t.log.postWorkout,
+    };
+    return map[id] ?? id;
+  };
+
   return (
     <View>
-      <Text className="mb-3 font-sans-semibold text-sm text-neutral-700">Meal type</Text>
-      <View className="gap-4">
+      <Text className="mb-2.5 font-sans-semibold text-sm text-neutral-800">{t.log.mealType}</Text>
+      <View className="gap-3">
         {MEAL_TYPE_GROUPS.map((group) => {
           const options = MEAL_TYPE_OPTIONS.filter((option) => option.group === group.key);
           return (
             <View key={group.key}>
-              <Text className="mb-2 font-sans-semibold text-[11px] uppercase tracking-wide text-neutral-500">
-                {group.title}
+              <Text className="mb-1.5 text-[10px] font-sans-bold uppercase tracking-wide text-ash-grey-400">
+                {groupTitle(group.key)}
               </Text>
-              <View className="gap-2">
-                {chunkPairs(options).map((row) => (
-                  <View key={row.map((o) => o.id).join('-')} className="flex-row gap-2">
-                    {row.map((option) => (
-                      <MealTypeMiniCard
-                        key={option.id}
-                        option={option}
-                        selected={selected === option.id}
-                        onPress={() => onSelect(option.id)}
-                      />
-                    ))}
-                    {row.length === 1 ? <View className="flex-1" /> : null}
-                  </View>
+              <View className="flex-row flex-wrap gap-2">
+                {options.map((option) => (
+                  <MealTypeChip
+                    key={option.id}
+                    option={option}
+                    label={optionLabel(option.id)}
+                    selected={selected === option.id}
+                    onPress={() => onSelect(option.id)}
+                  />
                 ))}
               </View>
             </View>
