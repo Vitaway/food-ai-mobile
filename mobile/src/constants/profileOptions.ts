@@ -21,7 +21,7 @@ export const GOAL_PACE_OPTIONS: { id: GoalPace; label: string; description: stri
   { id: 'aggressive', label: 'Aggressive', description: '~0.75 kg per week' },
 ];
 
-export const MEALS_PER_DAY_OPTIONS = [3, 4, 5, 6] as const;
+export const MEALS_PER_DAY_OPTIONS = [1, 2, 3, 4, 5, 6] as const;
 
 export const COMMON_ALLERGIES = [
   'Peanuts',
@@ -35,6 +35,29 @@ export const COMMON_ALLERGIES = [
   'Sesame',
 ] as const;
 
+export type CommonAllergy = (typeof COMMON_ALLERGIES)[number];
+
+export const ALLERGY_META: Record<CommonAllergy, { emoji: string; hint: string }> = {
+  Peanuts: { emoji: '🥜', hint: 'Peanut products' },
+  'Tree nuts': { emoji: '🌰', hint: 'Almonds, cashews…' },
+  Dairy: { emoji: '🥛', hint: 'Milk & cheese' },
+  Eggs: { emoji: '🥚', hint: 'Egg products' },
+  Gluten: { emoji: '🌾', hint: 'Wheat gluten' },
+  Soy: { emoji: '🫘', hint: 'Soybean foods' },
+  Shellfish: { emoji: '🦐', hint: 'Shrimp, crab…' },
+  Fish: { emoji: '🐟', hint: 'Finned fish' },
+  Sesame: { emoji: '🌱', hint: 'Seeds & oil' },
+};
+
+/** Suggest allergies from dietary preferences (user can change). */
+export function defaultAllergiesFromPreferences(prefs: string[]): CommonAllergy[] {
+  const next = new Set<CommonAllergy>();
+  if (prefs.includes('Dairy-free') || prefs.includes('Vegan')) next.add('Dairy');
+  if (prefs.includes('Gluten-free')) next.add('Gluten');
+  if (prefs.includes('Vegan')) next.add('Eggs');
+  return [...next];
+}
+
 export const DIETARY_PREFERENCES = [
   'Vegetarian',
   'Vegan',
@@ -45,6 +68,29 @@ export const DIETARY_PREFERENCES = [
   'Low-carb',
   'High-protein',
 ] as const;
+
+export type DietaryPreference = (typeof DIETARY_PREFERENCES)[number];
+
+export const DIETARY_PREFERENCE_META: Record<
+  DietaryPreference,
+  { emoji: string; hint: string }
+> = {
+  Vegetarian: { emoji: '🥗', hint: 'No meat' },
+  Vegan: { emoji: '🌱', hint: 'Plant-based' },
+  'Gluten-free': { emoji: '🌾', hint: 'No wheat gluten' },
+  'Dairy-free': { emoji: '🥛', hint: 'No milk products' },
+  Halal: { emoji: '🕌', hint: 'Halal foods' },
+  Kosher: { emoji: '✡️', hint: 'Kosher foods' },
+  'Low-carb': { emoji: '🥑', hint: 'Fewer carbs' },
+  'High-protein': { emoji: '🍗', hint: 'More protein' },
+};
+
+/** Sensible starter prefs from the user's goal (user can toggle off). */
+export function defaultDietaryPreferencesForGoal(goal: HealthGoal): DietaryPreference[] {
+  if (goal === 'lose_weight') return ['High-protein', 'Low-carb'];
+  if (goal === 'gain_muscle') return ['High-protein'];
+  return ['High-protein'];
+}
 
 export function formatHealthGoal(goal: HealthGoal) {
   return HEALTH_GOALS.find((entry) => entry.id === goal)?.label ?? goal;

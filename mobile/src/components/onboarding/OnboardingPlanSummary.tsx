@@ -1,11 +1,8 @@
-import { View } from 'react-native';
+import { Image, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-import { OnboardingCard } from '@/components/onboarding/OnboardingCard';
-import { OnboardingStepHero } from '@/components/onboarding/OnboardingStepHero';
 import { Text } from '@/components/ui/Text';
-import { getOnboardingStepHero } from '@/constants/onboardingStepImages';
 import { formatActivityLevel, formatHealthGoal } from '@/constants/profileOptions';
-import { palette } from '@/design-system/colors';
 import type { ActivityLevel, GoalPace, HealthGoal, UserSex } from '@/types';
 
 type MacroTargets = {
@@ -17,6 +14,8 @@ type MacroTargets = {
 };
 
 type OnboardingPlanSummaryProps = {
+  displayName?: string;
+  avatarUrl?: string;
   macroTargets: MacroTargets;
   bmr: number;
   tdee: number;
@@ -30,22 +29,17 @@ type OnboardingPlanSummaryProps = {
   sex: UserSex;
 };
 
-const MACRO_TILES: {
-  key: keyof Pick<MacroTargets, 'proteinG' | 'carbsG' | 'fatG' | 'fiberG'>;
-  label: string;
-  bg: string;
-  valueColor: string;
-}[] = [
-  { key: 'proteinG', label: 'Protein', bg: palette.shamrock[50], valueColor: palette.shamrock[800] },
-  { key: 'carbsG', label: 'Carbs', bg: palette['blue-spruce'][50], valueColor: palette['blue-spruce'][800] },
-  { key: 'fatG', label: 'Fat', bg: palette['cinnamon-wood'][50], valueColor: palette['cinnamon-wood'][800] },
-  { key: 'fiberG', label: 'Fiber', bg: palette['ash-grey'][100], valueColor: palette['ash-grey'][900] },
+const MACROS: { key: keyof Pick<MacroTargets, 'proteinG' | 'carbsG' | 'fatG' | 'fiberG'>; label: string }[] = [
+  { key: 'proteinG', label: 'Protein' },
+  { key: 'carbsG', label: 'Carbs' },
+  { key: 'fatG', label: 'Fat' },
+  { key: 'fiberG', label: 'Fiber' },
 ];
 
 export function OnboardingPlanSummary({
+  displayName,
+  avatarUrl,
   macroTargets,
-  bmr,
-  tdee,
   waterTargetMl,
   goal,
   activityLevel,
@@ -53,56 +47,63 @@ export function OnboardingPlanSummary({
   weightKg,
   goalPace,
   mealsPerDay,
-  sex,
 }: OnboardingPlanSummaryProps) {
-  const goalLabel = formatHealthGoal(goal);
-  const activityLabel = formatActivityLevel(activityLevel);
+  const firstName = (displayName ?? '').trim().split(/\s+/)[0] || 'You';
 
   return (
-    <View>
-      <OnboardingCard className="border-shamrock-200 bg-shamrock-50">
-        <Text className="font-sans-medium text-sm text-shamrock-700">Daily calories</Text>
-        <Text className="mt-1 font-sans-bold text-4xl text-cinnamon-wood-400">
-          {macroTargets.calories} kcal
+    <View className="gap-5">
+      <View className="items-center">
+        <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-blue-spruce-200 bg-blue-spruce-50">
+          {avatarUrl ? (
+            <Image source={{ uri: avatarUrl }} className="h-full w-full" resizeMode="cover" />
+          ) : (
+            <Ionicons name="person" size={44} color="#1f3a56" />
+          )}
+        </View>
+        <Text className="mt-3 text-center font-sans-bold text-xl text-neutral-900">
+          {firstName}, your plan is ready
         </Text>
-        <Text className="mt-3 text-sm leading-5 text-shamrock-800">
-          BMR {bmr} · TDEE {tdee} · Water {waterTargetMl} ml
+        <Text className="mt-1 text-center text-sm text-neutral-500">
+          Personalized daily targets
         </Text>
-        {targetWeightKg !== weightKg ? (
-          <Text className="mt-2 text-sm text-shamrock-700">
-            Target {targetWeightKg} kg · {goalPace} pace · {mealsPerDay} meals/day
-          </Text>
-        ) : (
-          <Text className="mt-2 text-sm text-shamrock-700">
-            {mealsPerDay} meals/day · {goalPace} pace
-          </Text>
-        )}
-      </OnboardingCard>
+      </View>
 
-      <View className="mt-4 flex-row flex-wrap gap-3">
-        {MACRO_TILES.map((tile) => (
+      <View className="items-center rounded-[28px] bg-blue-spruce-800 px-6 py-6">
+        <Text className="text-sm font-sans-medium text-blue-spruce-100">Daily calories</Text>
+        <Text className="mt-1 font-sans-bold text-5xl text-white">{macroTargets.calories}</Text>
+        <Text className="mt-1 text-sm text-blue-spruce-200">kcal · {waterTargetMl} ml water</Text>
+      </View>
+
+      <View className="flex-row flex-wrap justify-between gap-y-3">
+        {MACROS.map((tile) => (
           <View
             key={tile.key}
-            style={{ width: '47%', backgroundColor: tile.bg }}
-            className="rounded-2xl px-4 py-4">
-            <Text className="text-xs text-neutral-500">{tile.label}</Text>
-            <Text className="mt-1 font-sans-bold text-2xl" style={{ color: tile.valueColor }}>
+            style={{ width: '23%' }}
+            className="items-center rounded-2xl bg-ash-grey-50 px-1 py-3">
+            <Text className="text-[11px] text-neutral-500">{tile.label}</Text>
+            <Text className="mt-1 font-sans-bold text-base text-neutral-900">
               {macroTargets[tile.key]}g
             </Text>
           </View>
         ))}
       </View>
 
-      <View className="mt-4 flex-row flex-wrap gap-2">
-        <View className="rounded-full border border-shamrock-200 bg-shamrock-50 px-3 py-1.5">
-          <Text className="text-xs font-sans-medium text-shamrock-800">{goalLabel}</Text>
+      <View className="flex-row flex-wrap justify-center gap-2">
+        <View className="rounded-full bg-shamrock-50 px-3 py-1.5">
+          <Text className="text-xs font-sans-medium text-shamrock-800">{formatHealthGoal(goal)}</Text>
         </View>
-        <View className="rounded-full border border-blue-spruce-200 bg-blue-spruce-50 px-3 py-1.5">
-          <Text className="text-xs font-sans-medium text-blue-spruce-800">{activityLabel}</Text>
+        <View className="rounded-full bg-blue-spruce-50 px-3 py-1.5">
+          <Text className="text-xs font-sans-medium text-blue-spruce-800">
+            {formatActivityLevel(activityLevel)}
+          </Text>
+        </View>
+        <View className="rounded-full bg-ash-grey-100 px-3 py-1.5">
+          <Text className="text-xs font-sans-medium text-neutral-700">
+            {mealsPerDay} meals · {goalPace}
+            {targetWeightKg !== weightKg ? ` · ${targetWeightKg} kg` : ''}
+          </Text>
         </View>
       </View>
-
-      <OnboardingStepHero source={getOnboardingStepHero('summary', sex)} placement="below" />
     </View>
   );
 }
