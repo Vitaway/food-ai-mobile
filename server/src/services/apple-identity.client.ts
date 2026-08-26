@@ -55,7 +55,7 @@ function jwkToPem(jwk: AppleJwk): string {
   return keyObject.export({ type: "spki", format: "pem" }).toString();
 }
 
-function asBool(value: boolean | string | undefined): boolean {
+const asBool = (value: boolean | string | undefined): boolean => {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") return value.toLowerCase() === "true";
   return false;

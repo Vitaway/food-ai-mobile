@@ -242,6 +242,76 @@ export class EmailService {
     });
   }
 
+  async sendFamilyInviteEmail(
+    to: string,
+    opts: {
+      inviterName: string;
+      webUrl: string;
+      deepLink: string;
+      expiresAt: Date;
+    },
+  ): Promise<void> {
+    const inviter = opts.inviterName.trim() || "A MiraFood member";
+    const expiresLabel = opts.expiresAt.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+
+    await this.sendBrandedEmail({
+      to,
+      subject: `${inviter} invited you to MiraFood Family`,
+      title: "Family plan invite",
+      preheader: `${inviter} wants you on their MiraFood Family plan.`,
+      appUrl: env.APP_URL.replace(/\/$/, ""),
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">Hi there,</p>
+        <p style="${vitawayParagraphStyle()}"><strong>${inviter}</strong> invited you to join their MiraFood Family subscription. Create a MiraFood account with this email address to get access automatically.</p>
+        ${renderInfoCallout("Invite expires", `This invite expires on ${expiresLabel}.`, "orange")}
+        ${renderEmailButton("Accept invite & sign up", opts.webUrl)}
+        ${renderSecondaryLink("Or open in the app:", opts.deepLink)}
+      `,
+      textParagraphs: [
+        "Hi there,",
+        "",
+        `${inviter} invited you to join their MiraFood Family subscription.`,
+        "Create a MiraFood account with this email address to get access automatically.",
+        "",
+        `Sign up: ${opts.webUrl}`,
+        `App link: ${opts.deepLink}`,
+        `Expires: ${expiresLabel}`,
+      ],
+    });
+  }
+
+  async sendFamilyMemberAddedEmail(
+    to: string,
+    opts: { displayName?: string | null; inviterName: string },
+  ): Promise<void> {
+    const firstName = opts.displayName?.trim().split(/\s+/)[0] || "there";
+    const inviter = opts.inviterName.trim() || "A MiraFood member";
+    const appUrl = env.APP_URL.replace(/\/$/, "");
+
+    await this.sendBrandedEmail({
+      to,
+      subject: `You're on ${inviter}'s MiraFood Family plan`,
+      title: "Family plan access",
+      preheader: `${inviter} added you to their MiraFood Family subscription.`,
+      appUrl,
+      bodyHtml: `
+        <p style="${vitawayParagraphStyle("margin:0 0 12px;color:#1a1c17;")}">Hi ${firstName},</p>
+        <p style="${vitawayParagraphStyle()}"><strong>${inviter}</strong> added you to their MiraFood Family plan. Open the app to start logging meals with shared subscription access.</p>
+        ${renderEmailButton("Open MiraFood", appUrl)}
+      `,
+      textParagraphs: [
+        `Hi ${firstName},`,
+        "",
+        `${inviter} added you to their MiraFood Family plan.`,
+        `Open MiraFood: ${appUrl}`,
+      ],
+    });
+  }
+
   async sendMealStatusEmail(
     to: string,
     opts: {
@@ -454,8 +524,14 @@ export class EmailService {
         ${renderCredentialsBlock([
           { label: "Plan", value: opts.planLabel },
           { label: "Amount paid", value: amountLabel },
-          { label: "Receipt", value: opts.receiptNumber },
-          ...(opts.invoiceNumber
+          {
+            label:
+              opts.invoiceNumber && opts.invoiceNumber === opts.receiptNumber
+                ? "Invoice"
+                : "Receipt",
+            value: opts.receiptNumber,
+          },
+          ...(opts.invoiceNumber && opts.invoiceNumber !== opts.receiptNumber
             ? [{ label: "Invoice", value: opts.invoiceNumber }]
             : []),
           ...(opts.renewsOn
@@ -478,8 +554,12 @@ export class EmailService {
         "",
         `Plan: ${opts.planLabel}`,
         `Amount paid: ${amountLabel}`,
-        `Receipt: ${opts.receiptNumber}`,
-        opts.invoiceNumber ? `Invoice: ${opts.invoiceNumber}` : "",
+        opts.invoiceNumber && opts.invoiceNumber === opts.receiptNumber
+          ? `Invoice: ${opts.receiptNumber}`
+          : `Receipt: ${opts.receiptNumber}`,
+        opts.invoiceNumber && opts.invoiceNumber !== opts.receiptNumber
+          ? `Invoice: ${opts.invoiceNumber}`
+          : "",
         accessLine,
         "",
         "A PDF receipt is attached.",

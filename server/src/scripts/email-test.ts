@@ -4,7 +4,7 @@ import { emailService } from "../services/email.service";
 async function main() {
   const to = process.argv[2];
   if (!to) {
-    console.error("Usage: npm run email:test -- you@example.com");
+    console.error("Testing email usage --- testing@example.com");
     process.exit(1);
   }
 
