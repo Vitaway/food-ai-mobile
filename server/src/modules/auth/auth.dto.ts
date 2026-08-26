@@ -1,3 +1,4 @@
+import { Transform } from "class-transformer";
 import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
 export class LoginDto {
@@ -18,10 +19,15 @@ export class RegisterDto {
   @MaxLength(128)
   password!: string;
 
+  /** Optional — mobile collects name later during health onboarding. */
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === "string" && value.trim().length === 0 ? undefined : value,
+  )
   @IsString()
   @MinLength(2)
   @MaxLength(255)
-  displayName!: string;
+  displayName?: string;
 
   @IsOptional()
   @IsString()
