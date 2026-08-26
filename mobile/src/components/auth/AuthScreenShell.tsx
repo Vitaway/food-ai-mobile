@@ -1,17 +1,18 @@
 import type { ReactNode } from 'react';
 import {
+  Dimensions,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   View,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { AppLogo } from '@/components/ui/AppLogo';
 import { Text } from '@/components/ui/Text';
-import { BRAND_HEADER_COLOR } from '@/components/ui/GradientHeader';
 import { cn } from '@/utils/cn';
 
 type AuthScreenShellProps = {
@@ -24,6 +25,8 @@ type AuthScreenShellProps = {
   scrollable?: boolean;
   cardClassName?: string;
   contentStyle?: StyleProp<ViewStyle>;
+  /** When false, tapping the dimmed welcome backdrop does nothing. Default true. */
+  dismissible?: boolean;
 };
 
 export function AuthScreenShell({
@@ -33,51 +36,77 @@ export function AuthScreenShell({
   actions,
   footer,
   scrollable = true,
-  cardClassName = 'px-6 py-7',
+  cardClassName = 'px-6 pt-3 pb-4',
   contentStyle,
+  dismissible = true,
 }: AuthScreenShellProps) {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const maxHeight = Math.round(Dimensions.get('window').height * 0.72);
 
-  const body = (
-    <View
-      className="flex-1 justify-center px-5"
-      style={[{ paddingTop: insets.top + 24, paddingBottom: insets.bottom + 24 }, contentStyle]}>
-      <View className={cn('rounded-[28px] bg-white shadow-xl', cardClassName)}>
-        <View className="mb-6 items-center">
-          <View className="h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF4FA]">
-            <AppLogo size={36} />
-          </View>
-          <Text className="mt-4 text-center text-[28px] font-sans-bold text-neutral-900">{title}</Text>
-          {subtitle ? (
-            <Text className="mt-2 text-center text-[15px] leading-6 text-neutral-500">{subtitle}</Text>
-          ) : null}
-        </View>
+  const dismiss = () => {
+    if (!dismissible) return;
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace('/welcome');
+  };
 
-        {children}
+  const inner = (
+    <>
+      <Pressable onPress={dismiss} hitSlop={8} className="mb-3 items-center py-1">
+        <View className="h-1.5 w-12 rounded-full bg-ash-grey-200" />
+      </Pressable>
 
-        {actions ? <View className="mt-6">{actions}</View> : null}
-
-        {footer ? <View className="mt-5">{footer}</View> : null}
+      <View className="mb-5">
+        <Text className="text-center font-sans-bold text-[28px] text-neutral-900">{title}</Text>
+        {subtitle ? (
+          <Text className="mt-2 text-center text-[15px] leading-6 text-neutral-500">{subtitle}</Text>
+        ) : null}
       </View>
-    </View>
+
+      {children}
+
+      {actions ? <View className="mt-6">{actions}</View> : null}
+      {footer ? <View className="mt-5">{footer}</View> : null}
+    </>
   );
 
   return (
-    <View className="flex-1" style={{ backgroundColor: BRAND_HEADER_COLOR }}>
+    <View className="flex-1 justify-end" style={{ backgroundColor: 'transparent' }}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel="Close"
+        onPress={dismiss}
+        className="absolute inset-0"
+        style={{ backgroundColor: 'rgba(5, 31, 28, 0.28)' }}
+      />
+
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1 }}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}>
-        {scrollable ? (
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            contentContainerStyle={{ flexGrow: 1 }}
-            showsVerticalScrollIndicator={false}>
-            {body}
-          </ScrollView>
-        ) : (
-          body
-        )}
+        <View
+          className={cn('w-full rounded-t-[32px] bg-white', cardClassName)}
+          style={[
+            {
+              maxHeight,
+              paddingBottom: Math.max(insets.bottom, 16),
+              borderCurve: 'continuous',
+            },
+            contentStyle,
+          ]}>
+          {scrollable ? (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              bounces={false}
+              showsVerticalScrollIndicator={false}>
+              {inner}
+            </ScrollView>
+          ) : (
+            inner
+          )}
+        </View>
       </KeyboardAvoidingView>
     </View>
   );

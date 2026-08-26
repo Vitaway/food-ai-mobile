@@ -1,124 +1,97 @@
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
+import type { Href } from 'expo-router';
 
 import { PasswordField } from '@/components/auth/PasswordField';
 import { AuthScreenShell } from '@/components/auth/AuthScreenShell';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { Button } from '@/components/ui/Button';
 import { FieldInput } from '@/components/ui/FieldInput';
+import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/LocaleContext';
 import { useToast } from '@/context/ToastContext';
+import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { isRegisterFormValid } from '@/utils/authForm';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 import { isPasswordAcceptable } from '@/utils/passwordStrength';
 
 export default function RegisterScreen() {
-  const router = useRouter();
+  const { replace } = useNavigateOnce();
   const { register } = useAuth();
+  const { t } = useI18n();
   const toast = useToast();
-  const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = isRegisterFormValid({ displayName, email, password, confirmPassword });
+  const canSubmit = isRegisterFormValid({ email, password });
 
   const handleSubmit = async () => {
-    if (!displayName.trim()) {
-      toast.error('Please enter your name.');
-      return;
-    }
+    if (loading) return;
     if (!isPasswordAcceptable(password)) {
-      toast.error('Use 8+ characters with mixed case and a number.');
-      return;
-    }
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match.');
+      toast.error(t.auth.passwordHint);
       return;
     }
 
     setLoading(true);
     try {
-      await register(
-        email,
-        password,
-        displayName.trim(),
-        referralCode.trim() || undefined,
-        'individual',
-      );
-      toast.success('Account created; finish your health profile next.', 'Welcome');
+      await register(email, password);
+      toast.success(t.auth.accountCreated, t.auth.welcome);
+      // Keep overlay up until AuthGuard routes into onboarding.
     } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not create account'), 'Sign up');
-    } finally {
       setLoading(false);
+      toast.error(getApiErrorMessage(err, t.auth.couldNotCreate), t.auth.signUp);
     }
   };
 
   return (
-    <AuthScreenShell
-      title="Sign Up"
-      subtitle="Create your MiraFood account in a minute."
-      footer={
-        <Pressable onPress={() => router.back()}>
-          <Text className="text-center text-sm text-neutral-500">
-            Already have an account?{' '}
-            <Text className="font-sans-semibold text-blue-spruce-700">Log In</Text>
-          </Text>
-        </Pressable>
-      }>
-      <View className="gap-4">
-        <FieldInput
-          label="Full name"
-          value={displayName}
-          onChangeText={setDisplayName}
-          autoCapitalize="words"
-          placeholder="Your name"
-        />
-        <FieldInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          placeholder="you@email.com"
-        />
-        <PasswordField
-          label="Password"
-          value={password}
-          onChangeText={setPassword}
-          placeholder="Create a password"
-          textContentType="newPassword"
-          autoComplete="password-new"
-        />
-        <PasswordField
-          label="Confirm password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          placeholder="Re-enter password"
-          textContentType="newPassword"
-          autoComplete="password-new"
-        />
-        <FieldInput
-          label="Referral code (optional)"
-          value={referralCode}
-          onChangeText={setReferralCode}
-          autoCapitalize="characters"
-          placeholder="MIRA-XXXXXX"
-        />
-        <Button
-          label={loading ? 'Creating…' : 'Create account'}
-          onPress={handleSubmit}
-          disabled={loading || !canSubmit}
-          fullWidth
-          size="lg"
-          variant="primary"
-        />
-        <SocialAuthButtons dividerLabel="Or sign up with" disabled={loading} />
-      </View>
-    </AuthScreenShell>
+    <>
+      <FullScreenLoader visible={loading} message={t.auth.creatingAccount} />
+      <AuthScreenShell
+        title={t.auth.signUp}
+        dismissible={!loading}
+        footer={
+          <Pressable onPress={() => replace('/auth/login' as Href)} disabled={loading}>
+            <Text className="text-center text-sm text-neutral-500">
+              {t.auth.haveAccount}{' '}
+              <Text className="font-sans-semibold text-blue-spruce-700">{t.auth.logIn}</Text>
+            </Text>
+          </Pressable>
+        }>
+        <View className="gap-4">
+          <FieldInput
+            label={t.auth.email}
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            placeholder={t.auth.emailPlaceholder}
+            editable={!loading}
+          />
+          <PasswordField
+            label={t.auth.password}
+            value={password}
+            onChangeText={setPassword}
+            placeholder={t.auth.createPasswordPlaceholder}
+            textContentType="newPassword"
+            autoComplete="password-new"
+          />
+          <Button
+            label={t.auth.createAccount}
+            onPress={handleSubmit}
+            disabled={loading || !canSubmit}
+            fullWidth
+            size="lg"
+            variant="primary"
+          />
+          <View className="mt-4">
+            <SocialAuthButtons dividerLabel={t.auth.orSignUpWith} disabled={loading} />
+          </View>
+        </View>
+      </AuthScreenShell>
+    </>
   );
 }

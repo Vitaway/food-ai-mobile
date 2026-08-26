@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 
 import { ProfileAvatarPicker } from '@/components/profile/ProfileAvatarPicker';
 import { Button } from '@/components/ui/Button';
@@ -9,6 +9,7 @@ import { KeyboardSafeScreen } from '@/components/ui/KeyboardSafeScreen';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthContext';
+import { useConfirmDialog } from '@/context/ConfirmDialogContext';
 import { useToast } from '@/context/ToastContext';
 import { useCoachProfileBack } from '@/hooks/useCoachProfileBack';
 import { fetchCoachProfile, updateCoachProfile, uploadCoachAvatar } from '@/services/remote/coachApi';
@@ -17,6 +18,7 @@ import type { CoachProfileUpdatePayload } from '@/types/coach';
 export default function CoachAccountScreen() {
   const handleBack = useCoachProfileBack();
   const toast = useToast();
+  const { alert } = useConfirmDialog();
   const { session } = useAuth();
   const [loading, setLoading] = useState(true);
   const [profileBusy, setProfileBusy] = useState(false);
@@ -69,7 +71,7 @@ export default function CoachAccountScreen() {
     if (profileBusy) return;
     const trimmedName = displayName.trim();
     if (!trimmedName) {
-      Alert.alert('Name required', 'Enter a display name.');
+      await alert({ title: 'Name required', message: 'Enter a display name.' });
       return;
     }
 

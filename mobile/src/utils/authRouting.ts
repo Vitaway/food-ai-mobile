@@ -2,8 +2,9 @@ export type AuthRouteContext = {
   requiresAuth: boolean;
   isAuthenticated: boolean;
   hasCompletedOnboarding: boolean;
+  hasSeenWelcome?: boolean;
   needsPushPrompt?: boolean;
-  /** When true, user must stay on subscription paywall until they have access. */
+  /** @deprecated Soft freemium: do not hard-route to paywall. Kept for callers; ignored. */
   needsSubscription?: boolean;
   isCoach?: boolean;
   root: string;
@@ -13,10 +14,6 @@ export type AuthRouteContext = {
 
 function isIndexRoute(root: string) {
   return !root || root === 'index';
-}
-
-function isSubscriptionRoute(root: string, second?: string) {
-  return root === 'profile' && second === 'subscription';
 }
 
 function homeRoute(isCoach: boolean) {
@@ -29,8 +26,8 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
     requiresAuth,
     isAuthenticated,
     hasCompletedOnboarding,
+    hasSeenWelcome = true,
     needsPushPrompt = false,
-    needsSubscription = false,
     isCoach = false,
     root,
     authScreen,
@@ -38,9 +35,9 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   } = opts;
   const inAuth = root === 'auth';
   const inOnboarding = root === 'onboarding';
+  const inWelcome = root === 'welcome';
   const inPushEnable = root === 'notifications' && second === 'enable';
   const onResetPassword = authScreen === 'reset-password';
-  const onSubscription = isSubscriptionRoute(root, second);
   const home = homeRoute(isCoach);
 
   if (!requiresAuth) {
@@ -52,7 +49,10 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
   }
 
   if (!isAuthenticated) {
-    return inAuth ? null : '/auth/login';
+    if (onResetPassword) return inAuth ? null : '/auth/reset-password';
+    // Logged-out home is always welcome; auth sheets sit on top.
+    if (inWelcome || inAuth) return null;
+    return '/welcome';
   }
 
   if (isCoach) {
@@ -79,10 +79,7 @@ export function resolveAuthTarget(opts: AuthRouteContext): string | null {
     return '/notifications/enable';
   }
 
-  if (needsSubscription) {
-    if (onSubscription) return null;
-    return '/profile/subscription';
-  }
+  // Freemium: free users browse the app; paid actions soft-lock separately.
 
   if (inPushEnable) return home;
   if (inOnboarding) return home;

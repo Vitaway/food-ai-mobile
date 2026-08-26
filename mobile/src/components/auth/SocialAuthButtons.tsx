@@ -3,8 +3,8 @@ import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { useRouter, type Href } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, View } from 'react-native';
-import { AntDesign, Ionicons } from '@expo/vector-icons';
+import { ActivityIndicator, Image, Platform, Pressable, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthContext';
@@ -13,6 +13,8 @@ import { WrongAppRoleError } from '@/utils/authErrors';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 
 WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_G_LOGO = require('../../../assets/images/google-g.png');
 
 type SocialAuthButtonsProps = {
   dividerLabel?: string;
@@ -45,7 +47,11 @@ type GoogleAuthSuccess = Extract<
 >;
 
 function googleIdentityTokenFromResult(
-  result: { type: string; params?: Record<string, string>; authentication?: { idToken?: string | null } | null } | null,
+  result: {
+    type: string;
+    params?: Record<string, string>;
+    authentication?: { idToken?: string | null } | null;
+  } | null,
 ): string | null {
   if (!result || result.type !== 'success') return null;
   const fromParams =
@@ -67,7 +73,9 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
   const { loginWithGoogle } = useAuth();
   const toast = useToast();
   const handledTokenRef = useRef<string | null>(null);
+  const promptingRef = useRef(false);
 
+  // Do not set selectAccount / consent — that forces a fresh grant and Google security emails.
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     iosClientId: googleIosClientId || undefined,
     androidClientId: googleAndroidClientId || undefined,
@@ -77,13 +85,12 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
   useEffect(() => {
     if (!response || response.type !== 'success') return;
 
-    // Native iOS/Android exchange the auth code asynchronously; id_token lands on `response`.
     const identityToken = googleIdentityTokenFromResult(response);
     if (!identityToken) {
-      // Still exchanging the code — wait for the next response update.
       if (response.params?.code && !response.authentication) return;
       toast.error('Google did not return a sign-in token. Please try again.', 'Google');
       setLoading(null);
+      promptingRef.current = false;
       return;
     }
     if (handledTokenRef.current === identityToken) return;
@@ -108,7 +115,10 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
         }
         toast.error(getApiErrorMessage(err, 'Google sign-in failed'), 'Google');
       } finally {
-        if (!cancelled) setLoading(null);
+        if (!cancelled) {
+          setLoading(null);
+          promptingRef.current = false;
+        }
       }
     })();
 
@@ -118,22 +128,24 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
   }, [response, loginWithGoogle, router, setLoading, toast]);
 
   const handleGoogle = async () => {
-    if (loading || disabled) return;
+    if (loading || disabled || promptingRef.current) return;
+    promptingRef.current = true;
     handledTokenRef.current = null;
     setLoading('google');
     try {
-      const result = await promptAsync();
+      // Shared cookies (not ephemeral) let Google reuse a prior grant instead of re-consenting.
+      const result = await promptAsync({ preferEphemeralSession: false });
       if (result.type !== 'success') {
         setLoading(null);
+        promptingRef.current = false;
         return;
       }
-      // If the token is already present (web / some native paths), handle via effect.
-      // If only `code` is present, keep loading until the hook finishes the exchange.
       const identityToken = googleIdentityTokenFromResult(result as GoogleAuthSuccess);
       if (identityToken) return;
       if (result.params?.code) return;
       toast.error('Google did not return a sign-in token. Please try again.', 'Google');
       setLoading(null);
+      promptingRef.current = false;
     } catch (err) {
       const code =
         err && typeof err === 'object' && 'code' in err
@@ -141,10 +153,12 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
           : '';
       if (code === 'ERR_REQUEST_CANCELED' || code === 'ERR_CANCELED') {
         setLoading(null);
+        promptingRef.current = false;
         return;
       }
       toast.error(getApiErrorMessage(err, 'Google sign-in failed'), 'Google');
       setLoading(null);
+      promptingRef.current = false;
     }
   };
 
@@ -162,7 +176,7 @@ function GoogleSignInButton({ disabled, loading, setLoading }: SharedSocialProps
         <ActivityIndicator color="#4285F4" />
       ) : (
         <>
-          <AntDesign name="google" size={20} color="#4285F4" />
+          <Image source={GOOGLE_G_LOGO} style={{ width: 22, height: 22 }} resizeMode="contain" />
           <Text className="font-sans-semibold text-[15px] text-neutral-900">Continue with Google</Text>
         </>
       )}
@@ -180,7 +194,7 @@ function GooglePlaceholderButton() {
         toast.error('Google sign-in is not set up yet. Use email for now.', 'Google')
       }
       className="h-14 w-full flex-row items-center justify-center gap-3 rounded-2xl border border-neutral-200 bg-white px-4">
-      <AntDesign name="google" size={20} color="#4285F4" />
+      <Image source={GOOGLE_G_LOGO} style={{ width: 22, height: 22 }} resizeMode="contain" />
       <Text className="font-sans-semibold text-[15px] text-neutral-900">Continue with Google</Text>
     </Pressable>
   );

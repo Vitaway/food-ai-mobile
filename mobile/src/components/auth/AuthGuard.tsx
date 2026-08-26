@@ -12,6 +12,7 @@ import { hasSeenPushPrompt, subscribePushPromptSeen } from '@/utils/pushPrompt';
 
 function isAtTarget(target: string, root: string, second?: string): boolean {
   if (target === '/onboarding') return root === 'onboarding';
+  if (target === '/welcome') return root === 'welcome';
   if (target === '/auth/login') return root === 'auth';
   if (target === '/(tabs)') return root === '(tabs)';
   if (target === '/(coach)') return root === '(coach)';
@@ -28,16 +29,12 @@ export function AuthGuard({ children }: PropsWithChildren) {
   const second = segments[1];
   const { isAuthenticated, isLoading: authLoading, isCoach } = useAuth();
   const { hasCompletedOnboarding, isBootstrapReady } = useProfile();
-  const { hasActiveSubscription, isSubscriptionReady } = useSubscriptionAccess();
+  const { isSubscriptionReady } = useSubscriptionAccess();
   const requiresAuth = isApiConfigured();
   const pendingTarget = useRef<string | null>(null);
   const pendingAt = useRef(0);
-  const wasSubscriptionBlocked = useRef(false);
   const [pushPromptReady, setPushPromptReady] = useState(false);
   const [needsPushPrompt, setNeedsPushPrompt] = useState(false);
-
-  const needsSubscription =
-    requiresAuth && isAuthenticated && hasCompletedOnboarding && !hasActiveSubscription && !isCoach;
 
   const isBootstrapping =
     authLoading ||
@@ -76,21 +73,6 @@ export function AuthGuard({ children }: PropsWithChildren) {
     });
   }, []);
 
-  // After paywall unlock, enter the app — replace() onto subscription leaves no useful back stack.
-  useEffect(() => {
-    if (needsSubscription) {
-      wasSubscriptionBlocked.current = true;
-      return;
-    }
-    if (!wasSubscriptionBlocked.current || isBootstrapping || !isSubscriptionReady) return;
-    if (wasSubscriptionBlocked.current && !isCoach) {
-      wasSubscriptionBlocked.current = false;
-      if (root === 'profile' && second === 'subscription') {
-        router.replace('/(tabs)' as Href);
-      }
-    }
-  }, [needsSubscription, isBootstrapping, isSubscriptionReady, root, second, router, isCoach]);
-
   useEffect(() => {
     if (isBootstrapping) return;
 
@@ -99,7 +81,6 @@ export function AuthGuard({ children }: PropsWithChildren) {
       isAuthenticated,
       hasCompletedOnboarding: isCoach || hasCompletedOnboarding,
       needsPushPrompt,
-      needsSubscription,
       isCoach,
       root,
       authScreen,
@@ -125,7 +106,6 @@ export function AuthGuard({ children }: PropsWithChildren) {
     isAuthenticated,
     hasCompletedOnboarding,
     needsPushPrompt,
-    needsSubscription,
     root,
     authScreen,
     second,
