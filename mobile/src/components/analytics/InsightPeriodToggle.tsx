@@ -1,6 +1,7 @@
 import { TouchableOpacity, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 
 type InsightPeriodToggleProps = {
   value: 7 | 30;
@@ -10,6 +11,8 @@ type InsightPeriodToggleProps = {
 const PERIODS = [7, 30] as const;
 
 export function InsightPeriodToggle({ value, onChange }: InsightPeriodToggleProps) {
+  const { t } = useI18n();
+
   return (
     <View className="flex-row rounded-full bg-ash-grey-100 p-1">
       {PERIODS.map((days) => {
@@ -39,7 +42,7 @@ export function InsightPeriodToggle({ value, onChange }: InsightPeriodToggleProp
                 className={`font-sans-semibold text-sm ${
                   selected ? 'text-blue-spruce-800' : 'text-neutral-500'
                 }`}>
-                {days} days
+                {tf(t.analytics.periodDays, { n: days })}
               </Text>
             </View>
           </TouchableOpacity>

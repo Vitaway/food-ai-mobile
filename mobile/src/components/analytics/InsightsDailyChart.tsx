@@ -1,6 +1,7 @@
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type { DailyInsightPoint } from '@/hooks/useInsightsData';
 
@@ -19,20 +20,19 @@ const CARD_SHADOW = {
 };
 
 export function InsightsDailyChart({ points, maxCalories, calorieTarget }: InsightsDailyChartProps) {
+  const { t } = useI18n();
   const hasAny = points.some((point) => point.calories > 0);
   const chartMax = Math.max(maxCalories, calorieTarget, 1);
   const targetLine = Math.min((calorieTarget / chartMax) * 100, 100);
 
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
-      <Text className="font-sans-semibold text-base text-neutral-900">Daily calories</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">Bars show approved meals per day</Text>
+      <Text className="font-sans-semibold text-base text-neutral-900">{t.analytics.dailyCalories}</Text>
 
       {!hasAny ? (
         <View className="mt-5 rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-4 py-8">
-          <Text className="text-center font-sans-semibold text-neutral-700">No calorie data yet</Text>
-          <Text className="mt-1 text-center text-sm text-neutral-500">
-            Log and get meals approved to see your daily rhythm.
+          <Text className="text-center font-sans-semibold text-neutral-700">
+            {t.analytics.dailyCaloriesEmpty}
           </Text>
         </View>
       ) : (
@@ -62,7 +62,9 @@ export function InsightsDailyChart({ points, maxCalories, calorieTarget }: Insig
               );
             })}
           </View>
-          <Text className="mt-3 text-xs text-neutral-400">Dashed line = daily calorie target ({calorieTarget} kcal)</Text>
+          <Text className="mt-3 text-xs text-neutral-400">
+            {t.analytics.targetLine} · {calorieTarget} {t.common.kcal}
+          </Text>
         </View>
       )}
     </View>

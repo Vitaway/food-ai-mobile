@@ -3,8 +3,9 @@ import type { ComponentProps } from 'react';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
-import { glassNoun } from '@/utils/waterUnits';
+import { glassNounFromT } from '@/utils/i18nLabels';
 
 type StatTile = {
   label: string;
@@ -29,23 +30,24 @@ export function InsightsStatTiles({
   avgWaterCups,
   waterTargetCups,
 }: InsightsStatTilesProps) {
+  const { t } = useI18n();
   const tiles: StatTile[] = [
     {
-      label: 'Meals',
+      label: t.analytics.statMeals,
       value: String(mealsCount),
       icon: 'restaurant-outline',
       tint: 'bg-shamrock-50',
       color: '#1D9E75',
     },
     {
-      label: 'Avg kcal',
+      label: t.analytics.statAvgKcal,
       value: String(avgCalories),
       icon: 'flame-outline',
       tint: 'bg-cinnamon-wood-50',
       color: semanticColors.accentOrange,
     },
     {
-      label: 'Hydration',
+      label: t.analytics.statHydration,
       value: `${hydrationRate}%`,
       icon: 'water-outline',
       tint: 'bg-blue-spruce-50',
@@ -79,8 +81,12 @@ export function InsightsStatTiles({
       <View className="flex-row items-center gap-3 rounded-2xl bg-blue-spruce-50 px-4 py-3">
         <Ionicons name="water" size={20} color="#023459" />
         <Text className="flex-1 text-sm text-blue-spruce-900">
-          Avg <Text className="font-sans-bold">{avgWaterCups}</Text> {glassNoun(avgWaterCups)}
-          /day · goal {waterTargetCups} {glassNoun(waterTargetCups)}
+          {tf(t.analytics.avgGlasses, {
+            n: avgWaterCups,
+            noun: glassNounFromT(t, avgWaterCups),
+            goal: waterTargetCups,
+            goalNoun: glassNounFromT(t, waterTargetCups),
+          })}
         </Text>
       </View>
     </View>
