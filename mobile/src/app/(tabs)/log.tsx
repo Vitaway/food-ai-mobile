@@ -33,8 +33,8 @@ import {
 } from '@/utils/logIntent';
 import {
   buildBarcodeCartNote,
-  initialPortionState,
   mealAnalysisFromPortions,
+  mergeCartIntoPortions,
   type BarcodePortionState,
 } from '@/services/remote/nutritionApi';
 import {
@@ -518,12 +518,17 @@ export default function LogMealScreen() {
       return (
         <LogBarcodeStep
           loading={saving}
+          initialCart={barcodePortions.map((row) => ({
+            key: row.key,
+            food: row.food,
+            barcode: row.barcode,
+          }))}
           onBack={() => setStep('method')}
           onContinue={(cart) => {
             if (!cart.length) return;
             setFromBarcode(true);
             setFromPastMeal(false);
-            setBarcodePortions(cart.map(initialPortionState));
+            setBarcodePortions((prev) => mergeCartIntoPortions(prev, cart));
             setAnalysis(null);
             setAwaitingCoachConfirm(false);
             setStep('barcode-portion');
@@ -570,7 +575,6 @@ export default function LogMealScreen() {
       return (
         <LogResultsStep
           analysis={analysis}
-          onAnalysisChange={setAnalysis}
           imageUri={imageUri ?? undefined}
           selectedMealType={selectedMealType}
           onSelectMealType={setSelectedMealType}
