@@ -179,3 +179,25 @@ export function recalculateAnalysisTotals(items: DetectedFoodItem[]) {
     },
   };
 }
+
+export function formatServingAmount(amount: number): string {
+  if (!Number.isFinite(amount) || amount <= 0) return '0';
+  const rounded = Math.round(amount * 10) / 10;
+  if (Math.abs(rounded - 0.5) < 0.05) return '½';
+  const whole = Math.floor(rounded);
+  const frac = rounded - whole;
+  if (whole > 0 && Math.abs(frac - 0.5) < 0.05) return `${whole}½`;
+  if (Math.abs(frac) < 0.05) return String(whole);
+  return String(rounded);
+}
+
+export function formatServingLabel(amount: number, unit: string): string {
+  return `${formatServingAmount(amount)} ${unit}`.trim();
+}
+
+export function servingStep(unit: string): number {
+  const normalized = normalizeServingUnit(unit);
+  if (normalized === 'g' || normalized === 'ml') return 10;
+  if (normalized === 'kg' || normalized === 'l') return 0.1;
+  return 0.5;
+}
