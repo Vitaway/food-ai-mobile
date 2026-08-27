@@ -23,17 +23,27 @@ export function parseDateKey(dateKey: string) {
   return new Date(year, month - 1, day, 12, 0, 0, 0);
 }
 
-export function formatDayHeading(dateKey: string) {
-  if (dateKey === todayKey()) return 'Today';
+type DayHeadingOptions = {
+  locale?: string;
+  today?: string;
+  yesterday?: string;
+};
+
+export function formatDayHeading(dateKey: string, opts?: DayHeadingOptions) {
+  if (dateKey === todayKey()) return opts?.today ?? 'Today';
   const date = parseDateKey(dateKey);
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  if (dateKey === todayKey(yesterday)) return 'Yesterday';
-  return date.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+  if (dateKey === todayKey(yesterday)) return opts?.yesterday ?? 'Yesterday';
+  return date.toLocaleDateString(opts?.locale ?? 'en-US', {
+    weekday: 'long',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
-export function formatDisplayDate(date = new Date()) {
-  return date.toLocaleDateString('en-US', {
+export function formatDisplayDate(date = new Date(), locale = 'en-US') {
+  return date.toLocaleDateString(locale, {
     weekday: 'long',
     day: 'numeric',
     month: 'short',
@@ -41,8 +51,12 @@ export function formatDisplayDate(date = new Date()) {
   });
 }
 
-export function formatTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+export function formatTime(iso: string, locale = 'en-US') {
+  return new Date(iso).toLocaleTimeString(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
 }
 
 export function delay(ms: number) {

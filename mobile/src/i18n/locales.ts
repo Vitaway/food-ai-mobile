@@ -17,3 +17,10 @@ export function normalizeLocale(value: string | null | undefined): AppLocale {
   if (raw.startsWith('fr')) return 'fr';
   return 'en';
 }
+
+/** BCP-47 tag for `toLocaleDateString` / `toLocaleTimeString`. */
+export function dateLocaleTag(locale: AppLocale): string {
+  if (locale === 'fr') return 'fr-FR';
+  if (locale === 'rw') return 'rw-RW';
+  return 'en-US';
+}
