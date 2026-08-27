@@ -21,6 +21,7 @@ import { ScreenTopBar } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { isApiConfigured } from '@/constants/api';
 import { isAwaitingCoachReview, isMealReadable } from '@/constants/mealStatus';
+import { useI18n } from '@/context/LocaleContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
@@ -34,6 +35,7 @@ function hasConfirmedNutrition(meal: MealSubmission): boolean {
 }
 
 export default function MealResultScreen() {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
   const { push, back } = useNavigateOnce();
   const logAgain = useSinglePress(() => push('/(tabs)/log'));
@@ -45,12 +47,12 @@ export default function MealResultScreen() {
   if (!meal) {
     return (
       <Screen edges={[]}>
-        <ScreenTopBar title="Meal" onBack={back} />
+        <ScreenTopBar title={t.meal.title} onBack={back} />
         <View className="flex-1 items-center justify-center px-6">
           <Text className="text-center font-sans-semibold text-lg text-neutral-900">
-            Meal not found
+            {t.meal.notFound}
           </Text>
-          <Button label="Go back" className="mt-6" onPress={back} />
+          <Button label={t.meal.goBack} className="mt-6" onPress={back} />
         </View>
       </Screen>
     );
@@ -71,15 +73,15 @@ export default function MealResultScreen() {
   };
 
   const chatLabel = approved
-    ? 'Ask about this review'
+    ? t.meal.askAboutReview
     : awaitingCoach
-      ? 'Message coach'
-      : 'Ask coach about this meal';
+      ? t.meal.messageCoach
+      : t.chat.askCoach;
 
   return (
     <Screen edges={[]} className="bg-blue-spruce-800">
       <View className="z-20">
-        <ScreenTopBar title="Meal result" onBack={back} />
+        <ScreenTopBar title={t.meal.resultTitle} onBack={back} />
       </View>
       <ScrollView
         className="z-0 flex-1 bg-ash-grey-50"
@@ -114,13 +116,12 @@ export default function MealResultScreen() {
           {awaitingCoach ? (
             <View className="rounded-[28px] bg-white px-5 py-5">
               <Text className="mb-2 text-[11px] font-sans-bold uppercase tracking-[0.08em] text-ash-grey-400">
-                Vitamins & minerals
+                {t.meal.vitaminsMinerals}
               </Text>
               <View className="items-center rounded-2xl bg-ash-grey-50 px-4 py-5">
-                <Text className="font-sans-semibold text-ash-grey-700">Unlocks after review</Text>
+                <Text className="font-sans-semibold text-ash-grey-700">{t.meal.unlocksAfterReview}</Text>
                 <Text className="mt-1.5 text-center text-sm leading-5 text-ash-grey-500">
-                  Micronutrients depend on exact portions. Your coach confirms weights first, then
-                  you get the full picture.
+                  {t.meal.microsHint}
                 </Text>
               </View>
             </View>
@@ -139,11 +140,11 @@ export default function MealResultScreen() {
 
           <View className="mt-1 gap-2.5">
             {rejected ? (
-              <Button label="Log next meal" variant="secondary" onPress={logAgain} />
+              <Button label={t.meal.logNext} variant="secondary" onPress={logAgain} />
             ) : null}
             {isApiConfigured() ? <AskCoachButton mealId={meal.id} label={chatLabel} /> : null}
             {approved ? (
-              <Button label="Log next meal" variant="outline" onPress={logAgain} />
+              <Button label={t.meal.logNext} variant="outline" onPress={logAgain} />
             ) : null}
           </View>
         </View>

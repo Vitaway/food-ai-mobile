@@ -7,6 +7,8 @@ import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { isAwaitingCoachReview } from '@/constants/mealStatus';
 import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
+import { tf, useI18n } from '@/context/LocaleContext';
+import { dateLocaleTag } from '@/i18n/locales';
 import type { MealSubmission } from '@/types';
 import { mealDisplayTitle } from '@/utils/mealDisplay';
 
@@ -14,8 +16,8 @@ function mealTypeMeta(mealType: MealSubmission['mealType']) {
   return MEAL_TYPE_OPTIONS.find((option) => option.id === mealType) ?? MEAL_TYPE_OPTIONS[1];
 }
 
-function formatHeroTime(iso: string): string {
-  return new Date(iso).toLocaleString(undefined, {
+function formatHeroTime(iso: string, locale?: string): string {
+  return new Date(iso).toLocaleString(locale, {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
@@ -25,9 +27,11 @@ function formatHeroTime(iso: string): string {
 }
 
 export function MealPhotoHero({ meal }: { meal: MealSubmission }) {
+  const { t, locale } = useI18n();
   const mealType = mealTypeMeta(meal.mealType);
   const awaitingCoach = isAwaitingCoachReview(meal.status);
   const verified = meal.status === 'approved';
+  const when = formatHeroTime(meal.submittedAt, dateLocaleTag(locale));
 
   return (
     <View className="relative h-[300px] w-full overflow-hidden bg-blue-spruce-900">
@@ -62,15 +66,15 @@ export function MealPhotoHero({ meal }: { meal: MealSubmission }) {
             <MealStatusBadge status={meal.status} size="md" />
           ) : (
             <View className="rounded-full bg-cinnamon-wood-500/90 px-2.5 py-1">
-              <Text className="text-[11px] font-sans-semibold text-white">In review</Text>
+              <Text className="text-[11px] font-sans-semibold text-white">{t.meal.inReview}</Text>
             </View>
           )}
         </View>
 
         <Text className="font-display text-[32px] leading-9 text-white" numberOfLines={2}>
-          {mealDisplayTitle(meal)}
+          {mealDisplayTitle(meal, t)}
         </Text>
-        <Text className="mt-2 text-sm text-white/70">Logged {formatHeroTime(meal.submittedAt)}</Text>
+        <Text className="mt-2 text-sm text-white/70">{tf(t.meal.loggedAt, { when })}</Text>
       </View>
     </View>
   );
