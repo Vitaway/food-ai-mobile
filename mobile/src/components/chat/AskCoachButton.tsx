@@ -4,10 +4,12 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import { ensurePatientConversation } from '@/services/remote/chatApi';
 
 export function AskCoachButton({ mealId, label }: { mealId: string; label?: string }) {
+  const { t } = useI18n();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export function AskCoachButton({ mealId, label }: { mealId: string; label?: stri
         params: { id: conv.id, mealId, title: conv.title, peerAvatarUrl: conv.peerAvatarUrl ?? '' },
       });
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Could not open chat';
+      const message = err instanceof Error ? err.message : t.chat.tryAgain;
       setError(
         /route not found/i.test(message)
           ? 'Chat is not available on this server yet. Restart API with latest code.'
@@ -36,7 +38,7 @@ export function AskCoachButton({ mealId, label }: { mealId: string; label?: stri
   return (
     <View className="gap-2">
       <Button
-        label={loading ? 'Opening chat…' : label ?? 'Ask coach about this meal'}
+        label={loading ? t.chat.opening : label ?? t.chat.askCoach}
         variant="secondary"
         onPress={() => void openChat()}
         disabled={loading}
