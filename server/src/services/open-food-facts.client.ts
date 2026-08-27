@@ -248,6 +248,135 @@ function nutrientsUnknownFromPartial(nutritionPer100g: Record<string, number>): 
   return unknown;
 }
 
+const OFF_UNIT_ALIASES: Record<string, { unit: string; gramsPer: number }> = {
+  g: { unit: "g", gramsPer: 1 },
+  gram: { unit: "g", gramsPer: 1 },
+  grams: { unit: "g", gramsPer: 1 },
+  kg: { unit: "kg", gramsPer: 1000 },
+  ml: { unit: "ml", gramsPer: 1 },
+  milliliter: { unit: "ml", gramsPer: 1 },
+  millilitre: { unit: "ml", gramsPer: 1 },
+  milliliters: { unit: "ml", gramsPer: 1 },
+  cl: { unit: "ml", gramsPer: 10 },
+  l: { unit: "l", gramsPer: 1000 },
+  liter: { unit: "l", gramsPer: 1000 },
+  litre: { unit: "l", gramsPer: 1000 },
+  liters: { unit: "l", gramsPer: 1000 },
+  tbsp: { unit: "tbsp", gramsPer: 15 },
+  tbs: { unit: "tbsp", gramsPer: 15 },
+  tablespoon: { unit: "tbsp", gramsPer: 15 },
+  tablespoons: { unit: "tbsp", gramsPer: 15 },
+  tsp: { unit: "tsp", gramsPer: 5 },
+  teaspoon: { unit: "tsp", gramsPer: 5 },
+  teaspoons: { unit: "tsp", gramsPer: 5 },
+  cup: { unit: "cup", gramsPer: 240 },
+  cups: { unit: "cup", gramsPer: 240 },
+  glass: { unit: "glass", gramsPer: 240 },
+  glasses: { unit: "glass", gramsPer: 240 },
+  bottle: { unit: "bottle", gramsPer: 330 },
+  can: { unit: "can", gramsPer: 330 },
+  carton: { unit: "carton", gramsPer: 250 },
+  piece: { unit: "piece", gramsPer: 85 },
+  slice: { unit: "slice", gramsPer: 30 },
+  serving: { unit: "serving", gramsPer: 100 },
+  portion: { unit: "portion", gramsPer: 150 },
+  scoop: { unit: "scoop", gramsPer: 30 },
+  spoon: { unit: "tbsp", gramsPer: 15 },
+  bowl: { unit: "bowl", gramsPer: 300 },
+};
+
+type ParsedOffMeasure = {
+  amount: number;
+  unit: string;
+  gramsEquivalent: number;
+};
+
+function parseOffMeasure(raw: string | null | undefined): ParsedOffMeasure | null {
+  if (!raw) return null;
+  const text = raw.trim().toLowerCase().replace(",", ".");
+  const match = text.match(/([\d.]+)\s*([a-zµμ]+)/i);
+  if (!match) return null;
+  const parsedAmount = Number(match[1]);
+  if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) return null;
+  const alias = OFF_UNIT_ALIASES[match[2]];
+  if (!alias) return null;
+  const gramsEquivalent = Math.round(parsedAmount * alias.gramsPer * 10) / 10;
+  if (gramsEquivalent <= 0 || gramsEquivalent > 5000) return null;
+  const amount = match[2] === "cl" ? parsedAmount * 10 : parsedAmount;
+  return { amount, unit: alias.unit, gramsEquivalent };
+}
+
+function looksLikeLiquidProduct(product: OffProduct): boolean {
+  const unit = (product.product_quantity_unit ?? "").toLowerCase();
+  if (/\b(ml|cl|l|litre|liter)\b/.test(unit)) return true;
+  const quantity = (product.quantity ?? "").toLowerCase();
+  if (/\b(ml|cl|\bl\b|litre|liter)\b/.test(quantity)) return true;
+  const category = (product.categories ?? "").toLowerCase();
+  return /\b(beverage|beverages|drink|drinks|juice|milk|water|soda|nectar|yoghurt drink)\b/.test(
+    category,
+  );
+}
+
+function uniqueOffServings(
+  rows: Array<{ unit: string; amount: number; gramsEquivalent: number }>,
+): PackagedProduct["servings"] {
+  const seen = new Set<string>();
+  const servings: PackagedProduct["servings"] = [];
+  for (const [index, row] of rows.entries()) {
+    const key = `${row.unit}:${row.amount}:${row.gramsEquivalent}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    servings.push({
+      id: `off-serving-${row.unit}-${index}`,
+      unit: row.unit,
+      amount: row.amount,
+      gramsEquivalent: row.gramsEquivalent,
+      isDefault: servings.length === 0,
+    });
+  }
+  return servings;
+}
+
+export function inferOffServings(product: OffProduct, barcode: string): PackagedProduct["servings"] {
+  const grams = inferOffServingGrams(product);
+  const candidates: Array<{ unit: string; amount: number; gramsEquivalent: number }> = [];
+
+  const fromServingSize = parseOffMeasure(product.serving_size);
+  if (fromServingSize) candidates.push(fromServingSize);
+
+  const fromQuantity = parseOffMeasure(product.quantity);
+  if (fromQuantity) candidates.push(fromQuantity);
+
+  const packageAmount = asNumber(product.product_quantity);
+  const packageUnit = product.product_quantity_unit?.trim();
+  if (packageAmount != null && packageUnit) {
+    const fromPackage = parseOffMeasure(`${packageAmount} ${packageUnit}`);
+    if (fromPackage) candidates.push(fromPackage);
+  }
+
+  if (!candidates.some((row) => Math.abs(row.gramsEquivalent - grams) < 0.6)) {
+    const liquid = looksLikeLiquidProduct(product) || candidates.some((row) => row.unit === "ml" || row.unit === "l");
+    candidates.unshift(
+      liquid
+        ? { unit: "ml", amount: grams, gramsEquivalent: grams }
+        : { unit: "g", amount: grams, gramsEquivalent: grams },
+    );
+  }
+
+  const servings = uniqueOffServings(candidates);
+  if (servings.length) return servings;
+
+  return [
+    {
+      id: `off-serving-${barcode}`,
+      unit: looksLikeLiquidProduct(product) ? "ml" : "g",
+      amount: grams,
+      gramsEquivalent: grams,
+      isDefault: true,
+    },
+  ];
+}
+
 /** Prefer explicit OFF serving fields, then infer from per-serving vs per-100g nutriments. */
 export function inferOffServingGrams(product: OffProduct): number {
   const fromQuantity = asNumber(product.serving_quantity);
@@ -324,7 +453,6 @@ export function mapOffProduct(product: OffProduct, fallbackCode?: string): Packa
   }
 
   const novaGroup = pickNutriment(nutriments, ["nova-group_100g", "nova-group"]);
-  const servingGrams = inferOffServingGrams(product);
 
   const quantityLabel =
     product.quantity?.trim() ||
@@ -355,15 +483,7 @@ export function mapOffProduct(product: OffProduct, fallbackCode?: string): Packa
     nutritionPer100g,
     micronutrients: {},
     nutrientsUnknown: nutrientsUnknownFromPartial(nutritionPer100g),
-    servings: [
-      {
-        id: `off-serving-${barcode}`,
-        unit: "g",
-        amount: servingGrams,
-        gramsEquivalent: servingGrams,
-        isDefault: true,
-      },
-    ],
+    servings: inferOffServings(product, barcode),
   };
 }
 
