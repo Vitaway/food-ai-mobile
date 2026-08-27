@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatAvatar } from '@/components/chat/ChatAvatar';
 import { chatTheme } from '@/components/chat/chatTheme';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 
 type ChatThreadHeaderProps = {
   title: string;
@@ -15,11 +16,13 @@ type ChatThreadHeaderProps = {
 
 export function ChatThreadHeader({
   title,
-  subtitle = 'MiraFood coach',
+  subtitle,
   imageUrl,
   onBack,
 }: ChatThreadHeaderProps) {
+  const { t } = useI18n();
   const insets = useSafeAreaInsets();
+  const subtitleText = subtitle ?? t.chat.coachName;
 
   return (
     <View
@@ -34,7 +37,7 @@ export function ChatThreadHeader({
       <View className="flex-row items-center gap-1">
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityLabel={t.common.goBack}
           onPress={onBack}
           className="h-11 w-11 items-center justify-center rounded-full active:bg-white/10">
           <Ionicons name="chevron-back" size={26} color="#ffffff" />
@@ -49,7 +52,7 @@ export function ChatThreadHeader({
             {title}
           </Text>
           <Text className="text-[13px]" style={{ color: chatTheme.headerSubtext }} numberOfLines={1}>
-            {subtitle}
+            {subtitleText}
           </Text>
         </View>
       </View>

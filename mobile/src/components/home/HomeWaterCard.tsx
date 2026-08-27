@@ -2,13 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
-import {
-  formatGlassesShort,
-  formatGlassesWhole,
-  glassNoun,
-  mlToGlasses,
-} from '@/utils/waterUnits';
+import { formatGlassesShortFromT, glassNounFromT } from '@/utils/i18nLabels';
+import { formatGlassesWhole, mlToGlasses } from '@/utils/waterUnits';
 
 type HomeWaterCardProps = {
   waterMl: number;
@@ -17,6 +14,7 @@ type HomeWaterCardProps = {
 };
 
 export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCardProps) {
+  const { t } = useI18n();
   const progress = waterTargetMl > 0 ? Math.min(1, waterMl / waterTargetMl) : 0;
   const glassesLogged = mlToGlasses(waterMl);
   const glassesTarget = mlToGlasses(waterTargetMl);
@@ -39,10 +37,10 @@ export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCard
 
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center justify-between">
-          <Text className="font-sans-semibold text-neutral-900">Water today</Text>
+          <Text className="font-sans-semibold text-neutral-900">{t.home.waterToday}</Text>
           <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">
             {formatGlassesWhole(glassesLogged)}/{formatGlassesWhole(glassesTarget)}{' '}
-            {glassNoun(glassesTarget)}
+            {glassNounFromT(t, glassesTarget)}
           </Text>
         </View>
         <View className="mt-2 h-2 overflow-hidden rounded-full bg-ash-grey-100">
@@ -53,8 +51,8 @@ export function HomeWaterCard({ waterMl, waterTargetMl, onPress }: HomeWaterCard
         </View>
         <Text className="mt-1.5 text-xs text-neutral-500">
           {remainingGlasses > 0
-            ? `${formatGlassesShort(remainingGlasses)} to go · tap to log`
-            : 'Goal reached · tap to add more'}
+            ? tf(t.home.waterToGo, { amount: formatGlassesShortFromT(t, remainingGlasses) })
+            : t.home.waterGoalReached}
         </Text>
       </View>
 

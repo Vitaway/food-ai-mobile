@@ -4,6 +4,7 @@ import Svg, { Circle } from 'react-native-svg';
 
 import { MealTimeline, type MealTimelineItem } from '@/components/home/MealTimeline';
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import { DISPLAY_TITLE_CLASS } from '@/constants/fonts';
 import { cn } from '@/utils/cn';
@@ -23,12 +24,20 @@ export function HomeTodaySection({
   onMealPress,
   onAddMeal,
 }: HomeTodaySectionProps) {
+  const { t } = useI18n();
   const size = 52;
   const stroke = 5;
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
   const progress = mealCount > 0 ? 1 : 0;
   const strokeDashoffset = circumference * (1 - progress);
+
+  const mealsLoggedLabel =
+    mealCount === 0
+      ? t.home.mealsLoggedNone
+      : mealCount === 1
+        ? t.home.mealsLoggedOne
+        : tf(t.home.mealsLoggedMany, { n: mealCount });
 
   return (
     <View
@@ -43,9 +52,7 @@ export function HomeTodaySection({
       <View className="mb-4 flex-row items-center justify-between">
         <View className="flex-1">
           <Text className={cn('text-2xl text-neutral-900', DISPLAY_TITLE_CLASS)}>{title}</Text>
-          <Text className="mt-0.5 text-sm text-neutral-500">
-            {mealCount === 0 ? 'No meals logged yet' : `${mealCount} meal${mealCount === 1 ? '' : 's'} logged`}
-          </Text>
+          <Text className="mt-0.5 text-sm text-neutral-500">{mealsLoggedLabel}</Text>
         </View>
 
         <View className="items-center justify-center" style={{ width: size, height: size }}>
@@ -73,10 +80,8 @@ export function HomeTodaySection({
         <MealTimeline dateLabel="" meals={meals} onMealPress={onMealPress} />
       ) : (
         <View className="rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-4 py-8">
-          <Text className="text-center font-sans-semibold text-neutral-700">Nothing logged yet</Text>
-          <Text className="mt-1 text-center text-sm text-neutral-500">
-            Log breakfast, snacks, or any meal whenever you eat.
-          </Text>
+          <Text className="text-center font-sans-semibold text-neutral-700">{t.home.nothingLoggedYet}</Text>
+          <Text className="mt-1 text-center text-sm text-neutral-500">{t.home.nothingLoggedHint}</Text>
         </View>
       )}
 
@@ -84,7 +89,7 @@ export function HomeTodaySection({
         onPress={onAddMeal}
         className="mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-ash-grey-300 py-3 active:bg-ash-grey-50">
         <Ionicons name="add-circle-outline" size={20} color={semanticColors.accentOrange} />
-        <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">Log another meal</Text>
+        <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">{t.home.logAnotherMeal}</Text>
       </Pressable>
     </View>
   );

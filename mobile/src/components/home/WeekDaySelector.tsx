@@ -1,6 +1,7 @@
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { parseDateKey, todayKey, toLocalDateKey } from '@/utils/dates';
 
 type WeekDaySelectorProps = {
@@ -25,18 +26,18 @@ function getWeekDates(anchor = new Date()) {
   });
 }
 
-const DAY_LABELS_SHORT = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-const DAY_LABELS_FEATURED = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-
 export function WeekDaySelector({
   selectedDate = todayKey(),
   onSelectDate,
   className,
   variant = 'header',
 }: WeekDaySelectorProps) {
+  const { t } = useI18n();
   const weekDates = getWeekDates(parseDateKey(selectedDate));
   const isFeatured = variant === 'featured';
   const isOverlay = variant === 'overlay';
+  const dayLabelsShort = t.dates.weekdaysShort;
+  const dayLabelsFeatured = t.dates.weekdaysMed;
 
   return (
     <View className={`flex-row justify-between gap-1 px-0.5 ${className ?? 'mt-6'}`}>
@@ -58,7 +59,7 @@ export function WeekDaySelector({
                 className={`text-[10px] font-sans-medium uppercase ${
                   isSelected ? 'text-neutral-500' : 'text-white/70'
                 }`}>
-                {DAY_LABELS_FEATURED[index]}
+                {dayLabelsFeatured[index]}
               </Text>
               <Text
                 className={`mt-0.5 font-sans-bold text-base ${
@@ -102,7 +103,7 @@ export function WeekDaySelector({
                   }
                 : undefined
             }>
-            <Text className={`font-sans-semibold text-sm ${labelClass}`}>{DAY_LABELS_SHORT[index]}</Text>
+            <Text className={`font-sans-semibold text-sm ${labelClass}`}>{dayLabelsShort[index]}</Text>
             {isToday && !isSelected ? (
               <View
                 className={`absolute -bottom-1 h-1 w-1 rounded-full ${isOverlay ? 'bg-cinnamon-wood-400' : 'bg-white'}`}

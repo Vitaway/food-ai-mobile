@@ -101,6 +101,7 @@ export interface DetectedFoodItem {
   nutritionFoodId?: string;
   micronutrients?: Record<string, number>;
   emoji?: string;
+  imageUrl?: string;
   nutrition: NutritionFacts;
 }
 

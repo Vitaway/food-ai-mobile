@@ -28,6 +28,9 @@ describe("mapOffProduct", () => {
     expect(mapped?.nutritionPer100g.proteinG).toBe(0);
     expect(mapped?.nutritionPer100g.fiberG).toBeUndefined();
     expect(mapped?.nutrientsUnknown).toContain("fiber_g");
+    expect(mapped?.servings[0]?.unit).toBe("ml");
+    expect(mapped?.servings[0]?.amount).toBe(250);
+    expect(mapped?.servings[0]?.gramsEquivalent).toBe(250);
   });
 
   it("returns null when product name is missing", () => {
@@ -67,8 +70,33 @@ describe("mapOffProduct", () => {
     });
 
     expect(mapped?.servings[0]?.gramsEquivalent).toBe(10);
+    expect(mapped?.servings[0]?.unit).toBe("g");
     expect(mapped?.nutritionPer100g.caloriesKcal).toBe(566);
     expect(mapped?.nutriscoreGrade).toBe("e");
     expect(mapped?.ingredientsText).toContain("cacao");
+  });
+
+  it("keeps liquid package and serving units from Open Food Facts labels", () => {
+    const mapped = mapOffProduct({
+      code: "6001068001234",
+      product_name: "Inyange Whole Milk",
+      brands: "Inyange",
+      categories: "Dairies, Milks",
+      quantity: "1 L",
+      product_quantity: 1,
+      product_quantity_unit: "L",
+      serving_quantity: 250,
+      serving_size: "250 ml",
+      nutriments: {
+        "energy-kcal_100g": 64,
+        proteins_100g: 3.2,
+        carbohydrates_100g: 4.8,
+        fat_100g: 3.5,
+      },
+    });
+
+    expect(mapped?.servings.map((row) => `${row.amount} ${row.unit}`)).toEqual(["250 ml", "1 l"]);
+    expect(mapped?.servings[0]?.isDefault).toBe(true);
+    expect(mapped?.servings[1]?.gramsEquivalent).toBe(1000);
   });
 });

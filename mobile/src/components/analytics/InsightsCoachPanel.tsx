@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, ScrollView, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
+import { dateLocaleTag } from '@/i18n/locales';
 import type { CoachAuthoredInsight } from '@/services/remote/consumerApi';
 import type { MealSwapSuggestion } from '@/data/mealSwapSuggestions';
+import { macroLabel } from '@/utils/i18nLabels';
 
 const TYPE_ICON: Record<CoachAuthoredInsight['type'], keyof typeof Ionicons.glyphMap> = {
   tip: 'bulb-outline',
@@ -22,9 +25,9 @@ const TYPE_BG: Record<CoachAuthoredInsight['type'], string> = {
   trend: 'bg-shamrock-50 border-shamrock-100',
 };
 
-function formatInsightDate(iso: string) {
+function formatInsightDate(iso: string, localeTag: string) {
   try {
-    return new Date(iso).toLocaleDateString('en-US', {
+    return new Date(iso).toLocaleDateString(localeTag, {
       month: 'short',
       day: 'numeric',
     });
@@ -50,6 +53,9 @@ export function InsightsCoachPanel({
   onLogMeal,
   onOpenChat,
 }: InsightsCoachPanelProps) {
+  const { t, locale } = useI18n();
+  const dateTag = dateLocaleTag(locale);
+
   return (
     <View
       className="gap-4 rounded-3xl bg-white p-5"
@@ -61,26 +67,19 @@ export function InsightsCoachPanel({
         elevation: 2,
       }}>
       <View>
-        <Text className="font-sans-semibold text-base text-neutral-900">From your coach</Text>
-        <Text className="mt-1 text-sm text-neutral-500">
-          Personalized notes and tips your coach sends you
-        </Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.analytics.fromCoach}</Text>
       </View>
 
       {loading ? (
-        <Text className="text-sm text-neutral-500">Loading coach insights…</Text>
+        <Text className="text-sm text-neutral-500">{t.common.loading}</Text>
       ) : insights.length === 0 ? (
         <View className="rounded-2xl border border-ash-grey-100 bg-ash-grey-50 p-4">
-          <Text className="font-sans-semibold text-sm text-neutral-900">No insights yet</Text>
-          <Text className="mt-1 text-sm leading-5 text-neutral-600">
-            When your coach sends a tip or note, it will show up here. Keep logging meals so they have
-            context.
-          </Text>
+          <Text className="text-sm leading-5 text-neutral-600">{t.home.tipsEmpty}</Text>
           {onLogMeal ? (
             <Pressable
               onPress={onLogMeal}
               className="mt-3 self-start rounded-xl bg-blue-spruce-600 px-3.5 py-2 active:opacity-90">
-              <Text className="font-sans-semibold text-sm text-white">Log a meal</Text>
+              <Text className="font-sans-semibold text-sm text-white">{t.analytics.logMeal}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -103,14 +102,14 @@ export function InsightsCoachPanel({
                   </Text>
                   {insight.createdAt ? (
                     <Text className="shrink-0 text-[11px] text-neutral-400">
-                      {formatInsightDate(insight.createdAt)}
+                      {formatInsightDate(insight.createdAt, dateTag)}
                     </Text>
                   ) : null}
                 </View>
                 <Text className="mt-1 text-sm leading-5 text-neutral-600">{insight.body}</Text>
                 {onOpenChat ? (
                   <Text className="mt-1.5 text-xs font-sans-semibold text-blue-spruce-700">
-                    Message coach
+                    {t.analytics.messageCoach}
                   </Text>
                 ) : null}
               </View>
@@ -121,10 +120,7 @@ export function InsightsCoachPanel({
 
       {showSwaps && swaps.length > 0 ? (
         <View className="gap-3">
-          <Text className="font-sans-semibold text-base text-neutral-900">General meal ideas</Text>
-          <Text className="text-sm text-neutral-500">
-            Suggested by goal and preferences — not a personal meal plan
-          </Text>
+          <Text className="font-sans-semibold text-base text-neutral-900">{t.analytics.mealIdeas}</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerClassName="gap-3 pr-1">
             {swaps.map((swap) => (
               <View
@@ -144,12 +140,12 @@ export function InsightsCoachPanel({
                 <View className="mt-3 flex-row flex-wrap gap-2">
                   <View className="rounded-full bg-white px-2.5 py-1">
                     <Text className="text-xs font-sans-medium text-cinnamon-wood-600">
-                      ~{swap.caloriesKcal} kcal
+                      ~{swap.caloriesKcal} {t.common.kcal}
                     </Text>
                   </View>
                   <View className="rounded-full bg-white px-2.5 py-1">
                     <Text className="text-xs font-sans-semibold text-shamrock-700">
-                      {swap.proteinG}g protein
+                      {swap.proteinG}g {macroLabel(t, 'protein')}
                     </Text>
                   </View>
                 </View>

@@ -22,6 +22,7 @@ export default function ProfileStackLayout() {
           contentStyle: { backgroundColor: 'transparent' },
         }}
       />
+      <Stack.Screen name="invoice/[id]" />
       <Stack.Screen name="reports" />
       <Stack.Screen name="data" />
     </Stack>

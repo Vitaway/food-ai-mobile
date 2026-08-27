@@ -14,22 +14,17 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { fetchCoachingFeed, type CoachingFeedItem } from '@/services/remote/consumerApi';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useProfile } from '@/context/ProfileContext';
+import { coachingFeedTypeLabel } from '@/utils/i18nLabels';
 
 const CARD_WIDTH = 168;
+
 const CARD_GAP = 10;
 const CARD_STEP = CARD_WIDTH + CARD_GAP;
 const RESUME_IDLE_MS = 2800;
-
-const TYPE_LABEL: Record<CoachingFeedItem['type'], string> = {
-  tip: 'Tip',
-  celebration: 'Win',
-  reminder: 'Reminder',
-  coach_note: 'Coach',
-  trend: 'Insight',
-};
 
 const TYPE_STYLES: Record<
   CoachingFeedItem['type'],
@@ -49,6 +44,7 @@ function TipCard({
   item: CoachingFeedItem;
   onPress: (item: CoachingFeedItem) => void;
 }) {
+  const { t } = useI18n();
   const style = TYPE_STYLES[item.type];
   return (
     <Pressable
@@ -60,7 +56,7 @@ function TipCard({
           <Ionicons name={style.icon} size={14} color={style.color} />
         </View>
         <Text className="text-[10px] font-sans-semibold uppercase tracking-wide text-neutral-500">
-          {TYPE_LABEL[item.type]}
+          {coachingFeedTypeLabel(t, item.type)}
         </Text>
       </View>
       <Text className="font-sans-semibold text-[13px] text-neutral-900" numberOfLines={2}>
@@ -74,6 +70,7 @@ function TipCard({
 }
 
 export function CoachingFeedCard() {
+  const { t } = useI18n();
   const { push } = useNavigateOnce();
   const { profile } = useProfile();
   const [data, setData] = useState<CoachingFeedItem[]>([]);
@@ -214,8 +211,8 @@ export function CoachingFeedCard() {
   if (isLoading) {
     return (
       <View className="rounded-3xl bg-white px-4 py-4">
-        <Text className="font-sans-semibold text-base text-neutral-900">Tips & insights</Text>
-        <Text className="mt-2 text-sm text-neutral-500">Loading personalized tips…</Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.home.tipsTitle}</Text>
+        <Text className="mt-2 text-sm text-neutral-500">{t.home.tipsLoading}</Text>
       </View>
     );
   }
@@ -223,11 +220,8 @@ export function CoachingFeedCard() {
   if (!data.length) {
     return (
       <View className="rounded-3xl bg-white px-4 py-4">
-        <Text className="font-sans-semibold text-base text-neutral-900">Tips & insights</Text>
-        <Text className="mt-2 text-sm leading-5 text-neutral-500">
-          Your coach is personalizing your plan. Tips and reminders will show up here as you log
-          meals.
-        </Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.home.tipsTitle}</Text>
+        <Text className="mt-2 text-sm leading-5 text-neutral-500">{t.home.tipsEmpty}</Text>
       </View>
     );
   }
@@ -237,9 +231,9 @@ export function CoachingFeedCard() {
   return (
     <View className="overflow-hidden rounded-3xl bg-white py-4">
       <View className="mb-3 px-4">
-        <Text className="font-sans-semibold text-base text-neutral-900">Tips & insights</Text>
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.home.tipsTitle}</Text>
         <Text className="mt-0.5 text-sm text-neutral-500">
-          {paused ? 'Swipe freely · resumes shortly' : 'Auto-scrolling · drag to browse'}
+          {paused ? t.home.tipsSwipeHint : t.home.tipsAutoScrollHint}
         </Text>
       </View>
 
@@ -282,7 +276,7 @@ export function CoachingFeedCard() {
                     <Ionicons name={selectedStyle.icon} size={20} color={selectedStyle.color} />
                   </View>
                   <Text className="text-xs font-sans-semibold uppercase tracking-wide text-neutral-500">
-                    {TYPE_LABEL[selected.type]}
+                    {coachingFeedTypeLabel(t, selected.type)}
                   </Text>
                 </View>
                 <Pressable

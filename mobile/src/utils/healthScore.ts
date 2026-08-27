@@ -13,7 +13,7 @@ export type HealthScoreMeta = {
   accentHex: string;
 };
 
-/** Map 0–100 health score to color + short label. */
+/** Map 0–100 health score to color + English fallback label (prefer `healthBandLabel` + i18n). */
 export function healthScoreMeta(score: number): HealthScoreMeta {
   const value = Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : 0;
 

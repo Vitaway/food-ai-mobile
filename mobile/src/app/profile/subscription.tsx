@@ -34,7 +34,6 @@ import {
   type SubscriptionPlan,
 } from '@/services/remote/consumerApi';
 import { getApiErrorMessage } from '@/utils/apiErrors';
-import { downloadPaymentReceiptPdf } from '@/utils/paymentReceipt';
 
 const FALLBACK_PLANS: SubscriptionPlan[] = [
   {
@@ -329,7 +328,6 @@ export default function SubscriptionScreen() {
   const [checkingOut, setCheckingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [familyMemberEmail, setFamilyMemberEmail] = useState('');
   const [family, setFamily] = useState<Awaited<ReturnType<typeof fetchFamilySubscription>>>(null);
   const [pendingCheckoutRef, setPendingCheckoutRef] = useState<string | null>(null);
@@ -462,15 +460,8 @@ export default function SubscriptionScreen() {
     }
   };
 
-  const downloadReceipt = async (payment: ConsumerPaymentRow) => {
-    setDownloadingId(payment.id);
-    try {
-      await downloadPaymentReceiptPdf(payment.id, { invoiceNumber: payment.invoiceNumber });
-    } catch (err) {
-      toast.error(getApiErrorMessage(err, 'Could not download invoice'));
-    } finally {
-      setDownloadingId(null);
-    }
+  const openInvoice = (payment: ConsumerPaymentRow) => {
+    router.push(`/profile/invoice/${payment.id}` as Href);
   };
 
   const accessUntil = formatAccessDate(data?.renewsOn);
@@ -561,7 +552,7 @@ export default function SubscriptionScreen() {
 
               {payments.length === 0 ? (
                 <Text className="text-sm text-ash-grey-500">
-                  Successful payments will show here with downloadable invoices.
+                  Successful payments will show here. Open an invoice to review it, then download.
                 </Text>
               ) : (
                 <View className="gap-3">
@@ -585,19 +576,10 @@ export default function SubscriptionScreen() {
                           </Text>
                         </View>
                         <Pressable
-                          onPress={() => void downloadReceipt(payment)}
-                          disabled={downloadingId === payment.id}
+                          onPress={() => openInvoice(payment)}
                           className="items-center rounded-xl bg-blue-spruce-800 px-3 py-2">
-                          {downloadingId === payment.id ? (
-                            <ActivityIndicator color="#ffffff" size="small" />
-                          ) : (
-                            <>
-                              <Ionicons name="download-outline" size={18} color="#ffffff" />
-                              <Text className="mt-1 text-[10px] font-sans-semibold text-white">
-                                Invoice
-                              </Text>
-                            </>
-                          )}
+                          <Ionicons name="document-text-outline" size={18} color="#ffffff" />
+                          <Text className="mt-1 text-[10px] font-sans-semibold text-white">View</Text>
                         </Pressable>
                       </View>
                     </View>

@@ -8,17 +8,22 @@ import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { useMeals } from '@/context/MealsContext';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useProfileBack } from '@/hooks/useProfileBack';
+import { dateLocaleTag } from '@/i18n/locales';
 import { formatDisplayDate, parseDateKey, todayKey } from '@/utils/dates';
-import { formatGlassesWhole, glassNoun, mlToGlasses } from '@/utils/waterUnits';
+import { glassNounFromT } from '@/utils/i18nLabels';
+import { formatGlassesWhole, mlToGlasses } from '@/utils/waterUnits';
 
 function isDateKey(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
 }
 
 export default function ProfileDayDetailScreen() {
+  const { t, locale } = useI18n();
+  const dateTag = dateLocaleTag(locale);
   const router = useRouter();
   const handleBack = useProfileBack();
   const params = useLocalSearchParams<{ date?: string }>();
@@ -42,7 +47,7 @@ export default function ProfileDayDetailScreen() {
           <FreePlanBanner compact />
           <View className="rounded-2xl border border-ash-grey-100 p-4">
             <Text className="font-sans-semibold text-base text-neutral-900">
-              {formatDisplayDate(parseDateKey(selectedDate))}
+              {formatDisplayDate(parseDateKey(selectedDate), dateTag)}
             </Text>
             <View className="mt-3 flex-row gap-2">
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
@@ -52,11 +57,11 @@ export default function ProfileDayDetailScreen() {
                 </Text>
               </View>
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
-                <Text className="text-xs text-neutral-500">Water</Text>
+                <Text className="text-xs text-neutral-500">{t.water.title}</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">
                   {formatGlassesWhole(mlToGlasses(dashboard.waterMl))}/
                   {formatGlassesWhole(mlToGlasses(dashboard.waterTargetMl))}{' '}
-                  {glassNoun(mlToGlasses(dashboard.waterTargetMl))}
+                  {glassNounFromT(t, mlToGlasses(dashboard.waterTargetMl))}
                 </Text>
               </View>
               <View className="flex-1 rounded-xl bg-ash-grey-50 px-3 py-3">
@@ -94,10 +99,10 @@ export default function ProfileDayDetailScreen() {
                     <View className="flex-row items-center justify-between gap-3 px-3 py-3">
                       <View className="min-w-0 flex-1">
                         <Text className="font-sans-semibold text-neutral-900" numberOfLines={1}>
-                          {meal.mealName ?? 'Logged meal'}
+                          {meal.mealName ?? t.common.meal}
                         </Text>
                         <Text className="mt-0.5 text-xs text-neutral-500">
-                          {new Date(meal.submittedAt).toLocaleTimeString('en-US', {
+                          {new Date(meal.submittedAt).toLocaleTimeString(dateTag, {
                             hour: 'numeric',
                             minute: '2-digit',
                           })}

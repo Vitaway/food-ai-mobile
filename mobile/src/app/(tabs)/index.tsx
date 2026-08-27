@@ -28,10 +28,12 @@ import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useSinglePress } from '@/hooks/useSinglePress';
 import type { MealTypeId } from '@/constants/mealTypes';
 import { formatDayHeading, formatDisplayDate, parseDateKey, todayKey } from '@/utils/dates';
+import { dateLocaleTag } from '@/i18n/locales';
+import { macroLabel } from '@/utils/i18nLabels';
 import { setLogMealTypeIntent, setLogMethodIntent } from '@/utils/logIntent';
 
 export default function HomeScreen() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { push } = useNavigateOnce();
   const isFocused = useIsFocused();
   const { meals, refreshMeals } = useMeals();
@@ -39,7 +41,10 @@ export default function HomeScreen() {
   const [selectedDate, setSelectedDate] = useState(todayKey());
   const { dashboard, timeline, mealCount, displayName } = useDashboard(selectedDate);
   const notificationUnread = useNotificationUnreadCount();
-  const firstName = useMemo(() => displayName.trim().split(/\s+/)[0] || 'there', [displayName]);
+  const firstName = useMemo(
+    () => displayName.trim().split(/\s+/)[0] || t.home.fallbackName,
+    [displayName, t.home.fallbackName],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -48,9 +53,17 @@ export default function HomeScreen() {
   );
 
   const isToday = selectedDate === todayKey();
-  const dayHeading = formatDayHeading(selectedDate);
-  const headerDateLabel = formatDisplayDate(isToday ? new Date() : parseDateKey(selectedDate));
-  const mealsTitle = `${dayHeading}'s meals`;
+  const dateTag = dateLocaleTag(locale);
+  const dayHeading = formatDayHeading(selectedDate, {
+    locale: dateTag,
+    today: t.dates.today,
+    yesterday: t.dates.yesterday,
+  });
+  const headerDateLabel = formatDisplayDate(
+    isToday ? new Date() : parseDateKey(selectedDate),
+    dateTag,
+  );
+  const mealsTitle = tf(t.home.mealsTitle, { day: dayHeading });
 
   const handleAddMeal = useCallback(
     (mealTypeId?: MealTypeId) => {
@@ -101,31 +114,31 @@ export default function HomeScreen() {
   const macroBars = useMemo(
     () => [
       {
-        label: 'Protein',
+        label: macroLabel(t, 'protein'),
         consumed: dashboard.macrosConsumed.proteinG,
         target: dashboard.macros.proteinG,
         colorClass: 'bg-shamrock-500',
       },
       {
-        label: 'Carbs',
+        label: macroLabel(t, 'carbs'),
         consumed: dashboard.macrosConsumed.carbsG,
         target: dashboard.macros.carbsG,
         colorClass: 'bg-blue-spruce-500',
       },
       {
-        label: 'Fat',
+        label: macroLabel(t, 'fat'),
         consumed: dashboard.macrosConsumed.fatG,
         target: dashboard.macros.fatG,
         colorClass: 'bg-cinnamon-wood-400',
       },
       {
-        label: 'Fiber',
+        label: macroLabel(t, 'fiber'),
         consumed: dashboard.macrosConsumed.fiberG,
         target: dashboard.macros.fiberG,
         colorClass: 'bg-muted-teal-500',
       },
     ],
-    [dashboard.macros, dashboard.macrosConsumed],
+    [dashboard.macros, dashboard.macrosConsumed, t],
   );
 
   const onOpenHealth = useSinglePress(() => push('/profile/health'));
@@ -233,9 +246,11 @@ export default function HomeScreen() {
               </View>
               <View className="flex-1">
                 <Text className="font-sans-semibold text-neutral-900">
-                  {activePipelineCount} meal{activePipelineCount === 1 ? '' : 's'} in progress
+                  {activePipelineCount === 1
+                    ? t.home.pipelineOne
+                    : tf(t.home.pipelineMany, { n: activePipelineCount })}
                 </Text>
-                <Text className="mt-0.5 text-sm text-neutral-500">Tap for status updates</Text>
+                <Text className="mt-0.5 text-sm text-neutral-500">{t.home.pipelineTap}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color="#848a75" />
             </Pressable>

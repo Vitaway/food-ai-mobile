@@ -2,10 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type { WaterLogEntry } from '@/types';
 import { formatTime } from '@/utils/dates';
-import { formatCupsLabel } from '@/utils/waterUnits';
+import { formatGlassesShortFromT } from '@/utils/i18nLabels';
+import { dateLocaleTag } from '@/i18n/locales';
 
 const CARD_SHADOW = {
   shadowColor: '#1a1c17',
@@ -22,20 +24,21 @@ type WaterLogListProps = {
 };
 
 export function WaterLogList({ entries, logging, onRemove }: WaterLogListProps) {
+  const { t, locale } = useI18n();
+  const dateTag = dateLocaleTag(locale);
+
   if (entries.length === 0) {
     return (
       <View className="rounded-3xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-5 py-8" style={CARD_SHADOW}>
-        <Text className="text-center font-sans-semibold text-neutral-700">No water logged yet</Text>
-        <Text className="mt-1 text-center text-sm text-neutral-500">
-          Your entries will show up here so you can undo mistakes.
-        </Text>
+        <Text className="text-center font-sans-semibold text-neutral-700">{t.water.noWaterYet}</Text>
+        <Text className="mt-1 text-center text-sm text-neutral-500">{t.water.emptyHint}</Text>
       </View>
     );
   }
 
   return (
     <View className="gap-3 rounded-3xl bg-white p-5" style={CARD_SHADOW}>
-      <Text className="font-sans-semibold text-base text-neutral-900">Today&apos;s log</Text>
+      <Text className="font-sans-semibold text-base text-neutral-900">{t.water.todaysLog}</Text>
 
       <View className="gap-2">
         {entries.map((entry, index) => (
@@ -55,10 +58,10 @@ export function WaterLogList({ entries, logging, onRemove }: WaterLogListProps) 
               <View>
                 <Text className="font-sans-semibold text-neutral-900">
                   {entry.amountMl >= 0 ? '+' : '−'}
-                  {formatCupsLabel(Math.abs(entry.cups))}
+                  {formatGlassesShortFromT(t, Math.abs(entry.cups))}
                 </Text>
                 <Text className="mt-0.5 text-xs text-neutral-400">
-                  {formatTime(entry.loggedAt)} · {Math.abs(entry.amountMl)} ml
+                  {formatTime(entry.loggedAt, dateTag)} · {Math.abs(entry.amountMl)} ml
                 </Text>
               </View>
             </View>
@@ -66,7 +69,7 @@ export function WaterLogList({ entries, logging, onRemove }: WaterLogListProps) 
             <Pressable
               disabled={logging}
               onPress={() => onRemove(entry.id, entry.cups)}
-              accessibilityLabel="Remove entry"
+              accessibilityLabel={t.water.removeEntry}
               className="h-9 w-9 items-center justify-center rounded-full bg-ash-grey-100 active:opacity-80">
               <Ionicons name="trash-outline" size={17} color="#848a75" />
             </Pressable>

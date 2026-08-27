@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react';
 
-import { MEAL_TYPES } from '@/constants/mealTypes';
-import { isMealReadable } from '@/constants/mealStatus';
 import type { MealTimelineItem } from '@/components/home/MealTimeline';
 import { isApiConfigured } from '@/constants/api';
+import { isMealReadable } from '@/constants/mealStatus';
 import { useAuth } from '@/context/AuthContext';
+import { useI18n } from '@/context/LocaleContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
 import { fetchConsumerDashboard } from '@/services/remote/consumerApi';
 import { services } from '@/services';
 import type { DailyDashboard, MealSubmission } from '@/types';
 import { formatTime, todayKey, toLocalDateKey } from '@/utils/dates';
+import { dateLocaleTag } from '@/i18n/locales';
+import { mealTypeLabelFromT } from '@/utils/i18nLabels';
 import { mealDisplaySubtitle, mealDisplayTitle } from '@/utils/mealDisplay';
 
 function isSameDay(iso: string, dateKey: string) {
@@ -34,10 +36,6 @@ function computeStreak(meals: MealSubmission[]) {
   return streak;
 }
 
-function mealTypeLabel(mealType: string) {
-  return MEAL_TYPES.find((type) => type.id === mealType)?.label ?? 'Meal';
-}
-
 function mealRevisionKey(meals: MealSubmission[]) {
   return meals
     .map((meal) => `${meal.id}:${meal.status}:${meal.totalNutrition?.caloriesKcal ?? 0}`)
@@ -45,9 +43,11 @@ function mealRevisionKey(meals: MealSubmission[]) {
 }
 
 export function useDashboard(selectedDate = todayKey()) {
+  const { t, locale } = useI18n();
   const { profile } = useProfile();
   const { isAuthenticated } = useAuth();
   const { meals, dailyLog } = useMeals();
+  const dateTag = dateLocaleTag(locale);
   const [selectedLogWaterMl, setSelectedLogWaterMl] = useState(0);
   const [remoteDashboard, setRemoteDashboard] = useState<Awaited<ReturnType<typeof fetchConsumerDashboard>> | null>(
     null,
@@ -158,9 +158,9 @@ export function useDashboard(selectedDate = todayKey()) {
       return {
         id: logged.id,
         mealTypeId: logged.mealType,
-        label: mealDisplayTitle(logged),
-        subtitle: mealDisplaySubtitle(logged) ?? mealTypeLabel(logged.mealType),
-        time: formatTime(logged.submittedAt),
+        label: mealDisplayTitle(logged, t),
+        subtitle: mealDisplaySubtitle(logged, t) ?? mealTypeLabelFromT(t, logged.mealType),
+        time: formatTime(logged.submittedAt, dateTag),
         items: readable ? logged.items?.map((item) => item.label) : undefined,
         logged: true,
         calories: readable ? logged.totalNutrition?.caloriesKcal : undefined,
@@ -173,7 +173,7 @@ export function useDashboard(selectedDate = todayKey()) {
       dashboard,
       timeline,
       mealCount: dayMealsAll.length,
-      displayName: profile?.displayName ?? 'there',
+      displayName: profile?.displayName ?? t.home.fallbackName,
     };
-  }, [meals, profile, remoteDashboard, selectedDate, waterMl]);
+  }, [dateTag, meals, profile, remoteDashboard, selectedDate, t, waterMl]);
 }

@@ -2,6 +2,7 @@ import { View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 
 type CalorieRingProps = {
@@ -20,6 +21,7 @@ export function CalorieRing({
   compact = false,
   tone = 'default',
 }: CalorieRingProps) {
+  const { t } = useI18n();
   const progress = target > 0 ? Math.min(consumed / target, 1) : 0;
   const over = consumed > target;
   const stroke = compact ? 8 : 10;
@@ -63,13 +65,16 @@ export function CalorieRing({
           {consumed}
         </Text>
         <Text className={`text-xs ${metaClass}`}>/ {target}</Text>
-        <Text className={`mt-0.5 text-[10px] font-sans-medium tracking-wide ${labelClass}`}>kcal</Text>
+        <Text className={`mt-0.5 text-[10px] font-sans-medium tracking-wide ${labelClass}`}>
+          {t.common.kcal}
+        </Text>
       </View>
     </View>
   );
 }
 
 export function CalorieRingCaption({ consumed, target }: { consumed: number; target: number }) {
+  const { t } = useI18n();
   const remaining = Math.max(target - consumed, 0);
   const over = consumed > target;
 
@@ -77,11 +82,11 @@ export function CalorieRingCaption({ consumed, target }: { consumed: number; tar
     <Text className="text-center text-sm text-neutral-600">
       {over ? (
         <Text className="font-sans-semibold text-cinnamon-wood-600">
-          {consumed - target} kcal over target
+          {tf(t.home.kcalOverTarget, { n: consumed - target })}
         </Text>
       ) : (
-        <Text>
-          <Text className="font-sans-semibold text-neutral-800">{remaining}</Text> kcal remaining
+        <Text className="font-sans-semibold text-neutral-800">
+          {tf(t.home.kcalRemaining, { n: remaining })}
         </Text>
       )}
     </Text>

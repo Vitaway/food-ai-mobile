@@ -4,17 +4,15 @@ import { Pressable, View } from 'react-native';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
-import { MEAL_TYPE_OPTIONS } from '@/constants/mealTypes';
+import { useI18n } from '@/context/LocaleContext';
+import { dateLocaleTag } from '@/i18n/locales';
 import type { MealSubmission } from '@/types';
 import { formatDayHeading, formatTime, toLocalDateKey } from '@/utils/dates';
+import { mealTypeLabelFromT } from '@/utils/i18nLabels';
 
 export function canRepeatMeal(meal: MealSubmission): boolean {
   // Only coach-confirmed meals have nutrition the patient can reference for repeat.
   return meal.status === 'approved' && Boolean(meal.items?.length && meal.totalNutrition);
-}
-
-function mealTypeLabel(mealType: MealSubmission['mealType']) {
-  return MEAL_TYPE_OPTIONS.find((option) => option.id === mealType)?.label ?? 'Meal';
 }
 
 function mealTitle(meal: MealSubmission) {
@@ -40,6 +38,8 @@ type LogPastMealsStepProps = {
 };
 
 export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMealsStepProps) {
+  const { t, locale } = useI18n();
+  const dateTag = dateLocaleTag(locale);
   const repeatable = meals
     .filter(canRepeatMeal)
     .slice()
@@ -81,7 +81,11 @@ export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMe
       {groups.map((group) => (
         <View key={group.dayKey} className="gap-2">
           <Text className="px-1 text-xs font-sans-semibold uppercase tracking-wide text-neutral-400">
-            {formatDayHeading(group.dayKey)}
+            {formatDayHeading(group.dayKey, {
+              locale: dateTag,
+              today: t.dates.today,
+              yesterday: t.dates.yesterday,
+            })}
           </Text>
           {group.meals.map((meal) => {
             const subtitle = mealSubtitle(meal);
@@ -117,8 +121,8 @@ export function LogPastMealsStep({ meals, loading = false, onSelect }: LogPastMe
                       {mealTitle(meal)}
                     </Text>
                     <Text className="mt-0.5 text-xs text-neutral-400">
-                      {mealTypeLabel(meal.mealType)} · {formatTime(meal.submittedAt)}
-                      {calories > 0 ? ` · ${calories} kcal` : ''}
+                      {mealTypeLabelFromT(t, meal.mealType)} · {formatTime(meal.submittedAt, dateTag)}
+                      {calories > 0 ? ` · ${calories} ${t.common.kcal}` : ''}
                     </Text>
                     {subtitle ? (
                       <Text className="mt-1 text-sm leading-5 text-neutral-500" numberOfLines={2}>

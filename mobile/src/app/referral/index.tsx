@@ -7,12 +7,14 @@ import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
 import { Text } from '@/components/ui/Text';
 import { semanticColors } from '@/design-system/colors';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { useToast } from '@/context/ToastContext';
 import { fetchReferralInfo, type ReferralInfo } from '@/services/remote/consumerApi';
 import { getApiErrorMessage } from '@/utils/apiErrors';
 import { copyToClipboard } from '@/utils/clipboard';
 
 export default function ReferralScreen() {
+  const { t } = useI18n();
   const router = useRouter();
   const toast = useToast();
   const [info, setInfo] = useState<ReferralInfo | null>(null);
@@ -29,23 +31,21 @@ export default function ReferralScreen() {
   useEffect(() => {
     fetchReferralInfo()
       .then(setInfo)
-      .catch((err) => toast.error(getApiErrorMessage(err, 'Could not load referral info')))
+      .catch((err) => toast.error(getApiErrorMessage(err, t.common.tryAgain)))
       .finally(() => setLoading(false));
-  }, [toast]);
+  }, [t.common.tryAgain, toast]);
 
   const shareMessage = info
-    ? `Join me on MiraFood for personalized nutrition coaching. Use my referral code ${info.referralCode} when you sign up.`
+    ? tf(t.referral.shareMessage, { code: info.referralCode })
     : '';
 
   const copyCode = useCallback(async () => {
     if (!info?.referralCode) return;
     const result = await copyToClipboard(info.referralCode);
-    if (result === 'copied') {
-      toast.success('Referral code copied', 'Invite friends');
-    } else if (result === 'shared') {
-      toast.success('Referral code shared', 'Invite friends');
+    if (result === 'copied' || result === 'shared') {
+      toast.success(t.referral.copied, t.profile.inviteFriends);
     }
-  }, [info?.referralCode, toast]);
+  }, [info?.referralCode, t.profile.inviteFriends, t.referral.copied, toast]);
 
   const shareCode = useCallback(async () => {
     if (!shareMessage) return;
@@ -58,41 +58,37 @@ export default function ReferralScreen() {
 
   return (
     <View className="flex-1 bg-white">
-      <ScreenTopBar title="Invite friends" onBack={handleBack} />
+      <ScreenTopBar title={t.referral.title} onBack={handleBack} />
 
       <StackScreenBody>
         <View className="gap-5 px-5 pb-10 pt-4">
           <FreePlanBanner compact />
 
           <View className="rounded-3xl bg-cinnamon-wood-50 px-5 py-6">
-            <Text className="text-sm text-neutral-600">Your referral code</Text>
+            <Text className="text-sm text-neutral-600">{t.referral.yourCode}</Text>
             <Text className="mt-2 font-sans-bold text-3xl tracking-wide text-blue-spruce-900">
               {loading ? '…' : info?.referralCode ?? '—'}
             </Text>
-            <Text className="mt-3 text-sm leading-5 text-neutral-600">
-              Share this code with friends when they create an account. You will get a notification when someone joins
-              using your code.
-            </Text>
+            <Text className="mt-3 text-sm leading-5 text-neutral-600">{t.referral.body}</Text>
           </View>
 
           <View className="flex-row gap-3">
             <View className="flex-1 rounded-2xl border border-ash-grey-100 bg-white px-4 py-4">
-              <Text className="text-xs uppercase text-neutral-400">Referrals</Text>
+              <Text className="text-xs uppercase text-neutral-400">{t.profile.inviteFriends}</Text>
               <Text className="mt-1 font-sans-bold text-2xl" style={{ color: semanticColors.accentOrange }}>
                 {info?.referralCount ?? 0}
               </Text>
             </View>
             {info?.referredBy ? (
               <View className="flex-1 rounded-2xl border border-ash-grey-100 bg-white px-4 py-4">
-                <Text className="text-xs uppercase text-neutral-400">Invited by</Text>
                 <Text className="mt-1 font-sans-semibold text-neutral-900">{info.referredBy.displayName}</Text>
               </View>
             ) : null}
           </View>
 
-          <Button label="Copy code" onPress={() => void copyCode()} disabled={!info?.referralCode} fullWidth />
+          <Button label={t.referral.copy} onPress={() => void copyCode()} disabled={!info?.referralCode} fullWidth />
           <Button
-            label="Share invite"
+            label={t.referral.share}
             onPress={() => void shareCode()}
             disabled={!info?.referralCode}
             fullWidth

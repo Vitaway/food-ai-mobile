@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { palette, semanticColors } from '@/design-system/colors';
-import { formatGlasses, glassNoun, WATER_CUP_ML } from '@/utils/waterUnits';
+import { formatGlassesShortFromT, glassNounFromT } from '@/utils/i18nLabels';
+import { formatGlasses, WATER_CUP_ML } from '@/utils/waterUnits';
 
 type WaterHeroPanelProps = {
   cupsLogged: number;
@@ -48,6 +50,7 @@ export function WaterHeroPanel({
   progress,
   remainingCups,
 }: WaterHeroPanelProps) {
+  const { t } = useI18n();
   const progressPct = Math.round(progress * 100);
 
   return (
@@ -63,13 +66,13 @@ export function WaterHeroPanel({
       }}>
       <View className="flex-row items-start justify-between gap-4">
         <View className="min-w-0 flex-1">
-          <Text className="text-sm font-sans-medium text-white/70">Today&apos;s hydration</Text>
+          <Text className="text-sm font-sans-medium text-white/70">{t.water.todaysHydration}</Text>
           <View className="mt-2 flex-row items-end gap-1.5">
             <Text className="font-sans-bold text-5xl leading-none text-white">
               {formatGlasses(cupsLogged)}
             </Text>
             <Text className="mb-1.5 font-sans-medium text-lg text-white/75">
-              / {formatGlasses(cupsTarget)} {glassNoun(cupsTarget)}
+              / {formatGlasses(cupsTarget)} {glassNounFromT(t, cupsTarget)}
             </Text>
           </View>
 
@@ -82,11 +85,14 @@ export function WaterHeroPanel({
 
           <Text className="mt-3 text-sm text-white/85">
             {remainingCups > 0
-              ? `${formatGlasses(remainingCups)} ${glassNoun(remainingCups)} to go · ${progressPct}% of goal`
-              : 'Daily goal reached; nice work!'}
+              ? tf(t.water.remaining, {
+                  amount: formatGlassesShortFromT(t, remainingCups),
+                  pct: progressPct,
+                })
+              : t.water.goalReachedNice}
           </Text>
           <Text className="mt-1 text-xs text-white/55">
-            {waterMl} ml logged · 1 glass = {WATER_CUP_ML} ml
+            {tf(t.water.mlLoggedHint, { ml: waterMl, glassMl: WATER_CUP_ML })}
           </Text>
         </View>
 

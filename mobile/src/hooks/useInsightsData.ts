@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 
 import { MEAL_TYPES, type MealTypeId } from '@/constants/mealTypes';
+import { useI18n } from '@/context/LocaleContext';
 import { useMeals } from '@/context/MealsContext';
 import { useProfile } from '@/context/ProfileContext';
+import { dateLocaleTag } from '@/i18n/locales';
 import { services } from '@/services';
 import { filterMealSwapSuggestions } from '@/services/local/recommendations';
 import {
@@ -13,6 +15,7 @@ import {
 import { isApiConfigured } from '@/constants/api';
 import type { DailyLog, MealSubmission } from '@/types';
 import { getDateWindow, parseDateKey, toLocalDateKey } from '@/utils/dates';
+import { macroLabel, mealTypeLabelFromT } from '@/utils/i18nLabels';
 import { mlToCups } from '@/utils/waterUnits';
 
 export type DailyInsightPoint = {
@@ -63,6 +66,7 @@ function buildDailySeries(
   meals: MealSubmission[],
   dailyLogs: DailyLog[],
   days: number,
+  localeTag: string,
 ): DailyInsightPoint[] {
   const { start, end } = getDateWindow(days);
   const approved = mealsInWindow(meals, days);
@@ -77,7 +81,7 @@ function buildDailySeries(
     const log = dailyLogs.find((entry) => entry.date === date);
     const label =
       days <= 7
-        ? cursor.toLocaleDateString('en-US', { weekday: 'narrow' })
+        ? cursor.toLocaleDateString(localeTag, { weekday: 'narrow' })
         : cursor.getDate().toString();
 
     points.push({
@@ -94,11 +98,13 @@ function buildDailySeries(
 }
 
 export function useInsightsData(period: 7 | 30) {
+  const { t, locale } = useI18n();
   const { meals } = useMeals();
   const { profile } = useProfile();
   const [dailyLogs, setDailyLogs] = useState<DailyLog[]>([]);
   const [coachInsights, setCoachInsights] = useState<CoachAuthoredInsight[]>([]);
   const [coachInsightsLoading, setCoachInsightsLoading] = useState(true);
+  const dateTag = dateLocaleTag(locale);
 
   useEffect(() => {
     services.mealsRepository.getDailyLogs().then(setDailyLogs);
@@ -171,7 +177,7 @@ export function useInsightsData(period: 7 | 30) {
 
     const caloriesByType: MealCalorieRow[] = MEAL_TYPES.map((type) => ({
       id: type.id,
-      label: type.label,
+      label: mealTypeLabelFromT(t, type.id),
       calories: approved
         .filter((meal) => meal.mealType === type.id)
         .reduce((sum, meal) => sum + (meal.totalNutrition?.caloriesKcal ?? 0), 0),
@@ -194,21 +200,21 @@ export function useInsightsData(period: 7 | 30) {
     const divisor = Math.max(activeDays, 1);
     const macroBars: MacroBarRow[] = [
       {
-        label: 'Protein',
+        label: macroLabel(t, 'protein'),
         value: macroTotals.proteinG / divisor,
         target: targets.proteinG,
         color: 'bg-shamrock-500',
         hex: '#1D9E75',
       },
       {
-        label: 'Carbs',
+        label: macroLabel(t, 'carbs'),
         value: macroTotals.carbsG / divisor,
         target: targets.carbsG,
         color: 'bg-blue-spruce-500',
         hex: '#023459',
       },
       {
-        label: 'Fat',
+        label: macroLabel(t, 'fat'),
         value: macroTotals.fatG / divisor,
         target: targets.fatG,
         color: 'bg-cinnamon-wood-400',
@@ -216,7 +222,7 @@ export function useInsightsData(period: 7 | 30) {
       },
     ];
 
-    const dailySeries = buildDailySeries(meals, dailyLogs, period);
+    const dailySeries = buildDailySeries(meals, dailyLogs, period, dateTag);
     const maxDailyCalories = Math.max(...dailySeries.map((point) => point.calories), targets.calories, 1);
     const loggingRate = Math.round((activeDays / period) * 100);
 
@@ -234,7 +240,7 @@ export function useInsightsData(period: 7 | 30) {
       maxDailyCalories,
       hasData: approved.length > 0,
     };
-  }, [dailyLogs, meals, period, targets, waterTarget]);
+  }, [dailyLogs, dateTag, meals, period, t, targets, waterTarget]);
 
   return {
     coachInsights,

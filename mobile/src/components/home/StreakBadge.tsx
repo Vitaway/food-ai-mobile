@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 
 type StreakBadgeProps = {
@@ -9,6 +10,7 @@ type StreakBadgeProps = {
 };
 
 export function StreakBadge({ days }: StreakBadgeProps) {
+  const { t } = useI18n();
   const active = days > 0;
 
   return (
@@ -19,7 +21,7 @@ export function StreakBadge({ days }: StreakBadgeProps) {
       <Ionicons name="flame" size={16} color={active ? semanticColors.accentOrange : '#848a75'} />
       <Text
         className={`font-sans-semibold text-sm ${active ? 'text-cinnamon-wood-700' : 'text-neutral-500'}`}>
-        {days > 0 ? `${days} day streak` : 'Start your streak'}
+        {days > 0 ? tf(t.home.dayStreak, { n: days }) : t.home.startStreak}
       </Text>
     </View>
   );

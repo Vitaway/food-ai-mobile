@@ -3,19 +3,16 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Image, View } from 'react-native';
 
 import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
-import { IngredientList } from '@/components/log/IngredientList';
-import { MealAiBreakdown } from '@/components/log/MealAiBreakdown';
-import { LogCard } from '@/components/log/LogScreenShell';
 import { Text } from '@/components/ui/Text';
 import { semanticColors, palette } from '@/design-system/colors';
 import type { MealTypeId } from '@/constants/mealTypes';
-import type { MealAnalysisPreview } from '@/types';
+import { useI18n } from '@/context/LocaleContext';
+import type { DetectedFoodItem, MealAnalysisPreview } from '@/types';
 import { formatMacroG } from '@/utils/formatMacro';
-import { applyServingUnitToItem, recalculateAnalysisTotals, SERVING_UNITS } from '@/utils/servingUnits';
+import { formatServingLabel } from '@/utils/servingUnits';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
-  onAnalysisChange: (next: MealAnalysisPreview) => void;
   imageUri?: string;
   selectedMealType: MealTypeId | null;
   onSelectMealType: (id: MealTypeId) => void;
@@ -24,11 +21,18 @@ type LogResultsStepProps = {
 };
 
 const FLAG_STYLES = {
-  green: { bg: 'bg-shamrock-100', text: 'text-shamrock-800' },
-  yellow: { bg: 'bg-amber-100', text: 'text-amber-800' },
-  orange: { bg: 'bg-cinnamon-wood-100', text: 'text-cinnamon-wood-700' },
-  red: { bg: 'bg-red-100', text: 'text-red-800' },
+  green: { bg: 'bg-shamrock-50', text: 'text-shamrock-800', icon: 'leaf-outline' as const },
+  yellow: { bg: 'bg-amber-50', text: 'text-amber-800', icon: 'alert-circle-outline' as const },
+  orange: { bg: 'bg-cinnamon-wood-50', text: 'text-cinnamon-wood-700', icon: 'warning-outline' as const },
+  red: { bg: 'bg-red-50', text: 'text-red-800', icon: 'alert-outline' as const },
 } as const;
+
+function servingText(item: DetectedFoodItem): string {
+  if (item.servingUnit && item.servingAmount != null && item.servingAmount > 0) {
+    return formatServingLabel(item.servingAmount, item.servingUnit);
+  }
+  return formatServingLabel(item.estimatedWeightG, 'g');
+}
 
 function MealHeroPreview({
   imageUri,
@@ -46,33 +50,33 @@ function MealHeroPreview({
       className="overflow-hidden rounded-[28px] bg-white"
       style={{
         shadowColor: navy[900],
-        shadowOpacity: 0.08,
-        shadowRadius: 18,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 3,
+        shadowOpacity: 0.1,
+        shadowRadius: 20,
+        shadowOffset: { width: 0, height: 10 },
+        elevation: 4,
       }}>
-      <View className="relative h-[168px] bg-ash-grey-100">
+      <View className="relative h-[196px] bg-ash-grey-100">
         {imageUri ? (
           <Image source={{ uri: imageUri }} className="h-full w-full" resizeMode="cover" />
         ) : (
           <LinearGradient
-            colors={[navy[100], navy[50], '#f7f8f5']}
+            colors={[navy[200], navy[50], '#f7f8f5']}
             style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
             <Text className="text-5xl">🍽️</Text>
           </LinearGradient>
         )}
         <LinearGradient
-          colors={['transparent', 'rgba(2, 52, 89, 0.72)']}
-          locations={[0.35, 1]}
-          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 96 }}
+          colors={['transparent', 'rgba(2, 52, 89, 0.82)']}
+          locations={[0.28, 1]}
+          style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 118 }}
         />
-        <View className="absolute bottom-0 left-0 right-0 px-4 pb-4">
-          <Text className="font-sans-bold text-[22px] leading-7 text-white" numberOfLines={2}>
+        <View className="absolute bottom-0 left-0 right-0 px-5 pb-5">
+          <Text className="font-sans-bold text-[24px] leading-8 text-white" numberOfLines={2}>
             {mealName}
           </Text>
-          <View className="mt-1.5 flex-row items-center gap-1.5">
-            <Ionicons name="time-outline" size={14} color="rgba(255,255,255,0.85)" />
-            <Text className="text-[13px] text-white/85">{subtitle}</Text>
+          <View className="mt-2 flex-row items-center gap-1.5">
+            <Ionicons name="checkmark-circle" size={15} color="rgba(255,255,255,0.9)" />
+            <Text className="text-[13px] text-white/90">{subtitle}</Text>
           </View>
         </View>
       </View>
@@ -80,35 +84,57 @@ function MealHeroPreview({
   );
 }
 
+function MealTypeCard({
+  selected,
+  onSelect,
+}: {
+  selected: MealTypeId | null;
+  onSelect: (id: MealTypeId) => void;
+}) {
+  const { t } = useI18n();
+  const navy = palette['blue-spruce'];
+
+  return (
+    <View
+      className="rounded-[24px] bg-white px-4 py-4"
+      style={{
+        borderWidth: 1,
+        borderColor: selected ? palette['cinnamon-wood'][200] : palette['ash-grey'][100],
+        shadowColor: navy[900],
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 4 },
+        elevation: 1,
+      }}>
+      <CompactMealTypePicker selected={selected} onSelect={onSelect} />
+      {!selected ? (
+        <Text className="mt-3 text-center text-[12px] text-cinnamon-wood-600">{t.log.selectMealType}</Text>
+      ) : (
+        <View className="mt-3 flex-row items-center justify-center gap-1.5">
+          <Ionicons name="checkmark-circle" size={16} color={palette.shamrock[500]} />
+          <Text className="text-[12px] font-sans-semibold text-shamrock-700">{t.log.readyToSubmit}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
 export function LogResultsStep({
   analysis,
-  onAnalysisChange,
   imageUri,
   selectedMealType,
   onSelectMealType,
   awaitingCoachConfirm = false,
 }: LogResultsStepProps) {
+  const { t } = useI18n();
   const flag = FLAG_STYLES[analysis.healthFlag];
   const showNutrition = !awaitingCoachConfirm && analysis.totalNutrition.caloriesKcal > 0;
+  const showItems = !awaitingCoachConfirm && analysis.items.length > 0;
   const navy = palette['blue-spruce'];
 
-  const ingredients = analysis.items.map((item) => ({
-    id: item.id,
-    name: item.label,
-    weightG: item.estimatedWeightG,
-    servingUnit: item.servingUnit ?? 'g',
-    servingAmount: item.servingAmount ?? 1,
-    emoji: item.emoji ?? '🍽️',
-    macros: {
-      carbs: formatMacroG(item.nutrition.carbsG),
-      fats: formatMacroG(item.nutrition.fatG),
-      sugar: formatMacroG(item.nutrition.sugarG ?? 0),
-    },
-  }));
-
-  const macroSummary = [
+  const macros = [
     { label: 'Protein', value: formatMacroG(analysis.totalNutrition.proteinG), color: '#1D9E75' },
-    { label: 'Carbs', value: formatMacroG(analysis.totalNutrition.carbsG), color: '#023459' },
+    { label: 'Carbs', value: formatMacroG(analysis.totalNutrition.carbsG), color: navy[700] },
     { label: 'Fat', value: formatMacroG(analysis.totalNutrition.fatG), color: semanticColors.accentOrange },
   ];
 
@@ -118,52 +144,22 @@ export function LogResultsStep({
         <MealHeroPreview
           imageUri={imageUri}
           mealName={analysis.mealName}
-          subtitle="Coach will confirm nutrition after you submit"
+          subtitle={t.log.coachConfirmSubtitle}
         />
 
-        <View
-          className="flex-row items-start gap-3 rounded-2xl px-3.5 py-3"
-          style={{ backgroundColor: navy[50] }}>
+        <View className="flex-row items-start gap-3 rounded-2xl px-3.5 py-3" style={{ backgroundColor: navy[50] }}>
           <View
             className="mt-0.5 h-8 w-8 items-center justify-center rounded-full"
             style={{ backgroundColor: navy[100] }}>
             <Ionicons name="sparkles-outline" size={16} color={navy[700]} />
           </View>
           <View className="min-w-0 flex-1">
-            <Text className="font-sans-semibold text-[13px] text-blue-spruce-900">
-              Almost there
-            </Text>
-            <Text className="mt-0.5 text-[12px] leading-4 text-blue-spruce-700">
-              Pick a meal type below, then submit. Your coach reviews the photo and note.
-            </Text>
+            <Text className="font-sans-semibold text-[13px] text-blue-spruce-900">{t.log.almostThere}</Text>
+            <Text className="mt-0.5 text-[12px] leading-4 text-blue-spruce-700">{t.log.almostThereBody}</Text>
           </View>
         </View>
 
-        <View
-          className="rounded-[24px] bg-white px-4 py-4"
-          style={{
-            borderWidth: 1,
-            borderColor: selectedMealType ? palette['cinnamon-wood'][200] : palette['ash-grey'][100],
-            shadowColor: navy[900],
-            shadowOpacity: 0.04,
-            shadowRadius: 12,
-            shadowOffset: { width: 0, height: 4 },
-            elevation: 1,
-          }}>
-          <CompactMealTypePicker selected={selectedMealType} onSelect={onSelectMealType} />
-          {!selectedMealType ? (
-            <Text className="mt-3 text-center text-[12px] text-cinnamon-wood-600">
-              Select a meal type to enable submit
-            </Text>
-          ) : (
-            <View className="mt-3 flex-row items-center justify-center gap-1.5">
-              <Ionicons name="checkmark-circle" size={16} color={palette.shamrock[500]} />
-              <Text className="text-[12px] font-sans-semibold text-shamrock-700">
-                Ready to submit
-              </Text>
-            </View>
-          )}
-        </View>
+        <MealTypeCard selected={selectedMealType} onSelect={onSelectMealType} />
       </>
     );
   }
@@ -175,72 +171,92 @@ export function LogResultsStep({
         mealName={analysis.mealName}
         subtitle={
           showNutrition
-            ? `${analysis.totalWeightG} g · ${analysis.totalNutrition.caloriesKcal} kcal`
-            : 'Review details, then submit'
+            ? `${analysis.totalNutrition.caloriesKcal} kcal`
+            : t.log.readyToSubmit
         }
       />
 
-      <View className={`rounded-2xl px-4 py-3 ${flag.bg}`}>
-        <Text className={`font-sans-semibold text-sm ${flag.text}`}>{analysis.healthMessage}</Text>
-      </View>
-
       {showNutrition ? (
-        <View className="flex-row gap-2">
-          {macroSummary.map((macro) => (
-            <View key={macro.label} className="flex-1 rounded-2xl bg-white px-3 py-2.5">
-              <Text className="text-xs text-neutral-500">{macro.label}</Text>
-              <Text className="mt-0.5 font-sans-bold text-base" style={{ color: macro.color }}>
-                {macro.value}
-              </Text>
-            </View>
-          ))}
+        <View
+          className="overflow-hidden rounded-[28px] bg-white px-5 py-5"
+          style={{
+            shadowColor: navy[900],
+            shadowOpacity: 0.06,
+            shadowRadius: 16,
+            shadowOffset: { width: 0, height: 6 },
+            elevation: 2,
+          }}>
+          <Text className="text-xs font-sans-semibold uppercase tracking-wide text-ash-grey-400">
+            {t.log.reviewCalories}
+          </Text>
+          <View className="mt-1 flex-row items-end gap-1">
+            <Text className="font-sans-bold text-[40px] leading-[44px] text-blue-spruce-900">
+              {analysis.totalNutrition.caloriesKcal}
+            </Text>
+            <Text className="mb-1.5 text-base font-sans-semibold text-ash-grey-500">kcal</Text>
+          </View>
+
+          <View className="mt-4 flex-row gap-2">
+            {macros.map((macro) => (
+              <View key={macro.label} className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
+                <Text className="text-[11px] text-neutral-500">{macro.label}</Text>
+                <Text className="mt-0.5 font-sans-bold text-[17px]" style={{ color: macro.color }}>
+                  {macro.value}
+                </Text>
+              </View>
+            ))}
+          </View>
         </View>
       ) : null}
 
-      <View
-        className="rounded-[24px] bg-white px-4 py-4"
-        style={{
-          borderWidth: 1,
-          borderColor: selectedMealType ? palette['cinnamon-wood'][200] : palette['ash-grey'][100],
-        }}>
-        <CompactMealTypePicker selected={selectedMealType} onSelect={onSelectMealType} />
-        {!selectedMealType ? (
-          <Text className="mt-3 text-center text-[12px] text-cinnamon-wood-600">
-            Select a meal type to enable submit
-          </Text>
-        ) : null}
+      {showItems ? (
+        <View
+          className="rounded-[28px] bg-white px-4 py-4"
+          style={{
+            shadowColor: navy[900],
+            shadowOpacity: 0.05,
+            shadowRadius: 14,
+            shadowOffset: { width: 0, height: 5 },
+            elevation: 2,
+          }}>
+          <View className="mb-3 flex-row items-center justify-between px-1">
+            <Text className="font-sans-bold text-base text-neutral-900">{t.log.reviewInThisMeal}</Text>
+            <Text className="text-xs text-ash-grey-400">{analysis.items.length}</Text>
+          </View>
+          <View className="gap-2.5">
+            {analysis.items.map((item) => (
+              <View
+                key={item.id}
+                className="flex-row items-center gap-3 rounded-[22px] bg-ash-grey-50 px-3 py-3">
+                {item.imageUrl ? (
+                  <Image source={{ uri: item.imageUrl }} className="h-14 w-14 rounded-2xl bg-white" />
+                ) : (
+                  <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white">
+                    <Text className="text-2xl">{item.emoji ?? '🍽️'}</Text>
+                  </View>
+                )}
+                <View className="min-w-0 flex-1">
+                  <Text className="font-sans-semibold text-[15px] text-neutral-900" numberOfLines={2}>
+                    {item.label}
+                  </Text>
+                  <Text className="mt-0.5 text-sm text-neutral-500">{servingText(item)}</Text>
+                </View>
+                <Text className="font-sans-bold text-sm text-blue-spruce-800">
+                  {item.nutrition.caloriesKcal} kcal
+                </Text>
+              </View>
+            ))}
+          </View>
+          <Text className="mt-3 px-1 text-center text-[11px] text-ash-grey-400">{t.log.reviewLockedHint}</Text>
+        </View>
+      ) : null}
+
+      <View className={`flex-row items-start gap-2.5 rounded-2xl px-3.5 py-3 ${flag.bg}`}>
+        <Ionicons name={flag.icon} size={16} color={palette['blue-spruce'][800]} style={{ marginTop: 1 }} />
+        <Text className={`min-w-0 flex-1 text-[13px] leading-5 ${flag.text}`}>{analysis.healthMessage}</Text>
       </View>
 
-      {showNutrition ? <MealAiBreakdown analysis={analysis} /> : null}
-
-      {ingredients.length > 0 && showNutrition ? (
-        <LogCard>
-          <Text className="mb-3 font-sans-semibold text-base text-neutral-900">Ingredients</Text>
-          <IngredientList
-            ingredients={ingredients}
-            onCycleServingUnit={(ingredientId) => {
-              const nextItems = analysis.items.map((item) => {
-                if (item.id !== ingredientId) return item;
-                const current = item.servingUnit ?? 'g';
-                const idx = SERVING_UNITS.indexOf(current as (typeof SERVING_UNITS)[number]);
-                const next = SERVING_UNITS[(idx + 1) % SERVING_UNITS.length];
-                return applyServingUnitToItem(item, next, item.servingAmount ?? 1);
-              });
-              const totals = recalculateAnalysisTotals(nextItems);
-              onAnalysisChange({ ...analysis, items: nextItems, ...totals });
-            }}
-            onAdjustServingAmount={(ingredientId, delta) => {
-              const nextItems = analysis.items.map((item) => {
-                if (item.id !== ingredientId) return item;
-                const amount = Math.max(0.5, (item.servingAmount ?? 1) + delta);
-                return applyServingUnitToItem(item, item.servingUnit ?? 'g', amount);
-              });
-              const totals = recalculateAnalysisTotals(nextItems);
-              onAnalysisChange({ ...analysis, items: nextItems, ...totals });
-            }}
-          />
-        </LogCard>
-      ) : null}
+      <MealTypeCard selected={selectedMealType} onSelect={onSelectMealType} />
     </>
   );
 }

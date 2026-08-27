@@ -5,10 +5,12 @@ import { CalorieRing } from '@/components/home/CalorieRing';
 import { WeekDaySelector } from '@/components/home/WeekDaySelector';
 import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { palette } from '@/design-system/colors';
 import type { DailyDashboard, MealSubmission } from '@/types';
+import { healthBandLabel, glassNounFromT } from '@/utils/i18nLabels';
 import { healthScoreMeta } from '@/utils/healthScore';
-import { formatGlassesWhole, glassNoun, mlToGlasses } from '@/utils/waterUnits';
+import { formatGlassesWhole, mlToGlasses } from '@/utils/waterUnits';
 
 type HomeHeroCardProps = {
   dashboard: DailyDashboard;
@@ -29,6 +31,7 @@ export function HomeHeroCard({
   onOpenCalendar,
   onPressDetail,
 }: HomeHeroCardProps) {
+  const { t } = useI18n();
   const calorieProgress =
     dashboard.calorieTarget > 0
       ? Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100)
@@ -68,12 +71,17 @@ export function HomeHeroCard({
             <View className="flex-row items-center gap-1 rounded-full bg-cinnamon-wood-300 px-2.5 py-1">
               <Ionicons name="flame" size={14} color="#023459" />
               <Text className="font-sans-bold text-xs text-blue-spruce-900">
-                {dashboard.streakDays > 0 ? `${dashboard.streakDays} day streak` : 'Start streak'}
+                {dashboard.streakDays > 0
+                  ? tf(t.home.dayStreak, { n: dashboard.streakDays })
+                  : t.home.startStreak}
               </Text>
             </View>
             <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: `${health.accentHex}33` }}>
               <Text className="font-sans-semibold text-xs text-white">
-                Health {dashboard.healthScore} · {health.label}
+                {tf(t.home.healthChip, {
+                  score: dashboard.healthScore,
+                  band: healthBandLabel(t, health.band),
+                })}
               </Text>
             </View>
           </View>
@@ -87,14 +95,19 @@ export function HomeHeroCard({
 
         <View className="mt-4 flex-row items-center justify-between">
           <View className="min-w-0 flex-1 pr-3">
-            <Text className="text-sm font-sans-medium text-white/80">{dayHeading} · Daily plan</Text>
+            <Text className="text-sm font-sans-medium text-white/80">
+              {dayHeading} · {t.home.dailyPlan}
+            </Text>
             <Text className="mt-1 font-sans-bold text-4xl text-white">{dashboard.caloriesConsumed}</Text>
             <Text className="mt-0.5 text-base text-white/85">
-              of {dashboard.calorieTarget} kcal · {calorieProgress}% of goal
+              {tf(t.home.ofKcalGoal, { target: dashboard.calorieTarget, pct: calorieProgress })}
             </Text>
             <Text className="mt-2 text-sm text-white/70">
-              Water {formatGlassesWhole(glassesLogged)}/{formatGlassesWhole(glassesTarget)}{' '}
-              {glassNoun(glassesTarget)}
+              {tf(t.home.waterGlasses, {
+                used: formatGlassesWhole(glassesLogged),
+                target: formatGlassesWhole(glassesTarget),
+                noun: glassNounFromT(t, glassesTarget),
+              })}
             </Text>
           </View>
 
@@ -116,9 +129,9 @@ export function HomeHeroCard({
 
         <View className="mt-5 overflow-hidden rounded-2xl bg-white/15 px-3 py-3">
           <View className="mb-2 flex-row items-center justify-between px-1">
-            <Text className="font-sans-semibold text-sm text-white">This week</Text>
+            <Text className="font-sans-semibold text-sm text-white">{t.home.thisWeek}</Text>
             <Pressable onPress={onOpenCalendar} hitSlop={8}>
-              <Text className="font-sans-medium text-xs text-white/90 underline">Calendar</Text>
+              <Text className="font-sans-medium text-xs text-white/90 underline">{t.home.calendar}</Text>
             </Pressable>
           </View>
           <WeekDaySelector

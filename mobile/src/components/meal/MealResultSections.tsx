@@ -4,6 +4,7 @@ import { Pressable, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type {
   DetectedFoodItem,
@@ -15,6 +16,7 @@ import type {
 } from '@/types';
 import { formatMacroG } from '@/utils/formatMacro';
 import { mealMicronutrientRows } from '@/utils/mealMicronutrients';
+import { macroLabel } from '@/utils/i18nLabels';
 
 const RING = 88;
 const RING_R = 36;
@@ -143,6 +145,7 @@ export function MealNutritionHero({
   totals: NutritionFacts;
   targets: MacroTargets;
 }) {
+  const { t } = useI18n();
   const kcal = Math.round(totals.caloriesKcal);
   const calorieTarget = Math.max(1, targets.calories);
   const progress = Math.min(1, kcal / calorieTarget);
@@ -150,28 +153,28 @@ export function MealNutritionHero({
 
   const macros = [
     {
-      label: 'Protein',
+      label: macroLabel(t, 'protein'),
       value: totals.proteinG,
       target: targets.proteinG,
       color: '#1d9e75',
       unit: 'g',
     },
     {
-      label: 'Carbs',
+      label: macroLabel(t, 'carbs'),
       value: totals.carbsG,
       target: targets.carbsG,
       color: '#023459',
       unit: 'g',
     },
     {
-      label: 'Fat',
+      label: macroLabel(t, 'fat'),
       value: totals.fatG,
       target: targets.fatG,
       color: semanticColors.accentOrange,
       unit: 'g',
     },
     {
-      label: 'Fiber',
+      label: macroLabel(t, 'fiber'),
       value: totals.fiberG,
       target: targets.fiberG,
       color: '#6798bf',
@@ -393,17 +396,18 @@ export function MealNutrientDeepDive({
   totals: NutritionFacts;
   items?: DetectedFoodItem[];
 }) {
+  const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const microRows = useMemo(() => mealMicronutrientRows(items), [items]);
 
   const macroRows = [
-    ['Energy', `${Math.round(totals.caloriesKcal)} kcal`],
-    ['Protein', formatMacroG(totals.proteinG)],
-    ['Carbohydrate', formatMacroG(totals.carbsG)],
-    ['Fat', formatMacroG(totals.fatG)],
-    ['Fiber', formatMacroG(totals.fiberG)],
-    ['Sugar', formatMacroG(totals.sugarG ?? 0)],
-    ['Sodium', `${Math.round(totals.sodiumMg ?? 0)} mg`],
+    [t.macros.energy, `${Math.round(totals.caloriesKcal)} ${t.common.kcal}`],
+    [t.macros.protein, formatMacroG(totals.proteinG)],
+    [t.macros.carbohydrate, formatMacroG(totals.carbsG)],
+    [t.macros.fat, formatMacroG(totals.fatG)],
+    [t.macros.fiber, formatMacroG(totals.fiberG)],
+    [t.macros.sugar, formatMacroG(totals.sugarG ?? 0)],
+    [t.macros.sodium, `${Math.round(totals.sodiumMg ?? 0)} mg`],
   ] as const;
 
   return (
