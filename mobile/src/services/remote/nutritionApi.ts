@@ -90,6 +90,48 @@ export function resolvePortionGrams(
   return Math.max(1, Math.round(base * multiplier));
 }
 
+export function servingsForPortion(food: NutritionFoodLookup, grams: number): NutritionFoodServing[] {
+  if (food.servings.length) return food.servings;
+  return [
+    {
+      id: 'default-g',
+      unit: 'g',
+      amount: grams,
+      gramsEquivalent: grams,
+      isDefault: true,
+    },
+  ];
+}
+
+export function activeServingForPortion(portion: BarcodePortionState): NutritionFoodServing {
+  const servings = servingsForPortion(portion.food, portion.grams);
+  return (
+    servings.find((row) => row.id === portion.servingId) ??
+    defaultServingForFood(portion.food) ??
+    servings[0]!
+  );
+}
+
+export function gramsPerDeclaredUnit(serving: NutritionFoodServing): number {
+  return serving.gramsEquivalent / Math.max(serving.amount, 0.01);
+}
+
+export function portionAmountInUnit(portion: BarcodePortionState): { amount: number; unit: string } {
+  const serving = activeServingForPortion(portion);
+  return {
+    amount: portion.grams / gramsPerDeclaredUnit(serving),
+    unit: serving.unit,
+  };
+}
+
+export function mergeCartIntoPortions(
+  existing: BarcodePortionState[],
+  cart: BarcodeCartItem[],
+): BarcodePortionState[] {
+  const previous = new Map(existing.map((row) => [row.key, row]));
+  return cart.map((item) => previous.get(item.key) ?? initialPortionState(item));
+}
+
 function scaleNutrition(per100g: Record<string, number>, grams: number): NutritionFacts {
   const factor = grams / 100;
   return {
@@ -163,36 +205,36 @@ function healthFromPackagedProduct(food: NutritionFoodLookup): { flag: HealthFla
   const grade = food.nutriscoreGrade?.toLowerCase();
   const brand = food.brand ? ` (${food.brand})` : '';
   const serving = defaultServingForFood(food);
-  const grams = serving?.gramsEquivalent ?? 100;
+  const servingLabel = serving ? `${serving.amount} ${serving.unit}` : '100 g';
 
   if (grade === 'a' || grade === 'b') {
     return {
       flag: 'green',
-      message: `Nutri-Score ${grade.toUpperCase()} — ${food.name}${brand}. ${grams}g serving from Open Food Facts.`,
+      message: `Nutri-Score ${grade.toUpperCase()} — ${food.name}${brand}. ${servingLabel} serving from Open Food Facts.`,
     };
   }
   if (grade === 'c') {
     return {
       flag: 'yellow',
-      message: `Nutri-Score C — ${food.name}${brand}. ${grams}g serving logged from Open Food Facts.`,
+      message: `Nutri-Score C — ${food.name}${brand}. ${servingLabel} serving logged from Open Food Facts.`,
     };
   }
   if (grade === 'd') {
     return {
       flag: 'orange',
-      message: `Nutri-Score D — ${food.name}${brand}. ${grams}g serving logged from Open Food Facts.`,
+      message: `Nutri-Score D — ${food.name}${brand}. ${servingLabel} serving logged from Open Food Facts.`,
     };
   }
   if (grade === 'e') {
     return {
       flag: 'red',
-      message: `Nutri-Score E — ${food.name}${brand}. ${grams}g serving logged from Open Food Facts.`,
+      message: `Nutri-Score E — ${food.name}${brand}. ${servingLabel} serving logged from Open Food Facts.`,
     };
   }
 
   return {
     flag: 'yellow',
-    message: `Packaged product${brand} — ${grams}g serving calculated from Open Food Facts per 100g data.`,
+    message: `Packaged product${brand} — ${servingLabel} serving calculated from Open Food Facts per 100g data.`,
   };
 }
 
@@ -240,6 +282,7 @@ export function detectedItemFromNutritionFood(
     servingGramsEquivalent: grams,
     nutritionFoodId: food.id,
     micronutrients: food.micronutrients,
+    imageUrl: food.imageUrl ?? undefined,
     nutrition,
   };
 }
