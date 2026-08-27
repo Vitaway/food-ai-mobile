@@ -1,5 +1,7 @@
 import { View } from 'react-native';
+
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 
 type MacroBar = {
   label: string;
@@ -15,10 +17,15 @@ type MacroProgressBarsProps = {
 };
 
 export function MacroProgressBars({ macros, embedded = false }: MacroProgressBarsProps) {
+  const { t } = useI18n();
   return (
     <View className={`gap-3 ${embedded ? '' : 'gap-4 rounded-3xl bg-white p-5 shadow-sm'}`}>
-      {!embedded ? <Text className="font-sans-semibold text-lg text-neutral-900">Macros</Text> : null}
-      {embedded ? <Text className="font-sans-semibold text-base text-neutral-900">Macros</Text> : null}
+      {!embedded ? (
+        <Text className="font-sans-semibold text-lg text-neutral-900">{t.macros.title}</Text>
+      ) : null}
+      {embedded ? (
+        <Text className="font-sans-semibold text-base text-neutral-900">{t.macros.title}</Text>
+      ) : null}
       {macros.map((macro) => {
         const progress = macro.target > 0 ? Math.min(macro.consumed / macro.target, 1) : 0;
 

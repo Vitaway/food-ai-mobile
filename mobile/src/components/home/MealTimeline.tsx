@@ -3,6 +3,7 @@ import { Pressable, View } from 'react-native';
 
 import { MealStatusBadge } from '@/components/meal/MealStatusBadge';
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { useSinglePress } from '@/hooks/useSinglePress';
 import type { MealTypeId } from '@/constants/mealTypes';
 import type { MealSubmissionStatus } from '@/types';
@@ -35,17 +36,18 @@ function EmptySlotCard({
   meal: MealTimelineItem;
   onAddMeal?: (mealTypeId: MealTypeId) => void;
 }) {
+  const { t } = useI18n();
   const handlePress = useSinglePress(() => onAddMeal?.(meal.mealTypeId));
 
   return (
     <Pressable
       onPress={handlePress}
       accessibilityRole="button"
-      accessibilityLabel={`Log ${meal.label}`}
+      accessibilityLabel={tf(t.home.logMealA11y, { label: meal.label })}
       className="min-h-[72px] flex-1 flex-row items-center justify-between rounded-2xl bg-ash-grey-50 px-4 py-3 active:bg-ash-grey-100">
       <View className="flex-1 pr-3">
         <Text className="font-sans-semibold text-base text-neutral-900">{meal.label}</Text>
-        <Text className="mt-1 text-sm text-neutral-500">Tap to log this meal</Text>
+        <Text className="mt-1 text-sm text-neutral-500">{t.home.tapToLogMeal}</Text>
       </View>
       <View className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-blue-spruce-400 bg-white">
         <Ionicons name="add" size={18} color="#023459" />
@@ -61,6 +63,7 @@ function LoggedSlotCard({
   meal: MealTimelineItem;
   onMealPress?: (mealId: string) => void;
 }) {
+  const { t } = useI18n();
   const handlePress = useSinglePress(() => onMealPress?.(meal.id));
 
   return (
@@ -75,12 +78,14 @@ function LoggedSlotCard({
           </Text>
         ) : null}
         {meal.pending ? (
-          <Text className="mt-1 text-sm text-neutral-500">Analysis in progress…</Text>
+          <Text className="mt-1 text-sm text-neutral-500">{t.home.analysisInProgress}</Text>
         ) : meal.items?.length ? (
           <Text className="mt-1 text-sm leading-5 text-neutral-500">{meal.items.join(', ')}</Text>
         ) : null}
         {meal.calories ? (
-          <Text className="mt-1 text-xs font-sans-medium text-shamrock-700">{meal.calories} kcal</Text>
+          <Text className="mt-1 text-xs font-sans-medium text-shamrock-700">
+            {meal.calories} {t.common.kcal}
+          </Text>
         ) : null}
         {meal.status && meal.pending ? (
           <View className="mt-2 self-start">
