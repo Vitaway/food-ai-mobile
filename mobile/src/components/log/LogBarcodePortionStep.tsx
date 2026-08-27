@@ -3,12 +3,17 @@ import { Image, Pressable, View } from 'react-native';
 import { LogCard } from '@/components/log/LogScreenShell';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import {
-  defaultServingForFood,
+  activeServingForPortion,
+  gramsPerDeclaredUnit,
+  portionAmountInUnit,
   resolvePortionGrams,
+  servingsForPortion,
   type BarcodePortionMultiplier,
   type BarcodePortionState,
 } from '@/services/remote/nutritionApi';
+import { formatServingLabel, servingStep } from '@/utils/servingUnits';
 
 type LogBarcodePortionStepProps = {
   portions: BarcodePortionState[];
@@ -31,19 +36,13 @@ function PortionRow({
   portion: BarcodePortionState;
   onUpdate: (next: BarcodePortionState) => void;
 }) {
-  const servings = portion.food.servings.length
-    ? portion.food.servings
-    : [
-        {
-          id: 'default-g',
-          unit: 'g',
-          amount: portion.grams,
-          gramsEquivalent: portion.grams,
-          isDefault: true,
-        },
-      ];
-  const activeServing =
-    servings.find((row) => row.id === portion.servingId) ?? defaultServingForFood(portion.food);
+  const { t } = useI18n();
+  const servings = servingsForPortion(portion.food, portion.grams);
+  const activeServing = activeServingForPortion(portion);
+  const displayed = portionAmountInUnit(portion);
+  const eatenLabel = tf(t.log.portionEaten, {
+    amount: formatServingLabel(displayed.amount, displayed.unit),
+  });
 
   const setMultiplier = (multiplier: BarcodePortionMultiplier) => {
     const grams = resolvePortionGrams(portion.food, portion.servingId, multiplier);
@@ -55,11 +54,11 @@ function PortionRow({
     onUpdate({ ...portion, servingId, grams });
   };
 
-  const nudgeGrams = (delta: number) => {
-    onUpdate({
-      ...portion,
-      grams: Math.max(1, Math.min(2000, portion.grams + delta)),
-    });
+  const nudgeAmount = (direction: 1 | -1) => {
+    const step = servingStep(activeServing.unit);
+    const perUnit = gramsPerDeclaredUnit(activeServing);
+    const nextGrams = Math.max(1, Math.min(5000, Math.round(portion.grams + direction * step * perUnit)));
+    onUpdate({ ...portion, grams: nextGrams });
   };
 
   return (
@@ -81,38 +80,32 @@ function PortionRow({
             {portion.food.name}
           </Text>
           <Text className="mt-1 text-sm text-neutral-500" numberOfLines={1}>
-            {portion.food.brand || portion.food.category} · {portion.grams} g
+            {portion.food.brand || portion.food.category} · {formatServingLabel(displayed.amount, displayed.unit)}
           </Text>
         </View>
       </View>
 
-      {servings.length > 1 ? (
-        <View className="mt-4 flex-row flex-wrap gap-2">
-          {servings.map((serving) => {
-            const selected = (activeServing?.id ?? portion.servingId) === serving.id;
-            return (
-              <Pressable
-                key={serving.id}
-                onPress={() => setServing(serving.id)}
-                className={`rounded-full px-3 py-2 ${
-                  selected ? 'bg-blue-spruce-700' : 'bg-ash-grey-100'
-                }`}>
-                <Text
-                  className={`text-xs font-sans-semibold ${
-                    selected ? 'text-white' : 'text-neutral-700'
-                  }`}>
-                  {serving.amount} {serving.unit}
-                  {serving.gramsEquivalent ? ` · ${Math.round(serving.gramsEquivalent)}g` : ''}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
-      ) : null}
+      <View className="mt-4 flex-row flex-wrap gap-2">
+        {servings.map((serving) => {
+          const selected = (activeServing.id ?? portion.servingId) === serving.id;
+          return (
+            <Pressable
+              key={serving.id}
+              onPress={() => setServing(serving.id)}
+              className={`rounded-full px-3 py-2 ${selected ? 'bg-blue-spruce-700' : 'bg-ash-grey-100'}`}>
+              <Text
+                className={`text-xs font-sans-semibold ${selected ? 'text-white' : 'text-neutral-700'}`}>
+                {formatServingLabel(serving.amount, serving.unit)}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
 
       <View className="mt-4 flex-row gap-2">
         {MULTIPLIERS.map((chip) => {
-          const selected = portion.multiplier === chip.value;
+          const expectedGrams = resolvePortionGrams(portion.food, portion.servingId, chip.value);
+          const selected = Math.abs(portion.grams - expectedGrams) < 1;
           return (
             <Pressable
               key={chip.value}
@@ -133,13 +126,13 @@ function PortionRow({
 
       <View className="mt-3 flex-row items-center justify-between rounded-2xl bg-ash-grey-50 px-3 py-2">
         <Pressable
-          onPress={() => nudgeGrams(-10)}
+          onPress={() => nudgeAmount(-1)}
           className="h-10 w-10 items-center justify-center rounded-xl bg-white">
           <Text className="font-sans-bold text-lg text-neutral-800">−</Text>
         </Pressable>
-        <Text className="font-sans-semibold text-sm text-neutral-700">{portion.grams} g eaten</Text>
+        <Text className="font-sans-semibold text-sm text-neutral-700">{eatenLabel}</Text>
         <Pressable
-          onPress={() => nudgeGrams(10)}
+          onPress={() => nudgeAmount(1)}
           className="h-10 w-10 items-center justify-center rounded-xl bg-white">
           <Text className="font-sans-bold text-lg text-neutral-800">+</Text>
         </Pressable>
@@ -155,15 +148,14 @@ export function LogBarcodePortionStep({
   onBack,
   onContinue,
 }: LogBarcodePortionStepProps) {
+  const { t } = useI18n();
   const canContinue = portions.length > 0 && portions.every((row) => row.grams >= 1);
 
   return (
     <>
       <LogCard>
-        <Text className="font-sans-semibold text-lg text-neutral-900">How much did you have?</Text>
-        <Text className="mt-1 text-sm leading-5 text-neutral-500">
-          Tap a serving size — no typing needed. Adjust each item before continuing.
-        </Text>
+        <Text className="font-sans-semibold text-lg text-neutral-900">{t.log.portionTitle}</Text>
+        <Text className="mt-1 text-sm leading-5 text-neutral-500">{t.log.portionHint}</Text>
       </LogCard>
 
       {portions.map((portion) => (
@@ -178,12 +170,12 @@ export function LogBarcodePortionStep({
 
       <View className="gap-3">
         <Button
-          label={loading ? 'Preparing…' : 'Continue'}
+          label={loading ? t.log.preparing : t.log.continue}
           variant="primary"
           onPress={onContinue}
           disabled={!canContinue || loading}
         />
-        <Button label="Add more items" variant="outline" onPress={onBack} disabled={loading} />
+        <Button label={t.log.portionAddMore} variant="outline" onPress={onBack} disabled={loading} />
       </View>
     </>
   );
