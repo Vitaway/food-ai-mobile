@@ -14,8 +14,9 @@ import { useDashboard } from '@/hooks/useDashboard';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useRequirePaid } from '@/hooks/useRequirePaid';
 import { useToast } from '@/context/ToastContext';
+import { formatGlassesShortFromT } from '@/utils/i18nLabels';
 import { todayKey } from '@/utils/dates';
-import { formatCupsLabel, mlToCups, toWholeGlasses } from '@/utils/waterUnits';
+import { mlToCups, toWholeGlasses } from '@/utils/waterUnits';
 
 export default function WaterScreen() {
   const { t } = useI18n();
@@ -50,44 +51,45 @@ export default function WaterScreen() {
       setLogging(true);
       try {
         await logWaterCups(whole, selectedDate);
-        toast.success(message, 'Hydration');
+        toast.success(message, t.water.toastTitle);
       } catch {
-        toast.error('Could not update water right now.');
+        toast.error(t.water.updateFailed);
       } finally {
         setLogging(false);
       }
     },
-    [logWaterCups, requirePaid, selectedDate, toast],
+    [logWaterCups, requirePaid, selectedDate, t.water.toastTitle, t.water.updateFailed, toast],
   );
 
   const handleAddCups = useCallback(
     (cups: number) => {
       const whole = toWholeGlasses(Math.abs(cups));
-      const label = cups > 0 ? `+${formatCupsLabel(whole)}` : `Removed ${formatCupsLabel(whole)}`;
+      const amount = formatGlassesShortFromT(t, whole);
+      const label = cups > 0 ? `+${amount}` : amount;
       void applyCups(cups > 0 ? whole : -whole, label);
     },
-    [applyCups],
+    [applyCups, t],
   );
 
   const handleCustomAdd = useCallback(() => {
     const whole = Math.max(1, toWholeGlasses(customCups));
-    void applyCups(whole, `+${formatCupsLabel(whole)}`);
-  }, [applyCups, customCups]);
+    void applyCups(whole, `+${formatGlassesShortFromT(t, whole)}`);
+  }, [applyCups, customCups, t]);
 
   const handleRemoveEntry = useCallback(
-    async (entryId: string, cups: number) => {
+    async (entryId: string) => {
       if (!requirePaid('water')) return;
       setLogging(true);
       try {
         await removeWaterEntry(entryId, selectedDate);
-        toast.success(`Removed ${formatCupsLabel(cups)}`, 'Hydration');
+        toast.success(t.water.removed, t.water.toastTitle);
       } catch {
-        toast.error('Could not remove that entry.');
+        toast.error(t.water.removeFailed);
       } finally {
         setLogging(false);
       }
     },
-    [removeWaterEntry, requirePaid, selectedDate, toast],
+    [removeWaterEntry, requirePaid, selectedDate, t.water.removeFailed, t.water.removed, t.water.toastTitle, toast],
   );
 
   return (
@@ -122,7 +124,11 @@ export default function WaterScreen() {
             onSubmit={handleCustomAdd}
           />
 
-          <WaterLogList entries={entries} logging={logging} onRemove={(id, cups) => void handleRemoveEntry(id, cups)} />
+          <WaterLogList
+            entries={entries}
+            logging={logging}
+            onRemove={(id) => void handleRemoveEntry(id)}
+          />
         </ScrollView>
       </StackScreenBody>
     </View>

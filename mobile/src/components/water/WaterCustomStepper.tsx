@@ -3,8 +3,10 @@ import { Pressable, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
-import { formatCups, formatCupsLabel, glassNoun, toWholeGlasses } from '@/utils/waterUnits';
+import { formatGlassesShortFromT, glassNounFromT } from '@/utils/i18nLabels';
+import { formatCups, toWholeGlasses } from '@/utils/waterUnits';
 
 const CARD_SHADOW = {
   shadowColor: '#1a1c17',
@@ -26,13 +28,13 @@ function clampGlasses(value: number) {
 }
 
 export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterCustomStepperProps) {
+  const { t } = useI18n();
   const whole = clampGlasses(cups);
   const step = (delta: number) => onChange(clampGlasses(whole + delta));
 
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
-      <Text className="font-sans-semibold text-base text-neutral-900">Custom amount</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">Add whole glasses only</Text>
+      <Text className="font-sans-semibold text-base text-neutral-900">{t.water.customAmount}</Text>
 
       <View className="mt-5 flex-row items-center justify-center gap-5">
         <Pressable
@@ -48,7 +50,7 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
 
         <View className="min-w-[120px] items-center">
           <Text className="font-sans-bold text-4xl text-blue-spruce-900">{formatCups(whole)}</Text>
-          <Text className="mt-1 text-sm text-neutral-500">{glassNoun(whole)}</Text>
+          <Text className="mt-1 text-sm text-neutral-500">{glassNounFromT(t, whole)}</Text>
         </View>
 
         <Pressable
@@ -65,7 +67,11 @@ export function WaterCustomStepper({ cups, logging, onChange, onSubmit }: WaterC
 
       <View className="mt-5">
         <Button
-          label={logging ? 'Logging…' : `Add ${formatCupsLabel(whole)}`}
+          label={
+            logging
+              ? t.water.logging
+              : tf(t.water.addAmount, { amount: formatGlassesShortFromT(t, whole) })
+          }
           onPress={onSubmit}
           disabled={logging}
           fullWidth

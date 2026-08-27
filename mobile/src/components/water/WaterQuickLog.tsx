@@ -2,8 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { Pressable, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
+import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
-import { formatCups, glassNoun, toWholeGlasses } from '@/utils/waterUnits';
+import { glassNounFromT } from '@/utils/i18nLabels';
+import { formatCups, toWholeGlasses } from '@/utils/waterUnits';
 
 const CARD_SHADOW = {
   shadowColor: '#1a1c17',
@@ -23,15 +25,14 @@ type WaterQuickLogProps = {
 };
 
 export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQuickLogProps) {
+  const { t } = useI18n();
   const loggedWhole = toWholeGlasses(cupsLogged);
   const canSubtract = loggedWhole > 0;
 
   return (
     <View className="rounded-3xl bg-white p-5" style={CARD_SHADOW}>
-      <Text className="font-sans-semibold text-base text-neutral-900">Quick log</Text>
-      <Text className="mt-0.5 text-sm text-neutral-500">
-        Tap to add whole glasses; undo mistakes in today&apos;s log
-      </Text>
+      <Text className="font-sans-semibold text-base text-neutral-900">{t.water.quickLog}</Text>
+      <Text className="mt-0.5 text-sm text-neutral-500">{t.water.quickLogHint}</Text>
 
       <View className="mt-4 flex-row gap-3">
         {QUICK_GLASS_AMOUNTS.map((cups) => (
@@ -44,7 +45,7 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
               <Ionicons name="add" size={22} color={semanticColors.accentOrange} />
             </View>
             <Text className="font-sans-bold text-xl text-cinnamon-wood-500">+{formatCups(cups)}</Text>
-            <Text className="mt-0.5 text-xs text-neutral-500">{glassNoun(cups)}</Text>
+            <Text className="mt-0.5 text-xs text-neutral-500">{glassNounFromT(t, cups)}</Text>
           </Pressable>
         ))}
       </View>
@@ -52,7 +53,7 @@ export function WaterQuickLog({ logging, cupsLogged, onAdd, onRemove }: WaterQui
       {canSubtract ? (
         <View className="mt-4 border-t border-ash-grey-100 pt-4">
           <Text className="mb-3 text-xs font-sans-medium uppercase tracking-wide text-neutral-400">
-            Remove by mistake
+            {t.water.removeMistake}
           </Text>
           <View className="flex-row gap-2">
             {QUICK_GLASS_AMOUNTS.map((cups) => {
