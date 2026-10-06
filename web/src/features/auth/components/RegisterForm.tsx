@@ -109,19 +109,19 @@ export function RegisterForm({ register, toast, onValidityChange }: RegisterForm
         }
       />
 
-      <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ash-grey-600">
+      <label className="flex cursor-pointer items-center gap-2.5 text-sm text-mira-muted">
         <input
           type="checkbox"
           checked={rememberMe}
           onChange={(e) => setRememberMe(e.target.checked)}
-          className="h-4 w-4 rounded border-ash-grey-300 text-blue-spruce-600 focus:ring-blue-spruce-400"
+          className="h-4 w-4 rounded border-mira-line text-mira-black focus:ring-mira-green"
         />
         Remember me
       </label>
 
-      <p className="text-center text-sm text-ash-grey-500">
+      <p className="text-center text-sm text-mira-muted">
         Already have an account?{' '}
-        <Link to={AUTH_ROUTES.login} className="text-blue-spruce-600 hover:underline">
+        <Link to={AUTH_ROUTES.login} className="text-mira-green hover:underline">
           Sign in
         </Link>
       </p>
