@@ -4,8 +4,6 @@ type AppScreenshotProps = {
   src: string;
   alt: string;
   className?: string;
-  /** Use on dark hero backgrounds */
-  variant?: 'dark' | 'light';
   priority?: boolean;
   size?: 'md' | 'lg';
 };
@@ -15,23 +13,16 @@ const sizeClasses = {
   lg: 'max-w-[300px] sm:max-w-[360px] lg:max-w-[400px]',
 };
 
+/** Clean product shot — no blur halo; pair with CrescentStage for the olive pedestal. */
 export function AppScreenshot({
   src,
   alt,
   className,
-  variant = 'dark',
   priority = false,
   size = 'lg',
 }: AppScreenshotProps) {
   return (
     <div className={cn('relative mx-auto w-full', sizeClasses[size], className)}>
-      <div
-        className={cn(
-          'pointer-events-none absolute -inset-6 rounded-[3rem] blur-2xl',
-          variant === 'dark' ? 'bg-white/10' : 'bg-blue-spruce-200/40',
-        )}
-        aria-hidden
-      />
       <img
         src={src}
         alt={alt}
@@ -40,7 +31,7 @@ export function AppScreenshot({
         decoding="async"
         loading={priority ? 'eager' : 'lazy'}
         fetchPriority={priority ? 'high' : 'auto'}
-        className="relative w-full drop-shadow-2xl"
+        className="relative w-full drop-shadow-[0_18px_40px_rgba(26,58,42,0.28)]"
       />
     </div>
   );
