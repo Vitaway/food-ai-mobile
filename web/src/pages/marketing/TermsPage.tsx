@@ -12,7 +12,7 @@ export function TermsPage() {
           These Terms of Service (&quot;Terms&quot;) govern your use of the MiraFood mobile application
           and related services provided by Vitaway (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;).
           By downloading, accessing, or using MiraFood, you agree to these Terms and our{' '}
-          <Link to="/privacy" className="text-blue-spruce-600 underline">
+          <Link to="/privacy" className="text-mira-green underline">
             Privacy Policy
           </Link>
           .
@@ -61,7 +61,7 @@ export function TermsPage() {
         <p>
           You are responsible for maintaining the confidentiality of your account credentials and for
           all activity under your account. Notify us immediately at{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>{' '}
           of any unauthorized use.
@@ -91,7 +91,7 @@ export function TermsPage() {
         <p>
           You may stop using MiraFood at any time and delete your account from the app. We may suspend
           or terminate access if you violate these Terms or for other legitimate reasons. See our{' '}
-          <Link to="/delete-account" className="text-blue-spruce-600 underline">
+          <Link to="/delete-account" className="text-mira-green underline">
             Delete account
           </Link>{' '}
           page for data deletion instructions.
@@ -118,7 +118,7 @@ export function TermsPage() {
       <LegalSection title="Contact">
         <p>
           Questions about these Terms:{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>
         </p>
