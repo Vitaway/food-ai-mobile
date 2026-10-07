@@ -13,13 +13,19 @@ import type { MealTypeId } from '@/constants/mealTypes';
 import { isApiConfigured } from '@/constants/api';
 import { USE_MOCK_API, USE_OFFLINE_DEV_FALLBACKS } from '@/constants/features';
 import { useAuth } from '@/context/AuthContext';
-import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater, backfillMealPhotos, isLocalImageUri, hasServerImageUrl } from '@/services/remote/consumerApi';
+import { fetchConsumerMeals, fetchConsumerDashboard, submitConsumerMeal, logConsumerWater, backfillMealPhotos, isLocalImageUri, hasServerImageUrl, updateMealPortions as patchConsumerMealPortions } from '@/services/remote/consumerApi';
 import { services } from '@/services';
 import { mockAnalyzeMeal, toMealSubmission } from '@/services/local/mealAnalysis';
 import { resumeActiveMealPipelines, runMealPipeline } from '@/services/local/mealPipeline';
 import { clearNutritionData } from '@/services/local/storage';
 import type { DailyLog, MealAnalysisPreview, MealSubmission, MealSubmissionStatus } from '@/types';
+import {
+  estimateRangeFromMid,
+  resolveBalancedPlateForMeal,
+  withInferredPlateGroups,
+} from '@/types/balancedPlate';
 import { todayKey } from '@/utils/dates';
+import { recalculateAnalysisTotals, scaleItemToGrams } from '@/utils/servingUnits';
 import { cupsToMl, WATER_CUP_ML } from '@/utils/waterUnits';
 
 type SubmitMealInput = {
@@ -48,6 +54,11 @@ type MealsContextValue = {
   addWater: (amountMl: number, date?: string) => Promise<void>;
   getMeal: (id: string) => MealSubmission | undefined;
   updateMeal: (meal: MealSubmission) => Promise<MealSubmission>;
+  /** Persist live portion edits on an estimate meal (Phase 2). */
+  updateMealPortions: (
+    mealId: string,
+    items: Array<{ id: string; estimatedWeightG: number }>,
+  ) => Promise<MealSubmission>;
   deleteMeal: (id: string) => Promise<void>;
 };
 
@@ -357,6 +368,52 @@ export function MealsProvider({ children }: PropsWithChildren) {
     [updateMealInState],
   );
 
+  const updateMealPortions = useCallback(
+    async (mealId: string, items: Array<{ id: string; estimatedWeightG: number }>) => {
+      if (isApiConfigured() && isAuthenticated) {
+        const saved = await patchConsumerMealPortions(mealId, items);
+        await services.mealsRepository.upsertMeal(saved);
+        updateMealInState(saved);
+        return saved;
+      }
+
+      const existing = mealsRef.current.find((entry) => entry.id === mealId);
+      if (!existing?.items?.length) {
+        throw new Error('Meal not found');
+      }
+      if (existing.status === 'approved') {
+        throw new Error('Confirmed meals cannot be edited');
+      }
+
+      const byId = new Map(items.map((row) => [row.id, row.estimatedWeightG]));
+      const nextItems = existing.items.map((item) => {
+        const nextG = byId.get(item.id);
+        return nextG == null ? item : scaleItemToGrams(item, nextG);
+      });
+      const totals = recalculateAnalysisTotals(nextItems);
+      const grouped = withInferredPlateGroups(nextItems);
+      const balancedPlate = resolveBalancedPlateForMeal({
+        mealType: existing.mealType,
+        items: grouped,
+      });
+      const estimateRange = estimateRangeFromMid(
+        totals.totalNutrition.caloriesKcal,
+        existing.logSource ?? 'photo',
+      );
+
+      const saved = await services.mealsRepository.upsertMeal({
+        ...existing,
+        items: nextItems,
+        totalNutrition: totals.totalNutrition,
+        balancedPlate,
+        estimateRange,
+      });
+      updateMealInState(saved);
+      return saved;
+    },
+    [isAuthenticated, updateMealInState],
+  );
+
   const deleteMeal = useCallback(
     async (mealId: string) => {
       await services.mealsRepository.deleteMeal(mealId);
@@ -386,6 +443,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
       addWater,
       getMeal,
       updateMeal,
+      updateMealPortions,
       deleteMeal,
     }),
     [
@@ -402,6 +460,7 @@ export function MealsProvider({ children }: PropsWithChildren) {
       addWater,
       getMeal,
       updateMeal,
+      updateMealPortions,
       deleteMeal,
     ],
   );
