@@ -12,69 +12,94 @@ type Category = {
   icon: ComponentProps<typeof Ionicons>['name'];
   color: string;
   bgClass: string;
+  featured?: boolean;
   onPress: () => void;
 };
 
 type HomeQuickCategoriesProps = {
   onScan: () => void;
+  onSpeak: () => void;
+  onSearch: () => void;
   onBarcode: () => void;
-  onDescribe: () => void;
-  onWater: () => void;
 };
 
-export function HomeQuickCategories({ onScan, onBarcode, onDescribe, onWater }: HomeQuickCategoriesProps) {
+/** Prototype quick row: Scan · Speak · Search · Barcode */
+export function HomeQuickCategories({
+  onScan,
+  onSpeak,
+  onSearch,
+  onBarcode,
+}: HomeQuickCategoriesProps) {
   const { t } = useI18n();
   const categories: Category[] = [
     {
       id: 'scan',
-      label: t.home.quickScan,
+      label: t.home.quickScanPlate,
       icon: 'camera-outline',
-      color: '#1D9E75',
-      bgClass: 'bg-shamrock-50',
+      color: '#ffffff',
+      bgClass: 'bg-blue-spruce-600',
+      featured: true,
       onPress: onScan,
+    },
+    {
+      id: 'speak',
+      label: t.home.quickSpeak,
+      icon: 'mic-outline',
+      color: semanticColors.primary,
+      bgClass: 'bg-white',
+      onPress: onSpeak,
+    },
+    {
+      id: 'search',
+      label: t.home.quickSearch,
+      icon: 'search-outline',
+      color: semanticColors.primary,
+      bgClass: 'bg-white',
+      onPress: onSearch,
     },
     {
       id: 'barcode',
       label: t.home.quickBarcode,
       icon: 'barcode-outline',
-      color: '#f97316',
-      bgClass: 'bg-cinnamon-wood-50',
+      color: semanticColors.primary,
+      bgClass: 'bg-white',
       onPress: onBarcode,
-    },
-    {
-      id: 'text',
-      label: t.home.quickDescribe,
-      icon: 'create-outline',
-      color: '#023459',
-      bgClass: 'bg-blue-spruce-50',
-      onPress: onDescribe,
-    },
-    {
-      id: 'water',
-      label: t.home.quickWater,
-      icon: 'water-outline',
-      color: semanticColors.accentOrange,
-      bgClass: 'bg-cinnamon-wood-50',
-      onPress: onWater,
     },
   ];
 
   return (
-    <View className="mb-6 flex-row justify-between px-1">
+    <View className="mb-2 flex-row gap-2 px-1">
       {categories.map((item) => (
-        <Pressable key={item.id} onPress={item.onPress} className="items-center gap-2 active:opacity-85">
+        <Pressable
+          key={item.id}
+          onPress={item.onPress}
+          className={`flex-1 items-center gap-1.5 rounded-[22px] px-1.5 py-3 active:opacity-85 ${
+            item.featured ? 'bg-blue-spruce-600' : 'bg-white'
+          }`}
+          style={
+            item.featured
+              ? undefined
+              : {
+                  shadowColor: '#1a1c17',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.06,
+                  shadowRadius: 10,
+                  elevation: 2,
+                }
+          }>
           <View
-            className={`h-14 w-14 items-center justify-center rounded-full bg-white ${item.bgClass}`}
-            style={{
-              shadowColor: '#1a1c17',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.06,
-              shadowRadius: 10,
-              elevation: 2,
-            }}>
-            <Ionicons name={item.icon} size={24} color={item.color} />
+            className={`h-9 w-9 items-center justify-center rounded-[14px] ${
+              item.featured ? 'bg-white/20' : 'bg-ash-grey-100'
+            }`}>
+            <Ionicons name={item.icon} size={20} color={item.color} />
           </View>
-          <Text className="font-sans-medium text-xs text-neutral-600">{item.label}</Text>
+          <Text
+            className={`text-center font-sans-bold text-[11px] ${
+              item.featured ? 'text-white' : 'text-blue-spruce-700'
+            }`}
+            numberOfLines={1}>
+            {item.label}
+          </Text>
         </Pressable>
       ))}
     </View>

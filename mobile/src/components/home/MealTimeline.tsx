@@ -19,6 +19,8 @@ export type MealTimelineItem = {
   calories?: number;
   status?: MealSubmissionStatus;
   pending?: boolean;
+  /** Amber / striped estimate awaiting Grace. */
+  estimate?: boolean;
 };
 
 type MealTimelineProps = {
@@ -50,7 +52,7 @@ function EmptySlotCard({
         <Text className="mt-1 text-sm text-neutral-500">{t.home.tapToLogMeal}</Text>
       </View>
       <View className="h-8 w-8 items-center justify-center rounded-full border border-dashed border-blue-spruce-400 bg-white">
-        <Ionicons name="add" size={18} color="#023459" />
+        <Ionicons name="add" size={18} color="#1a3a2a" />
       </View>
     </Pressable>
   );
@@ -65,47 +67,65 @@ function LoggedSlotCard({
 }) {
   const { t } = useI18n();
   const handlePress = useSinglePress(() => onMealPress?.(meal.id));
+  const isEstimate = Boolean(meal.estimate || meal.pending);
 
   return (
-    <View className="min-h-[72px] flex-1 flex-row items-start justify-between rounded-2xl bg-ash-grey-50 px-4 py-3">
-      <Pressable className="flex-1 pr-3" onPress={handlePress}>
+    <View
+      className={`min-h-[80px] flex-1 flex-row items-center gap-3 overflow-hidden rounded-2xl px-3 py-3 ${
+        isEstimate ? 'bg-cinnamon-wood-50' : 'bg-white'
+      }`}
+      style={
+        isEstimate
+          ? {
+              borderWidth: 1,
+              borderColor: '#f5d48a',
+              borderStyle: 'dashed',
+            }
+          : {
+              shadowColor: '#1a1c17',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.05,
+              shadowRadius: 8,
+              elevation: 1,
+            }
+      }>
+      {/* Plate placeholder */}
+      <View
+        className={`h-14 w-14 items-center justify-center rounded-full ${
+          isEstimate ? 'bg-cinnamon-wood-100' : 'bg-ash-grey-100'
+        }`}>
+        <Ionicons
+          name="restaurant-outline"
+          size={24}
+          color={isEstimate ? '#d48a28' : '#1a3a2a'}
+        />
+      </View>
+
+      <Pressable className="min-w-0 flex-1" onPress={handlePress}>
         <Text className="font-sans-semibold text-base leading-5 text-neutral-900" numberOfLines={2}>
           {meal.label}
         </Text>
-        {meal.subtitle ? (
-          <Text className="mt-0.5 text-xs text-neutral-400" numberOfLines={1}>
-            {meal.subtitle}
+        {meal.subtitle || meal.time ? (
+          <Text className="mt-0.5 text-xs text-neutral-500" numberOfLines={1}>
+            {[meal.subtitle, meal.time].filter(Boolean).join(' · ')}
           </Text>
         ) : null}
-        {meal.pending ? (
-          <Text className="mt-1 text-sm text-neutral-500">{t.home.analysisInProgress}</Text>
-        ) : meal.items?.length ? (
-          <Text className="mt-1 text-sm leading-5 text-neutral-500">{meal.items.join(', ')}</Text>
-        ) : null}
-        {meal.calories ? (
-          <Text className="mt-1 text-xs font-sans-medium text-shamrock-700">
-            {meal.calories} {t.common.kcal}
-          </Text>
-        ) : null}
-        {meal.status && meal.pending ? (
-          <View className="mt-2 self-start">
+        {meal.status ? (
+          <View className="mt-1.5 self-start">
             <MealStatusBadge status={meal.status} />
           </View>
         ) : null}
+        {isEstimate ? (
+          <Text className="mt-1 text-xs text-cinnamon-wood-700">{t.home.graceWillCheck}</Text>
+        ) : null}
       </Pressable>
 
-      <View className="items-end gap-2">
-        {meal.time ? <Text className="text-xs text-neutral-400">{meal.time}</Text> : null}
-        {meal.pending ? (
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-blue-spruce-100">
-            <Ionicons name="time-outline" size={16} color="#023459" />
-          </View>
-        ) : (
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-neutral-900">
-            <Ionicons name="checkmark" size={16} color="#ffffff" />
-          </View>
-        )}
-      </View>
+      {meal.calories != null ? (
+        <View className="items-end">
+          <Text className="font-sans-bold text-base text-neutral-900">{meal.calories}</Text>
+          <Text className="text-[10px] font-sans-medium text-neutral-500">{t.common.kcal}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -121,21 +141,12 @@ export function MealTimeline({ dateLabel, summary, meals, onMealPress, onAddMeal
             {dateLabel ? <Text className="font-sans-bold text-xl text-neutral-900">{dateLabel}</Text> : null}
             {summary ? <Text className="mt-1 text-sm text-neutral-500">{summary}</Text> : null}
           </View>
-          <Pressable className="h-10 w-10 items-center justify-center rounded-full bg-ash-grey-100">
-            <Ionicons name="calendar-outline" size={20} color="#4f5346" />
-          </Pressable>
         </View>
       ) : null}
 
-      <View className="relative">
-        <View className="absolute bottom-4 left-[18px] top-4 w-px bg-ash-grey-200" />
-
-        {meals.map((meal, index) => (
-          <View key={meal.id} className={`flex-row gap-4 ${index < meals.length - 1 ? 'mb-5' : ''}`}>
-            <View className="w-9 items-center pt-1">
-              <View className={`h-2.5 w-2.5 rounded-full ${meal.logged ? 'bg-shamrock-500' : 'bg-ash-grey-300'}`} />
-            </View>
-
+      <View className="gap-3">
+        {meals.map((meal) => (
+          <View key={meal.id}>
             {meal.logged ? (
               <LoggedSlotCard meal={meal} onMealPress={onMealPress} />
             ) : (

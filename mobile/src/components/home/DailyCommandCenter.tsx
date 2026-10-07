@@ -51,7 +51,7 @@ export function DailyCommandCenter({
         <View className="min-w-0 flex-1 gap-2.5">
           <View className="flex-row items-center justify-between rounded-2xl bg-ash-grey-50 px-3 py-2.5">
             <View className="flex-row items-center gap-2">
-              <Ionicons name="water-outline" size={18} color="#023459" />
+              <Ionicons name="water-outline" size={18} color="#1a3a2a" />
               <Text className="font-sans-medium text-sm text-neutral-700">Water</Text>
             </View>
             <Text className="font-sans-semibold text-sm text-neutral-900">
@@ -72,7 +72,7 @@ export function DailyCommandCenter({
               <Pressable
                 onPress={onAddWater}
                 className="flex-1 flex-row items-center justify-center gap-1 rounded-xl bg-blue-spruce-50 py-2">
-                <Ionicons name="add" size={14} color="#023459" />
+                <Ionicons name="add" size={14} color="#1a3a2a" />
                 <Text className="font-sans-semibold text-xs text-blue-spruce-700">+250ml</Text>
               </Pressable>
             ) : null}

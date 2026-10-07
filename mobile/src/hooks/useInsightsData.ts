@@ -43,11 +43,11 @@ export type MacroBarRow = {
 
 const MEAL_COLORS: Record<string, string> = {
   breakfast: '#1D9E75',
-  lunch: '#023459',
-  dinner: '#16304D',
+  lunch: '#1a3a2a',
+  dinner: '#1a3a2a',
   mid_morning_snack: '#5B8FC7',
   afternoon_snack: '#7BA3D0',
-  evening_snack: '#ff6f32',
+  evening_snack: '#efa436',
   pre_workout: '#848a75',
   post_workout: '#4f5346',
 };
@@ -211,14 +211,14 @@ export function useInsightsData(period: 7 | 30) {
         value: macroTotals.carbsG / divisor,
         target: targets.carbsG,
         color: 'bg-blue-spruce-500',
-        hex: '#023459',
+        hex: '#1a3a2a',
       },
       {
         label: macroLabel(t, 'fat'),
         value: macroTotals.fatG / divisor,
         target: targets.fatG,
         color: 'bg-cinnamon-wood-400',
-        hex: '#ff6f32',
+        hex: '#efa436',
       },
     ];
 

@@ -50,7 +50,7 @@ export function HomeWelcomeHeader({
           shadowRadius: 12,
           elevation: 4,
         }}>
-        <Ionicons name="notifications-outline" size={22} color="#023459" />
+        <Ionicons name="notifications-outline" size={22} color="#1a3a2a" />
         {notificationCount > 0 ? (
           <View className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-cinnamon-wood-400" />
         ) : null}
