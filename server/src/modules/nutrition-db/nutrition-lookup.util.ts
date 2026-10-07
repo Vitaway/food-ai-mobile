@@ -2,6 +2,9 @@ export type NutritionFoodRow = {
   id: string;
   name: string;
   brand: string | null;
+  category?: string | null;
+  foodGroup?: string | null;
+  foodGroupName?: string | null;
   nameSw?: string | null;
   nameRw?: string | null;
   nameLocalOther?: string | null;
