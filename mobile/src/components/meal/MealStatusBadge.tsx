@@ -8,8 +8,8 @@ const BADGE_STYLES: Record<
   MealSubmissionStatus,
   { container: string; text: string }
 > = {
-  pending: { container: 'bg-ash-grey-200', text: 'text-neutral-700' },
-  analyzing: { container: 'bg-blue-spruce-100', text: 'text-blue-spruce-800' },
+  pending: { container: 'bg-cinnamon-wood-100', text: 'text-cinnamon-wood-700' },
+  analyzing: { container: 'bg-cinnamon-wood-100', text: 'text-cinnamon-wood-700' },
   in_review: { container: 'bg-cinnamon-wood-100', text: 'text-cinnamon-wood-700' },
   approved: { container: 'bg-shamrock-100', text: 'text-shamrock-800' },
   rejected: { container: 'bg-red-100', text: 'text-red-800' },

@@ -22,8 +22,8 @@ export function MealPipelineBanner({ status }: MealPipelineBannerProps) {
       className={`rounded-2xl px-4 py-4 ${isRejected ? 'bg-red-50' : 'bg-blue-spruce-50'}`}>
       <View className="flex-row items-center justify-between gap-3">
         <View className="flex-row items-center gap-2">
-          {isAutomatedStep ? <ActivityIndicator size="small" color="#023459" /> : null}
-          {isAwaitingCoach ? <Ionicons name="time-outline" size={20} color="#023459" /> : null}
+          {isAutomatedStep ? <ActivityIndicator size="small" color="#1a3a2a" /> : null}
+          {isAwaitingCoach ? <Ionicons name="time-outline" size={20} color="#1a3a2a" /> : null}
           {isRejected ? <Ionicons name="alert-circle" size={20} color="#b91c1c" /> : null}
           <MealStatusBadge status={status} size="md" />
         </View>

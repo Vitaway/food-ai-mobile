@@ -119,6 +119,36 @@ export function ensureServingFields(item: DetectedFoodItem): DetectedFoodItem {
   };
 }
 
+/** Scale an item's nutrition to a new gram weight (live portion edits). */
+export function scaleItemToGrams(item: DetectedFoodItem, grams: number): DetectedFoodItem {
+  const nextG = Math.max(1, Math.min(5000, Math.round(grams)));
+  const oldG = item.estimatedWeightG > 0 ? item.estimatedWeightG : 1;
+  if (nextG === oldG) return item;
+  const factor = nextG / oldG;
+  const unit = normalizeServingUnit(item.servingUnit ?? 'g');
+  const perUnit =
+    item.servingGramsEquivalent && item.servingGramsEquivalent > 0
+      ? item.servingGramsEquivalent
+      : DEFAULT_GRAMS_PER_UNIT[unit];
+
+  return {
+    ...item,
+    estimatedWeightG: nextG,
+    servingUnit: unit,
+    servingAmount: unit === 'g' ? nextG : Math.round((nextG / perUnit) * 10) / 10,
+    servingGramsEquivalent: perUnit,
+    nutrition: scaleNutrition(item.nutrition, factor),
+    micronutrients: item.micronutrients
+      ? Object.fromEntries(
+          Object.entries(item.micronutrients).map(([key, value]) => [
+            key,
+            Math.round(value * factor * 10) / 10,
+          ]),
+        )
+      : undefined,
+  };
+}
+
 export function applyServingUnitToItem(
   item: DetectedFoodItem,
   unit: string,

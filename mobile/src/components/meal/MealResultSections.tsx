@@ -3,8 +3,9 @@ import { useMemo, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
+import { MealPortionRow } from '@/components/meal/MealPortionRow';
 import { Text } from '@/components/ui/Text';
-import { useI18n } from '@/context/LocaleContext';
+import { tf, useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type {
   DetectedFoodItem,
@@ -163,7 +164,7 @@ export function MealNutritionHero({
       label: macroLabel(t, 'carbs'),
       value: totals.carbsG,
       target: targets.carbsG,
-      color: '#023459',
+      color: '#1a3a2a',
       unit: 'g',
     },
     {
@@ -177,21 +178,17 @@ export function MealNutritionHero({
       label: macroLabel(t, 'fiber'),
       value: totals.fiberG,
       target: targets.fiberG,
-      color: '#6798bf',
+      color: '#b5c97a',
       unit: 'g',
     },
   ];
 
   return (
-    <View className="rounded-[28px] border border-shamrock-100 bg-white px-5 py-5">
+    <View className="rounded-[28px] border border-blue-spruce-100 bg-white px-5 py-5">
       <View className="mb-4 flex-row items-center justify-between">
         <View>
-          <SectionEyebrow>Verified nutrition</SectionEyebrow>
+          <SectionEyebrow>Nutrition</SectionEyebrow>
           <Text className="font-display text-2xl text-blue-spruce-900">This meal</Text>
-        </View>
-        <View className="flex-row items-center gap-1.5 rounded-full bg-shamrock-100 px-2.5 py-1">
-          <Ionicons name="checkmark-circle" size={14} color="#177e5e" />
-          <Text className="text-[11px] font-sans-semibold text-shamrock-800">Confirmed</Text>
         </View>
       </View>
 
@@ -226,6 +223,10 @@ export function MealNutritionHero({
         <View className="min-w-0 flex-1">
           <Text className="text-sm text-ash-grey-600">
             {Math.round(progress * 100)}% of your {calorieTarget.toLocaleString()} kcal daily target
+          </Text>
+          <Text className="mt-2 text-xs leading-5 text-ash-grey-500">
+            4 × {formatMacroG(totals.proteinG)} + 4 × {formatMacroG(totals.carbsG)} + 9 ×{' '}
+            {formatMacroG(totals.fatG)} = {kcal} kcal
           </Text>
           <View className="mt-3 flex-row flex-wrap gap-2">
             {[
@@ -317,17 +318,28 @@ export function MealHealthInsight({
 export function MealPlateComposition({
   items,
   petals,
+  editable = false,
+  exact = false,
+  lockedHint,
+  onChangeGrams,
 }: {
   items: DetectedFoodItem[];
   petals?: MealPetal[] | null;
+  editable?: boolean;
+  exact?: boolean;
+  lockedHint?: string;
+  onChangeGrams?: (itemId: string, grams: number) => void;
 }) {
+  const { t } = useI18n();
   if (!items.length) return null;
+
+  const noun = items.length === 1 ? t.meal.itemSingular : t.meal.itemPlural;
 
   return (
     <View className="rounded-[28px] bg-white px-5 py-5">
-      <SectionEyebrow>On your plate</SectionEyebrow>
+      <SectionEyebrow>{t.meal.onYourPlate}</SectionEyebrow>
       <Text className="mb-4 font-display text-2xl text-blue-spruce-900">
-        {items.length} confirmed {items.length === 1 ? 'item' : 'items'}
+        {tf(t.meal.confirmedItems, { n: items.length, noun })}
       </Text>
 
       {petals && petals.length > 0 ? (
@@ -345,7 +357,7 @@ export function MealPlateComposition({
                   className="h-full rounded-full"
                   style={{
                     width: `${Math.max(4, Math.min(100, petal.percent))}%`,
-                    backgroundColor: petal.color || '#023459',
+                    backgroundColor: petal.color || '#1a3a2a',
                   }}
                 />
               </View>
@@ -354,37 +366,21 @@ export function MealPlateComposition({
         </View>
       ) : null}
 
-      <View className="gap-2">
-        {items.map((item) => {
-          const serving =
-            item.servingAmount && item.servingUnit
-              ? `${item.servingAmount} ${item.servingUnit}`
-              : item.estimatedWeightG > 0
-                ? `${Math.round(item.estimatedWeightG)} g`
-                : 'Portion confirmed';
-          return (
-            <View
-              key={item.id}
-              className="flex-row items-center gap-3 rounded-2xl bg-ash-grey-50 px-3 py-3">
-              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-white">
-                <Text className="text-lg">{item.emoji ?? '🍽️'}</Text>
-              </View>
-              <View className="min-w-0 flex-1">
-                <Text className="font-sans-semibold text-sm text-ash-grey-900" numberOfLines={1}>
-                  {item.label}
-                </Text>
-                <Text className="mt-0.5 text-xs text-ash-grey-500">{serving}</Text>
-              </View>
-              <View className="items-end">
-                <Text className="font-sans-semibold tabular-nums text-sm text-blue-spruce-800">
-                  {Math.round(item.nutrition.caloriesKcal)}
-                </Text>
-                <Text className="text-[10px] uppercase tracking-wide text-ash-grey-400">kcal</Text>
-              </View>
-            </View>
-          );
-        })}
+      <View className="gap-2.5">
+        {items.map((item) => (
+          <MealPortionRow
+            key={item.id}
+            item={item}
+            editable={editable}
+            exact={exact}
+            onChangeGrams={onChangeGrams ? (grams) => onChangeGrams(item.id, grams) : undefined}
+          />
+        ))}
       </View>
+
+      {lockedHint ? (
+        <Text className="mt-3 text-center text-[11px] text-ash-grey-400">{lockedHint}</Text>
+      ) : null}
     </View>
   );
 }
@@ -416,7 +412,7 @@ export function MealNutrientDeepDive({
         onPress={() => setOpen((v) => !v)}
         className="flex-row items-center gap-3 px-5 py-4 active:bg-ash-grey-50">
         <View className="h-10 w-10 items-center justify-center rounded-2xl bg-blue-spruce-50">
-          <Ionicons name="flask" size={18} color="#023459" />
+          <Ionicons name="flask" size={18} color="#1a3a2a" />
         </View>
         <View className="min-w-0 flex-1">
           <Text className="font-sans-semibold text-ash-grey-900">Full nutrition detail</Text>
@@ -466,9 +462,7 @@ export function MealMetaFooter({ meal }: { meal: MealSubmission }) {
   if (meal.mealClassification && meal.mealClassification !== 'unknown') {
     bits.push(meal.mealClassification);
   }
-  if (typeof meal.confidenceAvg === 'number' && meal.confidenceAvg > 0) {
-    bits.push(`${Math.round(meal.confidenceAvg * 100)}% AI confidence`);
-  }
+  // Prototype: no “100% AI confidence” — hide model confidence from patients.
   if (!bits.length && !meal.note?.trim()) return null;
 
   return (
