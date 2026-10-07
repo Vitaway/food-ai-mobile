@@ -21,6 +21,8 @@ export type DetectedFoodItem = {
   emoji?: string;
   foodSource?: "ai" | "nutrition_db" | "manual";
   nutrition: NutritionFacts;
+  plateGroup?: "vf" | "pr" | "st" | "other" | null;
+  pin?: { x: number; y: number } | null;
 };
 
 const DEFAULT_GRAMS_PER_UNIT: Record<string, number> = {
@@ -168,6 +170,20 @@ export function asDetectedItems(raw: unknown): DetectedFoodItem[] {
           item.foodSource === "manual"
             ? item.foodSource
             : undefined,
+        plateGroup:
+          item.plateGroup === "vf" ||
+          item.plateGroup === "pr" ||
+          item.plateGroup === "st" ||
+          item.plateGroup === "other"
+            ? item.plateGroup
+            : null,
+        pin:
+          item.pin &&
+          typeof item.pin === "object" &&
+          typeof (item.pin as { x?: unknown }).x === "number" &&
+          typeof (item.pin as { y?: unknown }).y === "number"
+            ? { x: (item.pin as { x: number }).x, y: (item.pin as { y: number }).y }
+            : null,
         nutrition: {
           caloriesKcal: Number(nutrition.caloriesKcal ?? 0),
           proteinG: Number(nutrition.proteinG ?? 0),
