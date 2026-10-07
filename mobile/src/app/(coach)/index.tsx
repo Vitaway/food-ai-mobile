@@ -76,7 +76,7 @@ export default function CoachDashboardScreen() {
               <View
                 className="h-12 w-12 overflow-hidden rounded-full border-[3px] border-white"
                 style={{
-                  shadowColor: '#023459',
+                  shadowColor: '#1a3a2a',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.1,
                   shadowRadius: 8,
@@ -184,7 +184,7 @@ export default function CoachDashboardScreen() {
                   }}
                   className="items-center rounded-[24px] bg-white px-5 py-4 active:opacity-90"
                   style={{
-                    shadowColor: '#023459',
+                    shadowColor: '#1a3a2a',
                     shadowOffset: { width: 0, height: 6 },
                     shadowOpacity: 0.04,
                     shadowRadius: 12,
@@ -215,7 +215,7 @@ export default function CoachDashboardScreen() {
           <View
             className="overflow-hidden rounded-[26px] bg-white"
             style={{
-              shadowColor: '#023459',
+              shadowColor: '#1a3a2a',
               shadowOffset: { width: 0, height: 8 },
               shadowOpacity: 0.05,
               shadowRadius: 16,
