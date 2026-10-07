@@ -22,7 +22,7 @@ export function ChatThreadHeader({
 }: ChatThreadHeaderProps) {
   const { t } = useI18n();
   const insets = useSafeAreaInsets();
-  const subtitleText = subtitle ?? t.chat.coachName;
+  const subtitleText = subtitle ?? t.chat.coachSubtitle;
 
   return (
     <View

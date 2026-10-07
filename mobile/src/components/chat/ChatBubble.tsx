@@ -4,6 +4,7 @@ import { Image, Linking, Pressable, View } from 'react-native';
 import { ChatAvatar } from '@/components/chat/ChatAvatar';
 import { Text } from '@/components/ui/Text';
 import { chatTheme } from '@/components/chat/chatTheme';
+import { useI18n } from '@/context/LocaleContext';
 import { formatChatTime } from '@/utils/chatFormatting';
 import { resolveMediaUrl } from '@/utils/mediaUrls';
 import type { ChatMessage } from '@/services/remote/chatApi';
@@ -84,6 +85,7 @@ export function ChatBubble({
   avatarUrl,
   onMealPress,
 }: ChatBubbleProps) {
+  const { t } = useI18n();
   const isMine = message.isMine;
   const bubbleAvatar = avatarUrl ?? message.senderAvatarUrl;
   const hasAttachment = Boolean(message.attachmentUrl);
@@ -135,7 +137,7 @@ export function ChatBubble({
             className="mt-1.5 self-start rounded-md px-2 py-1"
             style={{ backgroundColor: 'rgba(0,0,0,0.06)' }}>
             <Text className="font-sans-semibold text-xs" style={{ color: chatTheme.link }}>
-              View meal →
+              {t.chat.viewMeal} →
             </Text>
           </Pressable>
         ) : null}

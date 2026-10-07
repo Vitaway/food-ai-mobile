@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
   ScrollView,
   View,
 } from 'react-native';
@@ -17,9 +18,11 @@ import { ChatThreadHeader } from '@/components/chat/ChatThreadHeader';
 import { chatTheme } from '@/components/chat/chatTheme';
 import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Text } from '@/components/ui/Text';
+import { resolveCoachDisplayName } from '@/constants/coach';
 import { semanticColors } from '@/design-system/colors';
 import { useAuth } from '@/context/AuthContext';
 import { useChatSocket } from '@/context/ChatContext';
+import { useI18n } from '@/context/LocaleContext';
 import { useProfile } from '@/context/ProfileContext';
 import {
   fetchChatConversation,
@@ -45,9 +48,10 @@ export default function ChatThreadScreen() {
   }>();
   const conversationId = typeof id === 'string' ? id : '';
   const linkedMealId = typeof mealId === 'string' ? mealId : undefined;
-  const initialTitle = typeof titleParam === 'string' ? titleParam : 'Coach';
+  const initialTitle = resolveCoachDisplayName(typeof titleParam === 'string' ? titleParam : null);
   const { back } = useNavigateOnce();
   const router = useRouter();
+  const { t } = useI18n();
   const { session } = useAuth();
   const { profile } = useProfile();
   const { subscribeMessages, refreshUnread } = useChatSocket();
@@ -74,7 +78,7 @@ export default function ChatThreadScreen() {
         fetchChatConversation(conversationId).catch(() => null),
       ]);
       setMessages(rows);
-      if (conv?.title) setTitle(conv.title);
+      if (conv?.title) setTitle(resolveCoachDisplayName(conv.title));
       if (conv?.peerAvatarUrl) setPeerAvatarUrl(conv.peerAvatarUrl);
     } finally {
       setLoading(false);
@@ -213,8 +217,25 @@ export default function ChatThreadScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={0}>
         <View className="flex-1" style={{ backgroundColor: chatTheme.background }}>
-          <View className="px-3 pb-1 pt-2">
+          <View className="px-3 pb-1 pt-2 gap-2">
             <FreePlanBanner compact />
+            {linkedMealId ? (
+              <Pressable
+                onPress={() => router.push(`/meal/${linkedMealId}`)}
+                accessibilityRole="button"
+                accessibilityLabel={t.chat.viewMeal}
+                className="flex-row items-center justify-between rounded-2xl border border-blue-spruce-100 bg-white px-3.5 py-3 active:opacity-90">
+                <View className="min-w-0 flex-1 pr-3">
+                  <Text className="font-sans-semibold text-[14px] text-blue-spruce-900">
+                    {t.chat.mealContext}
+                  </Text>
+                  <Text className="mt-0.5 text-[12px] text-ash-grey-500">{t.chat.viewMeal} →</Text>
+                </View>
+                <View className="h-9 w-9 items-center justify-center rounded-full bg-blue-spruce-800">
+                  <Text className="text-sm text-white">🍽</Text>
+                </View>
+              </Pressable>
+            ) : null}
           </View>
           {loading ? (
             <View className="flex-1 items-center justify-center">
