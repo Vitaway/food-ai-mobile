@@ -17,5 +17,14 @@ export const VITAWAY_ORG_URL = 'https://vitaway.org';
 export const TERMS_OF_USE_URL = `${MIRAFOOD_WEB_URL}/terms`;
 export const PRIVACY_POLICY_URL = `${MIRAFOOD_WEB_URL}/privacy`;
 
+/** Company details for receipts (Vitaway / MiraFood, Rwanda). */
+export const COMPANY_LEGAL = {
+  name: 'Vitaway Health',
+  /** Rwanda Tax Identification Number on invoices. */
+  tin: process.env.EXPO_PUBLIC_COMPANY_TIN?.trim() || '109912345',
+  city: 'Kigali, Rwanda',
+  timezone: 'Africa/Kigali',
+} as const;
+
 /** @deprecated Use {@link USE_MOCK_API} from `@/constants/features`; dev-only, never true in production. */
 export const USE_MOCK_API = __DEV__ && process.env.EXPO_PUBLIC_USE_MOCK_API === 'true';

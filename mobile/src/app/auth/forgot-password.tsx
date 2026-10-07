@@ -40,9 +40,11 @@ export default function ForgotPasswordScreen() {
       title="Reset password"
       actions={
         <Button
-          label={loading ? 'Sending…' : 'Send reset code'}
+          label="Send reset code"
           onPress={() => void handleSubmit()}
           disabled={loading || !email.trim()}
+          loading={loading}
+          loadingLabel="Sending…"
           fullWidth
           size="lg"
           variant="primary"

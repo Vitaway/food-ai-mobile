@@ -76,7 +76,7 @@ export default function WrongAppScreen() {
       }>
       <View className="items-center rounded-2xl border border-neutral-200 bg-neutral-50 px-5 py-6">
         <View className="mb-3 h-14 w-14 items-center justify-center rounded-2xl bg-[#EEF4FA]">
-          <Ionicons name="laptop-outline" size={30} color="#16304D" />
+          <Ionicons name="laptop-outline" size={30} color="#1a3a2a" />
         </View>
         <Text className="text-center text-sm leading-6 text-neutral-600">{copy.body}</Text>
       </View>

@@ -145,9 +145,11 @@ export default function ResetPasswordScreen() {
         title="Choose a new password"
         actions={
           <Button
-            label={loading ? 'Updating…' : 'Update password'}
+            label="Update password"
             onPress={() => void handleResetPassword()}
             disabled={loading || !password || !confirmPassword}
+            loading={loading}
+            loadingLabel="Updating…"
             fullWidth
             size="lg"
             variant="primary"
@@ -159,8 +161,7 @@ export default function ResetPasswordScreen() {
             value={password}
             onChangeText={setPassword}
             placeholder="At least 8 characters"
-            textContentType="newPassword"
-            autoComplete="new-password"
+            disableStrongPassword
           />
           <PasswordStrengthMeter password={password} />
           <PasswordField
@@ -168,8 +169,7 @@ export default function ResetPasswordScreen() {
             value={confirmPassword}
             onChangeText={setConfirmPassword}
             placeholder="Repeat your password"
-            textContentType="newPassword"
-            autoComplete="new-password"
+            disableStrongPassword
           />
         </View>
       </AuthScreenShell>
@@ -181,9 +181,11 @@ export default function ResetPasswordScreen() {
       title="Enter your code"
       actions={
         <Button
-          label={loading ? 'Checking…' : 'Continue'}
+          label="Continue"
           onPress={() => void handleVerifyCode()}
           disabled={loading || code.replace(/\D/g, '').length !== 6}
+          loading={loading}
+          loadingLabel="Checking…"
           fullWidth
           size="lg"
           variant="primary"

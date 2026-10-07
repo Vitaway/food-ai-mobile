@@ -1,20 +1,21 @@
-/** Shared palette tokens; aligned with web/src/index.css @theme */
+/** Shared palette tokens; aligned with web GREENCRISPS (forest / mint / black) */
 
-/** Fixed scales aligned with web/src/index.css @theme tokens */
+/** Primary brand = forest green (was navy blue-spruce) */
 const WEB_BLUE_SPRUCE = {
-  50: '#eef4f8',
-  100: '#d9e6ef',
-  200: '#b3ccdf',
-  300: '#8db2cf',
-  400: '#6798bf',
-  500: '#417eaf',
-  600: '#023459',
-  700: '#022a47',
-  800: '#012035',
-  900: '#011623',
-  950: '#000f18',
+  50: '#eef6d4',
+  100: '#e2f0b6',
+  200: '#d0e29c',
+  300: '#b5c97a',
+  400: '#8fa86a',
+  500: '#2f4536',
+  600: '#1a3a2a',
+  700: '#12261c',
+  800: '#0d1a14',
+  900: '#0a120c',
+  950: '#050a07',
 };
 
+/** Success / Grace-confirmed = leaf green */
 const WEB_SHAMROCK = {
   50: '#edf8f3',
   100: '#daf1e7',
@@ -29,13 +30,17 @@ const WEB_SHAMROCK = {
   950: '#041610',
 };
 
+/**
+ * Functional amber for estimates / warnings only.
+ * Primary CTAs use forest / black — not this scale.
+ */
 const WEB_CINNAMON_WOOD = {
-  50: '#fff3ed',
-  100: '#ffe7db',
-  200: '#ffcfb7',
-  300: '#ffb793',
-  400: '#ff6f32',
-  500: '#e2622d',
+  50: '#fcefd6',
+  100: '#f9e4b8',
+  200: '#f5d48a',
+  300: '#f0c05c',
+  400: '#efa436',
+  500: '#d48a28',
   600: '#b54e24',
   700: '#883b1b',
   800: '#5a2712',
@@ -60,17 +65,18 @@ module.exports = {
     900: '#122117',
     950: '#0d1710',
   },
+  /** Paper / neutrals = mint canvas family */
   'ash-grey': {
-    50: '#f3f3f1',
-    100: '#e6e8e3',
-    200: '#ced0c8',
-    300: '#b5b9ac',
-    400: '#9ca191',
-    500: '#848a75',
-    600: '#696e5e',
-    700: '#4f5346',
-    800: '#35372f',
-    900: '#1a1c17',
-    950: '#121310',
+    50: '#eef6d4',
+    100: '#e2f0b6',
+    200: '#d0e29c',
+    300: '#b8c98a',
+    400: '#9aab6e',
+    500: '#6b7a52',
+    600: '#4a5a3e',
+    700: '#2f4536',
+    800: '#1a3a2a',
+    900: '#13202b',
+    950: '#0a120c',
   },
 };

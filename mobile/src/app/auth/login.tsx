@@ -7,7 +7,6 @@ import { PasswordField } from '@/components/auth/PasswordField';
 import { SocialAuthButtons } from '@/components/auth/SocialAuthButtons';
 import { Button } from '@/components/ui/Button';
 import { FieldInput } from '@/components/ui/FieldInput';
-import { FullScreenLoader } from '@/components/ui/FullScreenLoader';
 import { Text } from '@/components/ui/Text';
 import { useAuth } from '@/context/AuthContext';
 import { useConfirmDialog } from '@/context/ConfirmDialogContext';
@@ -40,6 +39,7 @@ export default function LoginScreen() {
     debugCode?: string;
   } | null>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingSource, setLoadingSource] = useState<'email' | 'biometric' | null>(null);
   const [biometricKind, setBiometricKind] = useState<BiometricKind>('none');
   const [canUseBiometrics, setCanUseBiometrics] = useState(false);
 
@@ -90,11 +90,13 @@ export default function LoginScreen() {
   const handleBiometricLogin = async () => {
     if (loading) return;
     setLoading(true);
+    setLoadingSource('biometric');
     try {
       const creds = await authenticateWithBiometrics(biometricLabel);
       if (!creds) {
         toast.error(t.auth.biometricsFailed);
         setLoading(false);
+        setLoadingSource(null);
         return;
       }
       await finishPasswordLogin(creds.email, creds.password);
@@ -108,16 +110,19 @@ export default function LoginScreen() {
         });
         toast.success(t.auth.mfaSent, t.auth.checkInbox);
         setLoading(false);
+        setLoadingSource(null);
         return;
       }
       toast.error(getApiErrorMessage(err, t.auth.signInFailed), t.auth.signIn);
       setLoading(false);
+      setLoadingSource(null);
     }
   };
 
   const handleSubmit = async () => {
     if (loading) return;
     setLoading(true);
+    setLoadingSource('email');
     try {
       if (mfa) {
         await completeMfaLogin(mfa.challengeToken, mfaCode);
@@ -135,31 +140,33 @@ export default function LoginScreen() {
         });
         toast.success(t.auth.mfaSent, t.auth.checkInbox);
         setLoading(false);
+        setLoadingSource(null);
         return;
       }
       if (err instanceof WrongAppRoleError) {
         setLoading(false);
+        setLoadingSource(null);
         push(`/auth/wrong-app?role=${encodeURIComponent(err.role)}` as Href);
         return;
       }
       toast.error(getApiErrorMessage(err, t.auth.signInFailed), t.auth.signIn);
       setLoading(false);
+      setLoadingSource(null);
     }
   };
 
   return (
-    <>
-      <FullScreenLoader visible={loading && !mfa} message={t.auth.signingIn} />
-      <AuthScreenShell
-        title={mfa ? t.auth.verifySignIn : t.auth.login}
-        dismissible={!loading}
-        footer={
+    <AuthScreenShell
+      title={mfa ? t.auth.verifySignIn : t.auth.login}
+      dismissible={!loading}
+      footer={
         mfa ? (
           <Pressable
             onPress={() => {
               setMfa(null);
               setMfaCode('');
-            }}>
+            }}
+            disabled={loading}>
             <Text className="text-center text-sm text-neutral-500">
               {t.auth.differentAccount}{' '}
               <Text className="font-sans-semibold text-blue-spruce-700">{t.common.back}</Text>
@@ -185,11 +192,14 @@ export default function LoginScreen() {
               autoFocus
               placeholder="123456"
               hint={mfa.debugCode ? `Dev code: ${mfa.debugCode}` : undefined}
+              editable={!loading}
             />
             <Button
-              label={loading ? t.auth.verifying : t.auth.verifyCode}
+              label={t.auth.verifyCode}
               onPress={handleSubmit}
               disabled={loading || mfaCode.trim().length < 6}
+              loading={loading}
+              loadingLabel={t.auth.verifying}
               fullWidth
               size="lg"
               variant="primary"
@@ -202,6 +212,8 @@ export default function LoginScreen() {
                 label={biometricLabel}
                 onPress={() => void handleBiometricLogin()}
                 disabled={loading}
+                loading={loadingSource === 'biometric'}
+                loadingLabel={t.auth.signingIn}
                 fullWidth
                 size="lg"
                 variant="outline"
@@ -215,22 +227,27 @@ export default function LoginScreen() {
               autoCapitalize="none"
               autoCorrect={false}
               placeholder={t.auth.emailPlaceholder}
+              editable={!loading}
             />
             <PasswordField
               label={t.auth.password}
               value={password}
               onChangeText={setPassword}
               placeholder={t.auth.passwordPlaceholder}
+              editable={!loading}
             />
             <Pressable
               onPress={() => push('/auth/forgot-password' as Href)}
-              className="-mt-1 self-end">
+              className="-mt-1 self-end"
+              disabled={loading}>
               <Text className="text-sm font-sans-medium text-blue-spruce-700">{t.auth.forgotPassword}</Text>
             </Pressable>
             <Button
               label={t.auth.logIn}
               onPress={handleSubmit}
               disabled={loading || !email.trim() || !password}
+              loading={loadingSource === 'email'}
+              loadingLabel={t.auth.loggingIn}
               fullWidth
               size="lg"
               variant="primary"
@@ -242,6 +259,5 @@ export default function LoginScreen() {
         )}
       </View>
     </AuthScreenShell>
-    </>
   );
 }
