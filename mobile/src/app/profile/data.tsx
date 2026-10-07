@@ -41,6 +41,14 @@ export default function DataPrivacyScreen() {
   };
 
   const handleExport = async () => {
+    const ok = await confirm({
+      title: 'Export your data?',
+      message:
+        'We will prepare a JSON copy of your profile and meals so you can share or save it.',
+      confirmLabel: 'Export',
+    });
+    if (!ok) return;
+
     try {
       const payload = await exportData();
       await Share.share({
@@ -94,7 +102,8 @@ export default function DataPrivacyScreen() {
           </View>
 
           <Text className="mb-3 text-sm leading-5 text-neutral-600">
-            Learn how MiraFood handles your data and the terms that apply when you use the app.
+            Terms and privacy open in your browser. Export, reset, and delete always ask you to confirm
+            first.
           </Text>
 
           <View className="mb-5 overflow-hidden rounded-2xl border border-ash-grey-100 bg-white">

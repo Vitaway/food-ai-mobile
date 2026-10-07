@@ -16,7 +16,7 @@ export function ProfileSection({ title, children }: ProfileSectionProps) {
       <View
         className="overflow-hidden rounded-[24px] border border-ash-grey-100 bg-white"
         style={{
-          shadowColor: '#023459',
+          shadowColor: '#1a3a2a',
           shadowOffset: { width: 0, height: 6 },
           shadowOpacity: 0.04,
           shadowRadius: 12,

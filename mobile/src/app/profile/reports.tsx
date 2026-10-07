@@ -13,6 +13,7 @@ import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { StackScreenBody, ScreenTopBar } from '@/components/ui/ScreenTopBar';
+import { fonts } from '@/constants/fonts';
 import { useI18n } from '@/context/LocaleContext';
 import { useProfileBack } from '@/hooks/useProfileBack';
 import {
@@ -226,6 +227,7 @@ export default function ReportsScreen() {
                     keyboardType="number-pad"
                     maxLength={10}
                     className="rounded-xl border border-ash-grey-200 bg-white px-3 py-3 text-sm text-neutral-900"
+                    style={{ fontFamily: fonts.sans }}
                   />
                 </View>
                 <View>
@@ -242,6 +244,7 @@ export default function ReportsScreen() {
                     keyboardType="number-pad"
                     maxLength={10}
                     className="rounded-xl border border-ash-grey-200 bg-white px-3 py-3 text-sm text-neutral-900"
+                    style={{ fontFamily: fonts.sans }}
                   />
                 </View>
                 {!customValid ? (

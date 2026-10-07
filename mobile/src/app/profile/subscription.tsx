@@ -8,14 +8,16 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Text,
   TextInput,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Button } from '@/components/ui/Button';
+import { Text } from '@/components/ui/Text';
 import { ScreenTopBar, StackScreenBody } from '@/components/ui/ScreenTopBar';
+import { fonts } from '@/constants/fonts';
+import { useI18n } from '@/context/LocaleContext';
 import { useSubscriptionAccess } from '@/context/SubscriptionAccessContext';
 import { useToast } from '@/context/ToastContext';
 import { palette, semanticColors } from '@/design-system/colors';
@@ -162,6 +164,7 @@ function PlanPickerBody({
   onPay,
   hideCta,
 }: PlanPickerProps) {
+  const { t } = useI18n();
   const selectedPlan = plans.find((p) => p.code === selectedPlanCode) ?? plans[0] ?? null;
   const canPay = Boolean(selectedPlan && selectedPlan.code !== currentPlanCode && onPay && !hideCta);
 
@@ -300,9 +303,7 @@ function PlanPickerBody({
               <ActivityIndicator color="#ffffff" />
             ) : (
               <Text className="text-[16px] font-sans-bold text-white">
-                {isUpgrade
-                  ? `Upgrade · ${formatMoney(selectedPlan.amount, selectedPlan.currency)}`
-                  : 'Subscribe Now'}
+                {`${isUpgrade ? t.subscription.upgradePlan : t.subscription.switchPlan} · ${formatMoney(selectedPlan.amount, selectedPlan.currency)}`}
               </Text>
             )}
           </Pressable>
@@ -318,6 +319,7 @@ function PlanPickerBody({
 export default function SubscriptionScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { t } = useI18n();
   const { hasActiveSubscription, refreshSubscriptionAccess } = useSubscriptionAccess();
   const toast = useToast();
   const [data, setData] = useState<ConsumerSubscription | null>(null);
@@ -524,7 +526,7 @@ export default function SubscriptionScreen() {
             <View className="mb-5 gap-3">
               <Button label="Continue to MiraFood" fullWidth onPress={() => enterApp()} />
               <Button
-                label="Upgrade or change plan"
+                label={t.subscription.switchPlan}
                 variant="secondary"
                 fullWidth
                 onPress={openUpgradeSheet}
@@ -654,6 +656,7 @@ export default function SubscriptionScreen() {
                   autoCapitalize="none"
                   keyboardType="email-address"
                   className="rounded-xl border border-ash-grey-200 bg-ash-grey-50 px-3 py-3 text-sm"
+                  style={{ fontFamily: fonts.sans }}
                 />
                 <Text className="text-xs text-ash-grey-500">
                   Existing MiraFood users join immediately. New emails get an invite link.
@@ -718,9 +721,11 @@ export default function SubscriptionScreen() {
             </View>
             <View className="flex-row items-center justify-between px-5 pb-2 pt-3">
               <View className="min-w-0 flex-1 pr-3">
-                <Text className="font-sans-bold text-2xl text-ash-grey-900">Upgrade or change</Text>
+                <Text className="font-sans-bold text-2xl text-ash-grey-900">
+                  {t.subscription.switchPlanTitle}
+                </Text>
                 <Text className="mt-1 text-sm text-ash-grey-600">
-                  Pick a new plan. Your current access stays until payment confirms.
+                  {t.subscription.switchPlanBody}
                 </Text>
               </View>
               <Pressable
@@ -752,7 +757,7 @@ export default function SubscriptionScreen() {
                 selectedPlanCode={selectedPlanCode}
                 currentPlanCode={data?.planCode}
                 checkingOut={checkingOut}
-                isUpgrade
+                isUpgrade={false}
                 onSelect={setSelectedPlanCode}
                 onPay={(plan) => void startCheckout(plan)}
               />

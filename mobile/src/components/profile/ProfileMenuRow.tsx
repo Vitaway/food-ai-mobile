@@ -42,7 +42,7 @@ export function ProfileMenuRow({
           'h-11 w-11 items-center justify-center rounded-2xl',
           destructive ? 'bg-cinnamon-wood-50' : 'bg-blue-spruce-50',
         )}>
-        <Ionicons name={icon} size={20} color={destructive ? '#E85A2A' : '#023459'} />
+        <Ionicons name={icon} size={20} color={destructive ? '#E85A2A' : '#1a3a2a'} />
       </View>
       <View className="min-w-0 flex-1">
         <Text

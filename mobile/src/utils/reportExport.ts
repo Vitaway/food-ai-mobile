@@ -150,17 +150,17 @@ export function buildConsumerReportHtml(report: ConsumerReportSnapshot): string 
   <meta charset="utf-8" />
   <style>
     body { font-family: -apple-system, Helvetica, Arial, sans-serif; color: #1f2937; margin: 0; padding: 24px; }
-    .header { background: #023459; color: #fff; padding: 18px 20px; border-radius: 12px; }
+    .header { background: #1a3a2a; color: #fff; padding: 18px 20px; border-radius: 12px; }
     .header h1 { margin: 0; font-size: 22px; }
     .header p { margin: 6px 0 0; font-size: 12px; opacity: 0.9; }
     .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin: 18px 0; }
     .kpi { flex: 1 1 120px; background: #eef4f8; border-radius: 10px; padding: 12px; border-top: 3px solid #1d9e75; }
     .kpi .label { font-size: 10px; text-transform: uppercase; color: #6b7280; letter-spacing: 0.04em; }
-    .kpi .value { font-size: 20px; font-weight: 700; color: #023459; margin-top: 4px; }
-    h2 { font-size: 15px; color: #023459; margin: 20px 0 8px; }
+    .kpi .value { font-size: 20px; font-weight: 700; color: #1a3a2a; margin-top: 4px; }
+    h2 { font-size: 15px; color: #1a3a2a; margin: 20px 0 8px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
     th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #e5e7eb; }
-    th { background: #023459; color: #fff; }
+    th { background: #1a3a2a; color: #fff; }
     tr:nth-child(even) td { background: #f8fafc; }
     .footer { margin-top: 24px; font-size: 10px; color: #6b7280; }
   </style>
@@ -231,7 +231,7 @@ async function shareHtmlFallback(html: string, title: string): Promise<void> {
     await Share.share({ message: title, title });
     throw new Error('Could not save report file on this device');
   }
-  const path = `${dir}mirafood-report-${Date.now()}.html`;
+  const path = `${dir}MiraFood-Report-${Date.now()}.html`;
   await FileSystem.writeAsStringAsync(path, html);
   await shareFile(path, {
     mimeType: 'text/html',
