@@ -10,11 +10,12 @@
     "android": "expo run:android",
     "web": "expo start --web",
     "build:ios:testflight": "eas build --platform ios --profile production",
-    "submit:ios:testflight": "eas submit --platform ios --latest"
+    "submit:ios:testflight": "eas submit --platform ios --latest",
+    "build:android:aab": "eas build --platform android --profile production --local --output ./dist/mirafood.aab",
+    "submit:android:playstore": "eas submit --platform android --path ./dist/mirafood.aab"
   },
   "dependencies": {
-    "@expo-google-fonts/cabin-sketch": "^0.4.1",
-    "@expo-google-fonts/sniglet": "^0.4.1",
+    "@expo-google-fonts/plus-jakarta-sans": "^0.4.2",
     "@expo/vector-icons": "^15.0.3",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
@@ -44,6 +45,7 @@
     "expo-router": "~6.0.24",
     "expo-secure-store": "~15.0.8",
     "expo-sharing": "~14.0.8",
+    "expo-speech-recognition": "^3.1.3",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
     "expo-symbols": "~1.0.8",

@@ -1,5 +1,5 @@
 export const typography = {
-  display: 'text-3xl font-sans-bold text-neutral-900',
+  display: 'text-3xl font-display text-neutral-900',
   title: 'text-2xl font-sans-bold text-neutral-900',
   heading: 'text-xl font-sans-semibold text-neutral-900',
   body: 'text-base font-sans text-neutral-800',
