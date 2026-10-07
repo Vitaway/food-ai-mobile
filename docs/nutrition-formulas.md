@@ -8,6 +8,8 @@ Reference for how patient profile targets, macros, water, meal nutrition, and he
 
 Mobile/web may show **provisional previews** during onboarding (`mobile/src/utils/nutrition.ts`). Stored clinical targets always come from the **server NCE**.
 
+> **Vitaway-style plain-language guide (preferred for sharing):** [MiraFood-Nutrition-Formulas.md](./MiraFood-Nutrition-Formulas.md) · [MiraFood-Nutrition-Formulas.pdf](./MiraFood-Nutrition-Formulas.pdf)
+
 ---
 
 ## 1. Patient profile inputs
