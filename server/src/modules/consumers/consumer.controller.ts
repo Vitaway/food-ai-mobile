@@ -17,7 +17,7 @@ import {
 import type { Request, Response } from "express";
 import multer from "multer";
 import type { User } from "../users/user.entity";
-import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto, AccountDeletionRequestDto } from "./consumer.dto";
+import { UpdateConsumerProfileDto, SubmitConsumerMealDto, LogWaterDto, AccountDeletionRequestDto, PreviewMealPortionsDto, UpdateMealPortionsDto } from "./consumer.dto";
 import { consumerService } from "./consumer.service";
 import { paymentsService } from "../payments/payments.service";
 import { reportsService } from "../reports/reports.service";
@@ -102,6 +102,22 @@ export class ConsumerController {
       req.file?.mimetype,
       req,
     );
+  }
+
+  @Authorized(["consumer"])
+  @Post("/meals/preview-portions")
+  previewMealPortions(@CurrentUser() user: User, @Body() dto: PreviewMealPortionsDto) {
+    return consumerService.previewMealPortions(user.id, dto);
+  }
+
+  @Authorized(["consumer"])
+  @Patch("/meals/:id/portions")
+  updateMealPortions(
+    @CurrentUser() user: User,
+    @Param("id") id: string,
+    @Body() dto: UpdateMealPortionsDto,
+  ) {
+    return consumerService.updateMealPortions(user.id, id, dto);
   }
 
   @Authorized(["consumer"])

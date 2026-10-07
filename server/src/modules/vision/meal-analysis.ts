@@ -1,3 +1,5 @@
+import type { BalancedPlateScore, EstimateRange, MealLogSource } from "../meals/balanced-plate";
+
 export type MealAnalysisItem = {
   id: string;
   label: string;
@@ -18,6 +20,10 @@ export type MealAnalysisItem = {
   servingUnit?: string;
   servingAmount?: number;
   servingGramsEquivalent?: number;
+  /** Balanced Plate group (Phase 1 fills this). */
+  plateGroup?: "vf" | "pr" | "st" | "other" | null;
+  /** Normalized pin on plate image 0–1 (Phase 3). */
+  pin?: { x: number; y: number } | null;
 };
 
 export type MealAnalysisResult = {
@@ -30,6 +36,9 @@ export type MealAnalysisResult = {
   healthFlag: "green" | "yellow" | "orange" | "red";
   healthMessage: string;
   modelVersion: string;
+  logSource?: MealLogSource;
+  balancedPlate?: BalancedPlateScore | null;
+  estimateRange?: EstimateRange | null;
 };
 
 import { isNegligibleCalorieLabel, ZERO_NUTRITION } from "./negligible-food";
@@ -71,6 +80,37 @@ function sumNutrition(items: MealAnalysisItem[]) {
   );
 }
 
+function clamp01(value: unknown): number | null {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  return Math.max(0, Math.min(1, value));
+}
+
+function normalizePin(raw: Record<string, unknown>): { x: number; y: number } | null {
+  const pinRaw = raw.pin;
+  if (pinRaw && typeof pinRaw === "object") {
+    const pin = pinRaw as { x?: unknown; y?: unknown };
+    const x = clamp01(pin.x);
+    const y = clamp01(pin.y);
+    if (x != null && y != null) return { x, y };
+  }
+
+  const box = raw.bbox ?? raw.boundingBox;
+  if (box && typeof box === "object") {
+    const b = box as { x?: unknown; y?: unknown; width?: unknown; height?: unknown; w?: unknown; h?: unknown };
+    const x = typeof b.x === "number" ? b.x : null;
+    const y = typeof b.y === "number" ? b.y : null;
+    const w = typeof b.width === "number" ? b.width : typeof b.w === "number" ? b.w : null;
+    const h = typeof b.height === "number" ? b.height : typeof b.h === "number" ? b.h : null;
+    if (x != null && y != null && w != null && h != null) {
+      const cx = clamp01(x + w / 2);
+      const cy = clamp01(y + h / 2);
+      if (cx != null && cy != null) return { x: cx, y: cy };
+    }
+  }
+
+  return null;
+}
+
 function normalizeItem(row: Record<string, unknown>, fallbackLabel: string): MealAnalysisItem {
   const label =
     typeof row.label === "string" && row.label.trim() ? row.label.trim() : fallbackLabel;
@@ -90,6 +130,7 @@ function normalizeItem(row: Record<string, unknown>, fallbackLabel: string): Mea
       : Math.max(1, Math.round(clampNumber(row.estimatedWeightG, weightDefault))),
     emoji: typeof row.emoji === "string" ? row.emoji : negligible ? "🥤" : "🍽️",
     nutrition: negligible ? { ...ZERO_NUTRITION } : normalizeNutrition(nutritionRaw),
+    pin: normalizePin(row),
   };
 }
 

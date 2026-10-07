@@ -12,7 +12,9 @@ import {
   MaxLength,
   Matches,
   Min,
+  ValidateNested,
 } from "class-validator";
+import { Type } from "class-transformer";
 
 export class UpdateConsumerProfileDto {
   @IsOptional()
@@ -159,6 +161,47 @@ export class SubmitConsumerMealDto {
 
   @IsObject()
   data!: Record<string, unknown>;
+}
+
+/** One item weight change for live portion edits (Phase 2). */
+export class MealPortionItemDto {
+  @IsString()
+  @MaxLength(64)
+  id!: string;
+
+  @IsNumber()
+  @Min(0)
+  @Max(5000)
+  estimatedWeightG!: number;
+}
+
+/**
+ * PATCH /consumer/meals/:id/portions
+ * Recalculates nutrition + Balanced Plate + estimate range from new grams.
+ */
+export class UpdateMealPortionsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => MealPortionItemDto)
+  items!: MealPortionItemDto[];
+}
+
+/**
+ * POST /consumer/meals/preview-portions
+ * Same math before the meal is submitted (review sheet).
+ */
+export class PreviewMealPortionsDto {
+  @IsArray()
+  items!: Array<Record<string, unknown>>;
+
+  @IsOptional()
+  @IsIn(["photo", "voice", "search", "repeat", "barcode", "text"])
+  logSource?: "photo" | "voice" | "search" | "repeat" | "barcode" | "text";
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(32)
+  mealType?: string;
 }
 
 export class LogWaterDto {

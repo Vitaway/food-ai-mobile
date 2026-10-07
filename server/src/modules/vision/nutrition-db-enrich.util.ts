@@ -1,5 +1,7 @@
 import { nutritionDbService } from "../nutrition-db/nutrition-db.service";
 import { readNutrient, toLegacyMicronutrients } from "../nutrition-db/tfct-nutrients";
+import { attachMealHonesty, parseMealLogSource } from "../meals/meal-honesty.util";
+import { ensurePlateGroup } from "../meals/plate-group.util";
 import type { MealAnalysisItem, MealAnalysisResult } from "./meal-analysis";
 
 function roundNutrition(n: number, maxDecimals = 2) {
@@ -55,12 +57,19 @@ function sumNutrition(items: MealAnalysisItem[]) {
 }
 
 async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
-  if (item.estimatedWeightG <= 0) return item;
+  if (item.estimatedWeightG <= 0) {
+    return {
+      ...item,
+      plateGroup: ensurePlateGroup(item),
+    };
+  }
 
   const food = await nutritionDbService.lookupByName(item.label);
   if (!food?.nutritionPer100g) {
-    // No DB match; keep model estimate but do not invent a food id.
-    return item;
+    return {
+      ...item,
+      plateGroup: ensurePlateGroup(item),
+    };
   }
 
   const defaultServing = food.servings.find((s) => s.isDefault) ?? food.servings[0];
@@ -69,7 +78,6 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
       ? defaultServing.gramsEquivalent / defaultServing.amount
       : undefined;
 
-  // Prefer the DB serving profile quantity when the model weight is near a profile total.
   let weightG = item.estimatedWeightG;
   let servingUnit = defaultServing?.unit ?? item.servingUnit ?? "g";
   let servingAmount =
@@ -89,7 +97,6 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
 
   const composition = food.nutritionPer100g as Record<string, number>;
   const nutrition = nutritionFromPer100g(composition, weightG);
-  // TFCT stores micros in composition; legacy rows may also have micronutrients blob.
   const microsPer100 = toLegacyMicronutrients(composition, food.micronutrients ?? {});
   const micronutrients = scaleMicronutrients(microsPer100, weightG);
 
@@ -103,11 +110,20 @@ async function enrichItem(item: MealAnalysisItem): Promise<MealAnalysisItem> {
     servingUnit,
     servingAmount,
     servingGramsEquivalent: gramsPerDisplayUnit,
+    plateGroup: ensurePlateGroup(
+      { ...item, label: food.name },
+      {
+        foodGroup: food.foodGroup,
+        foodGroupName: food.foodGroupName,
+        category: food.category,
+      },
+    ),
   };
 }
 
 export async function enrichMealAnalysisWithNutritionDb(
   analysis: MealAnalysisResult,
+  opts?: { mealType?: string | null; logSource?: string | null },
 ): Promise<MealAnalysisResult> {
   const items = await Promise.all(analysis.items.map((item) => enrichItem(item)));
   const totalWeightG = items.reduce((sum, item) => sum + item.estimatedWeightG, 0);
@@ -118,11 +134,33 @@ export async function enrichMealAnalysisWithNutritionDb(
     color: "#50af73",
   }));
 
+  const logSource = parseMealLogSource(opts?.logSource ?? analysis.logSource, "photo");
+  const honesty = attachMealHonesty({
+    items: items.map((item) => ({
+      id: item.id,
+      label: item.label,
+      confidence: item.confidence,
+      estimatedWeightG: item.estimatedWeightG,
+      nutrition: item.nutrition,
+      plateGroup: item.plateGroup,
+    })),
+    mealType: opts?.mealType,
+    logSource,
+    confirmed: false,
+    totalCalories: totalNutrition.caloriesKcal,
+  });
+
   return {
     ...analysis,
-    items,
+    items: honesty.items.map((item, index) => ({
+      ...items[index],
+      plateGroup: item.plateGroup,
+    })),
     totalNutrition,
     totalWeightG,
     petals,
+    logSource,
+    balancedPlate: honesty.balancedPlate,
+    estimateRange: honesty.estimateRange,
   };
 }

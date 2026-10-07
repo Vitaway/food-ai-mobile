@@ -31,8 +31,8 @@ function formatCoachPatientLabel(patientId: string, displayName?: string | null)
   return `${patientId} · ${coachSafeFirstName(displayName)}`;
 }
 
-function formatCoachLabelForPatient(coachFirstName: string): string {
-  return `Coach - ${coachFirstName}`;
+function formatCoachLabelForPatient(coachDisplayName: string): string {
+  return coachDisplayName.trim() || "Your coach";
 }
 
 function privacySafeSenderName(
@@ -45,7 +45,7 @@ function privacySafeSenderName(
   }
 
   if (sender.role === "coach" || sender.role === "admin") {
-    return formatCoachLabelForPatient(coachSafeFirstName(sender.displayName));
+    return formatCoachLabelForPatient(sender.displayName?.trim() || "Your coach");
   }
 
   if (isStaffMessenger(viewer) && conv.clientId) {
@@ -178,7 +178,7 @@ async function enrichConversation(
 
   if (conv.type === "patient" && conv.coachUserId) {
     const coach = await usersRepository.findById(conv.coachUserId);
-    coachName = coachSafeFirstName(coach?.displayName);
+    coachName = coach?.displayName?.trim() || undefined;
     if (user.role === "consumer") {
       peerAvatarUrl = coach?.avatarUrl ?? null;
     }
