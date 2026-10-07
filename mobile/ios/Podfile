@@ -51,6 +51,7 @@ target 'MiraFood' do
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
   )
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -58,29 +59,5 @@ target 'MiraFood' do
       :mac_catalyst_enabled => false,
       :ccache_enabled => ccache_enabled?(podfile_properties),
     )
-
-    # Xcode 26.4+: Apple Clang rejects fmt's consteval FMT_STRING usage.
-    # Patch fmt headers after every pod install (Pods are regenerated).
-    fmt_base = File.join(installer.sandbox.root, 'fmt', 'include', 'fmt', 'base.h')
-    if File.exist?(fmt_base)
-      content = File.read(fmt_base)
-      unless content.include?('Xcode 26 workaround')
-        patched = content.gsub(
-          /#elif defined\(__apple_build_version__\) && __apple_build_version__ < 14000029L\n#  define FMT_USE_CONSTEVAL 0  \/\/ consteval is broken in Apple clang < 14\./,
-          "#elif defined(__apple_build_version__)\n#  define FMT_USE_CONSTEVAL 0  // Xcode 26 workaround: consteval is broken in Apple clang"
-        )
-        if patched != content
-          File.chmod(0644, fmt_base)
-          File.write(fmt_base, patched)
-        end
-      end
-    end
-
-    installer.pods_project.targets.each do |target|
-      next unless target.name == 'fmt'
-      target.build_configurations.each do |bc|
-        bc.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
-      end
-    end
   end
 end
