@@ -1,23 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useEffect, useMemo, useRef } from 'react';
 import { Image, View } from 'react-native';
 
 import { CompactMealTypePicker } from '@/components/log/CompactMealTypePicker';
+import {
+  BalancedPlateCard,
+  EstimateHonestyBanner,
+} from '@/components/meal/BalancedPlateCard';
+import { MealFoodPins } from '@/components/meal/MealFoodPins';
+import { MealPortionRow } from '@/components/meal/MealPortionRow';
 import { Text } from '@/components/ui/Text';
+import { isApiConfigured } from '@/constants/api';
 import { semanticColors, palette } from '@/design-system/colors';
 import type { MealTypeId } from '@/constants/mealTypes';
-import { useI18n } from '@/context/LocaleContext';
-import type { DetectedFoodItem, MealAnalysisPreview } from '@/types';
+import { tf, useI18n } from '@/context/LocaleContext';
+import { previewMealPortions } from '@/services/remote/consumerApi';
+import type { MealAnalysisPreview } from '@/types';
+import {
+  estimateRangeFromMid,
+  resolveBalancedPlateForMeal,
+  withInferredPlateGroups,
+  type MealLogSource,
+} from '@/types/balancedPlate';
+import {
+  applyPortionGramsToAnalysis,
+  mergePortionPreview,
+  portionPreviewPayload,
+} from '@/utils/livePortions';
 import { formatMacroG } from '@/utils/formatMacro';
-import { formatServingLabel } from '@/utils/servingUnits';
 
 type LogResultsStepProps = {
   analysis: MealAnalysisPreview;
+  onAnalysisChange?: (next: MealAnalysisPreview) => void;
   imageUri?: string;
   selectedMealType: MealTypeId | null;
   onSelectMealType: (id: MealTypeId) => void;
-  /** Coach-first stub — no provisional macros to edit. */
   awaitingCoachConfirm?: boolean;
+  exactPortions?: boolean;
+  todayKcal?: number;
+  calorieTarget?: number;
 };
 
 const FLAG_STYLES = {
@@ -27,12 +49,7 @@ const FLAG_STYLES = {
   red: { bg: 'bg-red-50', text: 'text-red-800', icon: 'alert-outline' as const },
 } as const;
 
-function servingText(item: DetectedFoodItem): string {
-  if (item.servingUnit && item.servingAmount != null && item.servingAmount > 0) {
-    return formatServingLabel(item.servingAmount, item.servingUnit);
-  }
-  return formatServingLabel(item.estimatedWeightG, 'g');
-}
+const PREVIEW_DEBOUNCE_MS = 320;
 
 function MealHeroPreview({
   imageUri,
@@ -66,7 +83,7 @@ function MealHeroPreview({
           </LinearGradient>
         )}
         <LinearGradient
-          colors={['transparent', 'rgba(2, 52, 89, 0.82)']}
+          colors={['transparent', 'rgba(26, 58, 42, 0.82)']}
           locations={[0.28, 1]}
           style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 118 }}
         />
@@ -79,6 +96,41 @@ function MealHeroPreview({
             <Text className="text-[13px] text-white/90">{subtitle}</Text>
           </View>
         </View>
+      </View>
+    </View>
+  );
+}
+
+function DayKcalDeltaCard({
+  mealKcal,
+  todayKcal,
+  calorieTarget,
+}: {
+  mealKcal: number;
+  todayKcal: number;
+  calorieTarget: number;
+}) {
+  const { t } = useI18n();
+  const after = Math.round(todayKcal + mealKcal);
+  const target = Math.max(1, calorieTarget);
+  const pct = Math.min(100, Math.round((after / target) * 100));
+
+  return (
+    <View className="rounded-[24px] border border-ash-grey-100 bg-white px-4 py-4">
+      <Text className="text-[12px] font-sans-semibold uppercase tracking-wide text-ash-grey-400">
+        {t.home.leftToday}
+      </Text>
+      <Text className="mt-1 font-sans-bold text-[18px] text-blue-spruce-900">
+        {tf(t.log.dayDeltaAdds, { n: Math.round(mealKcal) })}
+      </Text>
+      <Text className="mt-1 text-[13px] text-ash-grey-500">
+        {tf(t.log.dayDeltaOfTarget, { n: after, target })}
+      </Text>
+      <View className="mt-3 h-2 overflow-hidden rounded-full bg-ash-grey-100">
+        <View
+          className="h-full rounded-full bg-blue-spruce-700"
+          style={{ width: `${Math.max(4, pct)}%` }}
+        />
       </View>
     </View>
   );
@@ -121,16 +173,44 @@ function MealTypeCard({
 
 export function LogResultsStep({
   analysis,
+  onAnalysisChange,
   imageUri,
   selectedMealType,
   onSelectMealType,
   awaitingCoachConfirm = false,
+  exactPortions = false,
+  todayKcal = 0,
+  calorieTarget = 2000,
 }: LogResultsStepProps) {
   const { t } = useI18n();
   const flag = FLAG_STYLES[analysis.healthFlag];
-  const showNutrition = !awaitingCoachConfirm && analysis.totalNutrition.caloriesKcal > 0;
-  const showItems = !awaitingCoachConfirm && analysis.items.length > 0;
+  const hasItems = analysis.items.length > 0;
+  const hasCalories = analysis.totalNutrition.caloriesKcal > 0;
+  const showNutrition = hasItems && hasCalories;
+  const stubOnly = awaitingCoachConfirm && !showNutrition;
   const navy = palette['blue-spruce'];
+  const portionsEditable = Boolean(onAnalysisChange) && hasItems && !stubOnly;
+  const showPins = Boolean(imageUri && hasItems);
+  const previewSeq = useRef(0);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const honesty = useMemo(() => {
+    const source = (analysis.logSource ?? (exactPortions ? 'barcode' : 'photo')) as MealLogSource;
+    const items = withInferredPlateGroups(analysis.items);
+    const balancedPlate =
+      analysis.balancedPlate ??
+      resolveBalancedPlateForMeal({ mealType: selectedMealType, items });
+    const estimateRange =
+      analysis.estimateRange ??
+      estimateRangeFromMid(analysis.totalNutrition.caloriesKcal, source);
+    return { balancedPlate, estimateRange };
+  }, [analysis, exactPortions, selectedMealType]);
 
   const macros = [
     { label: 'Protein', value: formatMacroG(analysis.totalNutrition.proteinG), color: '#1D9E75' },
@@ -138,7 +218,28 @@ export function LogResultsStep({
     { label: 'Fat', value: formatMacroG(analysis.totalNutrition.fatG), color: semanticColors.accentOrange },
   ];
 
-  if (awaitingCoachConfirm) {
+  const handleGramsChange = (itemId: string, grams: number) => {
+    if (!onAnalysisChange) return;
+    const optimistic = applyPortionGramsToAnalysis(analysis, itemId, grams, selectedMealType);
+    onAnalysisChange(optimistic);
+
+    if (!isApiConfigured()) return;
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const seq = ++previewSeq.current;
+    debounceRef.current = setTimeout(() => {
+      void previewMealPortions(portionPreviewPayload(optimistic, selectedMealType))
+        .then((preview) => {
+          if (seq !== previewSeq.current) return;
+          onAnalysisChange(mergePortionPreview(optimistic, preview));
+        })
+        .catch(() => {
+          /* keep optimistic local scale */
+        });
+    }, PREVIEW_DEBOUNCE_MS);
+  };
+
+  if (stubOnly) {
     return (
       <>
         <MealHeroPreview
@@ -146,7 +247,6 @@ export function LogResultsStep({
           mealName={analysis.mealName}
           subtitle={t.log.coachConfirmSubtitle}
         />
-
         <View className="flex-row items-start gap-3 rounded-2xl px-3.5 py-3" style={{ backgroundColor: navy[50] }}>
           <View
             className="mt-0.5 h-8 w-8 items-center justify-center rounded-full"
@@ -158,7 +258,6 @@ export function LogResultsStep({
             <Text className="mt-0.5 text-[12px] leading-4 text-blue-spruce-700">{t.log.almostThereBody}</Text>
           </View>
         </View>
-
         <MealTypeCard selected={selectedMealType} onSelect={onSelectMealType} />
       </>
     );
@@ -166,15 +265,45 @@ export function LogResultsStep({
 
   return (
     <>
-      <MealHeroPreview
-        imageUri={imageUri}
-        mealName={analysis.mealName}
-        subtitle={
-          showNutrition
-            ? `${analysis.totalNutrition.caloriesKcal} kcal`
-            : t.log.readyToSubmit
-        }
-      />
+      {showPins && imageUri ? (
+        <MealFoodPins imageUri={imageUri} items={analysis.items} />
+      ) : (
+        <MealHeroPreview
+          imageUri={imageUri}
+          mealName={analysis.mealName}
+          subtitle={showNutrition ? `${analysis.totalNutrition.caloriesKcal} kcal` : t.log.readyToSubmit}
+        />
+      )}
+
+      {showPins ? (
+        <View className="-mt-1 px-1">
+          <Text className="font-sans-bold text-[20px] text-blue-spruce-900" numberOfLines={2}>
+            {analysis.mealName}
+          </Text>
+          {showNutrition ? (
+            <Text className="mt-1 text-[14px] text-ash-grey-500">
+              {analysis.totalNutrition.caloriesKcal} kcal · {analysis.items.length} items
+            </Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {showNutrition ? (
+        <DayKcalDeltaCard
+          mealKcal={analysis.totalNutrition.caloriesKcal}
+          todayKcal={todayKcal}
+          calorieTarget={calorieTarget}
+        />
+      ) : null}
+
+      {showNutrition && honesty.estimateRange && honesty.estimateRange.pct > 0 ? (
+        <EstimateHonestyBanner
+          midKcal={honesty.estimateRange.midKcal}
+          lowKcal={honesty.estimateRange.lowKcal}
+          highKcal={honesty.estimateRange.highKcal}
+          pct={honesty.estimateRange.pct}
+        />
+      ) : null}
 
       {showNutrition ? (
         <View
@@ -195,7 +324,6 @@ export function LogResultsStep({
             </Text>
             <Text className="mb-1.5 text-base font-sans-semibold text-ash-grey-500">kcal</Text>
           </View>
-
           <View className="mt-4 flex-row gap-2">
             {macros.map((macro) => (
               <View key={macro.label} className="flex-1 rounded-2xl bg-ash-grey-50 px-3 py-3">
@@ -209,7 +337,9 @@ export function LogResultsStep({
         </View>
       ) : null}
 
-      {showItems ? (
+      <BalancedPlateCard score={honesty.balancedPlate} mealType={selectedMealType} />
+
+      {hasItems ? (
         <View
           className="rounded-[28px] bg-white px-4 py-4"
           style={{
@@ -225,29 +355,18 @@ export function LogResultsStep({
           </View>
           <View className="gap-2.5">
             {analysis.items.map((item) => (
-              <View
+              <MealPortionRow
                 key={item.id}
-                className="flex-row items-center gap-3 rounded-[22px] bg-ash-grey-50 px-3 py-3">
-                {item.imageUrl ? (
-                  <Image source={{ uri: item.imageUrl }} className="h-14 w-14 rounded-2xl bg-white" />
-                ) : (
-                  <View className="h-14 w-14 items-center justify-center rounded-2xl bg-white">
-                    <Text className="text-2xl">{item.emoji ?? '🍽️'}</Text>
-                  </View>
-                )}
-                <View className="min-w-0 flex-1">
-                  <Text className="font-sans-semibold text-[15px] text-neutral-900" numberOfLines={2}>
-                    {item.label}
-                  </Text>
-                  <Text className="mt-0.5 text-sm text-neutral-500">{servingText(item)}</Text>
-                </View>
-                <Text className="font-sans-bold text-sm text-blue-spruce-800">
-                  {item.nutrition.caloriesKcal} kcal
-                </Text>
-              </View>
+                item={item}
+                editable={portionsEditable}
+                exact={exactPortions || analysis.logSource === 'barcode'}
+                onChangeGrams={(grams) => handleGramsChange(item.id, grams)}
+              />
             ))}
           </View>
-          <Text className="mt-3 px-1 text-center text-[11px] text-ash-grey-400">{t.log.reviewLockedHint}</Text>
+          <Text className="mt-3 px-1 text-center text-[11px] text-ash-grey-400">
+            {portionsEditable ? t.log.portionLiveHint : t.log.reviewLockedHint}
+          </Text>
         </View>
       ) : null}
 

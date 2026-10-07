@@ -37,7 +37,7 @@ export function BarcodeProductConfirmModal({
               />
             ) : (
               <View className="h-36 w-36 items-center justify-center rounded-[28px] bg-white">
-                <Ionicons name="nutrition-outline" size={44} color="#023459" />
+                <Ionicons name="nutrition-outline" size={44} color="#1a3a2a" />
               </View>
             )}
             <Text className="mt-4 text-center font-sans-bold text-xl text-blue-spruce-900">

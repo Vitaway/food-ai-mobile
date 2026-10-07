@@ -21,6 +21,7 @@ import { PackagedProductCard } from '@/components/log/PackagedProductCard';
 import { FLOATING_TAB_BAR_CLEARANCE } from '@/components/navigation/FloatingTabBar';
 import { Text } from '@/components/ui/Text';
 import { APP_LOGO } from '@/constants/brand';
+import { fonts } from '@/constants/fonts';
 import { tf, useI18n } from '@/context/LocaleContext';
 import {
   cartKeyForFood,
@@ -344,7 +345,7 @@ export function LogBarcodeStep({
             </View>
 
             <View className="mt-3 flex-row items-center rounded-full bg-white pl-3 pr-1.5">
-              <Ionicons name="search-outline" size={18} color="#023459" />
+              <Ionicons name="search-outline" size={18} color="#1a3a2a" />
               <TextInput
                 value={query}
                 onChangeText={(value) => {
@@ -355,6 +356,7 @@ export function LogBarcodeStep({
                 placeholder={t.log.barcodePlaceholder}
                 placeholderTextColor="#9ca3af"
                 className="flex-1 px-3 py-3 text-base text-neutral-900"
+                style={{ fontFamily: fonts.sans }}
                 autoCapitalize="none"
                 autoCorrect={false}
                 returnKeyType="search"
@@ -489,7 +491,7 @@ export function LogBarcodeStep({
                 disabled={!canLog}
                 onPress={() => onContinue(cart)}
                 className="h-[88px] w-[76px] items-center justify-center rounded-[24px] bg-white">
-                <Ionicons name="checkmark" size={26} color="#023459" />
+                <Ionicons name="checkmark" size={26} color="#1a3a2a" />
                 <Text className="mt-0.5 font-sans-bold text-[13px] text-blue-spruce-900">{t.log.barcodeLog}</Text>
                 <View className="mt-1 min-w-[22px] items-center rounded-full bg-blue-spruce-700 px-1.5 py-0.5">
                   <Text className="font-sans-bold text-[11px] text-white">{cart.length}</Text>

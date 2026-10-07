@@ -12,6 +12,7 @@ import { canRepeatMeal, LogPastMealsStep } from '@/components/log/LogPastMealsSt
 import { LogResultsStep } from '@/components/log/LogResultsStep';
 import { LogScanStep } from '@/components/log/LogScanStep';
 import { LogScreenShell } from '@/components/log/LogScreenShell';
+import { LogSpeakStep } from '@/components/log/LogSpeakStep';
 import { LogTextStep } from '@/components/log/LogTextStep';
 import { LogAnalyzingStep } from '@/components/log/LogAnalyzingStep';
 import { Button } from '@/components/ui/Button';
@@ -23,13 +24,16 @@ import type { LogStep } from '@/constants/logFlow';
 import { useMeals } from '@/context/MealsContext';
 import { useI18n } from '@/context/LocaleContext';
 import { useToast } from '@/context/ToastContext';
+import { useDashboard } from '@/hooks/useDashboard';
 import type { MealAnalysisPreview, MealSubmission } from '@/types';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 import { useRequirePaid } from '@/hooks/useRequirePaid';
 import { getApiErrorMessage, isSubscriptionRequiredError } from '@/utils/apiErrors';
+import { todayKey } from '@/utils/dates';
 import {
   consumeLogMealTypeIntent,
   consumeLogMethodIntent,
+  subscribeLogMethodIntent,
 } from '@/utils/logIntent';
 import {
   buildBarcodeCartNote,
@@ -42,12 +46,13 @@ import {
   createCoachReviewStub,
 } from '@/services/local/mealAnalysis';
 import { services } from '@/services';
+import { estimateRangeFromMid } from '@/types/balancedPlate';
 import {
   buildImageCaptureMetadata,
   type CapturedImage,
 } from '@/utils/imageCaptureMetadata';
 
-type FlowStep = LogStep | 'text' | 'barcode' | 'barcode-portion' | 'past';
+type FlowStep = LogStep | 'text' | 'barcode' | 'barcode-portion' | 'past' | 'speak';
 
 export default function LogMealScreen() {
   const { t } = useI18n();
@@ -55,8 +60,9 @@ export default function LogMealScreen() {
   const toast = useToast();
   const isFocused = useIsFocused();
   const { mealType: mealTypeParam } = useLocalSearchParams<{ mealType?: string }>();
-  const { saveMealToDiary, meals } = useMeals();
+  const { saveMealToDiary, meals, analyzeMeal } = useMeals();
   const requirePaid = useRequirePaid();
+  const { dashboard } = useDashboard(todayKey());
 
   const [step, setStep] = useState<FlowStep>('method');
   const [selectedMethod, setSelectedMethod] = useState<LogMethodId>('camera');
@@ -80,6 +86,7 @@ export default function LogMealScreen() {
       barcode: t.log.stepBarcode,
       'barcode-portion': t.log.stepAmount,
       past: t.log.stepRepeat,
+      speak: t.log.speakTitle,
       scan: t.log.stepPhoto,
       analyzing: t.log.stepNaming,
       results: t.log.stepReview,
@@ -132,6 +139,55 @@ export default function LogMealScreen() {
     },
     [],
   );
+
+  const prepareEstimateAnalysis = useCallback(
+    async (input: {
+      imageUri?: string | null;
+      text?: string;
+      note?: string;
+      logSource: 'photo' | 'text' | 'voice';
+    }) => {
+      setSaving(true);
+      setStep('analyzing');
+      setAwaitingCoachConfirm(false);
+      setFromBarcode(false);
+
+      try {
+        const preview = await analyzeMeal({
+          imageUri: input.imageUri ?? undefined,
+          text: input.text,
+          note: input.note,
+        });
+        setAnalysis({
+          ...preview,
+          logSource: input.logSource,
+          estimateRange: estimateRangeFromMid(
+            preview.totalNutrition.caloriesKcal,
+            input.logSource,
+          ),
+        });
+        setStep('results');
+        setSaving(false);
+      } catch (error) {
+        toast.error(getApiErrorMessage(error, t.log.analysisFallback));
+        setSaving(false);
+        await prepareCoachSubmit(input.note?.trim() || input.text?.trim() || 'Meal photo');
+      }
+    },
+    [analyzeMeal, prepareCoachSubmit, t.log.analysisFallback, toast],
+  );
+
+  const openSpeakFlow = useCallback(() => {
+    setSelectedMethod('speak');
+    setFromBarcode(false);
+    setFromPastMeal(false);
+    setImageUri(null);
+    setAnalysis(null);
+    setAwaitingCoachConfirm(false);
+    setTextInput('');
+    setMealDescription('');
+    setStep('speak');
+  }, []);
 
   const handlePermissionDenied = useCallback(
     (source: 'camera' | 'gallery', canAskAgain: boolean) => {
@@ -230,11 +286,21 @@ export default function LogMealScreen() {
         return;
       }
 
+      if (method === 'speak') {
+        openSpeakFlow();
+        return;
+      }
+
+      if (method === 'water') {
+        push('/water');
+        return;
+      }
+
       setFromBarcode(false);
       setFromPastMeal(false);
       setStep('past');
     },
-    [openPhotoFlow, saving],
+    [openPhotoFlow, openSpeakFlow, push, saving],
   );
 
   const handleSelectPastMeal = useCallback(
@@ -329,13 +395,20 @@ export default function LogMealScreen() {
       setAwaitingCoachConfirm(false);
       setBarcodePortions([]);
       setStep('barcode');
+      return;
     }
-  }, [mealTypeParam, openPhotoFlow, resetToMethodStep]);
+    if (fromMethod === 'speak') {
+      openSpeakFlow();
+    }
+  }, [mealTypeParam, openPhotoFlow, openSpeakFlow, resetToMethodStep]);
 
   useFocusEffect(
     useCallback(() => {
       applyNavigationIntents();
-    }, [applyNavigationIntents]),
+      return subscribeLogMethodIntent(() => {
+        if (isFocused) applyNavigationIntents();
+      });
+    }, [applyNavigationIntents, isFocused]),
   );
 
   const handleRetakePhoto = useCallback(async () => {
@@ -345,10 +418,13 @@ export default function LogMealScreen() {
   }, [openPhotoFlow, saving, selectedMethod]);
 
   const handlePhotoContinue = useCallback(async () => {
-    if (saving) return;
-    // Description is optional for photo logs; photo alone is enough to submit to coach.
-    await prepareCoachSubmit(mealDescription.trim());
-  }, [mealDescription, prepareCoachSubmit, saving]);
+    if (saving || !imageUri) return;
+    await prepareEstimateAnalysis({
+      imageUri,
+      note: mealDescription.trim() || undefined,
+      logSource: 'photo',
+    });
+  }, [imageUri, mealDescription, prepareEstimateAnalysis, saving]);
 
   const handleTextContinue = useCallback(async () => {
     if (saving) return;
@@ -358,8 +434,27 @@ export default function LogMealScreen() {
       return;
     }
     setMealDescription(description);
-    await prepareCoachSubmit(description);
-  }, [prepareCoachSubmit, saving, textInput, toast]);
+    await prepareEstimateAnalysis({
+      text: description,
+      note: description,
+      logSource: 'text',
+    });
+  }, [prepareEstimateAnalysis, saving, textInput, toast]);
+
+  const handleSpeakContinue = useCallback(async () => {
+    if (saving) return;
+    const description = textInput.trim();
+    if (description.length < 3) {
+      toast.error(t.log.speakError);
+      return;
+    }
+    setMealDescription(description);
+    await prepareEstimateAnalysis({
+      text: description,
+      note: description,
+      logSource: 'voice',
+    });
+  }, [prepareEstimateAnalysis, saving, t.log.speakError, textInput, toast]);
 
   const handleBarcodePortionContinue = useCallback(() => {
     if (saving || !barcodePortions.length) return;
@@ -385,7 +480,7 @@ export default function LogMealScreen() {
         : `${barcodePortions.length} packaged items · ${nextAnalysis.totalWeightG}g`;
     setFromBarcode(true);
     setFromPastMeal(false);
-    setAnalysis(nextAnalysis);
+    setAnalysis({ ...nextAnalysis, logSource: 'barcode' });
     setMealDescription(note);
     setTextInput(summary);
     setImageUri(barcodePortions.find((row) => row.food.imageUrl)?.food.imageUrl ?? null);
@@ -440,7 +535,7 @@ export default function LogMealScreen() {
   ]);
 
   const handleBack = useCallback(() => {
-    if (step === 'text' || step === 'scan' || step === 'barcode' || step === 'past') {
+    if (step === 'text' || step === 'scan' || step === 'barcode' || step === 'past' || step === 'speak') {
       setStep('method');
       return;
     }
@@ -461,9 +556,13 @@ export default function LogMealScreen() {
         setStep('barcode-portion');
         return;
       }
+      if (analysis?.logSource === 'voice') {
+        setStep('speak');
+        return;
+      }
       setStep(imageUri ? 'scan' : 'text');
     }
-  }, [fromBarcode, fromPastMeal, imageUri, step]);
+  }, [analysis?.logSource, fromBarcode, fromPastMeal, imageUri, step]);
 
   const showBack = step !== 'method' && step !== 'analyzing' && step !== 'barcode';
   const useScroll =
@@ -471,9 +570,10 @@ export default function LogMealScreen() {
     step === 'results' ||
     step === 'scan' ||
     step === 'text' ||
+    step === 'speak' ||
     step === 'past' ||
     step === 'barcode-portion';
-  const keyboardAvoid = step === 'text' || step === 'scan';
+  const keyboardAvoid = step === 'text' || step === 'scan' || step === 'speak';
 
   const footer = useMemo(() => {
     if (step === 'results' && analysis) {
@@ -511,6 +611,16 @@ export default function LogMealScreen() {
           loading={saving}
           onChangeText={setTextInput}
           onContinue={handleTextContinue}
+        />
+      );
+    }
+    if (step === 'speak') {
+      return (
+        <LogSpeakStep
+          value={textInput}
+          loading={saving}
+          onChangeText={setTextInput}
+          onContinue={handleSpeakContinue}
         />
       );
     }
@@ -575,10 +685,14 @@ export default function LogMealScreen() {
       return (
         <LogResultsStep
           analysis={analysis}
+          onAnalysisChange={setAnalysis}
           imageUri={imageUri ?? undefined}
           selectedMealType={selectedMealType}
           onSelectMealType={setSelectedMealType}
           awaitingCoachConfirm={awaitingCoachConfirm}
+          exactPortions={fromBarcode || analysis.logSource === 'barcode'}
+          todayKcal={dashboard.caloriesConsumed}
+          calorieTarget={dashboard.calorieTarget}
         />
       );
     }
@@ -586,12 +700,16 @@ export default function LogMealScreen() {
   }, [
     analysis,
     awaitingCoachConfirm,
+    fromBarcode,
     barcodePortions,
+    dashboard.calorieTarget,
+    dashboard.caloriesConsumed,
     handleBarcodePortionContinue,
     handleMethodSelect,
     handlePhotoContinue,
     handleRetakePhoto,
     handleSelectPastMeal,
+    handleSpeakContinue,
     handleTextContinue,
     imageUri,
     mealDescription,
