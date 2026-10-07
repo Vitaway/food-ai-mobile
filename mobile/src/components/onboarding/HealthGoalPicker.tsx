@@ -28,8 +28,8 @@ export function HealthGoalPicker({ value, onChange }: HealthGoalPickerProps) {
             <View className="flex-row items-center gap-4">
               <Image
                 source={HEALTH_GOAL_IMAGES[item.id]}
-                className="h-20 w-20 rounded-2xl bg-ash-grey-100"
-                resizeMode="cover"
+                className="h-20 w-20"
+                resizeMode="contain"
                 accessibilityIgnoresInvertColors
               />
               <View className="min-w-0 flex-1">

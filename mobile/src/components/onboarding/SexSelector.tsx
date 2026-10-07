@@ -41,9 +41,8 @@ export function SexSelector({ value, onChange }: SexSelectorProps) {
             <View className="flex-row items-center gap-4">
               <Image
                 source={SEX_OPTION_IMAGES[option.id]}
-                style={{ width: 56, height: 56, borderRadius: 16 }}
-                className="bg-ash-grey-100"
-                resizeMode="cover"
+                style={{ width: 56, height: 56 }}
+                resizeMode="contain"
                 accessibilityIgnoresInvertColors
               />
               <Text className={`flex-1 font-sans-semibold text-base ${onboardingOptionTitle(selected, 'green')}`}>

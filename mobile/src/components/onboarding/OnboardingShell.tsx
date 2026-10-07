@@ -7,9 +7,11 @@ import { runOnJS } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 
+import { OnboardingAmbientBackground } from '@/components/onboarding/OnboardingAmbientBackground';
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
 import { APP_NAME } from '@/constants/site';
+import { semanticColors } from '@/design-system/colors';
 
 type OnboardingProgressBarProps = {
   percent: number;
@@ -20,10 +22,12 @@ export function OnboardingProgressBar({ percent }: OnboardingProgressBarProps) {
 
   return (
     <View className="flex-row items-center gap-3">
-      <View className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-blue-spruce-100">
-        <View className="h-full rounded-full bg-blue-spruce-700" style={{ width: `${safe}%` }} />
+      <View className="h-2 min-w-0 flex-1 overflow-hidden rounded-full bg-blue-spruce-200/70">
+        <View className="h-full rounded-full bg-blue-spruce-600" style={{ width: `${safe}%` }} />
       </View>
-      <Text className="w-10 text-right text-xs font-sans-semibold text-neutral-500">{safe}%</Text>
+      <Text className="w-10 text-right text-xs font-sans-semibold text-blue-spruce-700">
+        {safe}%
+      </Text>
     </View>
   );
 }
@@ -109,25 +113,28 @@ export function OnboardingShell({
 
   return (
     <GestureDetector gesture={swipeBackGesture}>
-      <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
+      <View
+        className="flex-1"
+        style={{ backgroundColor: semanticColors.background, paddingTop: insets.top + 8 }}>
         <StatusBar style="dark" />
+        <OnboardingAmbientBackground />
 
-        <Animated.View entering={FadeIn.duration(400)} className="items-center px-4 py-1">
+        <Animated.View entering={FadeIn.duration(400)} className="z-10 items-center px-5 py-1">
           <Text display className="text-[28px] text-blue-spruce-800">
             {APP_NAME}
           </Text>
         </Animated.View>
 
         {!intro && headerTitle ? (
-          <Animated.View entering={FadeInDown.duration(320)} className="mt-3 px-6">
-            <Text className="text-center font-sans-bold text-[26px] leading-8 text-neutral-900">
+          <Animated.View entering={FadeInDown.duration(320)} className="z-10 mt-4 px-6">
+            <Text className="text-center font-sans-bold text-[28px] leading-9 text-blue-spruce-900">
               {headerTitle}
             </Text>
           </Animated.View>
         ) : null}
 
-        <View className="min-h-0 flex-1 px-5">
-          <View className="min-h-0 flex-1 pt-3">
+        <View className="z-10 min-h-0 flex-1 px-5 pt-2">
+          <View className="min-h-0 flex-1 pt-2">
             {banner}
             {children}
           </View>
@@ -140,8 +147,8 @@ export function OnboardingShell({
                   onPress={onBack}
                   accessibilityRole="button"
                   accessibilityLabel="Go back"
-                  className="h-14 w-14 items-center justify-center rounded-2xl border border-ash-grey-200 bg-ash-grey-50 active:opacity-90">
-                  <ArrowLeft width={22} height={22} color="#1f3a56" strokeWidth={2.2} />
+                  className="h-12 w-12 items-center justify-center rounded-xl border border-blue-spruce-300/60 bg-blue-spruce-600/10 active:opacity-90">
+                  <ArrowLeft width={22} height={22} color={semanticColors.primary} strokeWidth={2.2} />
                 </Pressable>
               ) : null}
               <View className="min-w-0 flex-1">{footer}</View>

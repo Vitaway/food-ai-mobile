@@ -31,10 +31,10 @@ export function AllergyPicker({ value, onChange }: AllergyPickerProps) {
     <View className="gap-3">
       <Pressable
         onPress={selectNone}
-        className={`rounded-3xl border px-4 py-4 ${
+        className={`rounded-2xl border px-4 py-4 ${
           noneSelected
-            ? 'border-blue-spruce-500 bg-blue-spruce-50'
-            : 'border-ash-grey-200 bg-ash-grey-50'
+            ? 'border-2 border-blue-spruce-600 bg-blue-spruce-600/12'
+            : 'border-blue-spruce-300/60 bg-blue-spruce-600/5'
         }`}>
         <Text className="text-center text-[28px] leading-9">✨</Text>
         <Text
@@ -60,10 +60,10 @@ export function AllergyPicker({ value, onChange }: AllergyPickerProps) {
               key={allergy}
               onPress={() => toggle(allergy)}
               style={{ width: '47%' }}
-              className={`rounded-3xl border px-3 py-3.5 ${
+              className={`rounded-2xl border px-3 py-3.5 ${
                 selected
-                  ? 'border-cinnamon-wood-400 bg-cinnamon-wood-50'
-                  : 'border-ash-grey-200 bg-ash-grey-50'
+                  ? 'border-2 border-cinnamon-wood-400 bg-cinnamon-wood-400/15'
+                  : 'border-blue-spruce-300/60 bg-blue-spruce-600/5'
               }`}>
               <Text className="text-center text-[28px] leading-9">{meta.emoji}</Text>
               <Text
