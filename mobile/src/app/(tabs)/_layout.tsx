@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 
 import { FloatingTabBar, type FloatingTabBarProps } from '@/components/navigation/FloatingTabBar';
+import { semanticColors } from '@/design-system/colors';
 import { useNotificationUnreadCount } from '@/hooks/useAppNotifications';
 import { useChatUnreadCount } from '@/hooks/useChatUnreadCount';
 
@@ -10,7 +11,7 @@ export default function TabLayout() {
   const chatUnread = useChatUnreadCount();
 
   return (
-    <View className="flex-1">
+    <View className="flex-1" style={{ backgroundColor: semanticColors.background }}>
       <Tabs
         tabBar={(props) => (
           <FloatingTabBar
@@ -23,9 +24,11 @@ export default function TabLayout() {
         screenOptions={{
           headerShown: false,
           tabBarStyle: { display: 'none' },
-          sceneStyle: { backgroundColor: '#ffffff' },
+          sceneStyle: { backgroundColor: semanticColors.background },
         }}>
-        <Tabs.Screen name="index" options={{ title: 'Home' }} />
+        {/* Order matches prototype: Today · Insights · Scan · Coach · Profile */}
+        <Tabs.Screen name="index" options={{ title: 'Today' }} />
+        <Tabs.Screen name="analytics" options={{ title: 'Insights' }} />
         <Tabs.Screen
           name="log"
           options={{
@@ -33,8 +36,7 @@ export default function TabLayout() {
             sceneStyle: { backgroundColor: '#ffffff' },
           }}
         />
-        <Tabs.Screen name="chat" options={{ title: 'Coach chat' }} />
-        <Tabs.Screen name="analytics" options={{ href: null }} />
+        <Tabs.Screen name="chat" options={{ title: 'Coach' }} />
         <Tabs.Screen name="profile" options={{ title: 'Profile' }} />
       </Tabs>
     </View>

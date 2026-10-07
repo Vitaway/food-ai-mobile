@@ -3,50 +3,83 @@ import { useState } from 'react';
 import { Platform, Pressable, View, type TextInputProps } from 'react-native';
 
 import { AppTextInput } from '@/components/ui/AppTextInput';
+import { FieldWell } from '@/components/ui/FieldInput';
 import { Text } from '@/components/ui/Text';
 import { fonts } from '@/constants/fonts';
 
 type PasswordFieldProps = TextInputProps & {
   label: string;
   hint?: string;
+  /**
+   * When true (sign-up / reset), skip iOS Automatic Strong Password.
+   * That overlay shows as a yellow “Automatic Strong Password cover view”.
+   */
+  disableStrongPassword?: boolean;
 };
 
 /** iOS often ignores custom fonts on secure fields unless style is forced. */
 const PASSWORD_TEXT_STYLE = {
-  color: '#171717',
+  color: '#0d1a14',
   fontFamily: fonts.sans,
   ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
 } as const;
 
-export function PasswordField({ label, hint, className, style, ...props }: PasswordFieldProps) {
+/** Soft-well password field — matches FieldInput contrast on mint. */
+export function PasswordField({
+  label,
+  hint,
+  className,
+  style,
+  disableStrongPassword = false,
+  textContentType,
+  autoComplete,
+  ...props
+}: PasswordFieldProps) {
   const [visible, setVisible] = useState(false);
+
+  // Avoid `newPassword` — it triggers iOS Strong Password UI that covers the field.
+  const resolvedContentType =
+    textContentType ?? (disableStrongPassword ? (Platform.OS === 'ios' ? 'none' : 'password') : 'password');
+  const resolvedAutoComplete =
+    autoComplete ?? (disableStrongPassword ? 'off' : 'password');
 
   return (
     <View>
-      <Text className="font-sans-medium text-sm text-neutral-700">{label}</Text>
-      {hint ? <Text className="mt-0.5 text-xs text-neutral-500">{hint}</Text> : null}
-      <View className="relative mt-2">
+      <Text className="font-sans-semibold text-sm text-blue-spruce-800">{label}</Text>
+      {hint ? <Text className="mt-0.5 text-xs text-blue-spruce-700/75">{hint}</Text> : null}
+      <FieldWell className="relative pr-12">
         <AppTextInput
           {...props}
-          // Remount when visibility toggles so iOS reapplies Sniglet to the glyphs.
-          key={visible ? 'password-visible' : 'password-hidden'}
+          // Do not remount on show/hide — remounting with newPassword leaves the iOS cover stuck.
           secureTextEntry={!visible}
           autoCapitalize="none"
           autoCorrect={false}
-          textContentType={props.textContentType ?? 'password'}
-          autoComplete={props.autoComplete ?? 'password'}
-          className={`rounded-2xl border border-ash-grey-200 bg-ash-grey-50 px-4 pr-12 text-neutral-900 ${className ?? ''}`}
-          placeholderTextColor="#9ca3af"
-          style={[PASSWORD_TEXT_STYLE, style]}
+          spellCheck={false}
+          textContentType={resolvedContentType}
+          autoComplete={resolvedAutoComplete}
+          importantForAutofill={disableStrongPassword ? 'no' : 'yes'}
+          clearButtonMode="never"
+          className={`border-0 bg-transparent py-3 text-blue-spruce-900 ${className ?? ''}`}
+          placeholderTextColor="#6b7a52"
+          style={[
+            PASSWORD_TEXT_STYLE,
+            {
+              zIndex: 1,
+              backgroundColor: 'transparent',
+            },
+            style,
+          ]}
         />
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={visible ? 'Hide password' : 'Show password'}
           onPress={() => setVisible((v) => !v)}
-          className="absolute bottom-0 right-0 top-0 items-center justify-center px-4">
-          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color="#6b7280" />
+          hitSlop={8}
+          style={{ zIndex: 2 }}
+          className="absolute bottom-0 right-3 top-0 items-center justify-center">
+          <Ionicons name={visible ? 'eye-off-outline' : 'eye-outline'} size={20} color="#2f4536" />
         </Pressable>
-      </View>
+      </FieldWell>
     </View>
   );
 }

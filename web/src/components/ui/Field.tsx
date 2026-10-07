@@ -19,6 +19,8 @@ type FieldProps = {
   label: string;
   hint?: string;
   error?: string;
+  /** `line` = bottom border only (auth / marketing). Dashboard keeps `default`. */
+  variant?: 'default' | 'line';
 };
 
 export function FieldLabel({
@@ -38,20 +40,27 @@ export function TextField({
   hint,
   error,
   className,
+  variant = 'default',
   ...props
 }: FieldProps & InputHTMLAttributes<HTMLInputElement>) {
+  const line = variant === 'line';
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel className={line ? 'text-mira-green' : undefined}>{label}</FieldLabel>
       <input
         className={cn(
-          'w-full rounded-2xl border border-ash-grey-200 bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-ash-grey-400 focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100',
-          error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
+          line
+            ? 'mira-input-line'
+            : 'w-full rounded-2xl border border-ash-grey-200 bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-ash-grey-400 focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100',
+          line && error && 'mira-input-line--error',
+          !line && error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
           className,
         )}
         {...props}
       />
-      {hint && !error ? <p className="mt-1.5 text-xs text-ash-grey-500">{hint}</p> : null}
+      {hint && !error ? (
+        <p className={cn('mt-1.5 text-xs', line ? 'text-mira-muted' : 'text-ash-grey-500')}>{hint}</p>
+      ) : null}
       {error ? <p className="mt-1.5 text-xs font-medium text-red-600">{error}</p> : null}
     </div>
   );
@@ -62,20 +71,27 @@ export function TextAreaField({
   hint,
   error,
   className,
+  variant = 'default',
   ...props
 }: FieldProps & TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const line = variant === 'line';
   return (
     <div>
-      <FieldLabel>{label}</FieldLabel>
+      <FieldLabel className={line ? 'text-mira-green' : undefined}>{label}</FieldLabel>
       <textarea
         className={cn(
-          'min-h-28 w-full resize-y rounded-2xl border border-ash-grey-200 bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-ash-grey-400 focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100',
-          error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
+          line
+            ? 'mira-input-line min-h-28 resize-y'
+            : 'min-h-28 w-full resize-y rounded-2xl border border-ash-grey-200 bg-white px-4 py-3 text-sm outline-none transition-colors placeholder:text-ash-grey-400 focus:border-blue-spruce-400 focus:ring-2 focus:ring-blue-spruce-100',
+          line && error && 'mira-input-line--error',
+          !line && error && 'border-red-400 focus:border-red-400 focus:ring-red-100',
           className,
         )}
         {...props}
       />
-      {hint && !error ? <p className="mt-1.5 text-xs text-ash-grey-500">{hint}</p> : null}
+      {hint && !error ? (
+        <p className={cn('mt-1.5 text-xs', line ? 'text-mira-muted' : 'text-ash-grey-500')}>{hint}</p>
+      ) : null}
       {error ? <p className="mt-1.5 text-xs font-medium text-red-600">{error}</p> : null}
     </div>
   );
@@ -107,8 +123,43 @@ export function SelectField({
   id,
   onChange,
   onValueChange,
+  variant = 'default',
 }: SelectFieldProps) {
   const resolvedOptions = options ?? selectOptionsFromChildren(children);
+  const line = variant === 'line';
+
+  if (line) {
+    return (
+      <div>
+        <FieldLabel htmlFor={id} className="text-mira-green">
+          {label}
+        </FieldLabel>
+        <select
+          id={id}
+          name={name}
+          disabled={disabled}
+          value={value == null ? '' : String(value)}
+          onChange={(e) => {
+            onValueChange?.(e.target.value);
+            onChange?.(e);
+          }}
+          className={cn('mira-select-line', error && 'mira-input-line--error', className)}>
+          {placeholder ? (
+            <option value="" disabled>
+              {placeholder}
+            </option>
+          ) : null}
+          {resolvedOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {hint && !error ? <p className="mt-1.5 text-xs text-mira-muted">{hint}</p> : null}
+        {error ? <p className="mt-1.5 text-xs font-medium text-red-600">{error}</p> : null}
+      </div>
+    );
+  }
 
   return (
     <div>

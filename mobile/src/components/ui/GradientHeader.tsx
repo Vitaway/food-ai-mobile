@@ -10,7 +10,7 @@ import { cn } from '@/utils/cn';
 export const BRAND_HEADER_COLOR = palette['blue-spruce'][700];
 
 /** Shared title style for tab gradient headers (Home, Log, Insights) and stack screens. */
-export const GRADIENT_HEADER_TITLE_CLASS = 'font-display text-3xl tracking-[0.03em] leading-tight text-white';
+export const GRADIENT_HEADER_TITLE_CLASS = 'font-display text-3xl tracking-[-0.03em] leading-tight text-white';
 
 type GradientHeaderTitleProps = {
   children: ReactNode;

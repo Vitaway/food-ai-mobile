@@ -36,38 +36,32 @@ const legalPages = [
 
 export function LegalPage() {
   return (
-    <div className="bg-ash-grey-50">
+    <div>
       <MarketingPageHero
         title="Legal"
         description="Privacy, terms, support, and your data on MiraFood."
       />
 
-      <section className="py-12 sm:py-16">
-        <div className="mx-auto grid max-w-7xl gap-4 px-4 sm:grid-cols-2 lg:grid-cols-3 sm:px-6 lg:px-8">
+      <section className="px-1 pb-12 sm:px-2 sm:pb-16">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {legalPages.map((page) => (
             <Link
               key={page.to}
               to={page.to}
-              className="rounded-3xl border border-ash-grey-200 bg-white p-6 transition-shadow hover:shadow-md">
-              <h2 className="text-lg text-ash-grey-900">{page.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-ash-grey-600">{page.desc}</p>
-              <span className="mt-4 inline-block text-sm text-blue-spruce-600">Read more →</span>
+              className="rounded-[1.25rem] bg-mira-green p-6 text-white transition-colors hover:bg-mira-green-dark">
+              <h2 className="text-lg font-semibold">{page.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-white/70">{page.desc}</p>
+              <span className="mt-4 inline-block text-sm font-medium text-white">Read more →</span>
             </Link>
           ))}
         </div>
 
-        <div className="mx-auto mt-12 max-w-7xl px-4 text-center text-sm text-ash-grey-600 sm:px-6 lg:px-8">
-          <p>
-            Questions? Email{' '}
-            <a href="mailto:support@vitaway.org" className="text-blue-spruce-600">
-              support@vitaway.org
-            </a>{' '}
-            or{' '}
-            <a href="mailto:support@vitaway.org" className="text-blue-spruce-600">
-              support@vitaway.org
-            </a>
-          </p>
-        </div>
+        <p className="mt-12 text-center text-sm text-mira-muted">
+          Questions? Email{' '}
+          <a href="mailto:support@vitaway.org" className="text-mira-green hover:underline">
+            support@vitaway.org
+          </a>
+        </p>
       </section>
     </div>
   );

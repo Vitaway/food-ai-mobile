@@ -9,7 +9,7 @@ import { LOG_METHOD_IMAGES } from '@/constants/logMethodImages';
 import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 
-export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past' | 'barcode';
+export type LogMethodId = 'camera' | 'gallery' | 'text' | 'past' | 'barcode' | 'speak' | 'water';
 
 type LogMethodStepProps = {
   loading?: boolean;
@@ -26,7 +26,7 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
     icon: ComponentProps<typeof Ionicons>['name'];
     tintClass: string;
     iconColor: string;
-    image: number;
+    image?: number;
   }> = [
     {
       id: 'camera',
@@ -43,7 +43,7 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
       subtitle: t.log.methodGalleryHint,
       icon: 'images-outline',
       tintClass: 'bg-blue-spruce-50',
-      iconColor: '#023459',
+      iconColor: '#1a3a2a',
       image: LOG_METHOD_IMAGES.gallery,
     },
     {
@@ -52,7 +52,7 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
       subtitle: t.log.methodDescribeHint,
       icon: 'create-outline',
       tintClass: 'bg-blue-spruce-50',
-      iconColor: '#023459',
+      iconColor: '#1a3a2a',
       image: LOG_METHOD_IMAGES.text,
     },
     {
@@ -63,6 +63,23 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
       tintClass: 'bg-shamrock-50',
       iconColor: '#1D9E75',
       image: LOG_METHOD_IMAGES.gallery,
+    },
+    {
+      id: 'speak',
+      title: t.log.methodSpeak,
+      subtitle: t.log.methodSpeakHint,
+      icon: 'mic-outline',
+      tintClass: 'bg-cinnamon-wood-50',
+      iconColor: semanticColors.accentOrange,
+      image: LOG_METHOD_IMAGES.text,
+    },
+    {
+      id: 'water',
+      title: t.log.methodWater,
+      subtitle: t.log.methodWaterHint,
+      icon: 'water-outline',
+      tintClass: 'bg-blue-spruce-50',
+      iconColor: '#1a3a2a',
     },
     {
       id: 'past',
@@ -91,8 +108,13 @@ export function LogMethodStep({ loading = false, onSelectMethod }: LogMethodStep
               elevation: 2,
             }}>
             <View className="flex-row items-center gap-3 p-4">
-              <View className={`h-16 w-16 overflow-hidden rounded-2xl ${method.tintClass}`}>
-                <Image source={method.image} className="h-full w-full" resizeMode="cover" />
+              <View
+                className={`h-16 w-16 items-center justify-center overflow-hidden rounded-2xl ${method.tintClass}`}>
+                {method.image != null ? (
+                  <Image source={method.image} className="h-full w-full" resizeMode="cover" />
+                ) : (
+                  <Ionicons name={method.icon} size={28} color={method.iconColor} />
+                )}
               </View>
               <View className="min-w-0 flex-1">
                 <Text className="font-sans-semibold text-base text-neutral-900">{method.title}</Text>

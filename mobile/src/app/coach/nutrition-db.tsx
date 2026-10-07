@@ -64,7 +64,7 @@ export default function CoachNutritionDbScreen() {
         <View className="border-b border-ash-grey-100 bg-white px-5 pb-4 pt-3">
           <Text className="text-sm text-neutral-500">{caption}</Text>
           <View className="mt-3 flex-row items-center gap-2 rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-3">
-            <Ionicons name="search-outline" size={20} color="#023459" />
+            <Ionicons name="search-outline" size={20} color="#1a3a2a" />
             <View className="flex-1">
               <AppTextInput
                 value={query}

@@ -4,6 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/ui/Text';
 import { chatTheme } from '@/components/chat/chatTheme';
+import { fonts } from '@/constants/fonts';
 import type { ChatAttachmentUpload } from '@/services/remote/chatApi';
 
 type ChatInputBarProps = {
@@ -102,7 +103,7 @@ export function ChatInputBar({
             multiline
             value={value}
             onChangeText={onChangeText}
-            style={{ lineHeight: 20 }}
+            style={{ fontFamily: fonts.sans, lineHeight: 20 }}
           />
         </View>
 

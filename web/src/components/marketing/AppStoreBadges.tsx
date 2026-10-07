@@ -16,7 +16,7 @@ export function AppStoreBadges({ className = '' }: AppStoreBadgesProps) {
         href={APP_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-md ring-1 ring-white/20 transition-all hover:opacity-95 hover:ring-white/35">
+        className="block rounded-[4px] ring-1 ring-white/20 transition-all hover:opacity-95 hover:ring-white/35">
         <img
           src="/appstore.svg"
           alt="Download on the App Store"
@@ -29,7 +29,7 @@ export function AppStoreBadges({ className = '' }: AppStoreBadgesProps) {
         href={PLAY_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-md ring-1 ring-white/20 transition-all hover:opacity-95 hover:ring-white/35">
+        className="block rounded-[4px] ring-1 ring-white/20 transition-all hover:opacity-95 hover:ring-white/35">
         <img
           src="/googleplay.svg"
           alt="Get it on Google Play"
@@ -42,7 +42,7 @@ export function AppStoreBadges({ className = '' }: AppStoreBadgesProps) {
   );
 }
 
-/** Light-background variant (support page, etc.) */
+/** Light-background variant (mint marketing surfaces) */
 export function AppStoreBadgesLight({ className = '' }: AppStoreBadgesProps) {
   return (
     <div className={cn('flex flex-wrap items-center gap-3 sm:gap-4', className)}>
@@ -50,7 +50,7 @@ export function AppStoreBadgesLight({ className = '' }: AppStoreBadgesProps) {
         href={APP_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-md ring-1 ring-ash-grey-200 transition-all hover:opacity-95 hover:ring-ash-grey-300">
+        className="block rounded-[4px] ring-1 ring-mira-line transition-all hover:opacity-95 hover:ring-mira-green/30">
         <img
           src="/appstore.svg"
           alt="Download on the App Store"
@@ -63,7 +63,7 @@ export function AppStoreBadgesLight({ className = '' }: AppStoreBadgesProps) {
         href={PLAY_STORE_URL}
         target="_blank"
         rel="noopener noreferrer"
-        className="block rounded-md ring-1 ring-ash-grey-200 transition-all hover:opacity-95 hover:ring-ash-grey-300">
+        className="block rounded-[4px] ring-1 ring-mira-line transition-all hover:opacity-95 hover:ring-mira-green/30">
         <img
           src="/googleplay.svg"
           alt="Get it on Google Play"

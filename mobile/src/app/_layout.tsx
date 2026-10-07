@@ -1,10 +1,12 @@
 import '../../global.css';
 
 import {
-  CabinSketch_400Regular,
-  CabinSketch_700Bold,
-} from '@expo-google-fonts/cabin-sketch';
-import { Sniglet_400Regular, Sniglet_800ExtraBold } from '@expo-google-fonts/sniglet';
+  PlusJakartaSans_400Regular,
+  PlusJakartaSans_500Medium,
+  PlusJakartaSans_600SemiBold,
+  PlusJakartaSans_700Bold,
+  PlusJakartaSans_800ExtraBold,
+} from '@expo-google-fonts/plus-jakarta-sans';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
@@ -28,20 +30,27 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const [, error] = useFonts({
-    Sniglet_400Regular,
-    Sniglet_800ExtraBold,
-    CabinSketch_400Regular,
-    CabinSketch_700Bold,
+  const [fontsLoaded, error] = useFonts({
+    PlusJakartaSans_400Regular,
+    PlusJakartaSans_500Medium,
+    PlusJakartaSans_600SemiBold,
+    PlusJakartaSans_700Bold,
+    PlusJakartaSans_800ExtraBold,
   });
 
   useEffect(() => {
-    void SplashScreen.hideAsync();
-  }, []);
+    if (fontsLoaded || error) {
+      void SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, error]);
 
   useEffect(() => {
     if (error) throw error;
   }, [error]);
+
+  if (!fontsLoaded && !error) {
+    return null;
+  }
 
   return (
     <AppProviders>
@@ -78,6 +87,8 @@ export default function RootLayout() {
           <Stack.Screen name="notifications/index" />
           <Stack.Screen name="notifications/enable" options={{ gestureEnabled: false }} />
           <Stack.Screen name="water/index" options={{ presentation: 'card' }} />
+          <Stack.Screen name="story/index" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+          <Stack.Screen name="widgets/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="referral/index" options={{ presentation: 'card' }} />
           <Stack.Screen name="profile" options={{ presentation: 'card' }} />
           <Stack.Screen name="(tabs)" />

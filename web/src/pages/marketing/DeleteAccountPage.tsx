@@ -81,16 +81,17 @@ export function DeleteAccountPage() {
         <p>
           Submit the form below using the email address linked to your MiraFood account. We will
           verify ownership and complete deletion within 30 days. You can also email{' '}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-spruce-600 underline">
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-mira-green underline">
             {CONTACT_EMAIL}
           </a>{' '}
           with the subject line &quot;Account deletion request.&quot;
         </p>
 
         <form
-          className="mt-6 space-y-4 rounded-2xl border border-ash-grey-200 bg-white p-5 shadow-sm"
+          className="mira-form-on-dark mt-6 space-y-4 rounded-[1.25rem] bg-mira-green p-5 text-white"
           onSubmit={handleSubmit}>
           <TextField
+            variant="line"
             label="Name"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -98,6 +99,7 @@ export function DeleteAccountPage() {
             autoComplete="name"
           />
           <TextField
+            variant="line"
             label="Account email"
             type="email"
             required
@@ -108,18 +110,19 @@ export function DeleteAccountPage() {
             hint="Must match the email on your MiraFood account."
           />
           <TextAreaField
+            variant="line"
             label="Optional note"
             rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Anything we should know (optional)"
           />
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
-          {success ? <p className="text-sm text-blue-spruce-700">{success}</p> : null}
+          {error ? <p className="text-sm text-red-200">{error}</p> : null}
+          {success ? <p className="text-sm text-white">{success}</p> : null}
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex w-full items-center justify-center rounded-2xl bg-blue-spruce-600 px-5 py-3 text-sm font-normal text-white transition-colors hover:bg-blue-spruce-700 disabled:opacity-60">
+            className="mira-btn mira-btn--black w-full disabled:opacity-60">
             {submitting ? 'Submitting…' : 'Request account deletion'}
           </button>
         </form>
@@ -153,7 +156,7 @@ export function DeleteAccountPage() {
       <LegalSection title="Questions">
         <p>
           Contact{' '}
-          <a href={`mailto:${CONTACT_EMAIL}`} className="text-blue-spruce-600 underline">
+          <a href={`mailto:${CONTACT_EMAIL}`} className="text-mira-green underline">
             {CONTACT_EMAIL}
           </a>{' '}
           for privacy-related deletion questions.

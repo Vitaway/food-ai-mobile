@@ -6,6 +6,7 @@ import { HealthGoalPicker } from '@/components/onboarding/HealthGoalPicker';
 import { MealsPerDayPicker } from '@/components/onboarding/MealsPerDayPicker';
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell';
 import { EditHealthActionBar } from '@/components/profile/EditHealthActionBar';
+import { LiveTargetsPreview } from '@/components/profile/LiveTargetsPreview';
 import { OnboardingPlanSummary } from '@/components/onboarding/OnboardingPlanSummary';
 import { MetricStepper } from '@/components/onboarding/MetricStepper';
 import { DateOfBirthInput } from '@/components/onboarding/DateOfBirthInput';
@@ -400,6 +401,15 @@ export default function EditHealthProfileScreen() {
         <Text className="mb-5 text-base leading-6 text-neutral-600">
           {STEP_META[step].description} Save anytime; you only need to update what changed.
         </Text>
+        {step !== 'review' ? (
+          <View className="mb-5">
+            <LiveTargetsPreview
+              calories={preview.macroTargets.calories}
+              proteinG={preview.macroTargets.proteinG}
+              waterMl={preview.waterTargetMl}
+            />
+          </View>
+        ) : null}
         {renderStepContent()}
       </ScrollView>
     </OnboardingShell>

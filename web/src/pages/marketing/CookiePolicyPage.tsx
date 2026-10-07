@@ -41,7 +41,7 @@ export function CookiePolicyPage() {
       <LegalSection title="Contact">
         <p>
           Questions about this policy:{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>
         </p>

@@ -87,14 +87,23 @@ function sumNutrition(items: DetectedFoodItem[]): NutritionFacts {
 }
 
 function buildAnalysis(name: string, rawItems: Array<{ label: string; weightG: number; emoji: string }>, confidence: number) {
-  const items: DetectedFoodItem[] = rawItems.map((item) => ({
-    id: createId('item'),
-    label: item.label,
-    confidence: confidence + Math.random() * 0.05,
-    estimatedWeightG: item.weightG,
-    emoji: item.emoji,
-    nutrition: nutritionForItem(item.label, item.weightG),
-  }));
+  const items: DetectedFoodItem[] = rawItems.map((item, index) => {
+    const total = rawItems.length;
+    const t = total === 1 ? 0.5 : index / (total - 1);
+    const angle = Math.PI * (0.2 + 0.6 * t);
+    return {
+      id: createId('item'),
+      label: item.label,
+      confidence: confidence + Math.random() * 0.05,
+      estimatedWeightG: item.weightG,
+      emoji: item.emoji,
+      nutrition: nutritionForItem(item.label, item.weightG),
+      pin: {
+        x: Math.max(0.18, Math.min(0.82, 0.5 + Math.cos(angle) * 0.26)),
+        y: Math.max(0.22, Math.min(0.68, 0.46 + Math.sin(angle) * 0.22)),
+      },
+    };
+  });
 
   const totalNutrition = sumNutrition(items);
   const totalWeight = items.reduce((sum, item) => sum + item.estimatedWeightG, 0);
@@ -260,6 +269,9 @@ export function toMealSubmission(
     healthFlag: analysis.healthFlag,
     healthMessage: analysis.healthMessage,
     petals: analysis.petals,
+    logSource: analysis.logSource,
+    balancedPlate: analysis.balancedPlate ?? null,
+    estimateRange: analysis.estimateRange ?? null,
     fraudCheckResult: input.fraudCheckResult ?? null,
     mealClassification: input.mealClassification ?? null,
     modelVersion: input.modelVersion ?? null,

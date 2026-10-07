@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/Button';
 import { TextField } from '@/components/ui/Field';
 import { AuthLayout } from '@/features/auth/components/AuthLayout';
 import { AUTH_ROUTES } from '@/features/auth/constants';
@@ -98,18 +97,16 @@ export function ForgotPasswordPage() {
 
   if (step === 'done') {
     return (
-      <AuthLayout title="Password updated" subtitle="Your MiraFood account is ready again.">
+      <AuthLayout
+        title="Password updated"
+        subtitle="Your MiraFood account is ready again."
+        showSocial={false}>
         <div className="space-y-4">
-          <div className="rounded-2xl border border-shamrock-200 bg-shamrock-50 p-5 text-sm text-shamrock-800">
-            <p className="font-normal text-shamrock-900">All set</p>
-            <p className="mt-2 leading-relaxed">
-              Your password has been changed. Sign in with your new password to continue.
-            </p>
-          </div>
-          <Link to={AUTH_ROUTES.login}>
-            <Button variant="primary" size="lg" fullWidth>
-              Sign in
-            </Button>
+          <p className="text-sm leading-relaxed text-mira-muted">
+            Your password has been changed. Log in with your new password to continue.
+          </p>
+          <Link to={AUTH_ROUTES.login} className="mira-btn mira-btn--black w-full py-3.5 text-base">
+            Login
           </Link>
         </div>
       </AuthLayout>
@@ -121,19 +118,13 @@ export function ForgotPasswordPage() {
       <AuthLayout
         title="Choose a new password"
         subtitle="Pick something strong that you have not used here before."
+        showSocial={false}
         actions={
-          <Button
-            type="submit"
-            form={FORM_ID}
-            variant="primary"
-            size="lg"
-            fullWidth
-            disabled={busy}>
-            {busy ? 'Updating…' : 'Update password'}
-          </Button>
+          <button type="submit" form={FORM_ID} disabled={busy} className="mira-btn mira-btn--black w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Updating…' : 'Update password'}</button>
         }>
         <form id={FORM_ID} onSubmit={(e) => void handleResetPassword(e)} className="space-y-5">
           <TextField
+            variant="line"
             label="New password"
             type="password"
             name="password"
@@ -144,6 +135,7 @@ export function ForgotPasswordPage() {
             placeholder="At least 8 characters"
           />
           <TextField
+            variant="line"
             label="Confirm password"
             type="password"
             name="confirmPassword"
@@ -162,19 +154,13 @@ export function ForgotPasswordPage() {
       <AuthLayout
         title="Enter your code"
         subtitle={`We sent a 6-digit code to ${email}. It expires in 10 minutes.`}
+        showSocial={false}
         actions={
-          <Button
-            type="submit"
-            form={FORM_ID}
-            variant="primary"
-            size="lg"
-            fullWidth
-            disabled={busy}>
-            {busy ? 'Checking…' : 'Continue'}
-          </Button>
+          <button type="submit" form={FORM_ID} disabled={busy} className="mira-btn mira-btn--black w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Checking…' : 'Continue'}</button>
         }>
         <form id={FORM_ID} onSubmit={(e) => void handleVerifyCode(e)} className="space-y-5">
           <TextField
+            variant="line"
             label="Reset code"
             type="text"
             name="code"
@@ -191,7 +177,7 @@ export function ForgotPasswordPage() {
               type="button"
               disabled={busy}
               onClick={() => void handleResend()}
-              className="text-blue-spruce-600 hover:underline disabled:opacity-50">
+              className="text-mira-green hover:underline disabled:opacity-50">
               Resend code
             </button>
             <button
@@ -201,7 +187,7 @@ export function ForgotPasswordPage() {
                 setStep('email');
                 setCode('');
               }}
-              className="text-ash-grey-500 hover:underline disabled:opacity-50">
+              className="text-mira-muted hover:underline disabled:opacity-50">
               Change email
             </button>
           </div>
@@ -214,19 +200,13 @@ export function ForgotPasswordPage() {
     <AuthLayout
       title="Reset password"
       subtitle="We'll email a one-time code if your account exists."
+      showSocial={false}
       actions={
-        <Button
-          type="submit"
-          form={FORM_ID}
-          variant="primary"
-          size="lg"
-          fullWidth
-          disabled={busy}>
-          {busy ? 'Sending…' : 'Send reset code'}
-        </Button>
+        <button type="submit" form={FORM_ID} disabled={busy} className="mira-btn mira-btn--black w-full py-3.5 text-base disabled:cursor-not-allowed disabled:opacity-50">{busy ? 'Sending…' : 'Send reset code'}</button>
       }>
       <form id={FORM_ID} onSubmit={(e) => void handleSendCode(e)} className="space-y-5">
         <TextField
+          variant="line"
           label="Email"
           type="email"
           name="email"
@@ -237,9 +217,9 @@ export function ForgotPasswordPage() {
           placeholder="you@vitaway.org"
           hint="You'll enter the code here; no email link required."
         />
-        <p className="text-center text-sm text-ash-grey-500">
-          <Link to={AUTH_ROUTES.login} className="text-blue-spruce-600 hover:underline">
-            Back to sign in
+        <p className="text-center text-sm text-mira-muted">
+          <Link to={AUTH_ROUTES.login} className="text-mira-green hover:underline">
+            Back to login
           </Link>
         </p>
       </form>

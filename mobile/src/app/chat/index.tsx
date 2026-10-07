@@ -6,11 +6,13 @@ import { View } from 'react-native';
 import { ChatConversationList } from '@/components/chat/ChatConversationList';
 import { ChatInboxHeader } from '@/components/chat/ChatInboxHeader';
 import { useChatSocket } from '@/context/ChatContext';
+import { useI18n } from '@/context/LocaleContext';
 import { fetchChatConversations, type ChatConversation } from '@/services/remote/chatApi';
 import { useNavigateOnce } from '@/hooks/useNavigateOnce';
 
 export default function ChatInboxScreen() {
   const { back } = useNavigateOnce();
+  const { t } = useI18n();
   const { conversationVersion } = useChatSocket();
   const [items, setItems] = useState<ChatConversation[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,7 +44,7 @@ export default function ChatInboxScreen() {
   return (
     <View className="flex-1 bg-white">
       <StatusBar style="light" />
-      <ChatInboxHeader title="Coach chat" onBack={back} />
+      <ChatInboxHeader title={t.chat.inboxTitle} onBack={back} />
       <ChatConversationList items={items} loading={loading} error={error} onRetry={() => void load()} />
     </View>
   );

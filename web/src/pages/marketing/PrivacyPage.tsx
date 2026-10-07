@@ -85,7 +85,7 @@ export function PrivacyPage() {
           We retain your data while your account is active and as needed to provide the service. You
           may delete your account and associated data from within the app (Profile → Data & privacy)
           or by following the instructions on our{' '}
-          <Link to="/delete-account" className="text-blue-spruce-600 underline">
+          <Link to="/delete-account" className="text-mira-green underline">
             Delete account
           </Link>{' '}
           page.
@@ -96,7 +96,7 @@ export function PrivacyPage() {
         <p>
           Depending on your location, you may have rights to access, correct, delete, or export your
           data, and to object to or restrict certain processing. Contact us at{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>{' '}
           to exercise these rights.
@@ -137,12 +137,12 @@ export function PrivacyPage() {
           Vitaway / MiraFood
           <br />
           Email:{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>
           <br />
           Support:{' '}
-          <a href="mailto:support@vitaway.org" className="text-blue-spruce-600 underline">
+          <a href="mailto:support@vitaway.org" className="text-mira-green underline">
             support@vitaway.org
           </a>
         </p>

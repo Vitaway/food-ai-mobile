@@ -1,4 +1,34 @@
 import type { MealTypeId } from '@/constants/mealTypes';
+import type {
+  BalancedPlateScore,
+  EstimateRange,
+  MealLogSource,
+  PlateGroup,
+} from './balancedPlate';
+
+export type {
+  BalancedPlateLabel,
+  BalancedPlateScore,
+  EstimateRange,
+  MealLogSource,
+  MealPortionsResponse,
+  PlateGroup,
+  PlateGroupShares,
+  PreviewMealPortionsRequest,
+  UpdateMealPortionsRequest,
+} from './balancedPlate';
+
+export {
+  ESTIMATE_RANGE_PCT,
+  PLATE_GROUP_AIM,
+  PLATE_GROUP_LABELS,
+  computeBalancedPlateScore,
+  estimateRangeFromMid,
+  inferPlateGroupFromLabel,
+  mealTypeSupportsBalancedPlate,
+  resolveBalancedPlateForMeal,
+  withInferredPlateGroups,
+} from './balancedPlate';
 
 export type MealSubmissionStatus =
   | 'pending'
@@ -103,6 +133,10 @@ export interface DetectedFoodItem {
   emoji?: string;
   imageUrl?: string;
   nutrition: NutritionFacts;
+  /** Balanced Plate group — set by analysis / nutrition-db (Phase 1). */
+  plateGroup?: PlateGroup | null;
+  /** Optional pin position on plate photo, normalized 0–1 (Phase 3). */
+  pin?: { x: number; y: number } | null;
 }
 
 export interface MealPetal {
@@ -120,6 +154,10 @@ export interface MealAnalysisPreview {
   petals: MealPetal[];
   healthFlag: HealthFlagLevel;
   healthMessage: string;
+  /** How this analysis was produced — drives estimate ± range. */
+  logSource?: MealLogSource;
+  balancedPlate?: BalancedPlateScore | null;
+  estimateRange?: EstimateRange | null;
 }
 
 export interface MealSubmission {
@@ -143,6 +181,9 @@ export interface MealSubmission {
   modelVersion?: string | null;
   autoApproved?: boolean | null;
   coachReview?: CoachReview | null;
+  logSource?: MealLogSource;
+  balancedPlate?: BalancedPlateScore | null;
+  estimateRange?: EstimateRange | null;
 }
 
 export interface WaterLogEntry {
@@ -160,7 +201,12 @@ export interface DailyLog {
 
 export interface DailyDashboard {
   date: string;
+  /** Confirmed + estimate calories (same number shown everywhere). */
   caloriesConsumed: number;
+  /** Grace-confirmed portion of today's calories. */
+  caloriesConfirmed: number;
+  /** Still-estimate portion of today's calories. */
+  caloriesEstimate: number;
   calorieTarget: number;
   macros: MacroTargets;
   macrosConsumed: Pick<MacroTargets, 'proteinG' | 'carbsG' | 'fatG' | 'fiberG'>;

@@ -4,6 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 
 import { Button } from '@/components/ui/Button';
 import { Text } from '@/components/ui/Text';
+import { resolveCoachDisplayName } from '@/constants/coach';
 import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import { ensurePatientConversation } from '@/services/remote/chatApi';
@@ -21,7 +22,12 @@ export function AskCoachButton({ mealId, label }: { mealId: string; label?: stri
       const conv = await ensurePatientConversation();
       router.push({
         pathname: '/chat/[id]',
-        params: { id: conv.id, mealId, title: conv.title, peerAvatarUrl: conv.peerAvatarUrl ?? '' },
+        params: {
+          id: conv.id,
+          mealId,
+          title: resolveCoachDisplayName(conv.title),
+          peerAvatarUrl: conv.peerAvatarUrl ?? '',
+        },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : t.chat.tryAgain;
@@ -67,7 +73,11 @@ export function useOpenCoachChat() {
       const conv = await ensurePatientConversation();
       router.push({
         pathname: '/chat/[id]',
-        params: { id: conv.id, title: conv.title, peerAvatarUrl: conv.peerAvatarUrl ?? '' },
+        params: {
+          id: conv.id,
+          title: resolveCoachDisplayName(conv.title),
+          peerAvatarUrl: conv.peerAvatarUrl ?? '',
+        },
       });
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not open chat';

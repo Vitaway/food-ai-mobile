@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { MarketingPageHero } from '@/components/marketing/MarketingPageHero';
-import { Button } from '@/components/ui/Button';
 
 const methodology = [
   {
@@ -30,42 +29,42 @@ const limitations = [
 
 export function ClinicalEvidencePage() {
   return (
-    <div className="bg-white">
+    <div>
       <MarketingPageHero
         title="Clinical evidence & approach"
         description="How MiraFood combines AI speed with human review; and what we claim (and don’t claim) about our technology."
       />
 
-      <section className="py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl tracking-tight text-ash-grey-900">Our methodology</h2>
-          <p className="mt-4 text-base leading-relaxed text-ash-grey-600">
+      <section className="px-1 py-12 sm:px-2">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-mira-green">Our methodology</h2>
+          <p className="mt-4 text-base leading-relaxed text-mira-muted">
             MiraFood follows a human-in-the-loop model aligned with medical nutrition therapy
             principles: capture dietary intake efficiently, review with a qualified coach, and track
             change over time.
           </p>
-          <div className="mt-10 space-y-6">
+          <div className="mt-8 space-y-3">
             {methodology.map((item) => (
-              <div key={item.title} className="rounded-2xl border border-ash-grey-200 bg-ash-grey-50 p-6">
-                <h3 className="text-ash-grey-900">{item.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-ash-grey-600">{item.desc}</p>
+              <div key={item.title} className="rounded-[1.25rem] bg-mira-green p-6 text-white">
+                <h3 className="font-semibold">{item.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-white/70">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section className="border-t border-ash-grey-200 bg-ash-grey-50 py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl tracking-tight text-ash-grey-900">Research & outcomes</h2>
-          <p className="mt-4 text-base leading-relaxed text-ash-grey-600">
+      <section className="px-1 py-12 sm:px-2">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-mira-green">Research & outcomes</h2>
+          <p className="mt-4 text-base leading-relaxed text-mira-muted">
             Vitaway is building outcome studies with clinic partners in Rwanda and beyond. We report
             process metrics today; coach review rates, logging adherence, and review turnaround; and
             will publish formal clinical outcomes as validated studies complete.
           </p>
-          <div className="mt-8 rounded-2xl border border-blue-spruce-200 bg-blue-spruce-50 p-6">
-            <p className="text-sm leading-relaxed text-blue-spruce-900">
-              <strong>Interested in a research partnership?</strong> Contact{' '}
+          <div className="mt-8 rounded-[1.25rem] bg-mira-green p-6 text-white">
+            <p className="text-sm leading-relaxed text-white/85">
+              <strong className="text-white">Interested in a research partnership?</strong> Contact{' '}
               <a href="mailto:support@vitaway.org" className="underline underline-offset-2">
                 support@vitaway.org
               </a>{' '}
@@ -75,35 +74,35 @@ export function ClinicalEvidencePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-24">
-        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl tracking-tight text-ash-grey-900">Important limitations</h2>
+      <section className="px-1 py-12 sm:px-2">
+        <div className="mx-auto max-w-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-mira-green">Important limitations</h2>
           <ul className="mt-6 space-y-3">
             {limitations.map((item) => (
-              <li key={item} className="flex gap-2 text-sm leading-relaxed text-ash-grey-700">
-                <span className="text-cinnamon-wood-500">•</span>
+              <li key={item} className="flex gap-2 text-sm leading-relaxed text-mira-muted">
+                <span className="text-mira-green">•</span>
                 {item}
               </li>
             ))}
           </ul>
-          <p className="mt-8 text-sm text-ash-grey-600">
+          <p className="mt-8 text-sm text-mira-muted">
             Read our full{' '}
-            <Link to="/medical-disclaimer" className="text-blue-spruce-600 hover:underline">
+            <Link to="/medical-disclaimer" className="text-mira-green hover:underline">
               medical disclaimer
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-blue-spruce-600 hover:underline">
+            <Link to="/privacy" className="text-mira-green hover:underline">
               privacy policy
             </Link>
             .
           </p>
-          <div className="mt-8 flex flex-wrap gap-4">
-            <Button to="/for-clinics" variant="primary" size="md">
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link to="/for-clinics" className="mira-btn mira-btn--black">
               For clinics
-            </Button>
-            <Button to="/for-patients" variant="outline" size="md">
+            </Link>
+            <Link to="/for-patients" className="mira-btn mira-btn--outline">
               For patients
-            </Button>
+            </Link>
           </div>
         </div>
       </section>

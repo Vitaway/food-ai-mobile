@@ -5,7 +5,6 @@ type MiraFoodLogoProps = {
   className?: string;
   variant?: 'light' | 'dark';
   to?: string;
-  /** Icon-only mark for collapsed sidebar rails. */
   compact?: boolean;
 };
 
@@ -27,22 +26,13 @@ export function MiraFoodLogo({
         aria-hidden
       />
       {compact ? null : (
-        <div className="min-w-0 leading-tight">
-          <span
-            className={cn(
-              'block text-lg font-normal tracking-tight',
-              variant === 'dark' ? 'text-blue-spruce-700' : 'text-white',
-            )}>
-            MiraFood
-          </span>
-          <span
-            className={cn(
-              'block text-[10px] font-normal uppercase tracking-widest',
-              variant === 'dark' ? 'text-ash-grey-500' : 'text-white/60',
-            )}>
-            by Vitaway
-          </span>
-        </div>
+        <span
+          className={cn(
+            'text-lg font-semibold tracking-tight',
+            variant === 'dark' ? 'text-mira-green' : 'text-white',
+          )}>
+          MiraFood
+        </span>
       )}
     </Link>
   );

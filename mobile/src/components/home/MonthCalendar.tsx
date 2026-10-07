@@ -97,7 +97,7 @@ export function MonthCalendar({ selectedDate, onSelectDate, markedDates, classNa
           accessibilityRole="button"
           accessibilityLabel="Previous month"
           className="h-9 w-9 items-center justify-center rounded-full bg-white">
-          <Ionicons name="chevron-back" size={20} color="#023459" />
+          <Ionicons name="chevron-back" size={20} color="#1a3a2a" />
         </Pressable>
         <Text className="font-sans-semibold text-base text-neutral-900">{formatMonthYear(viewMonth)}</Text>
         <Pressable
@@ -105,7 +105,7 @@ export function MonthCalendar({ selectedDate, onSelectDate, markedDates, classNa
           accessibilityRole="button"
           accessibilityLabel="Next month"
           className="h-9 w-9 items-center justify-center rounded-full bg-white">
-          <Ionicons name="chevron-forward" size={20} color="#023459" />
+          <Ionicons name="chevron-forward" size={20} color="#1a3a2a" />
         </Pressable>
       </View>
 

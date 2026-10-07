@@ -142,7 +142,7 @@ export function CoachOpinionModal({
                 </Text>
                 {teamLoading ? (
                   <View className="items-center py-4">
-                    <ActivityIndicator color="#023459" />
+                    <ActivityIndicator color="#1a3a2a" />
                   </View>
                 ) : people.length === 0 ? (
                   <View className="rounded-[18px] border border-amber-200 bg-amber-50 px-3 py-3">

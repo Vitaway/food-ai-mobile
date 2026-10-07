@@ -27,10 +27,10 @@ export function DietaryPreferencePicker({ value, onChange }: DietaryPreferencePi
             key={pref}
             onPress={() => toggle(pref)}
             style={{ width: '47%' }}
-            className={`rounded-3xl border px-3 py-3.5 ${
+            className={`rounded-2xl border px-3 py-3.5 ${
               selected
-                ? 'border-shamrock-500 bg-shamrock-50'
-                : 'border-ash-grey-200 bg-ash-grey-50'
+                ? 'border-2 border-shamrock-500 bg-shamrock-500/12'
+                : 'border-blue-spruce-300/60 bg-blue-spruce-600/5'
             }`}>
             <Text className="text-center text-[28px] leading-9">{meta.emoji}</Text>
             <Text

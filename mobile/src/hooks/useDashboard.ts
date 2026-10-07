@@ -2,7 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 
 import type { MealTimelineItem } from '@/components/home/MealTimeline';
 import { isApiConfigured } from '@/constants/api';
-import { isMealReadable } from '@/constants/mealStatus';
+import {
+  countsTowardDailyTotals,
+  isMealConfirmed,
+  isMealEstimate,
+  isMealReadable,
+} from '@/constants/mealStatus';
 import { useAuth } from '@/context/AuthContext';
 import { useI18n } from '@/context/LocaleContext';
 import { useMeals } from '@/context/MealsContext';
@@ -21,7 +26,9 @@ function isSameDay(iso: string, dateKey: string) {
 
 function computeStreak(meals: MealSubmission[]) {
   const daysWithMeals = new Set(
-    meals.filter((meal) => meal.status === 'approved').map((meal) => meal.submittedAt.slice(0, 10)),
+    meals
+      .filter((meal) => countsTowardDailyTotals(meal.status))
+      .map((meal) => meal.submittedAt.slice(0, 10)),
   );
 
   let streak = 0;
@@ -40,6 +47,10 @@ function mealRevisionKey(meals: MealSubmission[]) {
   return meals
     .map((meal) => `${meal.id}:${meal.status}:${meal.totalNutrition?.caloriesKcal ?? 0}`)
     .join('|');
+}
+
+function mealKcal(meal: MealSubmission) {
+  return meal.totalNutrition?.caloriesKcal ?? 0;
 }
 
 export function useDashboard(selectedDate = todayKey()) {
@@ -111,7 +122,7 @@ export function useDashboard(selectedDate = todayKey()) {
     const dayMealsAll = meals
       .filter((meal) => isSameDay(meal.submittedAt, selectedDate))
       .sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-    const dayMeals = dayMealsAll.filter((meal) => meal.status === 'approved');
+    const dayMeals = dayMealsAll.filter((meal) => countsTowardDailyTotals(meal.status));
 
     const macrosConsumed = dayMeals.reduce(
       (acc, meal) => ({
@@ -123,17 +134,21 @@ export function useDashboard(selectedDate = todayKey()) {
       { proteinG: 0, carbsG: 0, fatG: 0, fiberG: 0 },
     );
 
-    const caloriesConsumed = dayMeals.reduce(
-      (sum, meal) => sum + (meal.totalNutrition?.caloriesKcal ?? 0),
-      0,
-    );
+    const caloriesConfirmed = dayMeals
+      .filter((meal) => isMealConfirmed(meal.status))
+      .reduce((sum, meal) => sum + mealKcal(meal), 0);
+    const caloriesEstimate = dayMeals
+      .filter((meal) => isMealEstimate(meal.status))
+      .reduce((sum, meal) => sum + mealKcal(meal), 0);
+    const caloriesConsumed = caloriesConfirmed + caloriesEstimate;
 
     const useRemoteExtras = remoteDashboard?.date === selectedDate;
 
     const dashboard: DailyDashboard = {
       date: selectedDate,
-      // Local meals are authoritative for live UI; remote extras fill health score etc.
       caloriesConsumed: Math.round(caloriesConsumed),
+      caloriesConfirmed: Math.round(caloriesConfirmed),
+      caloriesEstimate: Math.round(caloriesEstimate),
       calorieTarget: useRemoteExtras ? remoteDashboard.calorieTarget : targets.calories,
       macros: targets,
       macrosConsumed: {
@@ -154,6 +169,8 @@ export function useDashboard(selectedDate = todayKey()) {
 
     const timeline: MealTimelineItem[] = dayMealsAll.map((logged) => {
       const readable = isMealReadable(logged.status);
+      const estimate = isMealEstimate(logged.status);
+      const kcal = mealKcal(logged);
 
       return {
         id: logged.id,
@@ -163,9 +180,10 @@ export function useDashboard(selectedDate = todayKey()) {
         time: formatTime(logged.submittedAt, dateTag),
         items: readable ? logged.items?.map((item) => item.label) : undefined,
         logged: true,
-        calories: readable ? logged.totalNutrition?.caloriesKcal : undefined,
+        calories: kcal > 0 ? Math.round(kcal) : undefined,
         status: logged.status,
-        pending: !readable,
+        pending: estimate,
+        estimate,
       };
     });
 

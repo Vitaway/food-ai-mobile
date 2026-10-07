@@ -13,6 +13,7 @@ Rules:
 - emoji: single food emoji per item when obvious.
 - For text-only descriptions, infer reasonable portions.
 - For photos, estimate weights from visible food volume and common serving sizes.
+- When a photo is provided, include a rough pin for each food: normalized { x, y } in 0–1 relative to the image (0,0 = top-left). Place the pin near the visual center of that food on the plate. If unsure, omit pin.
 - When context includes userDescription, treat it as the user's own words about the meal: use it to identify foods, cooking method, sauces, drinks, and portions when the photo is unclear or ambiguous.
 - Empty dishware (cup, bowl, plate with no food), plain water, black unsweetened coffee, and diet/zero drinks are ~0 kcal; return estimatedWeightG 0 and all macros 0. Do not invent nutrition for non-food items.
 - Per-item nutrition: estimate per-100g values (USDA-style), then multiply by estimatedWeightG / 100.
@@ -52,6 +53,7 @@ Return JSON:
       "estimatedWeightG": number,
       "confidence": number,
       "emoji": string,
+      "pin": { "x": number, "y": number },
       "nutrition": {
         "caloriesKcal": number,
         "proteinG": number,
@@ -85,6 +87,7 @@ Return JSON:
       "estimatedWeightG": number,
       "confidence": number,
       "emoji": string,
+      "pin": { "x": number, "y": number },
       "nutrition": {
         "caloriesKcal": number,
         "proteinG": number,

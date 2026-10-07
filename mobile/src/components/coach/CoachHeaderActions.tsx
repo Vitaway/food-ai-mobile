@@ -30,7 +30,7 @@ export function CoachHeaderActions({ onDark = true }: CoachHeaderActionsProps) {
   const openChat = useSinglePress(() => router.push('/(coach)/chat' as Href));
 
   const circleClass = onDark ? 'bg-white/20' : 'bg-ash-grey-100';
-  const iconColor = onDark ? '#ffffff' : '#023459';
+  const iconColor = onDark ? '#ffffff' : '#1a3a2a';
 
   return (
     <View className="flex-row items-center gap-2">

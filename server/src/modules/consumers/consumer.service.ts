@@ -13,8 +13,17 @@ import { mealCoachReviewsRepository } from "../meals/meal-coach-reviews.reposito
 import { mealToConsumerDto } from "../meals/meal-effective.util";
 import { backfillItemMicronutrients } from "../meals/backfill-micronutrients.util";
 import { annotateManualReviewFallback } from "../meals/ai-fallback.util";
-import { normalizeMealItems, asDetectedItems } from "../meals/nutrition.util";
+import { normalizeMealItems, asDetectedItems, sumNutrition } from "../meals/nutrition.util";
+import {
+  attachMealHonesty,
+  parseMealLogSource,
+} from "../meals/meal-honesty.util";
+import { recalculateMealPortions } from "../meals/meal-portions.util";
 import { assessMealAllergens } from "../meals/allergen-match.util";
+import type {
+  PreviewMealPortionsDto,
+  UpdateMealPortionsDto,
+} from "./consumer.dto";
 import { assertConsumerSubscription } from "../../middlewares/entitlements";
 import { AppDataSource } from "../../config/database";
 import { ConsumerDailyHealthScore } from "./daily-health-score.entity";
@@ -327,6 +336,20 @@ export const consumerService = {
     const data = annotateManualReviewFallback({ ...dto.data });
     if (Array.isArray(data.items)) {
       data.items = normalizeMealItems(data.items);
+      const logSource = parseMealLogSource(data.logSource, "photo");
+      const honesty = attachMealHonesty({
+        items: asDetectedItems(data.items),
+        mealType: dto.mealType,
+        logSource,
+        confirmed: false,
+      });
+      data.items = honesty.items;
+      data.logSource = logSource;
+      data.balancedPlate = honesty.balancedPlate;
+      data.estimateRange = honesty.estimateRange;
+      if (!data.totalNutrition && honesty.items.length) {
+        data.totalNutrition = sumNutrition(honesty.items);
+      }
     }
     data.allergenAssessment = assessMealAllergens(
       row.profile?.allergies,
@@ -395,6 +418,66 @@ export const consumerService = {
     }
 
     return meal;
+  },
+
+  async previewMealPortions(userId: string, dto: PreviewMealPortionsDto) {
+    await assertConsumerSubscription(userId);
+    const items = normalizeMealItems(dto.items);
+    const logSource = parseMealLogSource(dto.logSource, "photo");
+    const result = recalculateMealPortions({
+      items,
+      updates: items.map((item) => ({
+        id: item.id,
+        estimatedWeightG: item.estimatedWeightG,
+      })),
+      mealType: dto.mealType,
+      logSource,
+      confirmed: false,
+    });
+    return result;
+  },
+
+  async updateMealPortions(userId: string, mealId: string, dto: UpdateMealPortionsDto) {
+    await assertConsumerSubscription(userId);
+    const row = await this.requireProfileForUser(userId);
+    const meal = await mealsRepository.findMealByIdForClient(mealId, row.id);
+    if (!meal) {
+      throw new NotFoundError("Meal not found");
+    }
+    if (meal.status === "approved") {
+      throw new BadRequestError("Confirmed meals cannot be edited; ask your coach.");
+    }
+
+    const existing = normalizeMealItems(meal.data.items);
+    const logSource = parseMealLogSource(meal.data.logSource, "photo");
+    const result = recalculateMealPortions({
+      items: existing,
+      updates: dto.items,
+      mealType: meal.mealType,
+      logSource,
+      confirmed: false,
+    });
+
+    const data = {
+      ...meal.data,
+      items: result.items,
+      totalNutrition: result.totalNutrition,
+      balancedPlate: result.balancedPlate,
+      estimateRange: result.estimateRange,
+      logSource,
+      totalWeightG: result.totalWeightG,
+    };
+
+    await mealsRepository.upsertMeal({
+      id: meal.id,
+      clientId: meal.clientId,
+      status: meal.status,
+      mealType: meal.mealType,
+      submittedAt: meal.submittedAt,
+      data,
+    });
+
+    return this.getMeal(userId, mealId);
   },
 
   async logWater(userId: string, dto: LogWaterDto) {

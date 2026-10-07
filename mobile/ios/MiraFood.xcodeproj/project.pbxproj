@@ -7,26 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		136F669784A655F6C9525DD7 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 1775864D1B88517320F4CD44 /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
-		408B8A3F1471C0B8F2F5DC77 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A21FDDC37783D2F823D84 /* ExpoModulesProvider.swift */; };
-		ADA2C8D6106E4BB232407FCF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 3E5EBDCF9A3DEC411BE3C92C /* PrivacyInfo.xcprivacy */; };
+		90CAC1F3CBA87CABA69139B0 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 646BCB5176772305AF1214A8 /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11748412D0307B40044C1D9 /* AppDelegate.swift */; };
-		FE2D9DCA6DD0449CE1FE9026 /* libPods-MiraFood.a in Frameworks */ = {isa = PBXBuildFile; fileRef = E811660901025CED55910487 /* libPods-MiraFood.a */; };
+		FD1CB101DB11F65EF2BAEF0E /* libPods-MiraFood.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 534FA5354480F97F72B9F1CE /* libPods-MiraFood.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* MiraFood.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MiraFood.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = MiraFood/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = MiraFood/Info.plist; sourceTree = "<group>"; };
-		396DB827DCE13A6CF16CD51E /* Pods-MiraFood.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MiraFood.release.xcconfig"; path = "Target Support Files/Pods-MiraFood/Pods-MiraFood.release.xcconfig"; sourceTree = "<group>"; };
-		3E5EBDCF9A3DEC411BE3C92C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = MiraFood/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		549F2498FE6B284E1DF1593B /* Pods-MiraFood.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MiraFood.debug.xcconfig"; path = "Target Support Files/Pods-MiraFood/Pods-MiraFood.debug.xcconfig"; sourceTree = "<group>"; };
-		8D1A21FDDC37783D2F823D84 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MiraFood/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		1775864D1B88517320F4CD44 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = MiraFood/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		534FA5354480F97F72B9F1CE /* libPods-MiraFood.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MiraFood.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		6418F1F839281477BB90BF2F /* Pods-MiraFood.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MiraFood.debug.xcconfig"; path = "Target Support Files/Pods-MiraFood/Pods-MiraFood.debug.xcconfig"; sourceTree = "<group>"; };
+		646BCB5176772305AF1214A8 /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-MiraFood/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
+		66D905D8539671CCDE35AE31 /* Pods-MiraFood.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-MiraFood.release.xcconfig"; path = "Target Support Files/Pods-MiraFood/Pods-MiraFood.release.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = MiraFood/SplashScreen.storyboard; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
-		E811660901025CED55910487 /* libPods-MiraFood.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-MiraFood.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 		F11748412D0307B40044C1D9 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = MiraFood/AppDelegate.swift; sourceTree = "<group>"; };
 		F11748442D0722820044C1D9 /* MiraFood-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = "MiraFood-Bridging-Header.h"; path = "MiraFood/MiraFood-Bridging-Header.h"; sourceTree = "<group>"; };
@@ -37,7 +37,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FE2D9DCA6DD0449CE1FE9026 /* libPods-MiraFood.a in Frameworks */,
+				FD1CB101DB11F65EF2BAEF0E /* libPods-MiraFood.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -53,7 +53,7 @@
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */,
-				3E5EBDCF9A3DEC411BE3C92C /* PrivacyInfo.xcprivacy */,
+				1775864D1B88517320F4CD44 /* PrivacyInfo.xcprivacy */,
 			);
 			name = MiraFood;
 			sourceTree = "<group>";
@@ -62,9 +62,17 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				E811660901025CED55910487 /* libPods-MiraFood.a */,
+				534FA5354480F97F72B9F1CE /* libPods-MiraFood.a */,
 			);
 			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		7CC2850F9733D2D83F35A3B5 /* ExpoModulesProviders */ = {
+			isa = PBXGroup;
+			children = (
+				929916210383B466622B9B3F /* MiraFood */,
+			);
+			name = ExpoModulesProviders;
 			sourceTree = "<group>";
 		};
 		832341AE1AAA6A7D00B99B32 /* Libraries */ = {
@@ -74,16 +82,6 @@
 			name = Libraries;
 			sourceTree = "<group>";
 		};
-		83A0703D33642B5949278216 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				549F2498FE6B284E1DF1593B /* Pods-MiraFood.debug.xcconfig */,
-				396DB827DCE13A6CF16CD51E /* Pods-MiraFood.release.xcconfig */,
-			);
-			name = Pods;
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
@@ -91,8 +89,8 @@
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
-				83A0703D33642B5949278216 /* Pods */,
-				B8F83625D47C83855DB7E54F /* ExpoModulesProviders */,
+				84EE9377EC168B3273C3E40B /* Pods */,
+				7CC2850F9733D2D83F35A3B5 /* ExpoModulesProviders */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -107,20 +105,21 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		88B7644F22369F8417F0513B /* MiraFood */ = {
+		84EE9377EC168B3273C3E40B /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				8D1A21FDDC37783D2F823D84 /* ExpoModulesProvider.swift */,
+				6418F1F839281477BB90BF2F /* Pods-MiraFood.debug.xcconfig */,
+				66D905D8539671CCDE35AE31 /* Pods-MiraFood.release.xcconfig */,
 			);
-			name = MiraFood;
+			path = Pods;
 			sourceTree = "<group>";
 		};
-		B8F83625D47C83855DB7E54F /* ExpoModulesProviders */ = {
+		929916210383B466622B9B3F /* MiraFood */ = {
 			isa = PBXGroup;
 			children = (
-				88B7644F22369F8417F0513B /* MiraFood */,
+				646BCB5176772305AF1214A8 /* ExpoModulesProvider.swift */,
 			);
-			name = ExpoModulesProviders;
+			name = MiraFood;
 			sourceTree = "<group>";
 		};
 		BB2F792B24A3F905000567C9 /* Supporting */ = {
@@ -140,13 +139,13 @@
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "MiraFood" */;
 			buildPhases = (
 				08A4A3CD28434E44B6B9DE2E /* [CP] Check Pods Manifest.lock */,
-				727F490F7F68C74C23FB9C88 /* [Expo] Configure project */,
+				67064AA924C8DA9B4FD0E653 /* [Expo] Configure project */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				800E24972A6A228C8D4807E9 /* [CP] Copy Pods Resources */,
-				3AD8F6762FFA3AEF039FE169 /* [CP] Embed Pods Frameworks */,
+				0FC3E4D3C0A12EF38D56F18A /* [CP] Embed Pods Frameworks */,
 			);
 			buildRules = (
 			);
@@ -198,7 +197,7 @@
 				BB2F792D24A3F905000567C9 /* Expo.plist in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */,
-				ADA2C8D6106E4BB232407FCF /* PrivacyInfo.xcprivacy in Resources */,
+				136F669784A655F6C9525DD7 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -244,7 +243,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		3AD8F6762FFA3AEF039FE169 /* [CP] Embed Pods Frameworks */ = {
+		0FC3E4D3C0A12EF38D56F18A /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -262,7 +261,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-MiraFood/Pods-MiraFood-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		727F490F7F68C74C23FB9C88 /* [Expo] Configure project */ = {
+		67064AA924C8DA9B4FD0E653 /* [Expo] Configure project */ = {
 			isa = PBXShellScriptBuildPhase;
 			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
@@ -299,6 +298,7 @@
 				"${PODS_CONFIGURATION_BUILD_DIR}/EXNotifications/ExpoNotifications_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoDevice/ExpoDevice_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoFileSystem/ExpoFileSystem_privacy.bundle",
+				"${PODS_CONFIGURATION_BUILD_DIR}/ExpoLocalization/ExpoLocalization_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RCT-Folly/RCT-Folly_privacy.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNCAsyncStorage/RNCAsyncStorage_resources.bundle",
 				"${PODS_CONFIGURATION_BUILD_DIR}/RNSVG/RNSVGFilters.bundle",
@@ -318,6 +318,7 @@
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoNotifications_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoDevice_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoFileSystem_privacy.bundle",
+				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/ExpoLocalization_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RCT-Folly_privacy.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNCAsyncStorage_resources.bundle",
 				"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/RNSVGFilters.bundle",
@@ -342,7 +343,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
-				408B8A3F1471C0B8F2F5DC77 /* ExpoModulesProvider.swift in Sources */,
+				90CAC1F3CBA87CABA69139B0 /* ExpoModulesProvider.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,14 +352,14 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 549F2498FE6B284E1DF1593B /* Pods-MiraFood.debug.xcconfig */;
+			baseConfigurationReference = 6418F1F839281477BB90BF2F /* Pods-MiraFood.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MiraFood/MiraFood.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 32;
 				DEVELOPMENT_TEAM = ZGZ2JG728D;
 				ENABLE_BITCODE = NO;
 				GCC_PREPROCESSOR_DEFINITIONS = (
@@ -366,12 +367,14 @@
 					"FB_SONARKIT_ENABLED=1",
 				);
 				INFOPLIST_FILE = MiraFood/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MiraFood;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.4;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -390,23 +393,24 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 396DB827DCE13A6CF16CD51E /* Pods-MiraFood.release.xcconfig */;
+			baseConfigurationReference = 66D905D8539671CCDE35AE31 /* Pods-MiraFood.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = MiraFood/MiraFood.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 32;
 				DEVELOPMENT_TEAM = ZGZ2JG728D;
-				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = MiraFood/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = MiraFood;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.0.4;
 				OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
@@ -514,7 +518,6 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = YES;
-				ENABLE_BITCODE = NO;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;

@@ -1,10 +1,36 @@
 @import 'tailwindcss';
 
 @theme {
-  --font-sans: 'Sniglet', ui-rounded, system-ui, sans-serif;
-  --font-display: 'Cabin Sketch', cursive;
-  /* Readable UI face for dashboard controls (buttons, dense actions) */
+  /* Marketing + auth: one face everywhere (Inzu body font) */
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+  /* Dashboard controls keep Figtree */
   --font-ui: 'Figtree', ui-sans-serif, system-ui, sans-serif;
+
+  /* GREENCRISPS: dark green frame + pale mint card + olive crescent + black */
+  --color-mira-green: #1a3a2a;
+  --color-mira-green-dark: #12261c;
+  --color-mira-black: #000000;
+  --color-mira-mint: #e2f0b6;
+  --color-mira-mint-soft: #d0e29c;
+  --color-mira-olive: #b5c97a;
+  --color-mira-canvas: #e2f0b6;
+  --color-mira-line: #b8c98a;
+  --color-mira-muted: #2f4536;
+  /* Aliases for existing class usage */
+  --color-mira-mint-50: #eef6d4;
+  --color-mira-mint-100: #e2f0b6;
+  --color-mira-mint-200: #e2f0b6;
+  --color-mira-mint-300: #d0e29c;
+  --color-mira-olive-400: #b5c97a;
+  --color-mira-olive-500: #1b3a2a;
+  --color-mira-ink-700: #1b3a2a;
+  --color-mira-ink-800: #1b3a2a;
+  --color-mira-ink-900: #0a0a0a;
+  --color-mira-chili-500: #0a0a0a;
+  --color-mira-chili-600: #0a0a0a;
+  --color-mira-surface: #ffffff;
+  --color-mira-pill: #f2f6e8;
 
   --color-blue-spruce-50: #eef4f8;
   --color-blue-spruce-100: #d9e6ef;
@@ -76,8 +102,8 @@ body {
   margin: 0;
   font-family: inherit;
   font-weight: inherit;
-  background: var(--color-ash-grey-50);
-  color: var(--color-ash-grey-900);
+  background: var(--color-mira-mint);
+  color: var(--color-mira-green);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -87,9 +113,9 @@ h3,
 h4,
 h5,
 h6 {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: 0.03em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
 button,
@@ -97,23 +123,239 @@ input,
 select,
 textarea {
   font-family: var(--font-sans);
-  font-weight: 400;
-}
-
-/* Sniglet only has 400 & 800; keep everything at regular weight site-wide */
-:where(.font-medium, .font-semibold, .font-bold, .font-extrabold) {
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .font-display {
-  font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: 0.03em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  letter-spacing: -0.03em;
 }
 
-/* Legal / policy prose; readable Figtree, not Sniglet 800 bold */
+/* Marketing CTAs — Inzu-style: black/green + tiny corner radius */
+.mira-btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-[4px] px-5 py-2.5 text-sm font-medium transition-colors duration-150;
+}
+
+/* Nav Login / Get started — simple gradient + icon */
+.mira-nav-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 4px;
+  padding: 0.55rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    filter 0.15s ease;
+}
+
+.mira-nav-cta:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+.mira-nav-cta:active {
+  transform: translateY(0);
+}
+
+.mira-nav-cta--login {
+  background: linear-gradient(145deg, #2a4d38 0%, #1a3a2a 55%, #13291e 100%);
+  box-shadow: 0 6px 16px rgba(26, 58, 42, 0.22);
+}
+
+.mira-nav-cta--start {
+  background: linear-gradient(145deg, #1c1c1c 0%, #0a0a0a 100%);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+}
+
+.mira-nav-cta svg {
+  width: 0.95rem;
+  height: 0.95rem;
+  flex-shrink: 0;
+}
+
+.mira-btn--black {
+  @apply bg-mira-black text-white hover:bg-black;
+}
+
+.mira-btn--green {
+  @apply bg-mira-green text-white hover:bg-mira-green-dark;
+}
+
+.mira-btn--outline {
+  @apply bg-transparent text-mira-green ring-1 ring-mira-green/20 hover:bg-mira-green hover:text-white;
+}
+
+.mira-icon-btn {
+  @apply inline-flex h-10 w-10 items-center justify-center rounded-[4px] bg-mira-black text-white transition-transform hover:scale-[1.03] active:scale-95;
+}
+
+/* Underline-only fields (auth + marketing forms) */
+.mira-input-line {
+  @apply w-full rounded-none border-0 border-b-2 border-mira-green/30 bg-transparent px-0 py-3 text-sm text-mira-green outline-none transition-colors placeholder:text-mira-muted/55 focus:border-mira-green focus:ring-0;
+}
+
+.mira-input-line--error {
+  @apply border-red-600 focus:border-red-600;
+}
+
+.mira-select-line {
+  @apply w-full appearance-none rounded-none border-0 border-b-2 border-mira-green/30 bg-transparent px-0 py-3 text-sm text-mira-green outline-none focus:border-mira-green focus:ring-0;
+}
+
+/* Line fields on dark green panels */
+.mira-form-on-dark label {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.mira-form-on-dark .mira-input-line,
+.mira-form-on-dark .mira-select-line {
+  border-bottom-color: rgba(255, 255, 255, 0.35);
+  color: #fff;
+}
+
+.mira-form-on-dark .mira-input-line::placeholder {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.mira-form-on-dark .mira-input-line:focus,
+.mira-form-on-dark .mira-select-line:focus {
+  border-bottom-color: #fff;
+}
+
+.mira-form-on-dark .mira-select-line option {
+  background: #1b3a2a;
+  color: #fff;
+}
+
+/* Back-compat aliases — expand utilities (Tailwind v4 can't @apply custom classes) */
+.mira-pill {
+  @apply inline-flex items-center justify-center gap-2 rounded-[4px] px-5 py-2.5 text-sm font-medium transition-colors duration-150;
+}
+
+.mira-pill--ink,
+.mira-pill--chili {
+  @apply bg-mira-black text-white hover:bg-black;
+}
+
+.mira-pill--ghost,
+.mira-pill--outline {
+  @apply bg-transparent text-mira-green ring-1 ring-mira-green/20 hover:bg-mira-green hover:text-white;
+}
+
+/* Narrower content column + more side breathing room */
+.mira-frame {
+  @apply min-h-screen bg-mira-mint px-5 sm:px-8 md:px-12 lg:px-16 xl:px-24;
+}
+
+.mira-card {
+  @apply mx-auto flex min-h-screen w-full max-w-[1080px] flex-col bg-mira-mint;
+}
+
+/* Olive dome pedestal under product / app shots (GREENCRISPS) */
+.mira-crescent {
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  z-index: 0;
+  width: min(1100px, 170vw);
+  height: 72%;
+  translate: -50% 0;
+  border-radius: 50% 50% 0 0;
+  background: var(--color-mira-olive);
+}
+
+.mira-stage {
+  @apply relative mx-auto flex w-full max-w-4xl items-end justify-center;
+  min-height: 26rem;
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  .mira-stage {
+    min-height: 32rem;
+  }
+}
+
+/* Dual tilted phone shots sitting on the crescent — static, no bounce */
+.mira-hero-pair {
+  @apply relative z-10 flex w-full items-end justify-center pb-2;
+  min-height: inherit;
+}
+
+.mira-hero-pair__shot {
+  width: min(44vw, 230px);
+  filter: drop-shadow(0 18px 32px rgba(26, 58, 42, 0.22));
+}
+
+@media (min-width: 640px) {
+  .mira-hero-pair__shot {
+    width: min(36vw, 270px);
+  }
+}
+
+.mira-hero-pair__shot--left {
+  position: relative;
+  z-index: 1;
+  margin-right: -14%;
+  margin-bottom: 1.5rem;
+  transform: rotate(-12deg);
+  transform-origin: 50% 100%;
+}
+
+.mira-hero-pair__shot--right {
+  position: relative;
+  z-index: 2;
+  margin-left: -14%;
+  margin-bottom: 0.35rem;
+  transform: rotate(11deg);
+  transform-origin: 50% 100%;
+}
+
+@keyframes mira-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes mira-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.mira-float {
+  animation: mira-float 5.5s ease-in-out infinite;
+}
+
+.mira-fade-up {
+  animation: mira-fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mira-float,
+  .mira-fade-up {
+    animation: none;
+  }
+}
+
+/* Legal / policy prose on marketing mint canvas */
 .legal-prose {
-  font-family: var(--font-ui);
+  font-family: var(--font-sans);
   font-weight: 400;
 }
 
@@ -123,7 +365,7 @@ textarea {
 .legal-prose h4,
 .legal-prose h5,
 .legal-prose h6 {
-  font-family: var(--font-ui);
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.02em;
   text-transform: none;
@@ -131,7 +373,7 @@ textarea {
 
 .legal-prose strong,
 .legal-prose b {
-  font-family: var(--font-ui);
+  font-family: var(--font-sans);
   font-weight: 600;
 }
 

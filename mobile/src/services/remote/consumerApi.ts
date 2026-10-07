@@ -433,6 +433,35 @@ export async function submitConsumerMeal(
   });
 }
 
+/** Live portion preview before submit (Phase 1+/2). */
+export async function previewMealPortions(body: {
+  items: Array<Record<string, unknown>>;
+  logSource?: string;
+  mealType?: string;
+}) {
+  return apiRequest<{
+    items: MealSubmission['items'];
+    totalNutrition: MealSubmission['totalNutrition'];
+    totalWeightG: number;
+    balancedPlate: MealSubmission['balancedPlate'];
+    estimateRange: MealSubmission['estimateRange'];
+  }>('/consumer/meals/preview-portions', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/** Persist portion edits on an existing estimate meal. */
+export async function updateMealPortions(
+  mealId: string,
+  items: Array<{ id: string; estimatedWeightG: number }>,
+) {
+  return apiRequest<MealSubmission>(`/consumer/meals/${encodeURIComponent(mealId)}/portions`, {
+    method: 'PATCH',
+    body: JSON.stringify({ items }),
+  });
+}
+
 /** Upload photos for meals that were saved with device-only URLs before server upload existed. */
 export async function backfillMealPhotos(
   remoteMeals: MealSubmission[],

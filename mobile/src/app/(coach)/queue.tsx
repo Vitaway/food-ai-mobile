@@ -57,7 +57,7 @@ function QueueCard({
         onPress={onPress}
         className="overflow-hidden rounded-[28px] bg-white active:opacity-95"
         style={{
-          shadowColor: '#023459',
+          shadowColor: '#1a3a2a',
           shadowOffset: { width: 0, height: 10 },
           shadowOpacity: 0.06,
           shadowRadius: 18,

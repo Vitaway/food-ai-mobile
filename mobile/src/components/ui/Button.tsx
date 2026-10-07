@@ -1,6 +1,14 @@
 import type { ComponentType } from 'react';
 import { cn } from '@/utils/cn';
-import { Pressable, StyleSheet, View, type PressableProps, type TextStyle, type ViewStyle } from 'react-native';
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  View,
+  type PressableProps,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
 import type { SvgProps } from 'react-native-svg';
 import { fonts } from '@/constants/fonts';
 import {
@@ -44,20 +52,20 @@ export function Button({
 }: ButtonProps) {
   const tokens = BRUTAL_BUTTON.variants[variant];
   const sizeTokens = BRUTAL_BUTTON.sizes[size];
-  const { shadowOffset, borderWidth, borderRadius } = BRUTAL_BUTTON;
+  const { borderWidth, borderRadius } = BRUTAL_BUTTON;
   const isDisabled = Boolean(disabled || loading);
   const displayLabel = loading ? loadingLabel : label;
 
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled, busy: loading }}
       disabled={isDisabled}
       className={cn(fullWidth && 'w-full', className)}
-      style={isDisabled ? styles.disabledHost : undefined}
+      style={isDisabled && !loading ? styles.disabledHost : undefined}
       {...props}>
       {({ pressed }) => {
         const isPressed = pressed && !isDisabled;
-        const showShadow = !isPressed;
         const pressedFaceBg = 'pressedFaceBg' in tokens ? tokens.pressedFaceBg : undefined;
         const faceBackground = isPressed && pressedFaceBg ? pressedFaceBg : tokens.faceBg;
 
@@ -66,48 +74,26 @@ export function Button({
           paddingHorizontal: sizeTokens.paddingHorizontal,
           paddingVertical: sizeTokens.paddingVertical,
           backgroundColor: faceBackground,
-          borderWidth,
+          borderWidth: tokens.border === 'transparent' ? 0 : borderWidth,
           borderColor: tokens.border,
           borderRadius,
-          transform: isPressed
-            ? [{ translateX: shadowOffset }, { translateY: shadowOffset }]
-            : [{ translateX: 0 }, { translateY: 0 }],
+          opacity: isPressed ? 0.9 : loading ? 0.92 : 1,
         };
 
         const labelStyle: TextStyle = {
           color: tokens.text,
           fontSize: sizeTokens.fontSize,
           lineHeight: Math.round(sizeTokens.fontSize * 1.35),
-          fontFamily: fonts.sans,
+          fontFamily: fonts.sansSemiBold,
         };
 
         return (
-          <View
-            className={cn(fullWidth && 'w-full')}
-            style={{
-              paddingRight: shadowOffset,
-              paddingBottom: shadowOffset,
-            }}>
-            {showShadow ? (
-              <View
-                pointerEvents="none"
-                style={[
-                  styles.shadow,
-                  {
-                    top: shadowOffset,
-                    left: shadowOffset,
-                    backgroundColor: tokens.shadow,
-                    borderRadius,
-                  },
-                  faceStyle,
-                  styles.shadowOnly,
-                  fullWidth && styles.faceFull,
-                ]}
-              />
-            ) : null}
+          <View className={cn(fullWidth && 'w-full')}>
             <View style={[styles.face, faceStyle, fullWidth && styles.faceFull]}>
               <View style={styles.labelRow}>
-                {!loading && LeadingIcon ? (
+                {loading ? (
+                  <ActivityIndicator size="small" color={tokens.text} />
+                ) : LeadingIcon ? (
                   <LeadingIcon width={iconSize} height={iconSize} color={tokens.text} strokeWidth={2} />
                 ) : null}
                 <Text
@@ -130,15 +116,6 @@ export function Button({
 const styles = StyleSheet.create({
   disabledHost: {
     opacity: 0.5,
-  },
-  shadow: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-  },
-  shadowOnly: {
-    borderColor: 'transparent',
-    transform: [{ translateX: 0 }, { translateY: 0 }],
   },
   face: {
     alignItems: 'center',

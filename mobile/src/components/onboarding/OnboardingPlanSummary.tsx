@@ -53,17 +53,17 @@ export function OnboardingPlanSummary({
   return (
     <View className="gap-5">
       <View className="items-center">
-        <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-blue-spruce-200 bg-blue-spruce-50">
+        <View className="h-24 w-24 items-center justify-center overflow-hidden rounded-full border-2 border-blue-spruce-400/50 bg-blue-spruce-600/10">
           {avatarUrl ? (
             <Image source={{ uri: avatarUrl }} className="h-full w-full" resizeMode="cover" />
           ) : (
-            <Ionicons name="person" size={44} color="#1f3a56" />
+            <Ionicons name="person" size={44} color="#1a3a2a" />
           )}
         </View>
-        <Text className="mt-3 text-center font-sans-bold text-xl text-neutral-900">
+        <Text className="mt-3 text-center font-sans-bold text-xl text-blue-spruce-900">
           {firstName}, your plan is ready
         </Text>
-        <Text className="mt-1 text-center text-sm text-neutral-500">
+        <Text className="mt-1 text-center text-sm text-blue-spruce-700/70">
           Personalized daily targets
         </Text>
       </View>
@@ -79,9 +79,9 @@ export function OnboardingPlanSummary({
           <View
             key={tile.key}
             style={{ width: '23%' }}
-            className="items-center rounded-2xl bg-ash-grey-50 px-1 py-3">
-            <Text className="text-[11px] text-neutral-500">{tile.label}</Text>
-            <Text className="mt-1 font-sans-bold text-base text-neutral-900">
+            className="items-center rounded-2xl border border-blue-spruce-300/50 bg-blue-spruce-600/5 px-1 py-3">
+            <Text className="text-[11px] text-blue-spruce-700/70">{tile.label}</Text>
+            <Text className="mt-1 font-sans-bold text-base text-blue-spruce-900">
               {macroTargets[tile.key]}g
             </Text>
           </View>

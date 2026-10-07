@@ -75,6 +75,7 @@ export function sanitizeMealAnalysis(analysis: MealAnalysisPreview): MealAnalysi
       confidence: Math.min(item.confidence, 0.35),
       nutrition: { ...ZERO_NUTRITION },
       emoji: '🥤',
+      pin: item.pin,
     };
   });
 

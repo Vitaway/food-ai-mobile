@@ -30,10 +30,10 @@ const TYPE_STYLES: Record<
   CoachingFeedItem['type'],
   { icon: keyof typeof Ionicons.glyphMap; bg: string; color: string }
 > = {
-  tip: { icon: 'bulb-outline', bg: 'bg-blue-spruce-50', color: '#023459' },
+  tip: { icon: 'bulb-outline', bg: 'bg-blue-spruce-50', color: '#1a3a2a' },
   celebration: { icon: 'trophy-outline', bg: 'bg-shamrock-50', color: '#1D9E75' },
   reminder: { icon: 'notifications-outline', bg: 'bg-cinnamon-wood-50', color: '#C45A11' },
-  coach_note: { icon: 'chatbubble-ellipses-outline', bg: 'bg-blue-spruce-50', color: '#023459' },
+  coach_note: { icon: 'chatbubble-ellipses-outline', bg: 'bg-blue-spruce-50', color: '#1a3a2a' },
   trend: { icon: 'trending-up-outline', bg: 'bg-shamrock-50', color: '#1D9E75' },
 };
 

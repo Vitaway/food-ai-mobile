@@ -58,10 +58,10 @@ export function MealsPerDayPicker({ value, onChange }: MealsPerDayPickerProps) {
               key={count}
               onPress={() => onChange(count)}
               style={{ width: '47%' }}
-              className={`rounded-3xl border px-3 py-3.5 ${
+              className={`rounded-2xl border px-3 py-3.5 ${
                 selected
-                  ? 'border-cinnamon-wood-400 bg-cinnamon-wood-50'
-                  : 'border-ash-grey-200 bg-white'
+                  ? 'border-2 border-cinnamon-wood-400 bg-cinnamon-wood-400/15'
+                  : 'border-blue-spruce-300/60 bg-blue-spruce-600/5'
               }`}>
               <Text
                 className={`text-center text-3xl font-sans-bold ${onboardingOptionTitle(selected, 'orange')}`}>

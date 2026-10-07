@@ -75,18 +75,10 @@ export function MetricStepper({
   };
 
   return (
-    <View
-      className="rounded-3xl border border-ash-grey-100 bg-white px-5 py-4"
-      style={{
-        shadowColor: '#1a1c17',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.05,
-        shadowRadius: 16,
-        elevation: 2,
-      }}>
-      <Text className="text-sm text-neutral-500">{label}</Text>
+    <View className="border-b-0">
+      <Text className="mb-1.5 text-sm font-sans-semibold text-blue-spruce-800">{label}</Text>
 
-      <View className="mt-2 flex-row items-center justify-between">
+      <View className="min-h-[56px] flex-row items-center justify-between rounded-2xl border-2 border-blue-spruce-500/25 bg-white/92 px-4 py-2">
         <View className="flex-1 flex-row items-baseline gap-1">
           <AppTextInput
             value={draft}
@@ -99,40 +91,27 @@ export function MetricStepper({
             selectTextOnFocus
             size="display"
             weight="bold"
-            className="min-w-[80px] shrink"
+            className="min-w-[80px] shrink bg-transparent px-0 text-blue-spruce-900"
             placeholder={String(min)}
+            placeholderTextColor="#6b7a52"
           />
-          {unit ? <Text className="font-sans-medium text-base text-neutral-500">{unit}</Text> : null}
+          {unit ? <Text className="font-sans-medium text-base text-blue-spruce-600/70">{unit}</Text> : null}
         </View>
 
         <View className="flex-row items-center gap-2">
           <Pressable
             onPress={decrement}
             disabled={value <= min}
-            className="h-12 w-12 items-center justify-center rounded-2xl bg-shamrock-50"
-            style={{
-              opacity: value <= min ? 0.4 : 1,
-              shadowColor: '#1a1c17',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 2,
-            }}>
-            <IconoirIcon icon={Minus} size={22} color={ICONOIR_DEFAULTS.color} />
+            className="h-11 w-11 items-center justify-center rounded-xl border border-blue-spruce-300/80 bg-blue-spruce-600/5"
+            style={{ opacity: value <= min ? 0.4 : 1 }}>
+            <IconoirIcon icon={Minus} size={20} color={ICONOIR_DEFAULTS.color} />
           </Pressable>
           <Pressable
             onPress={increment}
             disabled={value >= max}
-            className="h-12 w-12 items-center justify-center rounded-2xl bg-shamrock-50"
-            style={{
-              opacity: value >= max ? 0.4 : 1,
-              shadowColor: '#1a1c17',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.06,
-              shadowRadius: 8,
-              elevation: 2,
-            }}>
-            <IconoirIcon icon={Plus} size={22} color={ICONOIR_DEFAULTS.color} />
+            className="h-11 w-11 items-center justify-center rounded-xl bg-blue-spruce-600"
+            style={{ opacity: value >= max ? 0.4 : 1 }}>
+            <IconoirIcon icon={Plus} size={20} color="#ffffff" />
           </Pressable>
         </View>
       </View>

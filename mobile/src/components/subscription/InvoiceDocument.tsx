@@ -2,6 +2,7 @@ import { Image, View } from 'react-native';
 
 import { Text } from '@/components/ui/Text';
 import { APP_LOGO } from '@/constants/brand';
+import { COMPANY_LEGAL } from '@/constants/site';
 import { palette } from '@/design-system/colors';
 import type { ConsumerPaymentRow, SubscriptionPlan } from '@/services/remote/consumerApi';
 
@@ -18,7 +19,8 @@ function formatMoney(amount: number, currency: string): string {
 }
 
 function formatPaidAt(value: string): string {
-  return new Date(value).toLocaleString(undefined, {
+  return new Date(value).toLocaleString('en-GB', {
+    timeZone: COMPANY_LEGAL.timezone,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -29,7 +31,8 @@ function formatPaidAt(value: string): string {
 
 function formatAccessDate(value: string | null | undefined): string {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString(undefined, {
+  return new Date(value).toLocaleDateString('en-GB', {
+    timeZone: COMPANY_LEGAL.timezone,
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -71,6 +74,7 @@ export function InvoiceDocument({
     { label: 'Paid at', value: formatPaidAt(payment.processedAt ?? payment.createdAt) },
     { label: 'Access until', value: formatAccessDate(renewsOn) },
     { label: 'Method', value: methodLabel(payment.provider) },
+    { label: 'TIN', value: COMPANY_LEGAL.tin },
   );
 
   return (
@@ -127,7 +131,9 @@ export function InvoiceDocument({
         </View>
 
         <Text className="mt-5 text-center text-[11px] leading-4 text-ash-grey-400">
-          MiraFood by Vitaway Health · Questions? Contact support via mirafood.vitaway.org
+          {COMPANY_LEGAL.name} · TIN {COMPANY_LEGAL.tin} · {COMPANY_LEGAL.city}
+          {'\n'}
+          Times shown in Africa/Kigali · mirafood.vitaway.org
         </Text>
       </View>
     </View>

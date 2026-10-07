@@ -474,7 +474,34 @@ export default function OnboardingScreen() {
   const renderFormContent = () => {
     if (step === 'photo') {
       return (
-        <View className="w-full gap-5">
+        <View className="w-full gap-6">
+          <View className="items-center gap-3">
+            <Pressable
+              onPress={() => setPhotoMenuOpen(true)}
+              accessibilityRole="button"
+              accessibilityLabel={avatarUrl ? 'Change photo' : 'Add photo'}
+              className="h-28 w-28 items-center justify-center overflow-hidden rounded-full border-[3px] border-blue-spruce-400/50 bg-blue-spruce-600/10">
+              {avatarUrl ? (
+                <Image source={{ uri: avatarUrl }} className="h-full w-full" resizeMode="cover" />
+              ) : (
+                <Ionicons name="person" size={48} color="#1a3a2a" />
+              )}
+            </Pressable>
+            <Button
+              label={avatarUrl ? 'Change photo' : 'Add photo'}
+              leadingIcon={Plus}
+              onPress={() => setPhotoMenuOpen(true)}
+              variant="primary"
+              size="md"
+            />
+            {avatarUrl ? (
+              <Pressable onPress={() => setAvatarUrl(undefined)}>
+                <Text className="text-sm font-sans-semibold text-blue-spruce-700/70">
+                  Remove photo
+                </Text>
+              </Pressable>
+            ) : null}
+          </View>
           <FieldInput
             label={t.onboarding.yourName}
             value={displayName}
@@ -482,33 +509,6 @@ export default function OnboardingScreen() {
             autoCapitalize="words"
             placeholder={t.onboarding.namePlaceholder}
           />
-          <View className="flex-row items-center gap-3">
-            <View className="min-w-0 flex-1 gap-2">
-              <Button
-                label={avatarUrl ? 'Change photo' : 'Add photo'}
-                leadingIcon={Plus}
-                onPress={() => setPhotoMenuOpen(true)}
-                variant="secondary"
-                fullWidth
-              />
-              {avatarUrl ? (
-                <Pressable onPress={() => setAvatarUrl(undefined)}>
-                  <Text className="text-center text-sm font-sans-semibold text-neutral-500">
-                    Remove photo
-                  </Text>
-                </Pressable>
-              ) : null}
-            </View>
-            <Pressable
-              onPress={() => setPhotoMenuOpen(true)}
-              className="h-20 w-20 items-center justify-center overflow-hidden rounded-full border-2 border-blue-spruce-200 bg-blue-spruce-50">
-              {avatarUrl ? (
-                <Image source={{ uri: avatarUrl }} className="h-full w-full" resizeMode="cover" />
-              ) : (
-                <Ionicons name="person" size={36} color="#1f3a56" />
-              )}
-            </Pressable>
-          </View>
           <PhotoSourceMenu
             visible={photoMenuOpen}
             onClose={() => setPhotoMenuOpen(false)}
@@ -679,7 +679,7 @@ export default function OnboardingScreen() {
   const renderStepLead = () => {
     if (step === 'summary') return null;
     return (
-      <Text className="mb-4 text-center text-[15px] leading-6 text-neutral-500">
+      <Text className="mb-5 text-center text-[15px] leading-6 text-blue-spruce-700/75">
         {stepMeta[step].description}
       </Text>
     );
@@ -717,10 +717,10 @@ export default function OnboardingScreen() {
         keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ paddingTop: 4, paddingBottom: 24 }}>
         {step !== 'summary' ? (
-          <View className="mb-3 w-full items-center">
+          <View className="mb-2 w-full items-center">
             <Image
               source={getOnboardingStepHero(step, sex)}
-              style={{ width: '100%', height: 168 }}
+              style={{ width: '100%', height: 180 }}
               resizeMode="contain"
             />
           </View>

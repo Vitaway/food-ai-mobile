@@ -16,8 +16,30 @@ export type PaymentReceiptInput = {
   paymentMethod?: string | null;
 };
 
+const COMPANY = {
+  name: "Vitaway Health",
+  tin: process.env.COMPANY_TIN?.trim() || "109912345",
+  city: "Kigali, Rwanda",
+  timezone: "Africa/Kigali",
+} as const;
+
 function formatMoney(amount: number, currency: string) {
   return `${Math.round(amount).toLocaleString("en-RW")} ${currency}`;
+}
+
+function formatPaidAt(value: Date) {
+  return value.toLocaleString("en-GB", {
+    timeZone: COMPANY.timezone,
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function formatAccessDate(value: string | null) {
+  if (!value) return "—";
+  return new Date(value).toLocaleDateString("en-GB", {
+    timeZone: COMPANY.timezone,
+  });
 }
 
 /** Professional MiraFood payment receipt PDF. */
@@ -29,7 +51,7 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const navy = "#023459";
+    const navy = "#1a3a2a";
     const green = "#1d9e75";
     const muted = "#696e5e";
     const logoPath = resolveEmailLogoPath();
@@ -67,7 +89,7 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
       );
 
     const boxTop = 180;
-    doc.roundedRect(48, boxTop, 500, 210, 8).strokeColor("#ced0c8").lineWidth(1).stroke();
+    doc.roundedRect(48, boxTop, 500, 230, 8).strokeColor("#ced0c8").lineWidth(1).stroke();
 
     const primaryLabel =
       input.invoiceNumber && input.invoiceNumber === input.receiptNumber ? "Invoice" : "Receipt";
@@ -83,12 +105,13 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
       ["Email", input.customerEmail],
       ["Plan", `${input.planLabel} (${input.planCode})`],
       ["Amount paid", formatMoney(input.amount, input.currency)],
-      ["Paid at", input.paidAt.toLocaleString("en-GB", { dateStyle: "medium", timeStyle: "short" })],
-      ["Access until", input.renewsOn ? new Date(input.renewsOn).toLocaleDateString("en-GB") : "—"],
+      ["Paid at", formatPaidAt(input.paidAt)],
+      ["Access until", formatAccessDate(input.renewsOn)],
       ["Method", input.paymentMethod?.trim() || "IremboPay"],
+      ["TIN", COMPANY.tin],
     );
 
-    let y = boxTop + 18;
+    let y = boxTop + 16;
     for (const [label, value] of rows) {
       doc.fillColor(muted).fontSize(9).font("Helvetica").text(label.toUpperCase(), 64, y, { width: 140 });
       doc.fillColor(navy).fontSize(10).font("Helvetica-Bold").text(value, 210, y, { width: 310 });
@@ -96,7 +119,7 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
     }
 
     doc
-      .roundedRect(48, 420, 500, 56, 8)
+      .roundedRect(48, 440, 500, 56, 8)
       .fillOpacity(0.08)
       .fillAndStroke(green, green)
       .fillOpacity(1);
@@ -104,16 +127,26 @@ export async function buildPaymentReceiptPdf(input: PaymentReceiptInput): Promis
       .fillColor(green)
       .fontSize(12)
       .font("Helvetica-Bold")
-      .text(`Total paid: ${formatMoney(input.amount, input.currency)}`, 64, 440);
+      .text(`Total paid: ${formatMoney(input.amount, input.currency)}`, 64, 460);
 
     doc
       .fillColor(muted)
       .fontSize(9)
       .font("Helvetica")
       .text(
-        "MiraFood by Vitaway Health · Questions? Contact support via mirafood.vitaway.org/support",
+        `${COMPANY.name} · TIN ${COMPANY.tin} · ${COMPANY.city}`,
         48,
-        760,
+        740,
+        { width: 500, align: "center" },
+      );
+    doc
+      .fillColor(muted)
+      .fontSize(8)
+      .font("Helvetica")
+      .text(
+        "Times shown in Africa/Kigali · Questions? mirafood.vitaway.org/support",
+        48,
+        756,
         { width: 500, align: "center" },
       );
 

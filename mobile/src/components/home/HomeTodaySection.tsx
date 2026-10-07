@@ -39,6 +39,8 @@ export function HomeTodaySection({
         ? t.home.mealsLoggedOne
         : tf(t.home.mealsLoggedMany, { n: mealCount });
 
+  const showHeader = Boolean(title);
+
   return (
     <View
       className="mb-4 rounded-3xl bg-white p-5"
@@ -49,37 +51,41 @@ export function HomeTodaySection({
         shadowRadius: 16,
         elevation: 2,
       }}>
-      <View className="mb-4 flex-row items-center justify-between">
-        <View className="flex-1">
-          <Text className={cn('text-2xl text-neutral-900', DISPLAY_TITLE_CLASS)}>{title}</Text>
-          <Text className="mt-0.5 text-sm text-neutral-500">{mealsLoggedLabel}</Text>
-        </View>
+      {showHeader ? (
+        <View className="mb-4 flex-row items-center justify-between">
+          <View className="flex-1">
+            <Text className={cn('text-2xl text-neutral-900', DISPLAY_TITLE_CLASS)}>{title}</Text>
+            <Text className="mt-0.5 text-sm text-neutral-500">{mealsLoggedLabel}</Text>
+          </View>
 
-        <View className="items-center justify-center" style={{ width: size, height: size }}>
-          <Svg width={size} height={size} style={{ position: 'absolute' }}>
-            <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#E8EAE4" strokeWidth={stroke} fill="none" />
-            <Circle
-              cx={size / 2}
-              cy={size / 2}
-              r={radius}
-              stroke={semanticColors.accentOrange}
-              strokeWidth={stroke}
-              fill="none"
-              strokeDasharray={`${circumference} ${circumference}`}
-              strokeDashoffset={strokeDashoffset}
-              strokeLinecap="round"
-              rotation={-90}
-              origin={`${size / 2}, ${size / 2}`}
-            />
-          </Svg>
-          <Text className="font-sans-bold text-sm text-neutral-900">{mealCount}</Text>
+          <View className="items-center justify-center" style={{ width: size, height: size }}>
+            <Svg width={size} height={size} style={{ position: 'absolute' }}>
+              <Circle cx={size / 2} cy={size / 2} r={radius} stroke="#E8EAE4" strokeWidth={stroke} fill="none" />
+              <Circle
+                cx={size / 2}
+                cy={size / 2}
+                r={radius}
+                stroke={semanticColors.primary}
+                strokeWidth={stroke}
+                fill="none"
+                strokeDasharray={`${circumference} ${circumference}`}
+                strokeDashoffset={strokeDashoffset}
+                strokeLinecap="round"
+                rotation={-90}
+                origin={`${size / 2}, ${size / 2}`}
+              />
+            </Svg>
+            <Text className="font-sans-bold text-sm text-neutral-900">{mealCount}</Text>
+          </View>
         </View>
-      </View>
+      ) : (
+        <Text className="mb-3 text-sm text-neutral-500">{mealsLoggedLabel}</Text>
+      )}
 
       {meals.length > 0 ? (
         <MealTimeline dateLabel="" meals={meals} onMealPress={onMealPress} />
       ) : (
-        <View className="rounded-2xl border border-dashed border-ash-grey-200 bg-ash-grey-50 px-4 py-8">
+        <View className="rounded-2xl border border-dashed border-ash-grey-300 bg-ash-grey-50 px-4 py-8">
           <Text className="text-center font-sans-semibold text-neutral-700">{t.home.nothingLoggedYet}</Text>
           <Text className="mt-1 text-center text-sm text-neutral-500">{t.home.nothingLoggedHint}</Text>
         </View>
@@ -88,8 +94,8 @@ export function HomeTodaySection({
       <Pressable
         onPress={onAddMeal}
         className="mt-3 flex-row items-center justify-center gap-2 rounded-2xl border border-dashed border-ash-grey-300 py-3 active:bg-ash-grey-50">
-        <Ionicons name="add-circle-outline" size={20} color={semanticColors.accentOrange} />
-        <Text className="font-sans-semibold text-sm text-cinnamon-wood-400">{t.home.logAnotherMeal}</Text>
+        <Ionicons name="add-circle-outline" size={20} color={semanticColors.primary} />
+        <Text className="font-sans-semibold text-sm text-blue-spruce-700">{t.home.logAnotherMeal}</Text>
       </Pressable>
     </View>
   );

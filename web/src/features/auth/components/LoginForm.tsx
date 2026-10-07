@@ -57,6 +57,7 @@ export function LoginForm({ login, toast }: LoginFormProps) {
       {!challengeToken ? (
         <>
           <TextField
+            variant="line"
             label="Email"
             type="email"
             name="email"
@@ -68,6 +69,7 @@ export function LoginForm({ login, toast }: LoginFormProps) {
           />
 
           <TextField
+            variant="line"
             label="Password"
             type="password"
             name="password"
@@ -79,28 +81,29 @@ export function LoginForm({ login, toast }: LoginFormProps) {
           />
 
           <div className="flex items-center justify-between gap-4 pt-0.5">
-            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-ash-grey-600">
+            <label className="flex cursor-pointer items-center gap-2.5 text-sm text-mira-muted">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-ash-grey-300 text-blue-spruce-600 focus:ring-blue-spruce-400"
+                className="h-4 w-4 rounded border-mira-line text-mira-black focus:ring-mira-green"
               />
               Remember me
             </label>
             <Link
               to={AUTH_ROUTES.forgotPassword}
-              className="text-sm text-blue-spruce-600 hover:text-blue-spruce-700 hover:underline">
+              className="text-sm text-mira-black hover:text-mira-green hover:underline">
               Forgot password?
             </Link>
           </div>
         </>
       ) : (
         <>
-          <p className="text-sm text-ash-grey-600">
+          <p className="text-sm text-mira-muted">
             Enter the 6-digit code sent to <span className="font-semibold">{email}</span>.
           </p>
           <TextField
+            variant="line"
             label="Verification code"
             type="text"
             name="mfaCode"
@@ -112,11 +115,11 @@ export function LoginForm({ login, toast }: LoginFormProps) {
             placeholder="6-digit code"
           />
           {debugHint ? (
-            <p className="text-xs text-ash-grey-500">Dev code: {debugHint}</p>
+            <p className="text-xs text-mira-muted">Dev code: {debugHint}</p>
           ) : null}
           <button
             type="button"
-            className="text-sm text-blue-spruce-600 hover:underline"
+            className="text-sm text-mira-green hover:underline"
             onClick={() => {
               setChallengeToken(null);
               setMfaCode('');
@@ -133,6 +136,6 @@ export function LoginForm({ login, toast }: LoginFormProps) {
 export const LOGIN_FORM_ID = FORM_ID;
 
 export function loginSubmitLabel(pending: boolean, mfaStep = false) {
-  if (pending) return mfaStep ? 'Verifying…' : 'Signing in…';
-  return mfaStep ? 'Verify code' : 'Sign in';
+  if (pending) return mfaStep ? 'Verifying…' : 'Logging in…';
+  return mfaStep ? 'Verify code' : 'Login';
 }

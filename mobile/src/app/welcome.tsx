@@ -62,7 +62,7 @@ export default function WelcomeScreen() {
     });
 
   return (
-    <View className="flex-1 bg-white" style={{ paddingTop: insets.top + 8 }}>
+    <View className="flex-1 bg-ash-grey-50" style={{ paddingTop: insets.top + 8 }}>
       <StatusBar style="dark" />
 
       <Animated.View entering={FadeIn.duration(400)} className="mt-2 items-center px-5">
@@ -79,11 +79,17 @@ export default function WelcomeScreen() {
               entering={FadeIn.duration(280)}
               exiting={FadeOut.duration(180)}
               className="w-full items-center">
-              <Image source={SLIDE_IMAGES[index]} className="h-[240px] w-[240px]" resizeMode="contain" />
+              <Image
+                source={SLIDE_IMAGES[index]}
+                style={{ width: 240, height: 240, backgroundColor: 'transparent' }}
+                resizeMode="contain"
+              />
               <Text className="mt-4 text-center font-sans-bold text-[28px] leading-9 text-neutral-900">
                 {slide.title}
               </Text>
-              <Text className="mt-3 text-center text-[16px] leading-6 text-neutral-500">{slide.body}</Text>
+              <Text className="mt-3 text-center text-[16px] leading-6 text-neutral-500">
+                {slide.body}
+              </Text>
             </Animated.View>
           ) : null}
         </View>
@@ -97,11 +103,13 @@ export default function WelcomeScreen() {
           <LanguageSwitcher variant="labeled" />
         </View>
 
-        <View className="mb-6 flex-row items-center justify-center gap-2">
+        <View className="mb-5 flex-row items-center justify-center gap-2">
           {slides.map((_, i) => (
             <Pressable key={`dot-${i}`} hitSlop={10} onPress={() => goToAndResetTimer(i)}>
               <View
-                className={`h-2 rounded-full ${i === index ? 'w-7 bg-blue-spruce-700' : 'w-2 bg-blue-spruce-200'}`}
+                className={`h-2 rounded-full ${
+                  i === index ? 'w-7 bg-blue-spruce-700' : 'w-2 bg-blue-spruce-200'
+                }`}
               />
             </Pressable>
           ))}
@@ -109,14 +117,16 @@ export default function WelcomeScreen() {
 
         <Pressable
           onPress={() => push('/auth/register' as Href)}
-          className="h-14 items-center justify-center rounded-2xl bg-blue-spruce-700 active:opacity-90">
+          accessibilityRole="button"
+          className="h-12 items-center justify-center rounded-xl bg-blue-spruce-600 active:opacity-90">
           <Text className="font-sans-semibold text-[16px] text-white">{t.welcome.getStarted}</Text>
         </Pressable>
 
         <Pressable
           onPress={() => push('/auth/login' as Href)}
-          className="mt-3 h-14 items-center justify-center rounded-2xl border border-blue-spruce-200 bg-white active:opacity-90">
-          <Text className="font-sans-semibold text-[16px] text-blue-spruce-800">{t.auth.logIn}</Text>
+          accessibilityRole="button"
+          className="mt-3 h-12 items-center justify-center rounded-xl border-[1.5px] border-black bg-white active:opacity-90">
+          <Text className="font-sans-semibold text-[16px] text-black">{t.auth.logIn}</Text>
         </Pressable>
       </Animated.View>
     </View>

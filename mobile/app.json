@@ -2,7 +2,7 @@
   "expo": {
     "name": "MiraFood",
     "slug": "food-ai",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "mirafood",
@@ -10,12 +10,14 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vitaway.foodai",
-      "buildNumber": "6",
+      "buildNumber": "32",
       "usesAppleSignIn": true,
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "MiraFood needs photo access to log meals from your gallery.",
         "NSPhotoLibraryAddUsageDescription": "MiraFood may save meal photos to your photo library.",
         "NSCameraUsageDescription": "MiraFood uses your camera to scan barcodes and photograph meals.",
+        "NSSpeechRecognitionUsageDescription": "MiraFood uses speech recognition so you can describe meals by speaking.",
+        "NSMicrophoneUsageDescription": "MiraFood uses the microphone so you can speak your meals.",
         "ITSAppUsesNonExemptEncryption": false,
         "UIBackgroundModes": [
           "remote-notification"
@@ -41,6 +43,7 @@
       },
       "permissions": [
         "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
         "android.permission.POST_NOTIFICATIONS"
       ]
     },
@@ -75,8 +78,16 @@
         "expo-camera",
         {
           "cameraPermission": "MiraFood uses your camera to scan barcodes and log meals.",
-          "microphonePermission": false,
-          "recordAudioAndroid": false
+          "microphonePermission": "MiraFood uses the microphone so you can speak your meals.",
+          "recordAudioAndroid": true
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "MiraFood uses the microphone so you can speak your meals.",
+          "speechRecognitionPermission": "MiraFood uses speech recognition so you can describe meals by speaking.",
+          "androidSpeechServicePackages": ["com.google.android.googlequicksearchbox"]
         }
       ],
       [

@@ -24,37 +24,37 @@ export const differentiators = [
     title: 'Coach-verified data',
     desc: 'Unlike generic calorie apps, every number in your diary is approved by a real nutrition coach.',
     icon: '✓',
-    color: 'bg-shamrock-500',
+    color: 'bg-mira-green',
   },
   {
     title: 'Expert-led workflow',
     desc: 'Designed with coaches and clinicians in mind; review queues, patient file IDs, and client context.',
     icon: '◎',
-    color: 'bg-blue-spruce-600',
+    color: 'bg-mira-green',
   },
   {
     title: 'AI portion intelligence',
     desc: 'Photo-based plate detection and smart analysis; with your description when the photo is unclear.',
     icon: '◉',
-    color: 'bg-cinnamon-wood-400',
+    color: 'bg-mira-black',
   },
   {
     title: 'Built for outcomes',
     desc: 'Track macros, water, streaks, and insights over time; closing the loop between logging and change.',
     icon: '↗',
-    color: 'bg-blue-spruce-700',
+    color: 'bg-mira-black',
   },
   {
     title: 'Privacy first',
     desc: 'Your health data is protected. We do not sell identifiable information. See our privacy policy.',
     icon: '🔒',
-    color: 'bg-ash-grey-700',
+    color: 'bg-mira-green',
   },
   {
     title: 'Trusted in Rwanda',
     desc: 'Partnering with public health institutions to bring evidence-based nutrition support at scale.',
     icon: '🇷🇼',
-    color: 'bg-shamrock-600',
+    color: 'bg-mira-green',
   },
 ] as const;
 

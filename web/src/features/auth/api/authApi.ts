@@ -173,6 +173,37 @@ export async function resetPasswordWithOtp(
   });
 }
 
+export async function signInWithGoogle(identityToken: string): Promise<AuthSession> {
+  try {
+    const data = await apiRequest<AuthResponse>('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ identityToken }),
+    });
+    return mapAuthResponse(data, true);
+  } catch (error) {
+    toAuthError(error);
+  }
+}
+
+export async function signInWithApple(
+  identityToken: string,
+  extras?: { fullName?: string; email?: string },
+): Promise<AuthSession> {
+  try {
+    const data = await apiRequest<AuthResponse>('/auth/apple', {
+      method: 'POST',
+      body: JSON.stringify({
+        identityToken,
+        fullName: extras?.fullName,
+        email: extras?.email,
+      }),
+    });
+    return mapAuthResponse(data, true);
+  } catch (error) {
+    toAuthError(error);
+  }
+}
+
 export async function logoutCoach(): Promise<void> {
   try {
     await apiRequest<{ ok: boolean }>('/auth/logout', { method: 'POST' });

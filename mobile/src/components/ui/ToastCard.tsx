@@ -9,7 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { fonts } from '@/constants/fonts';
-import { palette } from '@/design-system/colors';
+import { palette, semanticColors } from '@/design-system/colors';
 
 export type ToastType = 'success' | 'error' | 'info';
 
@@ -25,21 +25,24 @@ export type ToastItem = {
 
 export const TOAST_VISUALS: Record<
   ToastType,
-  { icon: keyof typeof Ionicons.glyphMap; accent: string; label: string }
+  { icon: keyof typeof Ionicons.glyphMap; accent: string; soft: string; label: string }
 > = {
   success: {
     icon: 'checkmark-circle',
     accent: palette.shamrock[600],
+    soft: palette.shamrock[50],
     label: 'Success',
   },
   error: {
     icon: 'alert-circle',
     accent: palette['cinnamon-wood'][600],
+    soft: palette['cinnamon-wood'][50],
     label: 'Error',
   },
   info: {
     icon: 'information-circle',
-    accent: palette['blue-spruce'][600],
+    accent: semanticColors.primary,
+    soft: palette['blue-spruce'][50],
     label: 'Info',
   },
 };
@@ -61,23 +64,23 @@ export function ToastCard({ toast, onDismiss }: ToastCardProps) {
       entering={FadeInDown.springify().damping(18).stiffness(220)}
       exiting={FadeOutUp.duration(180)}
       layout={LinearTransition.springify()}
-      style={styles.shadowWrap}>
-      <View style={styles.shadow} />
+      style={styles.wrap}>
       <View style={styles.card}>
-        <View style={[styles.accentBar, { backgroundColor: visual.accent }]} />
+        <View style={[styles.iconWrap, { backgroundColor: visual.soft }]}>
+          <Ionicons name={visual.icon} size={20} color={visual.accent} />
+        </View>
         <View style={styles.content}>
           <View style={styles.headerRow}>
-            <View style={styles.titleRow}>
-              <Ionicons name={visual.icon} size={18} color={visual.accent} />
-              <Animated.Text style={styles.title}>{toast.title ?? visual.label}</Animated.Text>
-            </View>
+            <Animated.Text style={styles.title} numberOfLines={1}>
+              {toast.title ?? visual.label}
+            </Animated.Text>
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Dismiss notification"
               hitSlop={10}
               onPress={() => onDismiss(toast.id)}
               style={styles.closeButton}>
-              <Ionicons name="close" size={16} color={palette['ash-grey'][500]} />
+              <Ionicons name="close" size={18} color={palette['ash-grey'][400]} />
             </Pressable>
           </View>
           <Animated.Text style={styles.message}>{toast.message}</Animated.Text>
@@ -95,8 +98,8 @@ function IncomingBanner({ toast, onDismiss }: ToastCardProps) {
       entering={SlideInDown.springify().damping(20).stiffness(240)}
       exiting={SlideOutUp.duration(200)}
       layout={LinearTransition.springify()}
-      style={bannerStyles.wrap}>
-      <View style={bannerStyles.card}>
+      style={styles.wrap}>
+      <View style={styles.card}>
         <Pressable
           onPress={() => {
             onDismiss(toast.id);
@@ -105,15 +108,15 @@ function IncomingBanner({ toast, onDismiss }: ToastCardProps) {
           style={bannerStyles.main}
           accessibilityRole="button"
           accessibilityLabel={`${toast.title ?? 'Notification'}. ${toast.message}`}>
-          <View style={[bannerStyles.iconWrap, { backgroundColor: `${visual.accent}18` }]}>
+          <View style={[styles.iconWrap, { backgroundColor: visual.soft }]}>
             <Ionicons name="notifications" size={20} color={visual.accent} />
           </View>
-          <View style={bannerStyles.copy}>
+          <View style={styles.content}>
             <Animated.Text style={bannerStyles.appLabel}>MiraFood</Animated.Text>
-            <Animated.Text style={bannerStyles.title} numberOfLines={1}>
+            <Animated.Text style={styles.title} numberOfLines={1}>
               {toast.title ?? 'Notification'}
             </Animated.Text>
-            <Animated.Text style={bannerStyles.message} numberOfLines={2}>
+            <Animated.Text style={styles.message} numberOfLines={2}>
               {toast.message}
             </Animated.Text>
           </View>
@@ -123,7 +126,7 @@ function IncomingBanner({ toast, onDismiss }: ToastCardProps) {
           accessibilityLabel="Dismiss"
           hitSlop={12}
           onPress={() => onDismiss(toast.id)}
-          style={bannerStyles.close}>
+          style={styles.closeButton}>
           <Ionicons name="close" size={18} color={palette['ash-grey'][400]} />
         </Pressable>
       </View>
@@ -131,99 +134,25 @@ function IncomingBanner({ toast, onDismiss }: ToastCardProps) {
   );
 }
 
-const SHADOW_OFFSET = 4;
-const INK = palette['blue-spruce'][900];
-
 const styles = StyleSheet.create({
-  shadowWrap: {
-    position: 'relative',
-    paddingRight: SHADOW_OFFSET,
-    paddingBottom: SHADOW_OFFSET,
-  },
-  shadow: {
-    position: 'absolute',
-    top: SHADOW_OFFSET,
-    left: SHADOW_OFFSET,
-    right: 0,
-    bottom: 0,
-    backgroundColor: INK,
-    borderRadius: 2,
-  },
-  card: {
-    flexDirection: 'row',
-    overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: INK,
-    borderRadius: 2,
-    backgroundColor: '#ffffff',
-    width: '100%',
-  },
-  accentBar: {
-    width: 4,
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flex: 1,
-  },
-  title: {
-    fontFamily: fonts.sans,
-    fontSize: 13,
-    lineHeight: 18,
-    color: palette['ash-grey'][900],
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  closeButton: {
-    marginTop: 1,
-  },
-  message: {
-    marginTop: 4,
-    fontFamily: fonts.sans,
-    fontSize: 14,
-    lineHeight: 20,
-    color: palette['ash-grey'][600],
-  },
-});
-
-const bannerStyles = StyleSheet.create({
   wrap: {
     width: '100%',
   },
   card: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    borderRadius: 22,
+    gap: 12,
+    borderRadius: 20,
     backgroundColor: '#ffffff',
-    paddingLeft: 14,
-    paddingRight: 8,
+    paddingHorizontal: 14,
     paddingVertical: 14,
     borderWidth: 1,
-    borderColor: palette['ash-grey'][100],
-    shadowColor: palette['blue-spruce'][900],
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.16,
-    shadowRadius: 24,
-    elevation: 10,
-  },
-  main: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    minWidth: 0,
+    borderColor: palette['ash-grey'][200],
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 12,
   },
   iconWrap: {
     height: 40,
@@ -232,10 +161,48 @@ const bannerStyles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  copy: {
+  content: {
     flex: 1,
     minWidth: 0,
     paddingTop: 1,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  title: {
+    flex: 1,
+    fontFamily: fonts.sansBold,
+    fontSize: 15,
+    lineHeight: 20,
+    color: semanticColors.primary,
+  },
+  closeButton: {
+    height: 28,
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -2,
+    marginRight: -4,
+  },
+  message: {
+    marginTop: 3,
+    fontFamily: fonts.sans,
+    fontSize: 14,
+    lineHeight: 20,
+    color: palette['ash-grey'][600],
+  },
+});
+
+const bannerStyles = StyleSheet.create({
+  main: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    minWidth: 0,
   },
   appLabel: {
     fontFamily: fonts.sans,
@@ -245,25 +212,5 @@ const bannerStyles = StyleSheet.create({
     textTransform: 'uppercase',
     color: palette['ash-grey'][400],
     marginBottom: 2,
-  },
-  title: {
-    fontFamily: fonts.sansExtraBold,
-    fontSize: 15,
-    lineHeight: 20,
-    color: palette['blue-spruce'][900],
-  },
-  message: {
-    marginTop: 3,
-    fontFamily: fonts.sans,
-    fontSize: 14,
-    lineHeight: 20,
-    color: palette['ash-grey'][600],
-  },
-  close: {
-    marginTop: 2,
-    height: 28,
-    width: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

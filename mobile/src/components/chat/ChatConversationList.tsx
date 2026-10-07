@@ -5,6 +5,7 @@ import { ChatListAvatar } from '@/components/chat/ChatAvatar';
 import { chatTheme } from '@/components/chat/chatTheme';
 import { FreePlanBanner } from '@/components/subscription/FreePlanBanner';
 import { Text } from '@/components/ui/Text';
+import { resolveCoachDisplayName } from '@/constants/coach';
 import { useI18n } from '@/context/LocaleContext';
 import { semanticColors } from '@/design-system/colors';
 import type { ChatConversation } from '@/services/remote/chatApi';
@@ -23,13 +24,14 @@ type ChatConversationListProps = {
 function ConversationRow({ conv, onPress }: { conv: ChatConversation; onPress: () => void }) {
   const { t } = useI18n();
   const hasUnread = conv.unreadCount > 0;
+  const displayTitle = resolveCoachDisplayName(conv.title);
 
   return (
     <Pressable
       onPress={onPress}
       className="flex-row items-center gap-3 px-4 py-3 active:bg-black/5"
       style={{ borderBottomWidth: 1, borderBottomColor: chatTheme.listDivider }}>
-      <ChatListAvatar name={conv.title} imageUrl={conv.peerAvatarUrl} />
+      <ChatListAvatar name={displayTitle} imageUrl={conv.peerAvatarUrl} />
 
       <View className="min-w-0 flex-1">
         <View className="flex-row items-center justify-between gap-2">
@@ -37,7 +39,7 @@ function ConversationRow({ conv, onPress }: { conv: ChatConversation; onPress: (
             className={hasUnread ? 'font-sans-bold text-[16px]' : 'font-sans-semibold text-[16px]'}
             style={{ color: '#111b21' }}
             numberOfLines={1}>
-            {conv.title}
+            {displayTitle}
           </Text>
           {conv.lastMessageAt ? (
             <Text
@@ -149,7 +151,7 @@ export function ChatConversationList({
                 pathname: '/chat/[id]',
                 params: {
                   id: conv.id,
-                  title: conv.title,
+                  title: resolveCoachDisplayName(conv.title),
                   peerAvatarUrl: conv.peerAvatarUrl ?? '',
                 },
               })

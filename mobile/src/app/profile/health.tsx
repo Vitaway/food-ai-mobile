@@ -163,7 +163,7 @@ export default function HealthProfileScreen() {
               <View className="flex-row items-center gap-1.5 rounded-full bg-blue-spruce-600 py-2 pl-3.5 pr-2.5">
                 <Text className="font-sans-semibold text-sm text-white">Open</Text>
                 <View className="h-7 w-7 items-center justify-center rounded-full bg-white">
-                  <Ionicons name="arrow-forward" size={16} color="#023459" />
+                  <Ionicons name="arrow-forward" size={16} color="#1a3a2a" />
                 </View>
               </View>
             </View>

@@ -1,6 +1,7 @@
 import type { MealSubmission } from "./meal-submission.entity";
 import type { MealCoachReview } from "./meal-coach-review.entity";
 import { asDetectedItems, sumNutrition } from "./nutrition.util";
+import { honestyFromMealData } from "./meal-honesty.util";
 
 function sanitizeImageUrl(url: unknown): string | undefined {
   if (typeof url !== "string" || !url.trim()) return undefined;
@@ -152,14 +153,23 @@ export function mealToConsumerDto(
 ) {
   const effective = effectiveMealFields(meal, review);
   const awaitingCoach = meal.status === "in_review";
-  // Patients must not see provisional macros / item breakdown until coach confirms.
-  // Prefer the AI dish title (mealName) over the raw note/description.
+  const honesty = honestyFromMealData(meal.data, {
+    mealType: meal.mealType,
+    status: meal.status,
+  });
+  // Prefer AI dish title over raw note. Show estimate nutrition when items exist.
   const mealName = awaitingCoach
     ? ((typeof meal.data.mealName === "string" ? meal.data.mealName.trim() : "") ||
         (meal.data.note as string | undefined)?.trim() ||
         (meal.data.textInput as string | undefined)?.trim() ||
         "Meal")
     : effective.mealName;
+
+  const items = honesty.items.length ? honesty.items : effective.items;
+  const hasEstimateNutrition = items.length > 0;
+  const hideStubNutrition = awaitingCoach && !hasEstimateNutrition;
+  const totalNutrition =
+    effective.totalNutrition ?? (items.length ? sumNutrition(items) : undefined);
 
   return {
     id: meal.id,
@@ -173,14 +183,18 @@ export function mealToConsumerDto(
     textInput: meal.data.textInput as string | undefined,
     note: meal.data.note as string | undefined,
     mealName,
-    items: awaitingCoach ? [] : effective.items,
-    totalNutrition: awaitingCoach ? undefined : effective.totalNutrition,
-    confidenceAvg: awaitingCoach ? undefined : (meal.data.confidenceAvg as number | undefined),
-    healthFlag: awaitingCoach ? undefined : (meal.data.healthFlag as string | undefined),
+    items: hideStubNutrition ? [] : items,
+    totalNutrition: hideStubNutrition ? undefined : totalNutrition,
+    confidenceAvg: hideStubNutrition
+      ? undefined
+      : (meal.data.confidenceAvg as number | undefined),
+    healthFlag: hideStubNutrition ? undefined : (meal.data.healthFlag as string | undefined),
     healthMessage: awaitingCoach
-      ? "Your coach is reviewing this meal."
+      ? hasEstimateNutrition
+        ? "Estimate until your coach confirms — numbers may change."
+        : "Your coach is reviewing this meal."
       : (meal.data.healthMessage as string | undefined),
-    petals: awaitingCoach ? undefined : meal.data.petals,
+    petals: hideStubNutrition ? undefined : meal.data.petals,
     fraudCheckResult: meal.data.fraudCheckResult,
     mealClassification: meal.data.mealClassification,
     modelVersion: meal.data.modelVersion,
@@ -188,6 +202,9 @@ export function mealToConsumerDto(
     manualReviewRequired: meal.data.manualReviewRequired,
     manualReviewReason: meal.data.manualReviewReason,
     coachReview: awaitingCoach ? undefined : effective.coachReview,
+    logSource: honesty.logSource,
+    balancedPlate: hideStubNutrition ? null : honesty.balancedPlate,
+    estimateRange: hideStubNutrition || meal.status === "approved" ? null : honesty.estimateRange,
   };
 }
 

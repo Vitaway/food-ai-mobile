@@ -4,6 +4,7 @@ import DateTimePicker, { type DateTimePickerEvent } from '@react-native-communit
 import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
+import { FieldWell } from '@/components/ui/FieldInput';
 import { ageFromDateOfBirth, isValidDateOfBirth } from '@/utils/dateOfBirth';
 
 function clampBirthDate(date: Date) {
@@ -91,19 +92,21 @@ export function DateOfBirthInput({
 
   return (
     <View>
-      <Text className="font-sans-medium text-sm text-neutral-700">Date of birth</Text>
-      <Pressable
-        onPress={openPicker}
-        accessibilityRole="button"
-        accessibilityLabel="Select date of birth"
-        className="mt-2 flex-row items-center justify-between rounded-2xl border border-ash-grey-200 bg-ash-grey-50 px-4 py-4 active:opacity-90">
-        <Text className={`text-[16px] font-sans-semibold ${label ? 'text-neutral-900' : 'text-neutral-400'}`}>
-          {label ?? 'Select date'}
-        </Text>
-        <Ionicons name="calendar-outline" size={22} color="#1f3a56" />
-      </Pressable>
+      <Text className="font-sans-semibold text-sm text-blue-spruce-800">Date of birth</Text>
+      <FieldWell>
+        <Pressable
+          onPress={openPicker}
+          accessibilityRole="button"
+          accessibilityLabel="Select date of birth"
+          className="min-h-[44px] flex-row items-center justify-between active:opacity-90">
+          <Text className={`text-[16px] font-sans-semibold ${label ? 'text-blue-spruce-900' : 'text-[#6b7a52]'}`}>
+            {label ?? 'Select date'}
+          </Text>
+          <Ionicons name="calendar-outline" size={22} color="#1a3a2a" />
+        </Pressable>
+      </FieldWell>
       {complete ? (
-        <Text className="mt-2 text-sm text-neutral-500">Age {ageFromDateOfBirth(value)}</Text>
+        <Text className="mt-2 text-sm text-blue-spruce-700/70">Age {ageFromDateOfBirth(value)}</Text>
       ) : null}
 
       {Platform.OS === 'android' && open ? (

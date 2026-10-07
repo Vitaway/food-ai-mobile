@@ -3,6 +3,7 @@ import { Modal, Pressable, ScrollView, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Text } from '@/components/ui/Text';
+import { fonts } from '@/constants/fonts';
 import {
   COUNTRY_DIAL_CODES,
   countryFlagEmoji,
@@ -51,10 +52,15 @@ export function PhoneField({ label, value, onChange, hint }: PhoneFieldProps) {
   return (
     <View>
       <Text className="mb-2 text-sm font-sans-medium text-neutral-700">{label}</Text>
-      <View className="flex-row overflow-hidden rounded-2xl border border-ash-grey-100 bg-white">
+      <View
+        className="flex-row items-center"
+        style={{
+          borderBottomWidth: 1.5,
+          borderBottomColor: '#b8c98a',
+        }}>
         <Pressable
           onPress={() => setOpen(true)}
-          className="flex-row items-center gap-1.5 border-r border-ash-grey-100 bg-ash-grey-50 px-3 py-3">
+          className="flex-row items-center gap-1.5 py-3 pr-3">
           <Text className="text-base">{countryFlagEmoji(country.iso)}</Text>
           <Text className="font-sans-medium text-neutral-900">+{country.dial}</Text>
           <Ionicons name="chevron-down" size={16} color="#848a75" />
@@ -69,7 +75,8 @@ export function PhoneField({ label, value, onChange, hint }: PhoneFieldProps) {
           keyboardType="phone-pad"
           placeholder="Phone number"
           placeholderTextColor="#9ca3af"
-          className="min-w-0 flex-1 px-4 py-3 text-base text-neutral-900"
+          className="min-w-0 flex-1 py-3 pl-2 text-base text-neutral-900"
+          style={{ fontFamily: fonts.sans }}
         />
       </View>
       {hint ? <Text className="mt-1.5 text-xs text-neutral-500">{hint}</Text> : null}
@@ -89,6 +96,7 @@ export function PhoneField({ label, value, onChange, hint }: PhoneFieldProps) {
             placeholder="Search country…"
             placeholderTextColor="#9ca3af"
             className="mb-3 rounded-2xl border border-ash-grey-100 bg-ash-grey-50 px-4 py-3 text-base"
+            style={{ fontFamily: fonts.sans }}
           />
           <ScrollView>
             {filtered.map((c) => (

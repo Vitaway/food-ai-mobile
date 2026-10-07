@@ -3,20 +3,15 @@ import { Pressable, View } from 'react-native';
 
 import { CalorieRing } from '@/components/home/CalorieRing';
 import { WeekDaySelector } from '@/components/home/WeekDaySelector';
-import { ResolvedImage } from '@/components/ui/ResolvedImage';
 import { Text } from '@/components/ui/Text';
 import { tf, useI18n } from '@/context/LocaleContext';
-import { palette } from '@/design-system/colors';
-import type { DailyDashboard, MealSubmission } from '@/types';
-import { healthBandLabel, glassNounFromT } from '@/utils/i18nLabels';
-import { healthScoreMeta } from '@/utils/healthScore';
-import { formatGlassesWhole, mlToGlasses } from '@/utils/waterUnits';
+import { palette, semanticColors } from '@/design-system/colors';
+import type { DailyDashboard } from '@/types';
 
 type HomeHeroCardProps = {
   dashboard: DailyDashboard;
   dayHeading: string;
   selectedDate: string;
-  lastMeal?: MealSubmission;
   onSelectDate: (dateKey: string) => void;
   onOpenCalendar: () => void;
   onPressDetail: () => void;
@@ -26,32 +21,16 @@ export function HomeHeroCard({
   dashboard,
   dayHeading,
   selectedDate,
-  lastMeal,
   onSelectDate,
   onOpenCalendar,
   onPressDetail,
 }: HomeHeroCardProps) {
   const { t } = useI18n();
-  const calorieProgress =
-    dashboard.calorieTarget > 0
-      ? Math.round((dashboard.caloriesConsumed / dashboard.calorieTarget) * 100)
-      : 0;
-  const glassesLogged = mlToGlasses(dashboard.waterMl);
-  const glassesTarget = mlToGlasses(dashboard.waterTargetMl);
-  const health = healthScoreMeta(dashboard.healthScore);
-  const calorieRing = (
-    <CalorieRing
-      consumed={dashboard.caloriesConsumed}
-      target={dashboard.calorieTarget}
-      size={100}
-      compact
-      tone="light"
-    />
-  );
+  const left = Math.max(dashboard.calorieTarget - dashboard.caloriesConsumed, 0);
 
   return (
     <View
-      className="mb-6 overflow-hidden rounded-[28px]"
+      className="mb-2 overflow-hidden rounded-[28px]"
       style={{
         shadowColor: palette['blue-spruce'][900],
         shadowOffset: { width: 0, height: 12 },
@@ -61,73 +40,92 @@ export function HomeHeroCard({
       }}>
       <View
         style={{
-          backgroundColor: palette['blue-spruce'][600],
-          paddingHorizontal: 20,
-          paddingTop: 20,
+          backgroundColor: semanticColors.primary,
+          paddingHorizontal: 18,
+          paddingTop: 18,
           paddingBottom: 16,
         }}>
-        <View className="flex-row items-start justify-between">
-          <View className="flex-row flex-wrap items-center gap-2">
-            <View className="flex-row items-center gap-1 rounded-full bg-cinnamon-wood-300 px-2.5 py-1">
-              <Ionicons name="flame" size={14} color="#023459" />
-              <Text className="font-sans-bold text-xs text-blue-spruce-900">
+        <View className="flex-row items-center justify-between">
+          <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+              <Ionicons name="flame" size={14} color="#ffffff" />
+              <Text className="font-sans-bold text-xs text-white">
                 {dashboard.streakDays > 0
                   ? tf(t.home.dayStreak, { n: dashboard.streakDays })
                   : t.home.startStreak}
               </Text>
             </View>
-            <View className="rounded-full px-2.5 py-1" style={{ backgroundColor: `${health.accentHex}33` }}>
-              <Text className="font-sans-semibold text-xs text-white">
-                {tf(t.home.healthChip, {
-                  score: dashboard.healthScore,
-                  band: healthBandLabel(t, health.band),
-                })}
-              </Text>
-            </View>
+            <Text className="text-sm font-sans-medium text-white/75">{dayHeading}</Text>
           </View>
-
           <Pressable
             onPress={onPressDetail}
-            className="h-10 w-10 items-center justify-center rounded-full bg-white active:opacity-90">
-            <Ionicons name="arrow-up-outline" size={20} color="#023459" style={{ transform: [{ rotate: '45deg' }] }} />
+            className="h-10 w-10 items-center justify-center rounded-full bg-white/15 active:opacity-90">
+            <Ionicons name="chevron-forward" size={20} color="#ffffff" />
           </Pressable>
         </View>
 
-        <View className="mt-4 flex-row items-center justify-between">
-          <View className="min-w-0 flex-1 pr-3">
-            <Text className="text-sm font-sans-medium text-white/80">
-              {dayHeading} · {t.home.dailyPlan}
-            </Text>
-            <Text className="mt-1 font-sans-bold text-4xl text-white">{dashboard.caloriesConsumed}</Text>
-            <Text className="mt-0.5 text-base text-white/85">
-              {tf(t.home.ofKcalGoal, { target: dashboard.calorieTarget, pct: calorieProgress })}
-            </Text>
-            <Text className="mt-2 text-sm text-white/70">
-              {tf(t.home.waterGlasses, {
-                used: formatGlassesWhole(glassesLogged),
-                target: formatGlassesWhole(glassesTarget),
-                noun: glassNounFromT(t, glassesTarget),
-              })}
-            </Text>
-          </View>
-
-          <View className="items-center">
-            {lastMeal?.imageUrl || lastMeal?.thumbnailUrl ? (
-              <View className="h-[100px] w-[100px] overflow-hidden rounded-2xl border-2 border-white/30">
-                <ResolvedImage
-                  uri={lastMeal.thumbnailUrl || lastMeal.imageUrl}
-                  className="h-full w-full"
-                  resizeMode="cover"
-                  fallback={calorieRing}
-                />
+        <View className="mt-4 flex-row items-center gap-4">
+          <CalorieRing
+            consumed={dashboard.caloriesConsumed}
+            confirmed={dashboard.caloriesConfirmed}
+            estimate={dashboard.caloriesEstimate}
+            target={dashboard.calorieTarget}
+            size={118}
+            compact
+            tone="light"
+          />
+          <View className="min-w-0 flex-1 gap-2.5">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="h-2.5 w-2.5 rounded-full bg-shamrock-500" />
+                <Text className="text-sm text-white/85">{t.home.confirmed}</Text>
               </View>
-            ) : (
-              calorieRing
-            )}
+              <Text className="font-sans-bold text-white">{dashboard.caloriesConfirmed}</Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="h-2.5 w-2.5 rounded-full bg-cinnamon-wood-400" />
+                <Text className="text-sm text-white/85">{t.home.estimate}</Text>
+              </View>
+              <Text className="font-sans-bold text-white">{dashboard.caloriesEstimate}</Text>
+            </View>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="h-2.5 w-2.5 rounded-full bg-white/30" />
+                <Text className="text-sm text-white/85">{t.home.leftToday}</Text>
+              </View>
+              <Text className="font-sans-bold text-white">{left}</Text>
+            </View>
           </View>
         </View>
 
-        <View className="mt-5 overflow-hidden rounded-2xl bg-white/15 px-3 py-3">
+        <View className="mt-4 flex-row gap-3">
+          {(
+            [
+              ['protein', dashboard.macrosConsumed.proteinG, dashboard.macros.proteinG, '#1d9e75'],
+              ['carbs', dashboard.macrosConsumed.carbsG, dashboard.macros.carbsG, '#efa436'],
+              ['fat', dashboard.macrosConsumed.fatG, dashboard.macros.fatG, '#b54e24'],
+            ] as const
+          ).map(([key, used, goal, color]) => {
+            const pct = goal > 0 ? Math.min(100, Math.round((used / goal) * 100)) : 0;
+            const label =
+              key === 'protein' ? t.macros.protein : key === 'carbs' ? t.macros.carbs : t.macros.fat;
+            return (
+              <View key={key} className="flex-1">
+                <Text className="text-[11px] font-sans-semibold text-white/70">{label}</Text>
+                <Text className="mt-0.5 font-sans-bold text-sm text-white">
+                  {used}
+                  <Text className="font-sans-medium text-white/60"> / {goal} g</Text>
+                </Text>
+                <View className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/20">
+                  <View className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: color }} />
+                </View>
+              </View>
+            );
+          })}
+        </View>
+
+        <View className="mt-4 overflow-hidden rounded-2xl bg-white/12 px-3 py-3">
           <View className="mb-2 flex-row items-center justify-between px-1">
             <Text className="font-sans-semibold text-sm text-white">{t.home.thisWeek}</Text>
             <Pressable onPress={onOpenCalendar} hitSlop={8}>
