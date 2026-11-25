@@ -14,7 +14,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
+        "EXPO_PUBLIC_API_URL": "https://prod-api.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",
@@ -29,7 +29,7 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
+        "EXPO_PUBLIC_API_URL": "https://prod-api.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",
@@ -46,7 +46,7 @@
         "simulator": false
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://mirafoodserver.vitaway.org",
+        "EXPO_PUBLIC_API_URL": "https://prod-api.vitaway.org",
         "EXPO_PUBLIC_WEB_URL": "https://mirafood.vitaway.org",
         "EXPO_PUBLIC_USE_MOCK_API": "false",
         "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "566523962144-7al0hcma61l615cbudt8qklcvfsr2l7k.apps.googleusercontent.com",

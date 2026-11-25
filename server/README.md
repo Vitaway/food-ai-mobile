@@ -1,5 +1,9 @@
 # MiraFood API Server
 
+> **Superseded (25 Nov 2026).** The MiraFood API now runs inside Vitaway `core-backend` at `https://prod-api.vitaway.org/api/v1`
+> (same paths). This folder is kept for reference and for the one-time data move; see
+> `core-backend/docs/mirafood/MIRAFOOD-ON-CORE.md`. Do not deploy it.
+
 Express + TypeScript API for the MiraFood coach dashboard and mobile app. Follows the same patterns as the Inzu `app-server` stack: `routing-controllers`, TypeORM, Postgres, Redis, JWT sessions, and `{ success, data }` responses.
 
 ## Quick start (local)

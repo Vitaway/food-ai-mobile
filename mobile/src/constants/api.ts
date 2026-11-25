@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 import { NativeModules, Platform } from 'react-native';
 
-/** Production API host (MiraFood Node server) */
-export const PROD_API_HOST = 'mirafoodserver.vitaway.org';
+/** Production API host: Vitaway core-backend, which now serves the MiraFood API (same paths under /api/v1). */
+export const PROD_API_HOST = 'prod-api.vitaway.org';
 /** Production web dashboard host */
 export const PROD_WEB_HOST = 'mirafood.vitaway.org';
 const DEFAULT_DEV_PORT = 3011;
