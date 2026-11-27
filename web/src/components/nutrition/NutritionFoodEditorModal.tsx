@@ -256,7 +256,7 @@ export function NutritionFoodEditorModal({
             ? `${food.name} saved as draft`
             : editing
               ? 'Food updated'
-              : 'Food published',
+              : `${food.name} saved. It goes live once the food team approves it`,
       );
       onSaved(food);
       onClose();
@@ -286,7 +286,7 @@ export function NutritionFoodEditorModal({
           : createHint ??
             (mode === 'coach'
               ? 'Save as draft or submit for clinical review.'
-              : 'Admin-created foods are published immediately.')
+              : 'New foods wait for review: they go live once someone in the food team approves them.')
       }
       size="xl"
       footer={

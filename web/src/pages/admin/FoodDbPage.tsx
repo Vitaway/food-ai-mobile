@@ -592,7 +592,7 @@ export function AdminFoodDbPage() {
           void qc.invalidateQueries({ queryKey: ['nutrition-db'] });
           void qc.invalidateQueries({ queryKey: ['nutrition-db', 'picker'] });
         }}
-        createHint="Admin-created foods are published immediately (approved and active for coaches and the app)."
+        createHint="New foods wait in the review queue below and go live for coaches and the app once approved. Someone else reviews a food you added, unless you are a platform admin."
       />
 
       {confirmDialog}
