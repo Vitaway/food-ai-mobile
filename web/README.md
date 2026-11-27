@@ -50,7 +50,7 @@ web/src/
 
 ```env
 # web/.env.production
-VITE_API_BASE_URL=https://vitaway.nsengi.space/api/v1
+VITE_API_BASE_URL=https://prod-api.vitaway.org/api/v1
 ```
 
 Local dev proxies `/api` to `http://127.0.0.1:3011` (see `vite.config.ts`).
